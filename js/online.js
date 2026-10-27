@@ -127,7 +127,7 @@
     return `<section class="online">
       <h1 class="title"><span>Online</span> spielen</h1>
       ${loginCard}
-      <div class="ogrid">
+      <div class="ogrid${C().user() ? '' : ' solo'}">
         ${C().user() ? `<div class="ocol">
           <div id="oactive"></div>
           <div class="apanel"><h3>Freunde</h3>
@@ -135,8 +135,8 @@
             <div id="ores"></div>
             <div id="ofriends"><p class="muted">Lädt …</p></div>
           </div></div>` : ''}
-        <div class="ocol"><div class="apanel"><h3>Rangliste <small>gewonnene Partien gegen Spieler</small></h3>
-          <div class="chips mini" id="obg">${[['', 'Gesamt'], ...ONLINE.map(id => [id, gname(id)])].map(([id, l]) => `<button data-g="${id}" class="${boardGame === id ? 'on' : ''}">${esc(l)}</button>`).join('')}</div>
+        <div class="ocol"><div class="apanel"><h3>Rangliste</h3>
+          <div class="rgames" id="obg">${[['', 'Alle Spiele'], ...ONLINE.map(id => [id, gname(id)])].map(([id, l]) => `<button data-g="${id}" class="${boardGame === id ? 'on' : ''}" title="${esc(l)}">${id && V.byId[id] ? `<span class="ic">${V.byId[id].icon}</span>` : `<span class="ic all">${IC().trophy}</span>`}<small>${esc(id ? l : 'Alle')}</small></button>`).join('')}</div>
           <div id="oboard"><p class="muted">Lädt …</p></div></div></div>
       </div></section>`;
   }
@@ -206,14 +206,28 @@
   }
   async function loadBoard(b) {
     const el = b.querySelector('#oboard'); if (!el) return;
-    try { board = await C().rpc('leaderboard', { gm: boardGame || null, lim: 50 }); } catch (e) { el.innerHTML = `<p class="aerr">${esc(e.message)}</p>`; return; }
-    const top = board.top || [], me = board.me;
-    if (!top.length) { el.innerHTML = '<p class="muted">Noch keine Online-Partien gespielt. Fordere einen Freund heraus!</p>'; return; }
-    const row = (r, cls = '') => `<div class="brow ${cls}"><span class="pos">${r.pos}</span><b>${esc(r.username)}</b><span class="w">${r.wins}</span><span class="p">${r.played}</span><span class="q">${r.played ? Math.round(r.wins / r.played * 100) + ' %' : '–'}</span></div>`;
-    const myName = C().user() && C().user().username;
-    el.innerHTML = `<div class="brow head"><span class="pos">#</span><b>Spieler</b><span class="w">Siege</span><span class="p">Partien</span><span class="q">Quote</span></div>
-      ${top.map(r => row(r, r.username === myName ? 'me' : '')).join('')}
-      ${me && !top.some(r => r.username === me.username) ? '<div class="brow gap">…</div>' + row(me, 'me') : ''}`;
+    el.classList.add('loading');
+    try { board = await C().rpc('leaderboard', { gm: boardGame || null, lim: 50 }); } catch (e) { el.classList.remove('loading'); el.innerHTML = `<p class="aerr">${esc(e.message)}</p>`; return; }
+    el.classList.remove('loading');
+    const top = board.top || [], me = board.me, myName = C().user() && C().user().username;
+    const scope = boardGame ? gname(boardGame) : 'allen Spielen';
+    const pct = r => (r.played ? Math.round(r.wins / r.played * 100) : 0);
+    const mine = !C().user() ? '' : me
+      ? `<div class="rmine"><span class="rp">#${me.pos}</span><div><small>Dein Platz in ${esc(scope)}</small><b>${me.wins} ${me.wins === 1 ? 'Sieg' : 'Siege'}</b><span>${me.played} Partien · ${me.losses || 0} verloren · ${me.draws || 0} remis · ${pct(me)} %</span></div></div>`
+      : `<div class="rmine none"><div><small>Dein Platz in ${esc(scope)}</small><b>Noch keine Partie</b><span>Spiel online gegen einen Freund oder über „Online“ im Spiel-Panel, dann stehst du hier.</span></div></div>`;
+    if (!top.length) { el.innerHTML = mine + `<div class="empty small">${IC().trophy}<b>Noch leer</b><p>Hier hat noch niemand eine Online-Partie in ${esc(scope)} gewonnen.</p></div>`; return; }
+    const pod = top.slice(0, 3);
+    const order = [pod[1], pod[0], pod[2]].filter(Boolean);
+    const podium = `<div class="podium">${order.map(r => `<div class="pod p${Math.min(r.pos, 3)}${r.username === myName ? ' me' : ''}">
+        <span class="medal">${r.pos}</span><b>${esc(r.username)}</b><em>${r.wins}</em><small>${r.wins === 1 ? 'Sieg' : 'Siege'} · ${pct(r)} %</small><i class="step"></i></div>`).join('')}</div>`;
+    const row = (r, cls = '') => `<div class="rrow ${cls}"><span class="pos">${r.pos}</span>
+        <span class="who"><b>${esc(r.username)}</b>${r.username === myName ? '<em class="rtag">Du</em>' : ''}<small>${r.played} Partien</small></span>
+        <span class="rate"><i style="--w:${pct(r)}%"></i><small>${pct(r)} %</small></span><span class="w">${r.wins}</span></div>`;
+    const rest = top.slice(3);
+    el.innerHTML = mine + podium +
+      (rest.length ? `<div class="rhead"><span>#</span><span>Spieler</span><span>Siegquote</span><span>Siege</span></div>${rest.map(r => row(r, r.username === myName ? 'me' : '')).join('')}` : '') +
+      (me && me.pos > top[top.length - 1].pos ? '<div class="rgap">…</div>' + row(me, 'me') : '') +
+      `<p class="fine">${board.players || top.length} Spieler in ${esc(scope)}. Gezählt werden gewonnene Online-Partien gegen andere Spieler, gleiche Siege sortiert nach weniger Partien.</p>`;
   }
 
   // ---------- game panel: pick a friend to invite ----------

@@ -35,6 +35,10 @@ Alles geht mit Finger oder Maus. Am PC zusätzlich mit der Tastatur, `?` zeigt a
 - `N` neue Partie, `T` Tutorial, `Esc` zurück, `M` Ton an oder aus
 - Eigene Tasten: 4 Gewinnt `1`–`7`, Tic Tac Toe `1`–`9` wie der Ziffernblock, Schiffe versenken `R` drehen, `Z` zufällig, `F` fertig, Pong `←` `→` und `A` `D`, Air Hockey Pfeiltasten und `W` `A` `S` `D`, Reaktionsduell `Leertaste` bzw. `L` und `A`
 
+## Gast-Modus
+
+Ohne Konto spielt man als Gast: 4 Gewinnt, Tic Tac Toe, Schiffe versenken, Käsekästchen, Reaktionsduell und Pong gegen die KI oder zu zweit. Die übrigen Spiele, Freund- und Online-Partien und die Rangliste brauchen ein kostenloses Konto. Die Liste steht in `js/core.js` bei `GUEST_GAMES`.
+
 ## Optionen
 
 Ton, Vibration (am Handy) und Effekte lassen sich unter „Optionen“ abschalten. Mit „Effekte aus“ fallen Konfetti, Partikel, Wackeln und die Hintergrund-Animation weg, das spart Akku. Wer im System „Bewegung reduzieren“ eingestellt hat, bekommt das automatisch.
@@ -65,7 +69,7 @@ Login per Benutzername und Passwort (intern als `<name>@bananemdnaa.github.io`, 
 **Admin-Panel** (Reiter „Konto“ → „Admin-Panel“, nur für Owner und Admins):
 - Übersicht: Spielerzahl, wer gerade online ist und in welchem Spiel (aktualisiert alle 20 Sekunden), beliebteste Spiele, neue Spieler, Team
 - Spieler: Suche nach Namensanfang; ausblenden, sperren (1, 7, 30 Tage oder dauerhaft, mit Grund), entsperren, private Notiz, umbenennen, Bilanz zurücksetzen
-- Nur der Owner: Admins ernennen und entlassen, Dev-Konten (Testkonten, überall ausgeblendet). Admins können den Owner und andere Admins nicht bearbeiten.
+- Nur der Owner: Admins ernennen und entlassen, Dev-Konten (Testkonten: normal sichtbar bei Suche und Freunden, aber nicht in Ranglisten und Admin-Zahlen; Partien gegen sie zählen für niemanden). Admins können den Owner und andere Admins nicht bearbeiten.
 - Protokoll: jede Admin-Aktion mit Zeit und wer sie gemacht hat
 
 Alle Admin-Aktionen prüft der Server selbst (`require_admin`, `require_owner`), das Spiel zeigt nur die Knöpfe an.
@@ -86,9 +90,9 @@ Im Reiter „Online“ sucht man Spieler nach Namen, schickt Freundschaftsanfrag
 - Schiffe versenken online: Die Flotten liegen nur auf dem Server, der sie auf die Regeln prüft (5 Schiffe, gerade, ohne Berührung), jeden Schuss auswertet und entscheidet, wer dran ist. Der Gegner sieht ein Schiff erst, wenn es versenkt ist.
 - Beide Browser prüfen jeden Zug nach den Spielregeln; ein ungültiger Zug annulliert die Partie. Am Ende melden beide das Ergebnis, stimmen die Meldungen nicht überein, wird die Partie annulliert.
 - Aufgeben über die Flagge oben rechts. Wer 75 Sekunden nicht erreichbar ist, verliert. Nach einem Neuladen geht es über „Weiterspielen“ im Reiter Online weiter.
-- **Rangliste:** gewonnene Online-Partien gegen andere Spieler, gesamt und pro Spiel (Partien gegen die KI zählen nicht). Ausgeblendete und Dev-Konten erscheinen nicht.
+- **Rangliste:** gewonnene Online-Partien gegen andere Spieler, gesamt und pro Spiel (Partien gegen die KI zählen nicht). Oben steht dein eigener Platz, darunter ein Podest für die Top 3 und die Liste mit Siegquote. Ausgeblendete Spieler und Dev-Konten erscheinen nicht; Partien gegen ein Dev-Konto zählen für beide Spieler nicht.
 - **Admin-Panel → Partien:** laufende und beendete Partien mit Spielern, Zügen und Ergebnis. „Zuschauen“ zeigt eine laufende Partie live, „Abspielen“ spielt eine beendete Zug für Zug nach. Admins können Partien annullieren (steht im Protokoll).
 
-Dafür einmal `supabase/migrations/20261029000000_friends_matches.sql` und danach `supabase/migrations/20261030000000_open_matches.sql`, für Schiffe versenken online zusätzlich `supabase/migrations/20261031000000_ships_online.sql` im SQL-Editor ausführen.
+Dafür einmal `supabase/migrations/20261029000000_friends_matches.sql` und danach `supabase/migrations/20261030000000_open_matches.sql`, für Schiffe versenken online zusätzlich `supabase/migrations/20261031000000_ships_online.sql` und `supabase/migrations/20261101000000_dev_rankings.sql` im SQL-Editor ausführen.
 
 Neue Migrationen kommen als weitere Datei in `supabase/migrations/` und werden in Reihenfolge einmal im SQL-Editor ausgeführt.

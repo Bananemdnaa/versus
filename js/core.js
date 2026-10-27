@@ -297,6 +297,7 @@
     spark: svg('<path d="M12 3v4M12 17v4M3 12h4M17 12h4M6 6l2.5 2.5M15.5 15.5L18 18M6 18l2.5-2.5M15.5 8.5L18 6"/>'),
     user: svg('<circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/>'),
     globe: svg('<circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/>'),
+    lock: svg('<rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/>'),
     shield: svg('<path d="M12 3l8 3v6c0 4.5-3.4 8-8 9-4.6-1-8-4.5-8-9V6z"/>')
   };
 
@@ -344,11 +345,17 @@
     const a = root.querySelector('#acct'); if (a) a.onclick = () => { V.sfx.ui(); home('profile'); };
     const l = root.querySelector('#logo'); if (l) l.onclick = () => home('games');
   }
-  // account button in the header: name when logged in, otherwise "Anmelden"
+  // Guests (accounts exist, but nobody is logged in) can play these games against the AI and on one device.
+  // Everything else, plus online matches and the rankings, needs a free account.
+  const GUEST_GAMES = ['c4', 'ttt', 'ships', 'dots', 'reaction', 'pong'];
+  const guest = () => !!(V.cloud && V.cloud.available() && !V.cloud.user());
+  const locked = g => !!g && guest() && !GUEST_GAMES.includes(g.id);
+  V.guest = guest; V.locked = locked;
+  // account button in the header: name when logged in, otherwise "Gast · Anmelden"
   function acctChip() {
     if (!V.cloud || !V.cloud.available()) return '';
     const u = V.cloud.user();
-    return `<button class="acct${u ? ' in' : ''}" id="acct" title="Konto">${IC.user}<span>${u ? u.username : 'Anmelden'}</span></button>`;
+    return `<button class="acct${u ? ' in' : ' guest'}" id="acct" title="Konto">${IC.user}<span>${u ? u.username : 'Gast'}</span>${u ? '' : '<em>Anmelden</em>'}</button>`;
   }
   function refreshAcct() {
     const a = document.getElementById('acct'); if (!a) return;
@@ -425,7 +432,7 @@
           <h1 class="title"><span>Wähl dein</span> Duell</h1>
           <p class="tagline">${V.games.length} Spiele für zwei an einem Gerät. Oder du gegen die KI in vier Stufen.</p>
         </div>
-        ${rg ? `<button class="cont" id="cont" style="--acc:${rg.accent || 'var(--pink)'}"><div class="ic">${rg.icon}</div><div class="ct"><small>Weiterspielen</small><b>${rg.name}</b><span>${rc.mode === 'local' ? 'Zu zweit' : 'Gegen KI · ' + V.LEVELS[rc.level]}</span></div><span class="go">${IC.play}</span></button>` : ''}
+        ${rg && !locked(rg) ? `<button class="cont" id="cont" style="--acc:${rg.accent || 'var(--pink)'}"><div class="ic">${rg.icon}</div><div class="ct"><small>Weiterspielen</small><b>${rg.name}</b><span>${rc.mode === 'local' ? 'Zu zweit' : 'Gegen KI · ' + V.LEVELS[rc.level]}</span></div><span class="go">${IC.play}</span></button>` : ''}
         <div class="chips" role="tablist">${['Alle', ...V.CATS].map(c => `<button role="tab" data-f="${c}" class="${homeFilter === c ? 'on' : ''}">${c}</button>`).join('')}</div>
         <div class="tiles">${list.map(tile).join('')}</div>
       </section>
@@ -468,10 +475,11 @@
     const loc = s ? s.local.a + s.local.b + s.local.d : 0;
     const played = s && (s.ai.reduce((a, r) => a + r.w + r.l + r.d, 0) + loc) > 0;
     const isSel = wide() && selected && selected.id === g.id;
-    return `<button class="tile${isSel ? ' sel' : ''}" data-id="${g.id}" style="--acc:${g.accent || 'var(--pink)'};--i:${i}">
-      <span class="art"><span class="ic">${g.icon}</span></span>
+    const lock = locked(g);
+    return `<button class="tile${isSel ? ' sel' : ''}${lock ? ' locked' : ''}" data-id="${g.id}" style="--acc:${g.accent || 'var(--pink)'};--i:${i}">
+      <span class="art"><span class="ic">${g.icon}</span>${lock ? `<span class="lk">${IC.lock}</span>` : ''}</span>
       <span class="tx"><b>${g.name}</b><small>${g.short}</small></span>
-      <span class="meta">${played ? `<em>${g.cat}</em>` : '<em class="new">Neu</em>'}${played && g.noAI ? `<em class="rec">${loc}× gespielt</em>` : played && w + l ? `<em class="rec">KI ${w}:${l}</em>` : ''}</span></button>`;
+      <span class="meta">${lock ? '<em class="lock">Mit Konto</em>' : played ? `<em>${g.cat}</em>` : '<em class="new">Neu</em>'}${played && g.noAI ? `<em class="rec">${loc}× gespielt</em>` : played && w + l ? `<em class="rec">KI ${w}:${l}</em>` : ''}</span></button>`;
   }
 
   // ---------- game panel (desktop side panel and phone setup screen) ----------
@@ -502,12 +510,23 @@
       gp.querySelector('.gp-txt p').textContent = g.desc;
       if (V.fxOn()) { V.fx.pop(gp, fresh ? 'gp-new' : 'gp-sw'); clearTimeout(gp._t); gp._t = setTimeout(() => gp.classList.remove('gp-new', 'gp-sw'), 450); }
     }
+    if (locked(g)) {
+      const ok = GUEST_GAMES.map(id => V.byId[id] && V.byId[id].name).filter(Boolean);
+      gp.querySelector('.gp-body').innerHTML = `<div class="gp-lock"><span class="lki">${IC.lock}</span><div><b>Mit Konto spielbar</b>
+        <p>Als Gast kannst du ${ok.slice(0, -1).join(', ')} und ${ok[ok.length - 1]} spielen. Mit einem kostenlosen Konto sind alle ${V.games.length} Spiele frei, dazu Online-Partien, Freunde und die Rangliste.</p></div></div>
+        <div class="gp-go"><button class="btn primary big" id="acc"><span>${IC.user}Konto erstellen</span></button><button class="btn ghost" id="tut"><span>${IC.book}Regeln</span></button></div>`;
+      const rer = () => renderPanel(root, g, full);
+      root.querySelector('#acc').onclick = () => { V.sfx.ui(); home('profile'); };
+      root.querySelector('#tut').onclick = () => tutorial(g, rer);
+      panelApi = { g, go() { home('profile'); }, tut() { tutorial(g, rer); }, level() { }, step() { }, mode() { } };
+      return;
+    }
     gp.querySelector('.gp-body').innerHTML = `
       <div class="gp-mode${g.online && V.cloud && V.cloud.available() ? ' four' : ''}" id="mode">
         ${g.noAI ? '' : `<button data-v="ai" class="${cfg.mode === 'ai' ? 'on' : ''}">${IC.robot}<span>Gegen KI</span></button>`}
         <button data-v="local" class="${cfg.mode === 'local' ? 'on' : ''}">${IC.users}<span>Zu zweit</span></button>
-        ${g.online && V.cloud && V.cloud.available() ? `<button data-v="online" class="${cfg.mode === 'online' ? 'on' : ''}">${IC.user}<span>Freund</span></button>
-        <button data-v="open" class="${cfg.mode === 'open' ? 'on' : ''}">${IC.globe}<span>Online</span></button>` : ''}
+        ${g.online && V.cloud && V.cloud.available() ? `<button data-v="online" class="${cfg.mode === 'online' ? 'on' : ''}${guest() ? ' lockd' : ''}">${guest() ? IC.lock : IC.user}<span>Freund</span></button>
+        <button data-v="open" class="${cfg.mode === 'open' ? 'on' : ''}${guest() ? ' lockd' : ''}">${guest() ? IC.lock : IC.globe}<span>Online</span></button>` : ''}
       </div>
       ${cfg.mode === 'ai' ? `<div class="gp-lvl">
         <div class="lv-top"><span>Stärke</span><b class="l${lvl}">${V.LEVELS[lvl]}</b><em>Bilanz ${s.ai[lvl].w}:${s.ai[lvl].l}</em></div>
@@ -774,6 +793,7 @@
   // ctx.aiTurn() and gets the move from the network instead of from a search.
   function play(g, cfg, series) {
     const rematch = !!series;
+    if (cfg.mode !== 'watch' && (locked(g) || (guest() && (cfg.mode === 'online' || cfg.mode === 'open')))) { toast('Dafür brauchst du ein Konto'); return home('profile'); }
     destroyCurrent(); view = 'play'; lastGame = g; selected = g;
     const online = cfg.mode === 'online', watch = cfg.mode === 'watch', M = cfg.match || {};
     if (!watch) S.set('recent', g.id);
@@ -906,7 +926,7 @@
         const menu = () => watch ? V.account.admin('matches') : setup(g);
         ctx.later(() => {
           const m = openModal(`<div class="ko ${tone}">
-            <div class="band"><div class="band-in"><span class="kicker">${esc(note || sublabel)}</span>
+            <div class="band"><div class="band-in"><span class="kicker">${esc(note || sublabel)}${online && net && net.last && net.last.ranked === false ? ' · zählt nicht für die Rangliste' : ''}</span>
               <h2 aria-label="${esc(big)}">${[...big].map((ch, k) => `<span aria-hidden="true" style="--k:${k}">${ch === ' ' ? '&nbsp;' : esc(ch)}</span>`).join('')}</h2></div></div>
             <div class="eseries"><span class="nl">${esc(names[L])}</span><b class="sl">${series[L]}</b><i>:</i><b class="sr">${series[R]}</b><span class="nr">${esc(names[R])}</span></div>
             ${series.d ? `<p class="small">${series.d}× unentschieden</p>` : ''}
@@ -1171,8 +1191,16 @@
     show(name, html) { destroyCurrent(); view = name; const v = mount(html); wireHeader(v); return v; },
     view: () => view, tab: () => homeTab
   };
+  let cloudUser = null;
   function onCloud() {
     refreshAcct();
+    // logged in or out: locks, modes and the panel change, so the menus are drawn again
+    const u = V.cloud.user(), id = u ? u.id : null;
+    if (id !== cloudUser) {
+      cloudUser = id;
+      if (view === 'home' && homeTab !== 'profile') return home();
+      if (view === 'setup' && selected) return setup(selected);
+    }
     if (view === 'home' && homeTab === 'profile' && V.account) {
       const b = app.querySelector('.hbody');
       if (b && !(document.activeElement && b.contains(document.activeElement) && document.activeElement.tagName === 'INPUT')) home('profile');
