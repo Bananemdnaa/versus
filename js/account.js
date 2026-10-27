@@ -1,0 +1,245 @@
+// Versus: account tab (login, register, profile) and the admin panel.
+(function () {
+  'use strict';
+  const C = () => V.cloud, IC = () => V.ui.IC;
+  const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const day = t => t ? new Date(t).toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' }) : '–';
+  const when = t => t ? new Date(t).toLocaleString('de-DE', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) : '–';
+  function ago(t) {
+    if (!t) return 'nie';
+    const s = Math.max(0, (Date.now() - new Date(t).getTime()) / 1000);
+    if (s < 90) return 'gerade eben';
+    if (s < 3600) return `vor ${Math.round(s / 60)} Min.`;
+    if (s < 86400) return `vor ${Math.round(s / 3600)} Std.`;
+    return `vor ${Math.round(s / 86400)} Tagen`;
+  }
+  const gameName = id => (id && V.byId[id] ? V.byId[id].name : id ? id : 'Menü');
+  const ROLE = { owner: 'Owner', admin: 'Admin' };
+
+  // ---------- account tab ----------
+  let mode = 'login', err = '', busyForm = false, openBox = null;
+  function tab() {
+    const c = C();
+    if (!c || !c.available()) return `<section class="page acctp"><h1 class="title"><span>Dein</span> Konto</h1>
+      <div class="acard"><p class="lead">Online-Konten sind gleich da. Der Server wird gerade eingerichtet.</p></div></section>`;
+    const u = c.user();
+    if (!u) return `<section class="page acctp"><h1 class="title"><span>Dein</span> Konto</h1>
+      <div class="acard">
+        <p class="lead">Mit einem Konto liegt deine Bilanz sicher auf dem Server und ist auf jedem Gerät dabei. Freunde und Online-Duelle bauen darauf auf.</p>
+        <div class="gp-mode amode" id="amode"><button data-m="login" class="${mode === 'login' ? 'on' : ''}">${IC().user}<span>Einloggen</span></button><button data-m="new" class="${mode === 'new' ? 'on' : ''}">${IC().spark}<span>Konto erstellen</span></button></div>
+        <form class="aform" id="aform" autocomplete="on">
+          <label for="a_name">Benutzername</label>
+          <input class="inp" id="a_name" name="username" autocomplete="username" maxlength="16" placeholder="z. B. felix_99" autocapitalize="none" spellcheck="false">
+          <label for="a_pw">Passwort</label>
+          <input class="inp" id="a_pw" name="password" type="password" autocomplete="${mode === 'new' ? 'new-password' : 'current-password'}" placeholder="mindestens 6 Zeichen">
+          ${mode === 'new' ? '<label for="a_pw2">Passwort wiederholen</label><input class="inp" id="a_pw2" type="password" autocomplete="new-password">' : ''}
+          <p class="aerr" id="aerr" role="alert">${esc(err)}</p>
+          <button class="btn primary big" type="submit"><span>${mode === 'new' ? 'Konto erstellen' : 'Einloggen'}</span></button>
+          ${mode === 'new' ? '<p class="fine">Benutzername: 3 bis 16 Zeichen, nur a–z, 0–9, _ und -. Es gibt keine E-Mail, merk dir dein Passwort gut.</p>' : ''}
+        </form>
+        ${guestNote()}
+      </div></section>`;
+    const info = c.info() || {}, st = c.state(), role = c.role();
+    const sync = st.status === 'sync' ? ['sync', 'Wird abgeglichen …'] : st.status === 'error' ? ['bad', 'Abgleich fehlgeschlagen: ' + esc(st.error)] : ['ok', 'Gespeichert ' + ago(st.last)];
+    const next = info.next_rename && new Date(info.next_rename) > new Date() ? info.next_rename : null;
+    return `<section class="page acctp">
+      <h1 class="title"><span>Dein</span> Konto</h1>
+      <div class="acard me">
+        <div class="ahead"><span class="abig">${esc(u.username.slice(0, 2).toUpperCase())}</span>
+          <div><b>${esc(u.username)}</b>${role ? `<em class="rtag ${role}">${ROLE[role]}</em>` : ''}${info.dev ? '<em class="rtag dev">Dev</em>' : ''}<small>Dabei seit ${day(info.joined)}</small></div></div>
+        <div class="sync ${sync[0]}"><i></i><span>${sync[1]}</span><button class="btn ghost sm" id="a_sync"><span>${IC().redo}Abgleichen</span></button></div>
+        <div class="arow">
+          ${role ? `<button class="btn primary" id="a_admin"><span>${IC().shield}Admin-Panel</span></button>` : ''}
+          <button class="btn" id="a_out"><span>Abmelden</span></button>
+        </div>
+      </div>
+      <div class="optlist small">
+        <button class="opt" data-box="rename">${IC().user}<span><b>Benutzernamen ändern</b><small>${next ? 'Wieder möglich ab ' + day(next) : 'Einmal pro Woche möglich'}</small></span></button>
+        ${openBox === 'rename' ? `<form class="abox" id="f_rename"><input class="inp" id="r_name" maxlength="16" placeholder="Neuer Name" autocapitalize="none" spellcheck="false" value="${esc(u.username)}"><button class="btn sm" type="submit"><span>Ändern</span></button><p class="aerr" id="r_err"></p></form>` : ''}
+        <button class="opt danger" data-box="delete">${IC().x}<span><b>Konto löschen</b><small>Löscht dein Konto und alle Daten auf dem Server</small></span></button>
+        ${openBox === 'delete' ? `<form class="abox" id="f_delete"><input class="inp" id="d_pw" type="password" autocomplete="current-password" placeholder="Passwort zur Bestätigung"><button class="btn sm danger" type="submit"><span>Endgültig löschen</span></button><p class="aerr" id="d_err"></p></form>` : ''}
+      </div>
+    </section>`;
+  }
+  function guestNote() {
+    const s = V.store.get('stats', {});
+    const n = Object.values(s).reduce((a, g) => a + (g.ai || []).reduce((x, r) => x + (r.w || 0) + (r.l || 0) + (r.d || 0), 0) + ((g.local || {}).a || 0) + ((g.local || {}).b || 0) + ((g.local || {}).d || 0), 0);
+    return n ? `<p class="fine">Deine ${n} Partien aus diesem Browser wandern beim Einloggen mit ins Konto.</p>` : '';
+  }
+  function wire(b) {
+    const c = C(); if (!c || !c.available()) return;
+    const am = b.querySelector('#amode');
+    if (am) am.querySelectorAll('button').forEach(x => x.onclick = () => { mode = x.dataset.m; err = ''; V.sfx.ui(); V.ui.home('profile'); });
+    const f = b.querySelector('#aform');
+    if (f) {
+      const name = b.querySelector('#a_name'), pw = b.querySelector('#a_pw');
+      const keep = sessionStorage.getItem('versus.aname'); if (keep && !name.value) name.value = keep;
+      name.oninput = () => { try { sessionStorage.setItem('versus.aname', name.value); } catch (e) { } };
+      f.onsubmit = async e => {
+        e.preventDefault(); if (busyForm) return;
+        const errEl = b.querySelector('#aerr');
+        if (mode === 'new' && pw.value !== b.querySelector('#a_pw2').value) { errEl.textContent = 'Die Passwörter sind nicht gleich.'; return; }
+        busyForm = true; f.classList.add('busy'); errEl.textContent = '';
+        try {
+          if (mode === 'new') await c.signUp(name.value, pw.value); else await c.signIn(name.value, pw.value);
+          err = ''; V.sfx.goal(); V.ui.toast(mode === 'new' ? 'Konto erstellt' : 'Eingeloggt');
+          V.ui.home('profile');
+        } catch (x) { errEl.textContent = x.message; V.sfx.bad(); V.fx.shake(f, true); }
+        busyForm = false; f.classList.remove('busy');
+      };
+      if (!V.coarse) setTimeout(() => name.focus(), 50);
+    }
+    const q = s => b.querySelector(s);
+    if (q('#a_sync')) q('#a_sync').onclick = () => { V.sfx.ui(); c.syncNow(); };
+    if (q('#a_out')) q('#a_out').onclick = async () => { V.sfx.ui(); await c.signOut(); V.ui.toast('Abgemeldet'); V.ui.home('profile'); };
+    if (q('#a_admin')) q('#a_admin').onclick = () => { V.sfx.ui(); admin(); };
+    b.querySelectorAll('[data-box]').forEach(x => x.onclick = () => { openBox = openBox === x.dataset.box ? null : x.dataset.box; V.sfx.ui(); V.ui.home('profile'); });
+    if (q('#f_rename')) q('#f_rename').onsubmit = async e => {
+      e.preventDefault();
+      try { const nn = await c.rename(q('#r_name').value); openBox = null; V.ui.toast('Du heißt jetzt ' + nn); V.ui.home('profile'); }
+      catch (x) { q('#r_err').textContent = x.message; }
+    };
+    if (q('#f_delete')) q('#f_delete').onsubmit = async e => {
+      e.preventDefault();
+      try { await c.deleteAccount(q('#d_pw').value); openBox = null; V.ui.toast('Konto gelöscht'); V.ui.home('profile'); }
+      catch (x) { q('#d_err').textContent = x.message; }
+    };
+  }
+
+  // ---------- admin panel ----------
+  let aTab = 'overview', stats = null, online = null, players = null, logs = null, query = '', aErr = '', box = null, sure = null, liveT = null, busy = false;
+  function admin(t) {
+    if (t) aTab = t;
+    const v = V.ui.show('admin', `<div class="view admin">
+      <div class="sbar"><button class="iconbtn" id="bk" aria-label="Zurück">${IC().back}</button><span class="crumb">Admin-Panel</span>
+        ${C().role() ? `<em class="rtag ${C().role()}">${ROLE[C().role()]}</em>` : ''}</div>
+      <div class="chips" id="atabs">${[['overview', 'Übersicht'], ['players', 'Spieler'], ['log', 'Protokoll']].map(([k, l]) => `<button data-t="${k}" class="${aTab === k ? 'on' : ''}">${l}</button>`).join('')}</div>
+      <div id="abody" class="abody"></div></div>`);
+    v.querySelector('#bk').onclick = () => { stopLive(); V.ui.home('profile'); };
+    v.querySelectorAll('#atabs button').forEach(x => x.onclick = () => { aTab = x.dataset.t; aErr = ''; box = null; sure = null; V.sfx.ui(); v.querySelectorAll('#atabs button').forEach(y => y.classList.toggle('on', y === x)); draw(); load(); });
+    draw(); load();
+    stopLive();
+    liveT = setInterval(() => {
+      if (V.ui.view() !== 'admin') return stopLive();
+      if (aTab === 'overview') C().rpc('admin_online').then(o => { online = o || []; draw(); }, () => { });
+    }, 20000);
+  }
+  function stopLive() { clearInterval(liveT); liveT = null; }
+  async function load() {
+    try {
+      if (aTab === 'overview') { const [s, o] = await Promise.all([C().rpc('admin_stats'), C().rpc('admin_online')]); stats = s; online = o || []; }
+      if (aTab === 'players') players = await C().rpc('admin_players', { q: query, lim: 40 });
+      if (aTab === 'log') logs = await C().rpc('admin_log_list', { lim: 80 });
+      aErr = '';
+    } catch (e) { aErr = e.message; }
+    draw();
+  }
+  async function act(name, args, ok) {
+    if (busy) return; busy = true; draw();
+    try { await C().rpc(name, args); V.ui.toast(ok); box = null; sure = null; await load(); }
+    catch (e) { aErr = e.message; V.sfx.bad(); }
+    busy = false; draw();
+  }
+  function draw(force) {
+    const host = document.getElementById('abody'); if (!host) return;
+    const keep = document.activeElement && host.contains(document.activeElement) && /INPUT|TEXTAREA/.test(document.activeElement.tagName);
+    if (keep && !force) return;
+    host.innerHTML = (aErr ? `<p class="aerr big">${esc(aErr)}</p>` : '') + (aTab === 'overview' ? overview() : aTab === 'players' ? playerList() : logList());
+    wireAdmin(host);
+  }
+  function overview() {
+    if (!stats) return '<p class="muted">Lädt …</p>';
+    const S = stats;
+    const tile = (l, v, s) => `<div class="kpi"><b>${v}</b><span>${l}</span>${s ? `<small>${s}</small>` : ''}</div>`;
+    const games = Object.entries(S.games || {}).sort((a, b) => b[1] - a[1]);
+    const max = games.length ? games[0][1] : 1;
+    return `<div class="kpis">${tile('Spieler', S.players, '+' + S.new7 + ' in 7 Tagen')}${tile('Online', S.online)}${tile('Aktiv heute', S.active1, S.active7 + ' in 7 Tagen')}${tile('Partien', S.matches)}</div>
+      <div class="agrid">
+        <div class="apanel"><h3>Gerade online <small>${(online || []).length}</small></h3>
+          ${(online || []).length ? (online || []).map(o => `<div class="aline"><button class="link" data-p="${esc(o.username)}">${esc(o.username)}</button><span>${esc(gameName(o.game))}</span><small>${ago(o.seen)}</small></div>`).join('') : '<p class="muted">Gerade niemand.</p>'}
+          <p class="fine">Aktualisiert sich alle 20 Sekunden.</p></div>
+        <div class="apanel"><h3>Beliebte Spiele</h3>
+          ${games.length ? games.map(([id, n]) => `<div class="abar"><span>${esc(gameName(id))}</span><i style="--w:${Math.round(n / max * 100)}%"></i><b>${n}</b></div>`).join('') : '<p class="muted">Noch keine Partien.</p>'}</div>
+        <div class="apanel"><h3>Neue Spieler</h3>
+          ${(S.recent || []).map(p => `<div class="aline"><button class="link" data-p="${esc(p.username)}">${esc(p.username)}</button><small>${day(p.joined)}</small></div>`).join('') || '<p class="muted">Noch niemand.</p>'}</div>
+        <div class="apanel"><h3>Team</h3>
+          ${(S.team || []).map(t => `<div class="aline"><button class="link" data-p="${esc(t.username)}">${esc(t.username)}</button><em class="rtag ${t.role}">${ROLE[t.role]}</em></div>`).join('')}
+          <p class="fine">${S.banned} gesperrt · ${S.hidden} ausgeblendet</p></div>
+      </div>
+      <div class="arow"><button class="btn ghost sm" id="reload"><span>${IC().redo}Neu laden</span></button></div>`;
+  }
+  function playerList() {
+    const owner = C().role() === 'owner';
+    const cards = (players || []).map(p => {
+      const n = esc(p.username), st = p.stats || {};
+      const canEdit = owner || !p.role || p.me;
+      const tags = [p.role ? `<em class="rtag ${p.role}">${ROLE[p.role]}</em>` : '', p.dev ? '<em class="rtag dev">Dev</em>' : '',
+        p.hidden ? '<em class="rtag muted">Ausgeblendet</em>' : '', p.banned_until ? `<em class="rtag bad">Gesperrt bis ${day(p.banned_until)}</em>` : ''].join('');
+      const online = p.seen && Date.now() - new Date(p.seen).getTime() < 120000;
+      const btn = (a, l, cls = '') => `<button class="btn ghost sm ${cls}" data-a="${a}" data-n="${n}"${busy ? ' disabled' : ''}><span>${l}</span></button>`;
+      const confirmBtn = (key, l, l2, a) => sure === key + n ? btn(a, l2, 'danger') : `<button class="btn ghost sm" data-sure="${key + n}"><span>${l}</span></button>`;
+      let boxHtml = '';
+      if (box === 'ban:' + n) boxHtml = `<div class="abox"><input class="inp" id="ban_r" maxlength="200" placeholder="Grund (optional, nur für Admins sichtbar)">
+        <div class="arow">${[[1, '1 Tag'], [7, '7 Tage'], [30, '30 Tage'], [0, 'Dauerhaft']].map(([d, l]) => `<button class="btn sm danger" data-ban="${d}" data-n="${n}"><span>${l}</span></button>`).join('')}</div></div>`;
+      if (box === 'note:' + n) boxHtml = `<div class="abox"><textarea class="inp" id="note_t" maxlength="500" rows="3" placeholder="Private Notiz für das Team">${esc(p.note || '')}</textarea><button class="btn sm" data-a="note_save" data-n="${n}"><span>Speichern</span></button></div>`;
+      if (box === 'ren:' + n) boxHtml = `<div class="abox"><input class="inp" id="ren_n" maxlength="16" value="${n}" autocapitalize="none" spellcheck="false"><button class="btn sm" data-a="ren_save" data-n="${n}"><span>Umbenennen</span></button></div>`;
+      return `<div class="pcard-a${online ? ' on' : ''}">
+        <div class="pa-top"><span class="adot"></span><b>${n}</b>${tags}</div>
+        <div class="pa-info">Dabei seit ${day(p.joined)} · ${online ? '<b class="good">online</b> · ' + esc(gameName(p.game)) : 'zuletzt ' + ago(p.seen)} · ${st.played || 0} Partien · KI ${st.ai_wins || 0}:${(st.ai_games || 0) - (st.ai_wins || 0)}</div>
+        ${p.ban_reason ? `<div class="pa-note bad">Sperrgrund: ${esc(p.ban_reason)}</div>` : ''}
+        ${p.note ? `<div class="pa-note">Notiz${p.note_by ? ' von ' + esc(p.note_by) : ''}: ${esc(p.note)}</div>` : ''}
+        ${canEdit ? `<div class="arow wrap">
+          ${btn(p.hidden ? 'show' : 'hide', p.hidden ? 'Einblenden' : 'Ausblenden')}
+          ${p.banned_until ? btn('unban', 'Entsperren') : p.role === 'owner' || p.me ? '' : `<button class="btn ghost sm" data-box="ban:${n}"><span>Sperren …</span></button>`}
+          <button class="btn ghost sm" data-box="note:${n}"><span>${p.note ? 'Notiz ändern' : 'Notiz'}</span></button>
+          <button class="btn ghost sm" data-box="ren:${n}"><span>Umbenennen</span></button>
+          ${confirmBtn('reset:', 'Bilanz zurücksetzen', 'Wirklich alles auf 0?', 'reset')}
+          ${owner && !p.me && p.role !== 'owner' ? confirmBtn('adm:', p.role ? 'Admin entziehen' : 'Zum Admin machen', p.role ? 'Wirklich entziehen?' : 'Wirklich Admin?', p.role ? 'admin_off' : 'admin_on') : ''}
+          ${owner ? confirmBtn('dev:', p.dev ? 'Dev aufheben' : 'Zum Dev-Konto', 'Wirklich?', p.dev ? 'dev_off' : 'dev_on') : ''}
+        </div>${boxHtml}` : '<div class="pa-info muted">Nur der Owner kann Admins bearbeiten.</div>'}
+      </div>`;
+    }).join('');
+    return `<div class="asearch"><input class="inp" id="aq" placeholder="Spieler suchen (Namensanfang)" value="${esc(query)}" autocapitalize="none" spellcheck="false"><button class="btn ghost sm" id="reload"><span>${IC().redo}</span></button></div>
+      ${players ? cards || '<p class="muted">Niemand gefunden.</p>' : '<p class="muted">Lädt …</p>'}`;
+  }
+  function logList() {
+    const L = { hide: 'ausgeblendet', show: 'eingeblendet', ban: 'gesperrt', unban: 'entsperrt', note: 'Notiz', rename: 'umbenannt', reset_stats: 'Bilanz zurückgesetzt', admin_on: 'zum Admin gemacht', admin_off: 'Admin entzogen', dev_on: 'Dev-Konto an', dev_off: 'Dev-Konto aus' };
+    if (!logs) return '<p class="muted">Lädt …</p>';
+    if (!logs.length) return '<p class="muted">Noch keine Admin-Aktionen.</p>';
+    return `<div class="apanel">${logs.map(l => `<div class="aline log"><small>${when(l.created_at)}</small><b>${esc(l.admin_name || '?')}</b><span>${esc(L[l.action] || l.action)} <button class="link" data-p="${esc(l.target || '')}">${esc(l.target || '')}</button>${l.detail ? ' · ' + esc(l.detail) : ''}</span></div>`).join('')}</div>`;
+  }
+  let qTimer = null;
+  function wireAdmin(h) {
+    const r = h.querySelector('#reload'); if (r) r.onclick = () => { V.sfx.ui(); load(); };
+    h.querySelectorAll('[data-p]').forEach(x => x.onclick = () => { if (!x.dataset.p) return; query = x.dataset.p; players = null; aTab = 'players'; admin(); });
+    const q = h.querySelector('#aq');
+    if (q) {
+      q.oninput = () => { clearTimeout(qTimer); qTimer = setTimeout(() => { query = q.value.trim(); load().then(() => { draw(true); const n = document.getElementById('aq'); if (n) { n.focus(); n.setSelectionRange(n.value.length, n.value.length); } }); }, 350); };
+      q.onblur = () => setTimeout(draw, 0);
+    }
+    h.querySelectorAll('[data-box]').forEach(x => x.onclick = () => { box = box === x.dataset.box ? null : x.dataset.box; sure = null; draw(); });
+    h.querySelectorAll('[data-sure]').forEach(x => x.onclick = () => { sure = x.dataset.sure; draw(); });
+    h.querySelectorAll('[data-ban]').forEach(x => x.onclick = () => {
+      const d = +x.dataset.ban, n = x.dataset.n, reason = (h.querySelector('#ban_r') || {}).value || null;
+      act('admin_ban', { name: n, days: d || null, reason }, `${n} ist ${d ? 'für ' + x.textContent.trim() : 'dauerhaft'} gesperrt.`);
+    });
+    h.querySelectorAll('[data-a]').forEach(x => x.onclick = () => {
+      const n = x.dataset.n;
+      const A = {
+        hide: () => act('admin_set_hidden', { name: n, hide: true }, n + ' ist ausgeblendet.'),
+        show: () => act('admin_set_hidden', { name: n, hide: false }, n + ' ist wieder sichtbar.'),
+        unban: () => act('admin_unban', { name: n }, n + ' ist entsperrt.'),
+        reset: () => act('admin_reset_stats', { name: n }, 'Bilanz von ' + n + ' ist zurückgesetzt.'),
+        admin_on: () => act('admin_set_admin', { name: n, make: true }, n + ' ist jetzt Admin.'),
+        admin_off: () => act('admin_set_admin', { name: n, make: false }, n + ' ist kein Admin mehr.'),
+        dev_on: () => act('admin_set_dev', { name: n, make: true }, n + ' ist jetzt ein Dev-Konto.'),
+        dev_off: () => act('admin_set_dev', { name: n, make: false }, n + ' ist kein Dev-Konto mehr.'),
+        note_save: () => act('admin_set_note', { name: n, txt: h.querySelector('#note_t').value }, 'Notiz gespeichert.'),
+        ren_save: () => { const nn = h.querySelector('#ren_n').value.trim().toLowerCase(); act('admin_rename_user', { name: n, new_name: nn }, n + ' heißt jetzt ' + nn + '.'); query = nn; }
+      };
+      if (A[x.dataset.a]) A[x.dataset.a]();
+    });
+  }
+
+  V.account = { tab, wire, admin };
+})();

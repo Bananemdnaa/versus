@@ -17,7 +17,8 @@
   // ---------- storage ----------
   const S = V.store = {
     get(k, d) { try { const v = localStorage.getItem('versus.' + k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } },
-    set(k, v) { try { localStorage.setItem('versus.' + k, JSON.stringify(v)); } catch (e) { } }
+    // silent: written by the cloud sync itself, so it must not trigger another upload
+    set(k, v, silent) { try { localStorage.setItem('versus.' + k, JSON.stringify(v)); } catch (e) { } if (!silent && V.cloud) V.cloud.changed(k); }
   };
   const settings = V.settings = Object.assign({ sound: true, haptic: true, fx: 'full' }, S.get('settings', {}));
   const saveSettings = () => S.set('settings', settings);
@@ -293,7 +294,9 @@
     shake: svg('<path d="M3 12l4-4 4 3 3-2 4 3 3-3"/><path d="M7 8l3 8M14 9l3 8"/>'),
     x: svg('<path d="M6 6l12 12M18 6L6 18"/>'),
     vib: svg('<rect x="7" y="3" width="10" height="18" rx="2"/><path d="M3 9v6M21 9v6"/>'),
-    spark: svg('<path d="M12 3v4M12 17v4M3 12h4M17 12h4M6 6l2.5 2.5M15.5 15.5L18 18M6 18l2.5-2.5M15.5 8.5L18 6"/>')
+    spark: svg('<path d="M12 3v4M12 17v4M3 12h4M17 12h4M6 6l2.5 2.5M15.5 15.5L18 18M6 18l2.5-2.5M15.5 8.5L18 6"/>'),
+    user: svg('<circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/>'),
+    shield: svg('<path d="M12 3l8 3v6c0 4.5-3.4 8-8 9-4.6-1-8-4.5-8-9V6z"/>')
   };
 
   // ---------- player colours ----------
@@ -327,17 +330,29 @@
     total += aiGames;
     return { total, aiWins, aiGames, proWins, draws, rate: aiGames ? Math.round(aiWins / aiGames * 100) : 0 };
   }
-  const TABS = [['games', 'Spiele', IC.grid], ['stats', 'Bilanz', IC.chart], ['opts', 'Optionen', IC.gear]];
+  const TABS = [['games', 'Spiele', IC.grid], ['stats', 'Bilanz', IC.chart], ['profile', 'Konto', IC.user], ['opts', 'Optionen', IC.gear]];
   const logo = '<button class="logo" id="logo" aria-label="Versus Startseite"><span class="l1">VER</span><i class="slash"></i><span class="l2">SUS</span></button>';
   function header(extra = '') {
     return `<header class="top">${logo}${extra}
-      <div class="top-r"><button class="iconbtn only-fine" id="kbd" aria-label="Tastenkürzel" title="Tastenkürzel (?)">${IC.kbd}</button>
+      <div class="top-r">${acctChip()}<button class="iconbtn only-fine" id="kbd" aria-label="Tastenkürzel" title="Tastenkürzel (?)">${IC.kbd}</button>
       <button class="iconbtn" id="snd" aria-label="Ton an oder aus" title="Ton (M)">${settings.sound ? IC.sound : IC.mute}</button></div></header>`;
   }
   function wireHeader(root) {
     const s = root.querySelector('#snd'); if (s) s.onclick = toggleSound;
     const k = root.querySelector('#kbd'); if (k) k.onclick = showKeys;
+    const a = root.querySelector('#acct'); if (a) a.onclick = () => { V.sfx.ui(); home('profile'); };
     const l = root.querySelector('#logo'); if (l) l.onclick = () => home('games');
+  }
+  // account button in the header: name when logged in, otherwise "Anmelden"
+  function acctChip() {
+    if (!V.cloud || !V.cloud.available()) return '';
+    const u = V.cloud.user();
+    return `<button class="acct${u ? ' in' : ''}" id="acct" title="Konto">${IC.user}<span>${u ? u.username : 'Anmelden'}</span></button>`;
+  }
+  function refreshAcct() {
+    const a = document.getElementById('acct'); if (!a) return;
+    const t = document.createElement('div'); t.innerHTML = acctChip(); const n = t.firstElementChild;
+    if (n) { a.replaceWith(n); n.onclick = () => { V.sfx.ui(); home('profile'); }; }
   }
   function toggleSound() {
     settings.sound = !settings.sound; saveSettings(); V.sfx.ui();
@@ -354,6 +369,7 @@
     const shell = view === 'home' && !current && app.querySelector('.view.home');
     if (shell) return swapTab(shell, prev);
     destroyCurrent(); view = 'home';
+    if (V.cloud) V.cloud.touch(null);
     const tabs = `<nav class="tabs" aria-label="Bereiche"><i class="tab-ind"></i>${TABS.map(([id, l, ic]) => `<button data-tab="${id}" class="${homeTab === id ? 'on' : ''}">${ic}<span>${l}</span></button>`).join('')}</nav>`;
     const v = mount(`<div class="view home">${header(tabs.replace('class="tabs"', 'class="tabs desk"'))}<div class="hbody">${tabBody()}</div>${tabs.replace('class="tabs"', 'class="tabs bar"')}</div>`);
     wireHeader(v);
@@ -362,10 +378,11 @@
     if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => placeInd(v, false));
     wireBody(v.querySelector('.hbody'));
   }
-  function tabBody() { return homeTab === 'stats' ? statsTab() : homeTab === 'opts' ? optsTab() : gamesTab(); }
+  function tabBody() { return homeTab === 'stats' ? statsTab() : homeTab === 'opts' ? optsTab() : homeTab === 'profile' ? (V.account ? V.account.tab() : '') : gamesTab(); }
   function wireBody(b) {
     if (homeTab === 'games') wireGames(b);
     if (homeTab === 'opts') wireOpts(b);
+    if (homeTab === 'profile' && V.account) V.account.wire(b);
     b.querySelectorAll('[data-tab]').forEach(x => x.onclick = () => { V.sfx.ui(); home(x.dataset.tab); });
   }
   // slide the highlight of the active tab to its new place
@@ -748,6 +765,7 @@
     const rematch = !!series;
     destroyCurrent(); view = 'play'; lastGame = g; selected = g;
     S.set('recent', g.id);
+    if (V.cloud) V.cloud.touch(g.id);
     series = series || { 1: 0, 2: 0, d: 0 };
     const ai = cfg.mode === 'ai';
     const aiSide = ai ? (cfg.first === 'me' ? 2 : cfg.first === 'ai' ? 1 : (Math.random() < 0.5 ? 1 : 2)) : 0;
@@ -989,6 +1007,7 @@
       if (k === 'Escape' || k === 'Backspace') { e.preventDefault(); home(); return; }
       return;
     }
+    if (view === 'admin') { if (k === 'Escape') { e.preventDefault(); home('profile'); } return; }
     if (view === 'play' && playApi) {
       if (playApi.key(e)) { e.preventDefault(); return; }
       if (k === 'Escape') { e.preventDefault(); playApi.back(); return; }
@@ -1010,12 +1029,35 @@
   });
 
   // ---------- boot ----------
+  // ---------- hooks for the account and admin screens (js/account.js) and the cloud sync ----------
+  V.reloadLocal = function () {
+    stats = S.get('stats', {}); seen = S.get('seen', {});
+    Object.assign(settings, { sound: true, haptic: true, fx: 'full' }, S.get('settings', {}));
+    applyFxClass();
+    if (view === 'home' && homeTab !== 'profile') home();
+  };
+  V.ui = {
+    IC, toast, openModal, closeModal, header, wireHeader,
+    home: (tab, sel) => home(tab, sel),
+    // full-screen view outside the home tabs (admin panel)
+    show(name, html) { destroyCurrent(); view = name; const v = mount(html); wireHeader(v); return v; },
+    view: () => view, tab: () => homeTab
+  };
+  function onCloud() {
+    refreshAcct();
+    if (view === 'home' && homeTab === 'profile' && V.account) {
+      const b = app.querySelector('.hbody');
+      if (b && !(document.activeElement && b.contains(document.activeElement) && document.activeElement.tagName === 'INPUT')) home('profile');
+    }
+  }
+
   // The opening animation lives in index.html (#boot) so it shows on the very first frame.
   // Its CSS plays the slam on its own; here we only open the doors once the page is ready and at least ~1 s has passed.
   V.boot = function () {
     V.games.sort((a, b) => V.CATS.indexOf(a.cat) - V.CATS.indexOf(b.cat) || (a.order || 0) - (b.order || 0));
     applyFxClass();
     if (!document.getElementById('fx')) { const f = V.el('div'); f.id = 'fx'; document.body.appendChild(f); }
+    if (V.cloud && V.cloud.available()) { V.cloud.on(onCloud); V.cloud.init(); }
     const b = document.getElementById('boot');
     if (!b || !V.fxOn() || getComputedStyle(b).display === 'none') { if (b) b.remove(); home(); return; }
     let opened = false;

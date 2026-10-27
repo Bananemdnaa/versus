@@ -57,3 +57,25 @@ Ein neues Spiel ist eine neue Datei in `js/games/` plus ein `<script>`-Eintrag i
 ```
 npx serve .
 ```
+
+## Online-Konten (Supabase)
+
+Login per Benutzername und Passwort (intern als `<name>@bananemdnaa.github.io`, es werden keine Mails verschickt). Mit Konto werden Bilanz, Einstellungen und gesehene Tutorials auf dem Server gespeichert und auf jedem Gerät abgeglichen. Beim ersten Login wandert der Gast-Fortschritt dieses Browsers ins Konto. Beim Abmelden bleibt alles im Konto, der Browser startet wieder als Gast. Im Reiter „Konto“ lässt sich der Benutzername einmal pro Woche ändern und das Konto samt Daten löschen.
+
+**Admin-Panel** (Reiter „Konto“ → „Admin-Panel“, nur für Owner und Admins):
+- Übersicht: Spielerzahl, wer gerade online ist und in welchem Spiel (aktualisiert alle 20 Sekunden), beliebteste Spiele, neue Spieler, Team
+- Spieler: Suche nach Namensanfang; ausblenden, sperren (1, 7, 30 Tage oder dauerhaft, mit Grund), entsperren, private Notiz, umbenennen, Bilanz zurücksetzen
+- Nur der Owner: Admins ernennen und entlassen, Dev-Konten (Testkonten, überall ausgeblendet). Admins können den Owner und andere Admins nicht bearbeiten.
+- Protokoll: jede Admin-Aktion mit Zeit und wer sie gemacht hat
+
+Alle Admin-Aktionen prüft der Server selbst (`require_admin`, `require_owner`), das Spiel zeigt nur die Knöpfe an.
+
+**Einrichten:**
+1. Neues Projekt auf supabase.com anlegen.
+2. Unter Authentication → Sign In / Providers → Email: Email an, „Confirm email“ aus.
+3. Im SQL-Editor `supabase/migrations/20261028000000_accounts_admin.sql` ausführen.
+4. Project URL und Publishable Key (Settings → API Keys) in `js/cloud.js` bei `CFG` eintragen.
+5. Im Spiel registrieren, dann einmal im SQL-Editor ausführen (Namen anpassen):
+   `insert into public.admins (user_id, role) select id, 'owner' from public.profiles where username = 'dein_name' on conflict (user_id) do update set role = 'owner';`
+
+Neue Migrationen kommen als weitere Datei in `supabase/migrations/` und werden in Reihenfolge einmal im SQL-Editor ausgeführt.
