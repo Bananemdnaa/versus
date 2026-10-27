@@ -59,7 +59,7 @@
   };
 
   V.css(`
-  .mill{width:min(100%,500px);display:flex;flex-direction:column;gap:8px;user-select:none;touch-action:manipulation}
+  .mill{width:min(var(--bw),560px);display:flex;flex-direction:column;gap:8px;user-select:none;touch-action:manipulation}
   .mill svg{width:100%;height:auto;display:block}
   .mill .bd{fill:none;stroke:#3a4070;stroke-width:.09;stroke-linecap:round}
   .mill .pt{fill:#2a2f4f}
@@ -75,7 +75,7 @@
   @keyframes mgone{to{transform:scale(0);opacity:0}}
   @keyframes mdraw{to{stroke-dashoffset:0}}
   .mill .tg{animation:tgpulse 1.4s ease-in-out infinite;transform-box:fill-box;transform-origin:center}
-  .mill .s1{fill:var(--p1);filter:drop-shadow(0 0 .12px rgba(255,79,216,.9))} .mill .s2{fill:var(--p2);filter:drop-shadow(0 0 .12px rgba(255,216,79,.8))}
+  .mill .s1{fill:var(--p1);filter:drop-shadow(0 0 .12px color-mix(in srgb,var(--p1) 90%,transparent))} .mill .s2{fill:var(--p2);filter:drop-shadow(0 0 .12px color-mix(in srgb,var(--p2) 80%,transparent))}
   .mill .sel{stroke:#fff;stroke-width:.07}
   .mill .rem{stroke:var(--bad);stroke-width:.08;stroke-dasharray:.12 .08;animation:spin 1.2s linear infinite;cursor:pointer}
   .mill .lastm{stroke:rgba(255,255,255,.6);stroke-width:.05}
@@ -97,10 +97,9 @@
   }
 
   V.register({
-    id: 'mill', name: 'Mühle', cat: 'Strategie', order: 4, accent: 'var(--p2)',
+    id: 'mill', name: 'Mühle', cat: 'Strategie', order: 4, accent: 'var(--yellow)',
     short: 'Drei in einer Linie, dann Stein weg.',
     desc: 'Setz und zieh deine neun Steine. Drei in einer Linie sind eine Mühle, dann darfst du einen gegnerischen Stein nehmen.',
-    sides: { 1: 'Pink', 2: 'Gelb' },
     keys: [['Pfeile', 'Punkt wählen'], ['Enter', 'Setzen, Stein nehmen oder ziehen']],
     icon: `<svg viewBox="0 0 48 48" fill="none"><path d="M5 5h38v38H5zM13 13h22v22H13zM20 20h8v8h-8zM24 5v15M24 28v15M5 24h15M28 24h15" stroke="#3a4070" stroke-width="2.4"/><circle cx="5" cy="5" r="4" fill="#ff4fd8"/><circle cx="24" cy="5" r="4" fill="#ff4fd8"/><circle cx="43" cy="5" r="4" fill="#ff4fd8"/><circle cx="35" cy="35" r="4" fill="#ffd84f"/><circle cx="13" cy="24" r="4" fill="#ffd84f"/></svg>`,
     tutorial: [
@@ -155,7 +154,7 @@
         svgBox.innerHTML = h + '</svg>';
         if (!A.fired && A.at) {
           A.fired = true;
-          if (A.r >= 0) { const hit = svgBox.querySelector(`[data-i="${A.r}"]`); V.fx.burstAt(hit, A.rs === 1 ? '#ff4fd8' : '#ffd84f', 14, 60); V.fx.shake(wrap, true); }
+          if (A.r >= 0) { const hit = svgBox.querySelector(`[data-i="${A.r}"]`); V.fx.burstAt(hit, V.hex(A.rs), 14, 60); V.fx.shake(wrap, true); }
           if (svgBox.querySelector('.mil.fresh')) { const hit = svgBox.querySelector(`[data-i="${A.t}"]`); V.fx.ringAt(hit, '#6ff3ff', 90); }
         }
         const pile = (k) => '<i></i>'.repeat(s.hand[k]);

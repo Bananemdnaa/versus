@@ -41,16 +41,16 @@
   };
 
   V.css(`
-  .c4wrap{width:min(100%,520px);display:flex;flex-direction:column;gap:6px}
+  .c4wrap{width:min(var(--bw),620px);display:flex;flex-direction:column;gap:6px}
   .c4ghost{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;padding:0 11px}
   .c4ghost div{aspect-ratio:1;border-radius:50%;transform:scale(.88);opacity:0;transition:opacity .12s}
   .c4ghost div.on{opacity:.45}
-  .c4{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;padding:10px;background:#1a1f5c;border-radius:18px;border:1px solid #3b4aa8;box-shadow:0 0 50px -16px #4f6bff;cursor:pointer;touch-action:manipulation}
+  .c4{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;padding:10px;background:#1a1f5c;border-radius:10px;border:1px solid #3b4aa8;box-shadow:0 0 50px -16px #4f6bff;cursor:pointer;touch-action:manipulation}
   .c4 .cell{aspect-ratio:1;border-radius:50%;background:var(--bg);position:relative;box-shadow:inset 0 3px 6px rgba(0,0,0,.7)}
   .c4 .disc,.c4ghost div{position:relative}
   .c4 .disc{position:absolute;inset:5%;border-radius:50%}
-  .c4 .p1,.c4ghost .p1{background:radial-gradient(circle at 35% 30%,#ffa6ec,var(--p1) 62%);box-shadow:0 0 12px rgba(255,79,216,.55)}
-  .c4 .p2,.c4ghost .p2{background:radial-gradient(circle at 35% 30%,#fff1b0,var(--p2) 62%);box-shadow:0 0 12px rgba(255,216,79,.5)}
+  .c4 .p1,.c4ghost .p1{background:radial-gradient(circle at 35% 30%,var(--p1hi),var(--p1) 62%);box-shadow:0 0 12px color-mix(in srgb,var(--p1) 55%,transparent)}
+  .c4 .p2,.c4ghost .p2{background:radial-gradient(circle at 35% 30%,var(--p2hi),var(--p2) 62%);box-shadow:0 0 12px color-mix(in srgb,var(--p2) 50%,transparent)}
   .c4 .drop{animation:c4drop calc(.18s + var(--f)*.05s) cubic-bezier(.55,0,1,.45) both}
   @keyframes c4drop{from{transform:translateY(calc(var(--f) * -120%))}75%{transform:translateY(0)}88%{transform:translateY(-7%)}to{transform:none}}
   .c4 .w .disc{box-shadow:0 0 0 3px var(--cy),0 0 22px var(--cy);animation:c4win 1s ease-in-out infinite}
@@ -61,10 +61,9 @@
   .c4.lock{cursor:default}`);
 
   V.register({
-    id: 'c4', name: '4 Gewinnt', cat: 'Klassiker', order: 1, accent: 'var(--p1)',
+    id: 'c4', name: '4 Gewinnt', cat: 'Klassiker', order: 1, accent: 'var(--pink)',
     short: 'Steine fallen lassen, vier verbinden.',
     desc: 'Lass deine Steine in die Spalten fallen. Wer zuerst vier in einer Reihe hat, gewinnt.',
-    sides: { 1: 'Pink', 2: 'Gelb' },
     keys: [['← →', 'Spalte wählen'], ['Enter ↓', 'Stein einwerfen'], ['1–7', 'Direkt in diese Spalte']],
     icon: `<svg viewBox="0 0 48 48"><rect x="3" y="7" width="42" height="36" rx="6" fill="#1a1f5c" stroke="#3b4aa8" stroke-width="2"/>${[0, 1, 2, 3].map(r => [0, 1, 2, 3].map(c => `<circle cx="${10 + c * 9.3}" cy="${14 + r * 8.3}" r="3.3" fill="${(r === 3 && c < 3) || (r === 2 && c === 1) ? '#ff4fd8' : (r === 3 && c === 3) || (r === 2 && c === 0) || (r === 2 && c === 2) ? '#ffd84f' : '#0b0c15'}"/>`).join('')).join('')}</svg>`,
     tutorial: [
@@ -107,7 +106,7 @@
         showGhost(-1); busy = true;
         ctx.later(() => {
           V.sfx.place(); busy = false;
-          V.fx.ringAt(d, who === 1 ? '#ff4fd8' : '#ffd84f');
+          V.fx.ringAt(d, V.hex(who));
           if (r === R - 1 || V.fxOn()) V.fx.shake(board, true);
           after();
         }, 180 + (r + 1) * 50);

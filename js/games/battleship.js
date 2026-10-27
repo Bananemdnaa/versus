@@ -108,7 +108,6 @@
     id: 'ships', name: 'Schiffe versenken', cat: 'Klassiker', order: 2, accent: '#4f8bff',
     short: 'Versteckte Flotten, gezielte Schüsse.',
     desc: 'Versteck deine Flotte und finde die Schiffe des Gegners zuerst. Treffer heißt: nochmal schießen.',
-    sides: { 1: 'Flotte Pink', 2: 'Flotte Gelb' },
     keys: [['Pfeile', 'Feld wählen'], ['Enter', 'Schiff legen oder schießen'], ['R', 'Schiff drehen'], ['Z', 'Flotte zufällig verteilen'], ['F', 'Fertig']],
     levelInfo: ['Schießt meistens blind.', 'Jagt angeschossene Schiffe gezielt.', 'Sucht im Schachbrettmuster und verfolgt Treffer.', 'Rechnet für jedes Feld die Wahrscheinlichkeit aus.'],
     icon: `<svg viewBox="0 0 48 48" fill="none"><rect x="3" y="3" width="42" height="42" rx="6" fill="#112040"/><path d="M3 17h42M3 31h42M17 3v42M31 3v42" stroke="#1f3566" stroke-width="1.5"/><path d="M7 38h22l-3 4H10z" fill="#4a5c96"/><path d="M13 38v-4h8v4" fill="#4a5c96"/><circle cx="35" cy="12" r="5" fill="#ff5d73"/><circle cx="35" cy="12" r="2" fill="#ffe0e5"/><circle cx="24" cy="23" r="1.8" fill="#6874aa"/><circle cx="12" cy="11" r="1.8" fill="#6874aa"/></svg>`,

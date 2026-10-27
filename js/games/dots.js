@@ -54,27 +54,26 @@
   }
 
   V.css(`
-  .dots{width:min(100%,500px);touch-action:manipulation;user-select:none}
+  .dots{width:min(var(--bw),560px);touch-action:manipulation;user-select:none}
   .dots svg{width:100%;height:auto;display:block}
   .dots .hitl{stroke:transparent;stroke-width:22;stroke-linecap:round;cursor:pointer}
   .dots .ln{stroke:#272c4b;stroke-width:6;stroke-linecap:round;stroke-dasharray:1 12;transition:stroke .12s}
   .dots g.ed:hover .ln.free{stroke-dasharray:none}
-  .dots.t1 g.ed:hover .ln.free{stroke:rgba(255,79,216,.55)} .dots.t2 g.ed:hover .ln.free{stroke:rgba(255,216,79,.55)}
-  .dots .ln.s1{stroke:var(--p1);stroke-dasharray:none;filter:drop-shadow(0 0 4px rgba(255,79,216,.7))}
-  .dots .ln.s2{stroke:var(--p2);stroke-dasharray:none;filter:drop-shadow(0 0 4px rgba(255,216,79,.6))}
+  .dots.t1 g.ed:hover .ln.free{stroke:color-mix(in srgb,var(--p1) 55%,transparent)} .dots.t2 g.ed:hover .ln.free{stroke:color-mix(in srgb,var(--p2) 55%,transparent)}
+  .dots .ln.s1{stroke:var(--p1);stroke-dasharray:none;filter:drop-shadow(0 0 4px color-mix(in srgb,var(--p1) 70%,transparent))}
+  .dots .ln.s2{stroke:var(--p2);stroke-dasharray:none;filter:drop-shadow(0 0 4px color-mix(in srgb,var(--p2) 60%,transparent))}
   .dots .ln.last{stroke:#fff}
   .dots .bx{transition:fill .25s;transform-box:fill-box;transform-origin:center}
   .dots .bt{transform-box:fill-box;transform-origin:center}
-  .dots .bx.o1{fill:rgba(255,79,216,.22)} .dots .bx.o2{fill:rgba(255,216,79,.2)}
+  .dots .bx.o1{fill:color-mix(in srgb,var(--p1) 22%,transparent)} .dots .bx.o2{fill:color-mix(in srgb,var(--p2) 20%,transparent)}
   .dots .bt{font-family:var(--f-d);font-weight:700;font-size:26px;text-anchor:middle;dominant-baseline:central}
   .dots .dt{fill:#cfd2f0}
   .dots.lock .hitl{cursor:default}`);
 
   V.register({
-    id: 'dots', name: 'Käsekästchen', cat: 'Klassiker', order: 5, accent: 'var(--p2)',
+    id: 'dots', name: 'Käsekästchen', cat: 'Klassiker', order: 5, accent: 'var(--yellow)',
     short: 'Linien ziehen, Kästchen schließen.',
     desc: 'Zieht abwechselnd Linien zwischen den Punkten. Wer ein Kästchen schließt, bekommt es und zieht nochmal.',
-    sides: { 1: 'Pink', 2: 'Gelb' },
     keys: [['Pfeile', 'Zur nächsten freien Linie springen'], ['Enter', 'Linie ziehen']],
     options: [{ id: 'size', label: 'Feldgröße', def: 4, choices: [[3, '3×3'], [4, '4×4'], [5, '5×5'], [6, '6×6']] }],
     levelInfo: ['Zieht meist irgendeine Linie.', 'Nimmt Kästchen mit und vermeidet offene Geschenke.', 'Gibt am Ende immer die kleinste Kette ab.', 'Rechnet das Endspiel komplett durch und opfert gezielt.'],
@@ -88,6 +87,7 @@
     ],
     start(ctx) {
       const n = ctx.opts.size || 4, G = geometry(n, n);
+      const lab = { 1: ctx.mode === 'ai' ? (ctx.isAI(1) ? 'K' : 'D') : '1', 2: ctx.mode === 'ai' ? (ctx.isAI(2) ? 'K' : 'D') : '2' };
       let s = { e: Array(G.E).fill(0), own: Array(n * n).fill(0), turn: 1, cnt: { 1: 0, 2: 0 }, left: G.E }, last = -1, over = false;
       const SP = 70, M = 22, W = n * SP + 2 * M;
       const wrap = V.el('div', 'dots');
@@ -113,7 +113,7 @@
       function render() {
         lines.forEach((l, e) => l.setAttribute('class', 'ln ' + (s.e[e] ? 's' + s.e[e] : 'free') + (e === last ? ' last' : '')));
         rects.forEach((r, b) => r.setAttribute('class', 'bx' + (s.own[b] ? ' o' + s.own[b] : '')));
-        texts.forEach((t, b) => { t.textContent = s.own[b] ? (s.own[b] === 1 ? 'P' : 'G') : ''; t.style.fill = s.own[b] === 1 ? 'var(--p1)' : 'var(--p2)'; });
+        texts.forEach((t, b) => { t.textContent = s.own[b] ? lab[s.own[b]] : ''; t.style.fill = s.own[b] === 1 ? 'var(--p1)' : 'var(--p2)'; });
         wrap.className = 'dots t' + s.turn + (ctx.isAI(s.turn) || over ? ' lock' : '');
       }
       function move(e) {
@@ -127,8 +127,8 @@
           if (o && !before[b]) {
             rects[b].animate([{ transform: 'scale(0)', opacity: 0 }, { transform: 'scale(1)', opacity: 1 }], { duration: 380, easing: 'cubic-bezier(.2,1.5,.4,1)', fill: 'backwards' });
             texts[b].animate([{ opacity: 0, transform: 'translateY(8px)' }, { opacity: 1, transform: 'none' }], { duration: 300, delay: 120, fill: 'backwards' });
-            V.fx.burstAt(rects[b], who === 1 ? '#ff4fd8' : '#ffd84f', 10, 55);
-            V.fx.floatAt(rects[b], '+1', who === 1 ? '#ff4fd8' : '#ffd84f');
+            V.fx.burstAt(rects[b], V.hex(who), 10, 55);
+            V.fx.floatAt(rects[b], '+1', V.hex(who));
           }
         });
         if (s.left === 0) {

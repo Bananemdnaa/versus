@@ -76,12 +76,12 @@
   };
 
   V.css(`
-  .ck{display:grid;grid-template-columns:repeat(8,1fr);width:min(100%,520px);border-radius:12px;overflow:hidden;border:2px solid #3b4170;box-shadow:0 0 40px -14px var(--p1);user-select:none;touch-action:manipulation}
+  .ck{display:grid;grid-template-columns:repeat(8,1fr);width:min(var(--bw),600px);border-radius:12px;overflow:hidden;border:2px solid #3b4170;box-shadow:0 0 40px -14px var(--p1);user-select:none;touch-action:manipulation}
   .ck .sq{aspect-ratio:1;position:relative;display:grid;place-items:center}
   .ck .lt{background:#c8cae8} .ck .dk{background:#3c4177;cursor:pointer}
   .ck .pc{width:78%;height:78%;border-radius:50%;display:grid;place-items:center;font-size:clamp(14px,4.6vw,26px);line-height:1;transition:transform .15s}
-  .ck .s1{background:radial-gradient(circle at 35% 30%,#ffa6ec,var(--p1) 62%);box-shadow:0 3px 0 #9c2a83,0 0 12px rgba(255,79,216,.45);color:#5a0f4a}
-  .ck .s2{background:radial-gradient(circle at 35% 30%,#fff1b0,var(--p2) 62%);box-shadow:0 3px 0 #9b7f1f,0 0 12px rgba(255,216,79,.4);color:#5b4705}
+  .ck .s1{background:radial-gradient(circle at 35% 30%,var(--p1hi),var(--p1) 62%);box-shadow:0 3px 0 var(--p1lo),0 0 12px color-mix(in srgb,var(--p1) 45%,transparent);color:var(--p1ink)}
+  .ck .s2{background:radial-gradient(circle at 35% 30%,var(--p2hi),var(--p2) 62%);box-shadow:0 3px 0 var(--p2lo),0 0 12px color-mix(in srgb,var(--p2) 40%,transparent);color:var(--p2ink)}
   .ck .pc{position:relative;z-index:2}
   .ck .can .pc::after{content:'';position:absolute;inset:-4px;border-radius:50%;border:3px solid var(--cy);animation:canp 1.6s ease-in-out infinite}
   @keyframes canp{50%{opacity:.25;transform:scale(1.06)}}
@@ -94,10 +94,9 @@
   const cm = rows => V.mini(rows, { k: { c: 'k1', t: '' }, K: { c: 'k2', t: '' } }, { checker: true, w: 230 });
 
   V.register({
-    id: 'checkers', name: 'Dame', cat: 'Strategie', order: 2, accent: 'var(--p1)',
+    id: 'checkers', name: 'Dame', cat: 'Strategie', order: 2, accent: 'var(--pink)',
     short: 'Diagonal ziehen, Steine überspringen.',
     desc: 'Zieh diagonal, spring über gegnerische Steine und mach aus deinen Steinen Damen. Mit Schlagzwang.',
-    sides: { 1: 'Pink', 2: 'Gelb' },
     keys: [['Pfeile', 'Dunkles Feld wählen'], ['Enter', 'Stein nehmen, dann Ziel (bei Mehrfachsprung Feld für Feld)']],
     icon: `<svg viewBox="0 0 48 48"><rect x="3" y="3" width="42" height="42" rx="6" fill="#c8cae8"/><path d="M13.5 3H24v10.5H13.5zM34.5 3H45v10.5H34.5zM3 13.5h10.5V24H3zM24 13.5h10.5V24H24zM13.5 24H24v10.5H13.5zM34.5 24H45v10.5H34.5zM3 34.5h10.5V45H3zM24 34.5h10.5V45H24z" fill="#3c4177"/><circle cx="18.75" cy="29.25" r="4.2" fill="#ff4fd8"/><circle cx="29.25" cy="18.75" r="4.2" fill="#ffd84f"/><circle cx="8.25" cy="39.75" r="4.2" fill="#ff4fd8"/></svg>`,
     tutorial: [
@@ -170,7 +169,7 @@
         s = play(s, m); last = m.path; sel = -1; prefix = [];
         if (m.caps.length) V.sfx.place(); else V.sfx.move();
         render(); sl();
-        m.caps.forEach((c, n) => ctx.later(() => V.fx.burstAt(cells[c], s.turn === 1 ? '#ff4fd8' : '#ffd84f', 10, 50), 120 + n * 60));
+        m.caps.forEach((c, n) => ctx.later(() => V.fx.burstAt(cells[c], V.hex(s.turn), 10, 50), 120 + n * 60));
         if (m.caps.length > 1) ctx.later(() => V.fx.floatAt(cells[to], m.caps.length + '× geschlagen', '#6ff3ff'), 200);
         if (wasMan && s.b[to] > 2) ctx.later(() => { V.fx.ringAt(cells[to], '#ffd84f'); V.fx.floatAt(cells[to], 'Dame!', '#ffd84f'); V.sfx.goal(); }, 240);
         const ms = genMoves(s);

@@ -106,7 +106,7 @@
       function point(w, fouler, info) {
         clear(); phase = 'done'; pts[w]++;
         el.className = 'rx';
-        const cw = w === 1 ? '#ff4fd8' : '#ffd84f';
+        const cw = V.hex(w);
         if (fouler) { halves[fouler].classList.add('foul'); set(fouler, 'Zu früh!', `${label(fouler)} hat ${info}`); set(w, '+1', 'Punkt geschenkt'); V.sfx.bad(); V.fx.shake(halves[fouler]); }
         else { halves[w].classList.add('won'); set(w, info, `${label(w)} war schneller`); set(3 - w, 'Zu langsam', ''); V.sfx.goal(); V.fx.burstAt(halves[w], cw, 18, 120); V.fx.ringAt(halves[w], cw, 220); }
         V.fx.pop(halves[w].querySelector('b'));

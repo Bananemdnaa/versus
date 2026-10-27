@@ -184,7 +184,7 @@
   const g = p => GLYPH[p.toLowerCase()] + '︎';
 
   V.css(`
-  .chesswrap{width:min(100%,540px);display:flex;flex-direction:column;gap:6px}
+  .chesswrap{width:min(var(--bw),620px);display:flex;flex-direction:column;gap:6px}
   .capt{display:flex;gap:1px;min-height:22px;font-size:18px;line-height:1;align-items:center;flex-wrap:wrap}
   .capt span{opacity:.85} .capt .w{color:#f3f3ff;text-shadow:0 0 1px #000} .capt .b{color:#121225;text-shadow:0 0 1px #fff}
   .capt em{font-style:normal;font-size:12px;color:var(--muted);margin-left:6px}
@@ -216,7 +216,7 @@
   }, extra || {}), { checker: true, w: 230 });
 
   V.register({
-    id: 'chess', name: 'Schach', cat: 'Strategie', order: 1, accent: 'var(--cy)',
+    id: 'chess', name: 'Schach', cat: 'Strategie', order: 1, accent: 'var(--cyan)',
     short: 'Der König aller Brettspiele.',
     desc: 'Setz den gegnerischen König schachmatt. Mit allen Regeln: Rochade, en passant, Umwandlung und Remis.',
     sides: { 1: 'Weiß', 2: 'Schwarz' },

@@ -12,6 +12,10 @@
 
 ## Modi
 
+Am Laptop ist die Startseite ein Auswahlbildschirm: links die Spiele, rechts direkt die Einstellungen des gewählten Spiels. Im Spiel stehen die Spielerkarten links und rechts neben dem Brett. Am Handy öffnet ein Tipp auf ein Spiel dessen Einstellungen.
+
+Du bist immer Pink und links, die KI immer Gelb und rechts, egal wer anfängt. Zu zweit ist Spieler 1 Pink, Spieler 2 Gelb.
+
 - **Gegen KI:** Leicht, Mittel, Schwer und Profi. Bei den Brettspielen wählst du, wer anfängt (bei Schach deine Farbe).
 - **2 Spieler, ein Gerät:** abwechselnd am selben Handy oder PC. Bei Schiffe versenken kommt zwischen den Zügen ein Wechsel-Bildschirm, damit keiner die Flotte des anderen sieht.
 
@@ -25,8 +29,7 @@ Regeln im Detail:
 
 Alles geht mit Finger oder Maus. Am PC zusätzlich mit der Tastatur, `?` zeigt alle Kürzel:
 
-- Startseite: Pfeiltasten wählen ein Spiel, `Enter` öffnet es, `1` `2` `3` wechseln zwischen Spiele, Statistik und Optionen
-- Vor dem Spiel: `Enter` startet, `←` `→` ändern die Schwierigkeit, `S` wechselt den Modus, `T` öffnet das Tutorial
+- Spielauswahl: Pfeiltasten wählen ein Spiel, `Enter` startet es, `1`–`4` stellen die KI-Stärke ein, `S` wechselt zwischen „Gegen KI“ und „Zu zweit“, `T` öffnet die Regeln
 - Brettspiele: Pfeiltasten bewegen einen Cursor über das Brett, `Enter` oder `Leertaste` setzt bzw. wählt aus
 - `N` neue Partie, `T` Tutorial, `Esc` zurück, `M` Ton an oder aus
 - Eigene Tasten: 4 Gewinnt `1`–`7`, Tic Tac Toe `1`–`9` wie der Ziffernblock, Schiffe versenken `R` drehen, `Z` zufällig, `F` fertig, Pong `←` `→` und `A` `D`, Air Hockey Pfeiltasten und `W` `A` `S` `D`, Reaktionsduell `Leertaste` bzw. `L` und `A`

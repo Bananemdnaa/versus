@@ -24,17 +24,17 @@
   }
 
   V.css(`
-  .ttt{position:relative;display:grid;grid-template-columns:repeat(3,1fr);gap:10px;width:min(100%,420px);aspect-ratio:1}
-  .ttt button{background:var(--panel);border:1px solid var(--line);border-radius:18px;display:grid;place-items:center;transition:background .15s,border-color .15s,transform .12s}
+  .ttt{position:relative;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));grid-template-rows:repeat(3,minmax(0,1fr));gap:10px;width:min(var(--bw),560px);aspect-ratio:1}
+  .ttt button{min-width:0;min-height:0;background:var(--panel);border:1px solid var(--line);border-radius:8px;display:grid;place-items:center;transition:background .15s,border-color .15s,transform .12s}
   .ttt button:not(:disabled):hover{border-color:var(--line2);background:var(--panel2)}
   .ttt button:not(:disabled):active{transform:scale(.94)}
   .ttt button.w{border-color:var(--cy);background:#13303a;animation:tttw .6s var(--spring)}
   @keyframes tttw{40%{transform:scale(1.08)}}
   .ttt.dim button:not(.w){opacity:.45;transition:opacity .4s}
   .ttt svg{width:62%;height:62%;overflow:visible}
-  .ttt .mx path{stroke:var(--p1);stroke-width:11;stroke-linecap:round;fill:none;stroke-dasharray:80;stroke-dashoffset:80;animation:drawx .26s ease-out forwards;filter:drop-shadow(0 0 6px rgba(255,79,216,.6))}
+  .ttt .mx path{stroke:var(--p1);stroke-width:11;stroke-linecap:round;fill:none;stroke-dasharray:80;stroke-dashoffset:80;animation:drawx .26s ease-out forwards;filter:drop-shadow(0 0 6px color-mix(in srgb,var(--p1) 60%,transparent))}
   .ttt .mx path+path{animation-delay:.11s}
-  .ttt .mo circle{stroke:var(--p2);stroke-width:11;fill:none;stroke-dasharray:170;stroke-dashoffset:170;animation:drawx .34s ease-out forwards;filter:drop-shadow(0 0 6px rgba(255,216,79,.55))}
+  .ttt .mo circle{stroke:var(--p2);stroke-width:11;fill:none;stroke-dasharray:170;stroke-dashoffset:170;animation:drawx .34s ease-out forwards;filter:drop-shadow(0 0 6px color-mix(in srgb,var(--p2) 55%,transparent))}
   .ttt .strike{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
   .ttt .strike line{stroke:#fff;stroke-width:.09;stroke-linecap:round;stroke-dasharray:5;stroke-dashoffset:5;animation:drawx .45s .1s ease-out forwards;filter:drop-shadow(0 0 .08px var(--cy))}
   @keyframes drawx{to{stroke-dashoffset:0}}`);
@@ -44,7 +44,7 @@
   const NUMPAD = { 7: 0, 8: 1, 9: 2, 4: 3, 5: 4, 6: 5, 1: 6, 2: 7, 3: 8 };
 
   V.register({
-    id: 'ttt', name: 'Tic Tac Toe', cat: 'Klassiker', order: 3, accent: 'var(--p1)',
+    id: 'ttt', name: 'Tic Tac Toe', cat: 'Klassiker', order: 3, accent: 'var(--pink)',
     short: 'Drei in einer Reihe auf 3×3.',
     desc: 'Der Klassiker in einer Minute: Wer zuerst drei Zeichen in eine Reihe bringt, gewinnt.',
     sides: { 1: 'X', 2: 'O' },
@@ -71,7 +71,7 @@
         if (over || b[i]) return;
         b[i] = turn;
         cells[i].innerHTML = turn === 1 ? X : O; cells[i].disabled = true;
-        V.sfx.move(); V.fx.burstAt(cells[i], turn === 1 ? '#ff4fd8' : '#ffd84f', 6, 40);
+        V.sfx.move(); V.fx.burstAt(cells[i], V.hex(turn), 6, 40);
         const r = winner(b);
         if (r) {
           over = true;

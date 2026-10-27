@@ -43,7 +43,7 @@
   };
 
   V.register({
-    id: 'pong', name: 'Pong', cat: 'Action', order: 2, accent: 'var(--cy)',
+    id: 'pong', name: 'Pong', cat: 'Action', order: 2, accent: 'var(--cyan)',
     short: 'Schläger gegen Schläger.',
     desc: 'Halte den Ball im Spiel und spiel ihn am Gegner vorbei. Der Ball wird mit jedem Treffer schneller.',
     sides: { 1: 'Unten', 2: 'Oben' },
@@ -69,7 +69,7 @@
       const dpr = Math.min(V.coarse ? 1.5 : 2, window.devicePixelRatio || 1);
       cv.style.width = w + 'px'; cv.style.height = h + 'px'; cv.width = w * dpr; cv.height = h * dpr;
       const g = cv.getContext('2d', { alpha: false }), S = w * dpr;
-      const col = s => s === 1 ? '#ff4fd8' : '#ffd84f';
+      const col = s => V.hex(s);
       const glowB = V.arena.glow(col(bottomSide)), glowT = V.arena.glow(col(topSide)), glowBall = V.arena.glow('#6ff3ff', 0.7);
       const parts = V.arena.particles();
 
@@ -165,7 +165,7 @@
         if (shakeT > 0 && V.fxOn()) g.translate((Math.random() - 0.5) * 0.03 * shakeT / 0.35, (Math.random() - 0.5) * 0.03 * shakeT / 0.35);
         g.strokeStyle = '#232846'; g.lineWidth = 0.006; g.setLineDash([0.02, 0.02]);
         g.beginPath(); g.moveTo(0, H / 2); g.lineTo(1, H / 2); g.stroke(); g.setLineDash([]);
-        g.fillStyle = 'rgba(255,255,255,.07)'; g.font = `700 0.22px "Chakra Petch", sans-serif`; g.textAlign = 'center'; g.textBaseline = 'middle';
+        g.fillStyle = 'rgba(255,255,255,.07)'; g.font = `italic 800 0.22px "Saira Condensed", sans-serif`; g.textAlign = 'center'; g.textBaseline = 'middle';
         g.fillText(pts.t, 0.5, H * 0.25); g.fillText(pts.b, 0.5, H * 0.75);
         const pd = (x, y, c, gl, ht) => {
           const gw = PW * (1.5 + ht * 0.6);

@@ -2,7 +2,7 @@
   const H = 1.6, PR = 0.042, MR = 0.068, GW = 0.36, MAXV = 3.4;
 
   V.register({
-    id: 'hockey', name: 'Air Hockey', cat: 'Action', order: 3, accent: 'var(--p1)',
+    id: 'hockey', name: 'Air Hockey', cat: 'Action', order: 3, accent: 'var(--pink)',
     short: 'Puck ins gegnerische Tor schießen.',
     desc: 'Schieß den Puck mit deinem Schläger ins gegnerische Tor und verteidige dein eigenes.',
     sides: { 1: 'Unten', 2: 'Oben' },
@@ -28,7 +28,7 @@
       const dpr = Math.min(V.coarse ? 1.5 : 2, window.devicePixelRatio || 1);
       cv.style.width = w + 'px'; cv.style.height = h + 'px'; cv.width = w * dpr; cv.height = h * dpr;
       const g = cv.getContext('2d', { alpha: false }), SC = w * dpr;
-      const col = s => s === 1 ? '#ff4fd8' : '#ffd84f';
+      const col = s => V.hex(s);
       const glow = { b: V.arena.glow(col(bottomSide), 0.6), t: V.arena.glow(col(topSide), 0.6), p: V.arena.glow('#6ff3ff', 0.7) };
       const parts = V.arena.particles(), trail = [];
       let shakeT = 0, userPause = false, lastCount = '', goalFlash = { b: 0, t: 0 };
@@ -162,7 +162,7 @@
         g.lineWidth = 0.02; g.lineCap = 'round';
         g.strokeStyle = col(topSide); g.beginPath(); g.moveTo(0.5 - GW / 2, 0.006); g.lineTo(0.5 + GW / 2, 0.006); g.stroke();
         g.strokeStyle = col(bottomSide); g.beginPath(); g.moveTo(0.5 - GW / 2, H - 0.006); g.lineTo(0.5 + GW / 2, H - 0.006); g.stroke();
-        g.fillStyle = 'rgba(255,255,255,.07)'; g.font = `700 0.2px "Chakra Petch", sans-serif`; g.textAlign = 'center'; g.textBaseline = 'middle';
+        g.fillStyle = 'rgba(255,255,255,.07)'; g.font = `italic 800 0.2px "Saira Condensed", sans-serif`; g.textAlign = 'center'; g.textBaseline = 'middle';
         g.fillText(pts.t, 0.5, H * 0.25); g.fillText(pts.b, 0.5, H * 0.75);
         parts.draw(g);
         if (state === 'play') {

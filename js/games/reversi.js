@@ -42,13 +42,13 @@
   };
 
   V.css(`
-  .rv{display:grid;grid-template-columns:repeat(8,1fr);gap:3px;padding:8px;width:min(100%,520px);background:#0f3a33;border-radius:14px;border:2px solid #1d6b5c;box-shadow:0 0 40px -14px #5dffcf;touch-action:manipulation}
+  .rv{display:grid;grid-template-columns:repeat(8,1fr);gap:3px;padding:8px;width:min(var(--bw),600px);background:#0f3a33;border-radius:14px;border:2px solid #1d6b5c;box-shadow:0 0 40px -14px #5dffcf;touch-action:manipulation}
   .rv .sq{aspect-ratio:1;background:#14524a;border-radius:4px;display:grid;place-items:center;position:relative;perspective:300px}
   .rv .sq.ok{cursor:pointer} .rv .sq.ok::after{content:'';width:26%;height:26%;border-radius:50%;border:2px solid rgba(255,255,255,.45)}
   .rv .sq.ok:hover::after{background:rgba(255,255,255,.3)}
   .rv .st{width:82%;height:82%;border-radius:50%;transition:transform .35s;transform-style:preserve-3d}
-  .rv .st.s1{background:radial-gradient(circle at 35% 30%,#ffa6ec,var(--p1) 62%);box-shadow:0 0 10px rgba(255,79,216,.5)}
-  .rv .st.s2{background:radial-gradient(circle at 35% 30%,#fff1b0,var(--p2) 62%);box-shadow:0 0 10px rgba(255,216,79,.45)}
+  .rv .st.s1{background:radial-gradient(circle at 35% 30%,var(--p1hi),var(--p1) 62%);box-shadow:0 0 10px color-mix(in srgb,var(--p1) 50%,transparent)}
+  .rv .st.s2{background:radial-gradient(circle at 35% 30%,var(--p2hi),var(--p2) 62%);box-shadow:0 0 10px color-mix(in srgb,var(--p2) 45%,transparent)}
   .rv .st.half{animation:rvh1 .14s ease-in forwards}
   .rv .st.half2{animation:rvh2 .18s ease-out}
   @keyframes rvh1{to{transform:scaleX(0) scaleY(1.1)}}
@@ -64,7 +64,6 @@
     id: 'reversi', name: 'Reversi', cat: 'Strategie', order: 3, accent: '#5dffcf',
     short: 'Einkesseln und umdrehen.',
     desc: 'Schließ gegnerische Steine zwischen zwei eigenen ein und dreh sie um. Am Ende zählt, wer mehr Steine hat.',
-    sides: { 1: 'Pink', 2: 'Gelb' },
     keys: [['Pfeile', 'Feld wählen'], ['Enter', 'Stein setzen']],
     icon: `<svg viewBox="0 0 48 48"><rect x="3" y="3" width="42" height="42" rx="6" fill="#14524a"/><circle cx="17" cy="17" r="6.5" fill="#ff4fd8"/><circle cx="31" cy="17" r="6.5" fill="#ffd84f"/><circle cx="17" cy="31" r="6.5" fill="#ffd84f"/><circle cx="31" cy="31" r="6.5" fill="#ff4fd8"/></svg>`,
     tutorial: [
@@ -104,7 +103,7 @@
         s = G.play(s, i); last = i;
         if (V.fxOn()) f.forEach(k => animating.add(k));
         V.sfx.place(); render();
-        V.fx.ringAt(sqs[i], who === 1 ? '#ff4fd8' : '#ffd84f');
+        V.fx.ringAt(sqs[i], V.hex(who));
         const r0 = i >> 3, c0 = i & 7;
         f.forEach(k => {
           const st = sqs[k].firstElementChild, dist = Math.max(Math.abs((k >> 3) - r0), Math.abs((k & 7) - c0));
@@ -114,7 +113,7 @@
             ctx.later(() => { animating.delete(k); st.className = 'st s' + s.b[k] + ' half2'; V.sfx.tick(); }, 140);
           }, dist * 70);
         });
-        if (f.length >= 5) ctx.later(() => V.fx.floatAt(sqs[i], '+' + f.length, who === 1 ? '#ff4fd8' : '#ffd84f'), 150);
+        if (f.length >= 5) ctx.later(() => V.fx.floatAt(sqs[i], '+' + f.length, V.hex(who)), 150);
         next();
       }
       function next() {

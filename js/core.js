@@ -256,10 +256,20 @@
     spark: svg('<path d="M12 3v4M12 17v4M3 12h4M17 12h4M6 6l2.5 2.5M15.5 15.5L18 18M6 18l2.5-2.5M15.5 8.5L18 6"/>')
   };
 
+  // ---------- player colours ----------
+  // You are always pink and on the left, the AI is always yellow and on the right, no matter who moves first.
+  // Games paint "side 1" with --p1; when the AI plays side 1 the two colours are swapped on the root element.
+  let swapped = false;
+  function setSwap(on) { swapped = !!on; document.documentElement.classList.toggle('swap', swapped); }
+  V.hex = s => ((s === 1) !== swapped) ? '#ff4fd8' : '#ffd84f';
+  V.colorName = s => ((s === 1) !== swapped) ? 'Pink' : 'Gelb';
+
   // ---------- app shell ----------
   const app = document.getElementById('app');
-  let current = null, view = 'home', homeTab = 'games', homeFilter = 'Alle';
-  function destroyCurrent() { if (current) { current.destroy(); current = null; } nav.reset(); closeModal(); }
+  const wideMQ = window.matchMedia('(min-width: 960px)');
+  const wide = () => wideMQ.matches;
+  let current = null, view = 'home', homeTab = 'games', homeFilter = 'Alle', selected = null;
+  function destroyCurrent() { if (current) { current.destroy(); current = null; } nav.reset(); closeModal(); setSwap(false); }
   function mount(html) {
     app.innerHTML = html;
     const v = app.firstElementChild; if (v && V.fxOn()) v.classList.add('enter');
@@ -276,11 +286,10 @@
     total += aiGames;
     return { total, aiWins, aiGames, proWins, draws, rate: aiGames ? Math.round(aiWins / aiGames * 100) : 0 };
   }
-  const TABS = [['games', 'Spiele', IC.grid], ['stats', 'Statistik', IC.chart], ['opts', 'Optionen', IC.gear]];
+  const TABS = [['games', 'Spiele', IC.grid], ['stats', 'Bilanz', IC.chart], ['opts', 'Optionen', IC.gear]];
+  const logo = '<button class="logo" id="logo" aria-label="Versus Startseite"><span class="l1">VER</span><i class="slash"></i><span class="l2">SUS</span></button>';
   function header(extra = '') {
-    return `<header class="top">
-      <button class="logo" id="logo" aria-label="Versus Startseite"><span class="l1">VER</span><span class="l2">SUS</span></button>
-      ${extra}
+    return `<header class="top">${logo}${extra}
       <div class="top-r"><button class="iconbtn only-fine" id="kbd" aria-label="Tastenkürzel" title="Tastenkürzel (?)">${IC.kbd}</button>
       <button class="iconbtn" id="snd" aria-label="Ton an oder aus" title="Ton (M)">${settings.sound ? IC.sound : IC.mute}</button></div></header>`;
   }
@@ -295,36 +304,36 @@
     toast(settings.sound ? 'Ton an' : 'Ton aus');
   }
 
-  function home(tab) {
+  // ---------- home ----------
+  function home(tab, sel) {
     destroyCurrent(); view = 'home'; if (tab) homeTab = tab;
+    if (sel) selected = sel;
+    if (!selected) selected = V.byId[S.get('recent')] || V.games[0];
     const tabs = `<nav class="tabs" aria-label="Bereiche">${TABS.map(([id, l, ic]) => `<button data-tab="${id}" class="${homeTab === id ? 'on' : ''}">${ic}<span>${l}</span></button>`).join('')}</nav>`;
     const body = homeTab === 'stats' ? statsTab() : homeTab === 'opts' ? optsTab() : gamesTab();
-    const v = mount(`<div class="view home">${header(tabs.replace('class="tabs"', 'class="tabs desk"'))}${body}${tabs.replace('class="tabs"', 'class="tabs bar"')}</div>`);
+    const v = mount(`<div class="view home t-${homeTab}">${header(tabs.replace('class="tabs"', 'class="tabs desk"'))}${body}${tabs.replace('class="tabs"', 'class="tabs bar"')}</div>`);
     wireHeader(v);
     v.querySelectorAll('[data-tab]').forEach(b => b.onclick = () => { if (b.dataset.tab !== homeTab) { V.sfx.ui(); home(b.dataset.tab); } });
     if (homeTab === 'games') wireGames(v);
-    if (homeTab === 'stats') wireStats(v);
     if (homeTab === 'opts') wireOpts(v);
   }
 
   function gamesTab() {
-    const t = totals();
     const recent = S.get('recent', null), rg = recent && V.byId[recent];
-    const cfgAll = S.get('setup', {}), rc = rg && cfgAll[rg.id];
+    const rc = rg && loadCfg(rg);
     const list = V.games.filter(g => homeFilter === 'Alle' || g.cat === homeFilter);
-    return `
-      <section class="hero">
-        <div class="hero-txt">
-          <h1>Zwei Spieler.<br>Ein Gerät.<br><em>Oder du gegen die KI.</em></h1>
-          <p>${V.games.length} Spiele vom Tic Tac Toe bis zum Schach, jedes mit Tutorial und KI in vier Stufen.</p>
-          <div class="hero-stats"><span><b>${t.total}</b> Partien</span><span><b>${t.aiWins}</b> Siege gegen KI</span><span><b>${V.games.filter(g => seen[g.id]).length}/${V.games.length}</b> Tutorials</span></div>
+    return `<div class="select">
+      <section class="sel-main">
+        <div class="sel-head">
+          <h1 class="title"><span>Wähl dein</span> Duell</h1>
+          <p class="tagline">${V.games.length} Spiele für zwei an einem Gerät. Oder du gegen die KI in vier Stufen.</p>
         </div>
-        <div class="vsfx" aria-hidden="true"><i class="vs-a"></i><i class="vs-b"></i><span>VS</span></div>
+        ${rg ? `<button class="cont" id="cont" style="--acc:${rg.accent || 'var(--pink)'}"><div class="ic">${rg.icon}</div><div class="ct"><small>Weiterspielen</small><b>${rg.name}</b><span>${rc.mode === 'local' ? 'Zu zweit' : 'Gegen KI · ' + V.LEVELS[rc.level]}</span></div><span class="go">${IC.play}</span></button>` : ''}
+        <div class="chips" role="tablist">${['Alle', ...V.CATS].map(c => `<button role="tab" data-f="${c}" class="${homeFilter === c ? 'on' : ''}">${c}</button>`).join('')}</div>
+        <div class="tiles">${list.map(tile).join('')}</div>
       </section>
-      ${rg ? `<button class="cont" id="cont" style="--acc:${rg.accent || 'var(--p1)'}"><div class="ic">${rg.icon}</div><div class="ct"><small>Weiterspielen</small><b>${rg.name}</b><span>${rc && rc.mode === 'local' ? '2 Spieler, ein Gerät' : 'Gegen KI · ' + V.LEVELS[rc ? rc.level : 1]}</span></div><span class="go">${IC.play}</span></button>` : ''}
-      <div class="chips" role="tablist">${['Alle', ...V.CATS].map(c => `<button role="tab" data-f="${c}" class="${homeFilter === c ? 'on' : ''}">${c}<i>${c === 'Alle' ? V.games.length : V.games.filter(g => g.cat === c).length}</i></button>`).join('')}</div>
-      <div class="tiles">${list.map(tile).join('')}</div>
-      <footer class="foot">Statistik und Einstellungen liegen nur in diesem Browser. Konten, Freunde und Online-Duelle kommen als Nächstes.</footer>`;
+      <aside class="sel-panel" id="panel"></aside>
+    </div>`;
   }
   function wireGames(v) {
     wireTiles(v.querySelector('.tiles'));
@@ -336,75 +345,142 @@
       wireTiles(tl);
     });
     const c = v.querySelector('#cont');
-    if (c) c.onclick = () => { const g = V.byId[S.get('recent')]; const cfg = loadCfg(g); V.sfx.ui(); play(g, cfg); };
+    if (c) c.onclick = () => { const g = V.byId[S.get('recent')]; V.sfx.ui(); play(g, loadCfg(g)); };
+    if (wide()) renderPanel(v.querySelector('#panel'), selected, false);
+  }
+  function selectTile(g) {
+    selected = g;
+    app.querySelectorAll('.tile').forEach(t => t.classList.toggle('sel', t.dataset.id === g.id));
+    const p = app.querySelector('#panel'); if (p) renderPanel(p, g, false);
   }
   function wireTiles(root) {
     root.querySelectorAll('.tile').forEach(t => {
-      t.onclick = () => { V.sfx.ui(); setup(V.byId[t.dataset.id]); };
-      if (!V.coarse) {
-        t.addEventListener('pointermove', e => {
-          const r = t.getBoundingClientRect();
-          t.style.setProperty('--rx', ((e.clientY - r.top) / r.height - 0.5) * -8 + 'deg');
-          t.style.setProperty('--ry', ((e.clientX - r.left) / r.width - 0.5) * 10 + 'deg');
-          t.style.setProperty('--mx', ((e.clientX - r.left) / r.width * 100) + '%');
-        });
-        t.addEventListener('pointerleave', () => { t.style.setProperty('--rx', '0deg'); t.style.setProperty('--ry', '0deg'); });
-      }
+      const g = V.byId[t.dataset.id];
+      t.onclick = () => {
+        V.sfx.ui();
+        if (!wide()) return setup(g);
+        if (selected === g && t.classList.contains('sel')) return startFromCfg(g);
+        selectTile(g);
+      };
+      t.addEventListener('dblclick', () => { if (wide()) startFromCfg(g); });
+      t.addEventListener('focus', () => { if (wide() && selected !== g) selectTile(g); });
     });
   }
+  function startFromCfg(g) { play(g, loadCfg(g)); }
   function tile(g, i) {
     const s = stats[g.id];
-    let rec = 'Noch nicht gespielt';
-    if (s) {
-      const w = s.ai.reduce((a, r) => a + r.w, 0), l = s.ai.reduce((a, r) => a + r.l, 0), loc = s.local.a + s.local.b + s.local.d;
-      rec = `KI ${w}:${l}` + (loc ? ` · ${loc}× zu zweit` : '');
-    }
-    return `<button class="tile" data-id="${g.id}" style="--acc:${g.accent || 'var(--p1)'};--i:${i}">
-      ${seen[g.id] ? '' : '<span class="chip">Neu</span>'}
-      <div class="ic">${g.icon}</div><b>${g.name}</b><small>${g.short}</small><span class="rec">${rec}</span></button>`;
+    const w = s ? s.ai.reduce((a, r) => a + r.w, 0) : 0, l = s ? s.ai.reduce((a, r) => a + r.l, 0) : 0;
+    const isSel = wide() && selected && selected.id === g.id;
+    return `<button class="tile${isSel ? ' sel' : ''}" data-id="${g.id}" style="--acc:${g.accent || 'var(--pink)'};--i:${i}">
+      <span class="art"><span class="ic">${g.icon}</span></span>
+      <span class="tx"><b>${g.name}</b><small>${g.short}</small></span>
+      <span class="meta">${seen[g.id] ? `<em>${g.cat}</em>` : '<em class="new">Neu</em>'}${s ? `<em class="rec">${w}:${l}</em>` : ''}</span></button>`;
   }
 
+  // ---------- game panel (desktop side panel and phone setup screen) ----------
+  function loadCfg(g) {
+    const saved = S.get('setup', {})[g.id] || {};
+    const cfg = { mode: g.noAI ? 'local' : (saved.mode || 'ai'), level: saved.level ?? 1, first: saved.first || 'me', opts: {} };
+    (g.options || []).forEach(o => { cfg.opts[o.id] = saved.opts && saved.opts[o.id] !== undefined ? saved.opts[o.id] : o.def; });
+    return cfg;
+  }
+  function saveCfg(g, cfg) { const all = S.get('setup', {}); all[g.id] = cfg; S.set('setup', all); }
+  let panelApi = null;
+  function renderPanel(root, g, full) {
+    const cfg = loadCfg(g), s = stat(g.id);
+    const firstLabel = g.firstLabels || ['Du', 'KI', 'Zufall'];
+    const chipRow = (id, label, items, val) => `<div class="crow"><span>${label}</span><div class="mini-seg" id="${id}">${items.map(([v, l]) => `<button data-v="${v}" class="${String(v) === String(val) ? 'on' : ''}">${l}</button>`).join('')}</div></div>`;
+    const lvl = cfg.level;
+    root.innerHTML = `<div class="gp" style="--acc:${g.accent || 'var(--pink)'}">
+      <div class="gp-art"><span class="cat">${g.cat}</span><div class="ic">${g.icon}</div></div>
+      <div class="gp-txt"><h2>${g.name}</h2><p>${g.desc}</p></div>
+      <div class="gp-mode" id="mode">
+        ${g.noAI ? '' : `<button data-v="ai" class="${cfg.mode === 'ai' ? 'on' : ''}">${IC.robot}<span>Gegen KI</span></button>`}
+        <button data-v="local" class="${cfg.mode === 'local' ? 'on' : ''}">${IC.users}<span>Zu zweit</span></button>
+      </div>
+      ${cfg.mode === 'ai' ? `<div class="gp-lvl">
+        <div class="lv-top"><span>Stärke</span><b class="l${lvl}">${V.LEVELS[lvl]}</b><em>Bilanz ${s.ai[lvl].w}:${s.ai[lvl].l}</em></div>
+        <div class="lv-bar" id="level">${V.LEVELS.map((l, i) => `<button data-v="${i}" class="${i <= lvl ? 'fill' : ''} ${i === lvl ? 'on' : ''}" aria-label="${l}" title="${l}"></button>`).join('')}</div>
+        <p class="hint">${(g.levelInfo || LEVEL_INFO)[lvl]}</p></div>` : `<p class="hint local">Ihr spielt abwechselnd am selben Gerät${g.cat === 'Action' ? ', jeder auf seiner Hälfte' : ''}.</p>`}
+      ${(cfg.mode === 'ai' && !g.noFirst) || (g.options || []).length ? `<div class="gp-more">
+        ${cfg.mode === 'ai' && !g.noFirst ? chipRow('first', g.firstTitle || 'Beginn', [['me', firstLabel[0]], ['ai', firstLabel[1]], ['rand', firstLabel[2]]], cfg.first) : ''}
+        ${(g.options || []).map(o => chipRow('o_' + o.id, o.label, o.choices, cfg.opts[o.id])).join('')}
+      </div>` : ''}
+      <div class="gp-go"><button class="btn primary big" id="go"><span>${IC.play}Spielen</span><kbd class="only-fine">Enter</kbd></button>
+        <button class="btn ghost" id="tut"><span>${IC.book}Regeln${seen[g.id] ? '' : '<i class="dot"></i>'}</span></button></div>
+    </div>`;
+    if (V.fxOn()) V.fx.pop(root.firstElementChild, 'gp-in');
+    const rer = () => renderPanel(root, g, full);
+    const on = (id, fn) => { const e = root.querySelector('#' + id); if (e) e.querySelectorAll('button').forEach(b => b.onclick = () => { fn(b.dataset.v); saveCfg(g, cfg); V.sfx.ui(); rer(); }); };
+    on('mode', x => cfg.mode = x);
+    on('level', x => cfg.level = +x);
+    on('first', x => cfg.first = x);
+    (g.options || []).forEach(o => on('o_' + o.id, x => cfg.opts[o.id] = isNaN(+x) ? x : +x));
+    root.querySelector('#go').onclick = () => { saveCfg(g, cfg); play(g, cfg); };
+    root.querySelector('#tut').onclick = () => tutorial(g, rer);
+    panelApi = {
+      g,
+      go() { saveCfg(g, cfg); play(g, cfg); },
+      tut() { tutorial(g, rer); },
+      level(i) { if (cfg.mode !== 'ai') return; cfg.level = Math.max(0, Math.min(3, i)); saveCfg(g, cfg); V.sfx.tick(); rer(); },
+      step(d) { this.level(cfg.level + d); },
+      mode() { if (g.noAI) return; cfg.mode = cfg.mode === 'ai' ? 'local' : 'ai'; saveCfg(g, cfg); V.sfx.tick(); rer(); }
+    };
+  }
+
+  // phone: own setup screen with the same panel. Desktop: the panel lives next to the game grid.
+  function setup(g) {
+    lastGame = g;
+    if (wide()) return home('games', g);
+    destroyCurrent(); view = 'setup'; selected = g;
+    const v = mount(`<div class="view setup" style="--acc:${g.accent || 'var(--pink)'}">
+      <div class="sbar"><button class="iconbtn" id="bk" aria-label="Zurück">${IC.back}</button>${logo}<button class="iconbtn" id="snd" aria-label="Ton">${settings.sound ? IC.sound : IC.mute}</button></div>
+      <div id="panel" class="sel-panel solo"></div></div>`);
+    wireHeader(v);
+    v.querySelector('#bk').onclick = () => home('games');
+    renderPanel(v.querySelector('#panel'), g, true);
+  }
+
+  // ---------- stats and options ----------
   function statsTab() {
     const t = totals();
     const rows = V.games.map(g => {
       const s = stats[g.id]; if (!s) return '';
       const w = s.ai.reduce((a, r) => a + r.w, 0), l = s.ai.reduce((a, r) => a + r.l, 0), d = s.ai.reduce((a, r) => a + r.d, 0), n = w + l + d;
       const loc = s.local.a + s.local.b + s.local.d;
-      return `<div class="srow" style="--acc:${g.accent || 'var(--p1)'}"><div class="ic">${g.icon}</div>
+      return `<div class="srow" style="--acc:${g.accent || 'var(--pink)'}"><div class="ic">${g.icon}</div>
         <div class="sm"><b>${g.name}</b>
           <div class="wbar">${n ? `<i class="w" style="flex:${w}"></i><i class="d" style="flex:${d}"></i><i class="l" style="flex:${l}"></i>` : '<i class="e"></i>'}</div>
-          <div class="lv">${V.LEVELS.map((lv, k) => `<span title="${lv}">${lv[0]} ${s.ai[k].w}:${s.ai[k].l}</span>`).join('')}${loc ? `<span>2P ${loc}</span>` : ''}</div>
+          <div class="lv">${V.LEVELS.map((lv, k) => `<span>${lv} ${s.ai[k].w}:${s.ai[k].l}</span>`).join('')}${loc ? `<span>Zu zweit ${loc}</span>` : ''}</div>
         </div><div class="sn"><b>${w}:${l}</b><small>${n ? Math.round(w / n * 100) + ' %' : '–'}</small></div></div>`;
     }).join('');
-    return `<section class="stats">
-      <h2 class="h2">Deine Bilanz</h2>
+    return `<section class="stats page">
+      <h1 class="title"><span>Deine</span> Bilanz</h1>
       <div class="kpis">
         <div class="kpi"><b>${t.total}</b><span>Partien</span></div>
         <div class="kpi"><b>${t.aiWins}</b><span>Siege gegen KI</span></div>
         <div class="kpi"><b>${t.rate} %</b><span>Siegquote</span></div>
         <div class="kpi"><b>${t.proWins}</b><span>Siege gegen Profi</span></div>
       </div>
-      <div class="slist">${rows || `<div class="empty">${IC.trophy}<b>Noch keine Partien</b><p>Spiel eine Runde, dann siehst du hier deine Bilanz pro Spiel und KI-Stufe.</p><button class="btn primary" data-tab="games">Spiel aussuchen</button></div>`}</div>
+      <div class="slist">${rows || `<div class="empty">${IC.trophy}<b>Noch keine Partien</b><p>Spiel eine Runde, dann steht hier deine Bilanz pro Spiel und KI-Stufe.</p><button class="btn primary" data-tab="games"><span>Spiel aussuchen</span></button></div>`}</div>
       ${rows ? '<div class="legend"><span><i class="w"></i>Siege</span><span><i class="d"></i>Remis</span><span><i class="l"></i>Niederlagen</span></div>' : ''}
     </section>`;
   }
-  function wireStats() { }
 
   function optsTab() {
     const sw = (id, on, label, sub, ic) => `<button class="opt" id="${id}" role="switch" aria-checked="${on}">${ic}<span><b>${label}</b><small>${sub}</small></span><i class="sw ${on ? 'on' : ''}"></i></button>`;
-    return `<section class="opts">
-      <h2 class="h2">Optionen</h2>
+    return `<section class="opts page">
+      <h1 class="title"><span>Deine</span> Optionen</h1>
       <div class="optlist">
         ${sw('o_snd', settings.sound, 'Ton', 'Klicks, Treffer und Jubel', IC.sound)}
-        ${'vibrate' in navigator ? sw('o_hap', settings.haptic, 'Vibration', 'Kurzes Feedback am Handy', IC.vib) : ''}
-        ${sw('o_fx', settings.fx !== 'low', 'Effekte', 'Konfetti, Partikel und Wackeln. Aus spart Akku.', IC.spark)}
+        ${'vibrate' in navigator ? sw('o_hap', settings.haptic, 'Vibration', 'Kurzes Ruckeln am Handy', IC.vib) : ''}
+        ${sw('o_fx', settings.fx !== 'low', 'Effekte', 'Konfetti, Partikel, VS-Intro. Aus spart Akku.', IC.spark)}
       </div>
-      <h2 class="h2">Daten</h2>
-      <div class="optlist">
-        <button class="opt" id="o_tut">${IC.book}<span><b>Tutorials zurücksetzen</b><small>Alle Spiele zeigen wieder den Hinweis „Neu“</small></span></button>
-        <button class="opt danger" id="o_rst">${IC.x}<span><b>Statistik löschen</b><small>Setzt alle Siege und Niederlagen auf null</small></span></button>
+      <div class="optlist small">
+        <button class="opt" id="o_tut">${IC.book}<span><b>Tutorials wieder als neu zeigen</b></span></button>
+        <button class="opt danger" id="o_rst">${IC.x}<span><b>Bilanz löschen</b></span></button>
       </div>
-      <p class="about">Versus · Version ${V.VERSION || 1}. Alles läuft lokal im Browser, es gibt keine Werbung und kein Konto. Am PC zeigt die Taste <kbd>?</kbd> alle Tastenkürzel.</p>
+      <p class="about">Versus ${V.VERSION || ''} · läuft komplett im Browser, ohne Konto und ohne Werbung.<span class="only-fine"> Taste <kbd>?</kbd> zeigt alle Kürzel.</span></p>
     </section>`;
   }
   function wireOpts(v) {
@@ -412,69 +488,12 @@
     flip('o_snd', () => { settings.sound = !settings.sound; const s = document.getElementById('snd'); if (s) s.innerHTML = settings.sound ? IC.sound : IC.mute; return settings.sound; });
     flip('o_hap', () => { settings.haptic = !settings.haptic; V.buzz(30); return settings.haptic; });
     flip('o_fx', () => { settings.fx = settings.fx === 'low' ? 'full' : 'low'; applyFxClass(); return settings.fx !== 'low'; });
-    v.querySelector('#o_tut').onclick = () => { seen = {}; S.set('seen', seen); toast('Tutorials zurückgesetzt'); };
+    v.querySelector('#o_tut').onclick = () => { seen = {}; S.set('seen', seen); toast('Alle Tutorials sind wieder neu'); };
     const r = v.querySelector('#o_rst');
     r.onclick = () => {
       if (!r.classList.contains('sure')) { r.classList.add('sure'); r.querySelector('b').textContent = 'Wirklich löschen? Nochmal tippen'; return; }
-      stats = {}; S.set('stats', stats); toast('Statistik gelöscht'); home('opts');
+      stats = {}; S.set('stats', stats); toast('Bilanz gelöscht'); home('opts');
     };
-  }
-
-  // ---------- setup ----------
-  function loadCfg(g) {
-    const saved = S.get('setup', {})[g.id] || {};
-    const cfg = { mode: g.noAI ? 'local' : (saved.mode || 'ai'), level: saved.level ?? 1, first: saved.first || 'me', opts: {} };
-    (g.options || []).forEach(o => { cfg.opts[o.id] = saved.opts && saved.opts[o.id] !== undefined ? saved.opts[o.id] : o.def; });
-    return cfg;
-  }
-  let setupApi = null;
-  function setup(g) {
-    destroyCurrent(); view = 'setup';
-    const all = S.get('setup', {}), cfg = loadCfg(g);
-    const save = () => { all[g.id] = cfg; S.set('setup', all); };
-    function seg(id, items, val) {
-      return `<div class="seg" id="${id}">${items.map(([v, l]) => `<button data-v="${v}" class="${String(v) === String(val) ? 'on' : ''}">${l}</button>`).join('')}</div>`;
-    }
-    let first = true;
-    function render() {
-      const s = stat(g.id);
-      const firstLabel = g.firstLabels || ['Ich', 'KI', 'Zufall'];
-      const html = `<div class="view setup" style="--acc:${g.accent || 'var(--p1)'}">
-        <div class="sbar"><button class="iconbtn" id="bk" aria-label="Zurück">${IC.back}</button><span class="crumb">${g.cat}</span>
-          <button class="iconbtn only-fine" id="kbd" aria-label="Tastenkürzel">${IC.kbd}</button><button class="iconbtn" id="snd" aria-label="Ton">${settings.sound ? IC.sound : IC.mute}</button></div>
-        <section class="shero"><div class="sicon">${g.icon}</div><div><h1>${g.name}</h1><p>${g.desc}</p></div></section>
-        ${seen[g.id] ? '' : `<div class="newbie">${IC.book}<p>Kennst du ${g.name} noch nicht? Das Tutorial erklärt alles in ein paar Schritten.</p><button class="btn sm" id="tut2">Ansehen</button></div>`}
-        <div class="field"><label>Modus</label><div class="modes" id="mode">
-          ${g.noAI ? '' : `<button data-v="ai" class="mode ${cfg.mode === 'ai' ? 'on' : ''}">${IC.robot}<b>Gegen KI</b><small>4 Stufen</small></button>`}
-          <button data-v="local" class="mode ${cfg.mode === 'local' ? 'on' : ''}">${IC.users}<b>2 Spieler</b><small>an einem Gerät</small></button></div></div>
-        ${cfg.mode === 'ai' ? `
-          <div class="field"><label>Schwierigkeit</label><div class="levels" id="level">${V.LEVELS.map((l, i) => `<button data-v="${i}" class="lvl l${i} ${cfg.level === i ? 'on' : ''}"><i class="pips">${'<em></em>'.repeat(4)}</i><b>${l}</b><small>${s.ai[i].w}:${s.ai[i].l}</small></button>`).join('')}</div><p class="hint">${(g.levelInfo || LEVEL_INFO)[cfg.level]}</p></div>
-          ${g.noFirst ? '' : `<div class="field"><label>${g.firstTitle || 'Wer fängt an?'}</label>${seg('first', [['me', firstLabel[0]], ['ai', firstLabel[1]], ['rand', firstLabel[2]]], cfg.first)}</div>`}` : ''}
-        ${(g.options || []).map(o => `<div class="field"><label>${o.label}</label>${seg('o_' + o.id, o.choices, cfg.opts[o.id])}</div>`).join('')}
-        ${g.keys ? `<div class="keyhint only-fine">${IC.kbd}<span>${g.keys.map(k => `<kbd>${k[0]}</kbd> ${k[1]}`).join(' · ')}</span></div>` : ''}
-        <div class="sactions"><button class="btn primary big" id="go">${IC.play}Spielen<kbd class="only-fine">Enter</kbd></button><button class="btn" id="tut">${IC.book}Tutorial</button></div>
-      </div>`;
-      let v;
-      if (first) { v = mount(html); first = false; }
-      else { const y = window.scrollY; app.innerHTML = html; v = app.firstElementChild; window.scrollTo(0, y); }
-      wireHeader(v);
-      const on = (id, fn) => { const e = v.querySelector('#' + id); if (e) e.querySelectorAll('button').forEach(b => b.onclick = () => { fn(b.dataset.v); save(); V.sfx.ui(); render(); }); };
-      on('mode', x => cfg.mode = x);
-      on('level', x => cfg.level = +x);
-      on('first', x => cfg.first = x);
-      (g.options || []).forEach(o => on('o_' + o.id, x => cfg.opts[o.id] = isNaN(+x) ? x : +x));
-      v.querySelector('#bk').onclick = () => home();
-      v.querySelector('#go').onclick = () => { save(); play(g, cfg); };
-      v.querySelector('#tut').onclick = () => tutorial(g, render);
-      const t2 = v.querySelector('#tut2'); if (t2) t2.onclick = () => tutorial(g, render);
-    }
-    setupApi = {
-      go() { save(); play(g, cfg); },
-      tut() { tutorial(g, render); },
-      level(d) { if (cfg.mode !== 'ai') return; cfg.level = Math.max(0, Math.min(3, cfg.level + d)); save(); V.sfx.tick(); render(); },
-      mode() { if (g.noAI) return; cfg.mode = cfg.mode === 'ai' ? 'local' : 'ai'; save(); V.sfx.tick(); render(); }
-    };
-    render();
   }
 
   // ---------- modal ----------
@@ -488,7 +507,7 @@
     }
     modalClose = null; closeModal(); modalKeys = keys;
     modalClose = onClose;
-    modalEl = V.el('div', 'modal-back');
+    modalEl = V.el('div', 'modal-back' + (cls ? ' mb-' + cls : ''));
     modalEl.innerHTML = `<div class="modal ${cls}" role="dialog" aria-modal="true">${html}</div>`;
     modalEl.addEventListener('pointerdown', e => { if (e.target === modalEl && cls !== 'endm') closeModal(); });
     document.body.appendChild(modalEl);
@@ -521,20 +540,19 @@
     function render(dir) {
       const st = steps[i];
       const m = openModal(`<div class="tut ${dir ? 'go' + dir : ''}">
-        <div class="tk">${g.name} · Schritt ${i + 1} von ${steps.length}</div>
+        <div class="tk"><span>${g.name}</span><b>${i + 1}/${steps.length}</b></div>
         <h3>${st.t}</h3>
         ${st.demo ? `<div class="demo">${st.demo}</div>` : ''}
         <p class="txt">${st.d}</p>
-        <div class="nav"><button class="btn ghost" id="tp">${i ? 'Zurück' : 'Schließen'}</button>
-          <div class="dots">${steps.map((_, k) => `<i class="${k === i ? 'on' : ''}"></i>`).join('')}</div>
-          <button class="btn ${i === steps.length - 1 ? 'primary' : ''}" id="tn">${i === steps.length - 1 ? 'Verstanden' : 'Weiter'}</button></div></div>`, 'tutm', () => finish(), true, e => {
+        <div class="nav"><button class="btn ghost sm" id="tp"><span>${i ? 'Zurück' : 'Schließen'}</span></button>
+          <div class="dots">${steps.map((_, k) => `<i class="${k === i ? 'on' : k < i ? 'past' : ''}"></i>`).join('')}</div>
+          <button class="btn sm ${i === steps.length - 1 ? 'primary' : ''}" id="tn"><span>${i === steps.length - 1 ? 'Verstanden' : 'Weiter'}</span></button></div></div>`, 'tutm', () => finish(), true, e => {
         if (e.key === 'ArrowRight' || e.key === 'Enter' || e.key === ' ') { next(); return true; }
         if (e.key === 'ArrowLeft') { prev(); return true; }
         return false;
       });
       m.querySelector('#tp').onclick = prev;
       m.querySelector('#tn').onclick = next;
-      // swipe between steps
       let sx = null;
       m.onpointerdown = e => { sx = e.clientX; };
       m.onpointerup = e => { if (sx != null && Math.abs(e.clientX - sx) > 60 && !e.target.closest('button')) { e.clientX < sx ? next() : prev(); } sx = null; };
@@ -602,28 +620,48 @@
   })();
   V.nav = nav;
 
+  // ---------- VS intro before each match ----------
+  function vsIntro(left, right, quick) {
+    if (!V.fxOn()) return;
+    const el = V.el('div', 'vsi' + (quick ? ' quick' : ''), `
+      <div class="vsi-l"><div class="vsi-n"><small>${left.sub}</small><b>${left.name}</b></div></div>
+      <div class="vsi-r"><div class="vsi-n"><small>${right.sub}</small><b>${right.name}</b></div></div>
+      <div class="vsi-vs">VS</div><div class="vsi-flash"></div>`);
+    document.body.appendChild(el);
+    const kill = () => { el.classList.add('out'); setTimeout(() => el.remove(), 260); };
+    el.addEventListener('pointerdown', kill);
+    setTimeout(() => V.sfx.place(), quick ? 120 : 260);
+    setTimeout(kill, quick ? 650 : 1150);
+  }
+
   // ---------- play ----------
   let playApi = null;
   function play(g, cfg, series) {
-    destroyCurrent(); view = 'play';
+    const rematch = !!series;
+    destroyCurrent(); view = 'play'; lastGame = g; selected = g;
     S.set('recent', g.id);
     series = series || { 1: 0, 2: 0, d: 0 };
     const ai = cfg.mode === 'ai';
     const aiSide = ai ? (cfg.first === 'me' ? 2 : cfg.first === 'ai' ? 1 : (Math.random() < 0.5 ? 1 : 2)) : 0;
-    const sides = g.sides || { 1: 'Pink', 2: 'Gelb' };
+    setSwap(ai && aiSide === 1);
+    const L = ai ? 3 - aiSide : 1, R = 3 - L;
+    const sideLabel = s => g.sides ? g.sides[s] : V.colorName(s);
     const names = { 1: ai ? (aiSide === 1 ? 'KI' : 'Du') : 'Spieler 1', 2: ai ? (aiSide === 2 ? 'KI' : 'Du') : 'Spieler 2' };
+    const sub = s => sideLabel(s) + (s === 1 && g.cat !== 'Action' ? ' · beginnt' : '');
     const av = s => ai ? (s === aiSide ? IC.robot : '<span>DU</span>') : `<span>P${s}</span>`;
-    const v = mount(`<div class="view play" style="--acc:${g.accent || 'var(--p1)'}">
-      <div class="pbar"><button class="iconbtn" id="pb" aria-label="Zurück">${IC.back}</button><div class="ttl"><b>${g.name}</b>${ai ? `<small>KI · ${V.LEVELS[cfg.level]}</small>` : '<small>2 Spieler</small>'}</div>
-        <button class="iconbtn" id="ph" aria-label="Tutorial" title="Tutorial (T)">${IC.help}</button><button class="iconbtn" id="pr" aria-label="Neu starten" title="Neue Partie (N)">${IC.redo}</button></div>
-      <div class="players">
-        <div class="pl s1" id="pl1"><span class="av">${av(1)}</span><span class="nm">${names[1]}<small>${sides[1]}</small></span><em class="tag">am Zug</em></div>
-        <div class="score" id="sc"><b>${series[1]}</b><i>:</i><b>${series[2]}</b></div>
-        <div class="pl s2" id="pl2"><span class="av">${av(2)}</span><span class="nm">${names[2]}<small>${sides[2]}</small></span><em class="tag">am Zug</em></div>
-      </div>
-      <div class="status" id="st" aria-live="polite"></div>
-      <div class="stage" id="stage"></div></div>`);
-    const stEl = v.querySelector('#st'), pl1 = v.querySelector('#pl1'), pl2 = v.querySelector('#pl2');
+    const card = (s, pos) => `<div class="pc pc-${pos}" id="pl${s}"><span class="av">${av(s)}</span>
+      <span class="nm"><b>${names[s]}</b><small>${sub(s)}${ai && s === aiSide ? ' · ' + V.LEVELS[cfg.level] : ''}</small></span>
+      <span class="wins"><b>${series[s]}</b><small>Siege</small></span><em class="tag">am Zug</em></div>`;
+    const v = mount(`<div class="view play" style="--acc:${g.accent || 'var(--pink)'}">
+      <div class="pbar"><button class="iconbtn" id="pb" aria-label="Zurück">${IC.back}</button><div class="ttl"><b>${g.name}</b><small>${ai ? 'Gegen KI · ' + V.LEVELS[cfg.level] : 'Zu zweit'}</small></div>
+        <button class="iconbtn" id="ph" aria-label="Regeln" title="Regeln (T)">${IC.help}</button><button class="iconbtn" id="pr" aria-label="Neu starten" title="Neue Partie (N)">${IC.redo}</button></div>
+      <div class="duel">
+        ${card(L, 'l')}
+        <div class="score" id="sc"><b class="sl">${series[L]}</b><i>:</i><b class="sr">${series[R]}</b></div>
+        ${card(R, 'r')}
+        <div class="center"><div class="status" id="st" aria-live="polite"></div><div class="stage" id="stage"></div></div>
+      </div></div>`);
+    const stEl = v.querySelector('#st'), pls = { 1: v.querySelector('#pl1'), 2: v.querySelector('#pl2') };
     const timers = new Set(), cleanups = [];
     let alive = true, ended = false, keyFn = null, lastTurn = 0;
     const setStatus = html => {
@@ -631,7 +669,7 @@
       stEl.innerHTML = html; if (V.fxOn()) V.fx.pop(stEl, 'st-in');
     };
     const ctx = {
-      stage: v.querySelector('#stage'), mode: cfg.mode, level: cfg.level, aiSide, opts: cfg.opts, sides,
+      stage: v.querySelector('#stage'), mode: cfg.mode, level: cfg.level, aiSide, opts: cfg.opts, sides: g.sides,
       isAI: s => ai && s === aiSide,
       name: s => names[s],
       who(s) { return `<span class="c${s}">${names[s]}</span>`; },
@@ -640,8 +678,8 @@
       onCleanup(fn) { cleanups.push(fn); },
       status: setStatus,
       turn(s, html) {
-        pl1.classList.toggle('on', s === 1); pl2.classList.toggle('on', s === 2);
-        if (s && s !== lastTurn && V.fxOn()) V.fx.pop(s === 1 ? pl1 : pl2, 'pl-in');
+        pls[1].classList.toggle('on', s === 1); pls[2].classList.toggle('on', s === 2);
+        if (s && s !== lastTurn && V.fxOn()) V.fx.pop(pls[s], 'pc-in');
         lastTurn = s;
         if (html !== false) setStatus(html || (names[s] === 'Du' ? '<span class="c' + s + '">Du</span> bist dran' : ctx.isAI(s) ? '<span class="c' + s + '">KI</span> ist dran' : `${ctx.who(s)} ist dran`));
         nav.refresh();
@@ -649,32 +687,31 @@
       think(fn, ms = 380) { setStatus(`<span class="c${aiSide}">KI</span> <span class="thinking">denkt</span>`); ctx.later(fn, ms); },
       nav(fn, o) { nav.set(fn, o); },
       keys(fn) { keyFn = fn; },
-      boardEl: null,
       end(winner, note) {
         if (ended || !alive) return; ended = true;
-        pl1.classList.remove('on'); pl2.classList.remove('on');
+        pls[1].classList.remove('on'); pls[2].classList.remove('on');
         nav.hide();
         const s = stat(g.id);
         if (ai) { const r = s.ai[cfg.level]; if (winner === 0) r.d++; else if (winner === aiSide) r.l++; else r.w++; }
         else { if (winner === 0) s.local.d++; else if (winner === 1) s.local.a++; else s.local.b++; }
         S.set('stats', stats);
         if (winner === 0) series.d++; else series[winner]++;
-        const sc = v.querySelector('#sc'); sc.innerHTML = `<b>${series[1]}</b><i>:</i><b>${series[2]}</b>`; V.fx.pop(sc, 'fx-pop');
+        const sc = v.querySelector('#sc'); sc.innerHTML = `<b class="sl">${series[L]}</b><i>:</i><b class="sr">${series[R]}</b>`; V.fx.pop(sc, 'fx-pop');
+        [1, 2].forEach(k => { const b = pls[k].querySelector('.wins b'); if (b.textContent !== String(series[k])) { b.textContent = series[k]; V.fx.pop(b, 'fx-pop'); } });
         const humanWon = ai && winner && winner !== aiSide;
         const good = winner && (!ai || humanWon);
         if (good) { V.sfx.win(); setTimeout(() => V.fx.confetti(), 250); }
         else if (winner) { V.sfx.lose(); V.fx.shake(ctx.stage); }
-        const title = winner === 0 ? 'Unentschieden' : ai ? (humanWon ? 'Gewonnen!' : 'Verloren') : `${names[winner]} gewinnt!`;
+        const big = winner === 0 ? 'Remis' : ai ? (humanWon ? 'Sieg!' : 'Niederlage') : `${names[winner]} gewinnt`;
         setStatus(winner === 0 ? 'Unentschieden' : ai ? (humanWon ? '<span class="c' + winner + '">Du hast gewonnen</span>' : '<span class="c' + winner + '">Die KI hat gewonnen</span>') : `${ctx.who(winner)} gewinnt`);
+        const tone = winner === 0 ? 'draw' : ai ? (humanWon ? 'win' : 'lose') : (winner === L ? 'left' : 'right');
         ctx.later(() => {
-          const icon = winner === 0 ? IC.flag : good ? IC.trophy : IC.robot;
-          const m = openModal(`<div class="end ${winner === 0 ? 'draw' : good ? 'win' : 'lose'} w${winner}">
-            <div class="eic">${icon}</div>
-            <h2 aria-label="${title}">${[...title].map((ch, k) => `<span aria-hidden="true" style="--k:${k}">${ch === ' ' ? '&nbsp;' : ch}</span>`).join('')}</h2>
-            <p>${note ? note : (ai ? `gegen KI · ${V.LEVELS[cfg.level]}` : g.name)}</p>
-            <div class="eseries"><span class="c1">${names[1]}</span><b>${series[1]}</b><i>:</i><b>${series[2]}</b><span class="c2">${names[2]}</span></div>
+          const m = openModal(`<div class="ko ${tone}">
+            <div class="band"><div class="band-in"><span class="kicker">${note || (ai ? 'Gegen KI · ' + V.LEVELS[cfg.level] : g.name)}</span>
+              <h2 aria-label="${big}">${[...big].map((ch, k) => `<span aria-hidden="true" style="--k:${k}">${ch === ' ' ? '&nbsp;' : ch}</span>`).join('')}</h2></div></div>
+            <div class="eseries"><span class="nl">${names[L]}</span><b class="sl">${series[L]}</b><i>:</i><b class="sr">${series[R]}</b><span class="nr">${names[R]}</span></div>
             ${series.d ? `<p class="small">${series.d}× unentschieden</p>` : ''}
-            <div class="actions"><button class="btn primary" id="er">${IC.redo}Revanche<kbd class="only-fine">Enter</kbd></button><button class="btn" id="eb">Brett ansehen</button><button class="btn ghost" id="em">Menü</button></div></div>`, 'endm', null, false, e => {
+            <div class="actions"><button class="btn primary" id="er"><span>${IC.redo}Revanche</span><kbd class="only-fine">Enter</kbd></button><button class="btn" id="eb"><span>Brett ansehen</span></button><button class="btn ghost" id="em"><span>Menü</span></button></div></div>`, 'endm', null, false, e => {
             if (e.key === 'Enter' || e.key === 'n' || e.key === 'N') { play(g, cfg, series); return true; }
             if (e.key === 'Escape') { closeModal(); return true; }
             if (e.key === 'm' || e.key === 'M') { setup(g); return true; }
@@ -697,8 +734,8 @@
     function leave(to) {
       if (ended) return to();
       if (inst && inst.pause) inst.pause();
-      const m = openModal(`<div class="confirm"><h3>Partie verlassen?</h3><p>Der aktuelle Stand geht verloren und zählt nicht in der Statistik.</p>
-        <div class="actions"><button class="btn primary" id="cy">Weiterspielen</button><button class="btn ghost" id="cn">Verlassen</button></div></div>`, '', () => { if (inst && inst.resume && alive) inst.resume(); }, false, e => {
+      const m = openModal(`<div class="confirm"><h3>Partie verlassen?</h3><p>Der Stand geht verloren und zählt nicht in der Bilanz.</p>
+        <div class="actions"><button class="btn primary" id="cy"><span>Weiterspielen</span></button><button class="btn ghost" id="cn"><span>Verlassen</span></button></div></div>`, '', () => { if (inst && inst.resume && alive) inst.resume(); }, false, e => {
         if (e.key === 'Enter') { closeModal(); return true; }
         return false;
       });
@@ -715,29 +752,26 @@
       restart() { leave(() => play(g, cfg, series)); },
       tut
     };
+    vsIntro({ name: names[L], sub: ai ? sideLabel(L) : sideLabel(L) }, { name: names[R], sub: ai ? 'KI · ' + V.LEVELS[cfg.level] : sideLabel(R) }, rematch);
     inst = g.start(ctx) || {};
   }
 
   // ---------- keyboard ----------
+  let lastGame = null;
   function showKeys() {
     const row = (k, d) => `<div class="krow"><span>${k.split(' ').map(x => `<kbd>${x}</kbd>`).join(' ')}</span><p>${d}</p></div>`;
-    openModal(`<div class="keys"><h3>Tastenkürzel</h3>
-      <h4>Überall</h4>${row('?', 'Diese Übersicht')}${row('M', 'Ton an oder aus')}${row('Esc', 'Zurück oder Fenster schließen')}
-      <h4>Startseite</h4>${row('← → ↑ ↓', 'Spiel auswählen')}${row('Enter', 'Spiel öffnen')}${row('1 2 3', 'Spiele, Statistik, Optionen')}
-      <h4>Vor dem Spiel</h4>${row('Enter', 'Spielen')}${row('← →', 'Schwierigkeit ändern')}${row('S', 'Modus wechseln')}${row('T', 'Tutorial')}
-      <h4>Im Spiel</h4>${row('← → ↑ ↓', 'Cursor über das Brett bewegen')}${row('Enter Leertaste', 'Feld wählen oder setzen')}${row('N', 'Neue Partie')}${row('T', 'Tutorial')}
-      ${view === 'play' || view === 'setup' ? (lastGame && lastGame.keys ? `<h4>${lastGame.name}</h4>${lastGame.keys.map(k => row(k[0], k[1])).join('')}` : '') : ''}
-      <div class="actions"><button class="btn" id="kx">Schließen</button></div></div>`, 'keysm');
-    document.getElementById('kx').onclick = closeModal;
+    const m = openModal(`<div class="keys"><h3>Tastenkürzel</h3>
+      <h4>Überall</h4>${row('?', 'Diese Übersicht')}${row('M', 'Ton an oder aus')}${row('Esc', 'Zurück oder schließen')}
+      <h4>Spielauswahl</h4>${row('← → ↑ ↓', 'Spiel wählen')}${row('Enter', 'Spielen')}${row('1 2 3 4', 'KI-Stärke')}${row('S', 'Gegen KI oder zu zweit')}${row('T', 'Regeln')}
+      <h4>Im Spiel</h4>${row('← → ↑ ↓', 'Cursor über das Brett')}${row('Enter Leertaste', 'Feld wählen oder setzen')}${row('N', 'Neue Partie')}${row('T', 'Regeln')}
+      ${lastGame && lastGame.keys ? `<h4>${lastGame.name}</h4>${lastGame.keys.map(k => row(k[0], k[1])).join('')}` : ''}
+      <div class="actions"><button class="btn" id="kx"><span>Schließen</span></button></div></div>`, 'keysm');
+    m.querySelector('#kx').onclick = closeModal;
   }
-  let lastGame = null;
-  const _setup = setup, _play = play;
-  setup = function (g) { lastGame = g; return _setup(g); };
-  play = function (g, c, s) { lastGame = g; return _play(g, c, s); };
 
   function spatial(list, dx, dy) {
     const a = document.activeElement, i = list.indexOf(a);
-    if (i < 0) { list[0] && list[0].focus(); return; }
+    if (i < 0) { const s = list.find(t => t.classList.contains('sel')) || list[0]; if (s) s.focus(); return; }
     const r0 = a.getBoundingClientRect(), cx = r0.left + r0.width / 2, cy = r0.top + r0.height / 2;
     let best = null, bs = Infinity;
     list.forEach(el => {
@@ -761,18 +795,30 @@
     }
     if (k === '?') { e.preventDefault(); showKeys(); return; }
     if ((k === 'm' || k === 'M') && !e.repeat) { toggleSound(); return; }
+    const panelKeys = () => {
+      if (!panelApi || !app.querySelector('#panel .gp')) return false;
+      if (/^[1-4]$/.test(k)) { panelApi.level(+k - 1); return true; }
+      if (k === 's' || k === 'S') { panelApi.mode(); return true; }
+      if (k === 't' || k === 'T') { panelApi.tut(); return true; }
+      return false;
+    };
     if (view === 'home') {
-      if (DIRS[k]) { e.preventDefault(); spatial([...app.querySelectorAll('.tile, #cont')], ...DIRS[k]); return; }
-      if (['1', '2', '3'].includes(k)) { home(TABS[+k - 1][0]); return; }
+      if (homeTab !== 'games') return;
+      if (DIRS[k]) { e.preventDefault(); spatial([...app.querySelectorAll('.tile')], ...DIRS[k]); return; }
+      if (wide() && panelKeys()) { e.preventDefault(); return; }
+      if (k === 'Enter' && wide() && panelApi) {
+        const f = document.activeElement;
+        if (f && f.tagName === 'BUTTON' && !f.classList.contains('tile')) return;
+        e.preventDefault(); panelApi.go();
+      }
       return;
     }
-    if (view === 'setup' && setupApi) {
+    if (view === 'setup') {
+      if (panelKeys()) { e.preventDefault(); return; }
       const onBtn = document.activeElement && document.activeElement.tagName === 'BUTTON' && app.contains(document.activeElement);
-      if (k === 'Enter' && !onBtn) { e.preventDefault(); setupApi.go(); return; }
+      if (k === 'Enter' && !onBtn && panelApi) { e.preventDefault(); panelApi.go(); return; }
+      if (k === 'ArrowLeft' || k === 'ArrowRight') { e.preventDefault(); if (panelApi) panelApi.step(k === 'ArrowLeft' ? -1 : 1); return; }
       if (k === 'Escape' || k === 'Backspace') { e.preventDefault(); home(); return; }
-      if (k === 'ArrowLeft' || k === 'ArrowRight') { e.preventDefault(); setupApi.level(k === 'ArrowLeft' ? -1 : 1); return; }
-      if (k === 's' || k === 'S') { setupApi.mode(); return; }
-      if (k === 't' || k === 'T') { setupApi.tut(); return; }
       return;
     }
     if (view === 'play' && playApi) {
@@ -789,19 +835,22 @@
     }
   });
 
+  // switching between phone and laptop layout re-renders the menus
+  wideMQ.addEventListener && wideMQ.addEventListener('change', () => {
+    if (view === 'home') home();
+    else if (view === 'setup' && wide()) home('games', selected);
+  });
+
   // ---------- boot ----------
   function intro() {
     if (!V.fxOn() || S.get('introSeen', 0) > Date.now() - 6 * 3600e3) return;
     S.set('introSeen', Date.now());
-    const el = V.el('div', 'intro', '<div class="in-logo"><span class="l1">VER</span><span class="l2">SUS</span></div><div class="in-bolt"></div>');
-    document.body.appendChild(el);
-    el.addEventListener('pointerdown', () => el.remove());
-    setTimeout(() => el.classList.add('out'), 1250); setTimeout(() => el.remove(), 1700);
+    vsIntro({ name: 'Ver', sub: 'Zwei Spieler' }, { name: 'Sus', sub: 'Ein Gerät' });
   }
   V.boot = function () {
     V.games.sort((a, b) => V.CATS.indexOf(a.cat) - V.CATS.indexOf(b.cat) || (a.order || 0) - (b.order || 0));
     applyFxClass();
-    if (!document.getElementById('fx')) document.body.appendChild(V.el('div', '', '')).id = 'fx';
+    if (!document.getElementById('fx')) { const f = V.el('div'); f.id = 'fx'; document.body.appendChild(f); }
     intro();
     home();
   };
