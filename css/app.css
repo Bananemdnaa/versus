@@ -571,3 +571,10 @@ textarea.inp{height:auto;padding:10px 14px;line-height:1.4;resize:vertical}
 .pa-note{font-size:13px;margin-top:8px;padding:8px 12px!important;background:var(--ink2);border-left:3px solid var(--yellow)}
 .pa-note.bad{border-left-color:var(--bad)}
 .pcard-a>.arow{padding-block:12px 14px}
+.pw{position:relative}
+.abox .pw{flex:1 1 200px}
+.pw .inp{padding-right:50px}
+.pw .eye{position:absolute;right:3px;top:50%;transform:translateY(-50%);width:42px;height:40px;display:grid;place-items:center;color:var(--dim);border-radius:4px;transition:color .15s}
+.pw .eye:hover{color:var(--fg)}
+.pw .eye svg{width:20px;height:20px}
+input::-ms-reveal,input::-ms-clear{display:none}

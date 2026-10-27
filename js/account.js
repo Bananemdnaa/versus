@@ -29,7 +29,7 @@
         <div class="gp-mode amode" id="amode"><button data-m="login" class="${mode === 'login' ? 'on' : ''}">${IC().user}<span>Einloggen</span></button><button data-m="new" class="${mode === 'new' ? 'on' : ''}">${IC().spark}<span>Konto erstellen</span></button></div>
         <form class="aform" id="aform" autocomplete="on">
           <label for="a_name">Benutzername</label>
-          <input class="inp" id="a_name" name="username" autocomplete="username" maxlength="16" placeholder="z. B. felix_99" autocapitalize="none" spellcheck="false">
+          <input class="inp" id="a_name" name="username" autocomplete="username" maxlength="16" placeholder="z. B. blitzfuchs" autocapitalize="none" spellcheck="false">
           <label for="a_pw">Passwort</label>
           <input class="inp" id="a_pw" name="password" type="password" autocomplete="${mode === 'new' ? 'new-password' : 'current-password'}" placeholder="mindestens 6 Zeichen">
           ${mode === 'new' ? '<label for="a_pw2">Passwort wiederholen</label><input class="inp" id="a_pw2" type="password" autocomplete="new-password">' : ''}
@@ -68,6 +68,7 @@
   }
   function wire(b) {
     const c = C(); if (!c || !c.available()) return;
+    addEyes(b);
     const am = b.querySelector('#amode');
     if (am) am.querySelectorAll('button').forEach(x => x.onclick = () => { mode = x.dataset.m; err = ''; V.sfx.ui(); V.ui.home('profile'); });
     const f = b.querySelector('#aform');
@@ -104,6 +105,28 @@
       try { await c.deleteAccount(q('#d_pw').value); openBox = null; V.ui.toast('Konto gelöscht'); V.ui.home('profile'); }
       catch (x) { q('#d_err').textContent = x.message; }
     };
+  }
+
+  // eye button in every password field: show or hide what you typed
+  const EYE = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg>';
+  const EYE_OFF = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 3l18 18"/><path d="M10.6 5.1A10.7 10.7 0 0 1 12 5c6.5 0 10 7 10 7a17.6 17.6 0 0 1-3.2 4.2M6.6 6.6A17.4 17.4 0 0 0 2 12s3.5 7 10 7a9.8 9.8 0 0 0 5.4-1.6"/><path d="M9.9 9.9a3 3 0 0 0 4.2 4.2"/></svg>';
+  function addEyes(root) {
+    root.querySelectorAll('input[type="password"]').forEach(inp => {
+      if (inp.parentElement.classList.contains('pw')) return;
+      const w = document.createElement('div'); w.className = 'pw';
+      inp.replaceWith(w); w.appendChild(inp);
+      const btn = document.createElement('button');
+      btn.type = 'button'; btn.className = 'eye'; btn.innerHTML = EYE;
+      btn.setAttribute('aria-label', 'Passwort anzeigen');
+      btn.onclick = () => {
+        const show = inp.type === 'password';
+        inp.type = show ? 'text' : 'password';
+        btn.innerHTML = show ? EYE_OFF : EYE;
+        btn.setAttribute('aria-label', show ? 'Passwort verbergen' : 'Passwort anzeigen');
+        inp.focus({ preventScroll: true });
+      };
+      w.appendChild(btn);
+    });
   }
 
   // ---------- admin panel ----------
