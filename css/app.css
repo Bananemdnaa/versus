@@ -715,3 +715,54 @@ input::-ms-reveal,input::-ms-clear{display:none}
 .top .acct.guest{border-color:color-mix(in srgb,var(--pink) 40%,var(--line))}
 @media (max-width:520px){.top .acct em{display:none}}
 .ogrid.solo{grid-template-columns:minmax(0,720px)}
+
+/* ---------- settings (extended) ---------- */
+.opts{max-width:1040px}
+.ogroups{display:grid;gap:20px}
+@media (min-width:960px){.ogroups{grid-template-columns:1fr 1fr;align-items:start;gap:22px 28px}}
+.oh{font:700 italic 13px/1 var(--f-d);letter-spacing:.18em;text-transform:uppercase;color:var(--muted);margin:0 0 8px 2px}
+.opt.off{opacity:.45} .opt.off input{pointer-events:none}
+div.opt:hover{background:transparent}
+.ovol span{gap:6px}
+.ovol em{font:700 italic 15px/1 var(--f-d);color:var(--fg);min-width:46px;text-align:right;font-style:normal}
+.ovol input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:28px;background:transparent;margin:0;touch-action:pan-y}
+.ovol input[type=range]::-webkit-slider-runnable-track{height:6px;background:linear-gradient(90deg,var(--pink) var(--p,80%),var(--panel3) var(--p,80%));border-radius:3px}
+.ovol input[type=range]::-moz-range-track{height:6px;background:var(--panel3);border-radius:3px}
+.ovol input[type=range]::-moz-range-progress{height:6px;background:var(--pink);border-radius:3px}
+.ovol input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:22px;height:22px;margin-top:-8px;background:var(--fg);border:0;transform:skewX(var(--sk));box-shadow:3px 3px 0 var(--pink)}
+.ovol input[type=range]::-moz-range-thumb{width:22px;height:22px;background:var(--fg);border:0;border-radius:0;box-shadow:3px 3px 0 var(--pink)}
+.orow{flex-wrap:wrap}
+.oseg{display:flex;background:var(--panel3);padding:3px;gap:3px;transform:skewX(var(--sk));flex:none}
+.oseg button{padding:7px 11px;font:700 italic 13px/1 var(--f-d);letter-spacing:.06em;text-transform:uppercase;color:var(--muted);transition:background .15s,color .15s}
+.oseg button.on{background:var(--pink);color:var(--ink)}
+@media (max-width:420px){.orow .oseg{width:calc(100% - 36px);margin-left:36px} .orow .oseg button{flex:1}}
+
+/* ---------- install card, install help, update bar ---------- */
+.instc{display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:8px;background:linear-gradient(100deg,color-mix(in srgb,var(--cy) 14%,var(--panel)),var(--panel));border:1px solid var(--line);border-left:4px solid var(--cy);animation:instIn .4s var(--ease)}
+@keyframes instIn{from{opacity:0;transform:translateY(8px)}}
+.instc[hidden]{display:none}
+.instc .ic{width:38px;height:38px;display:grid;place-items:center;color:var(--cy);flex:none} .instc .ic svg{width:24px;height:24px}
+.instc .it{flex:1;min-width:0;display:flex;flex-direction:column;line-height:1.25}
+.instc b{font:700 italic 17px/1.1 var(--f-d);text-transform:uppercase}
+.instc small{font-size:12.5px;color:var(--muted)}
+.instc .x,.upbar .x{width:34px;height:34px;display:grid;place-items:center;color:var(--muted);flex:none} .instc .x svg,.upbar .x svg{width:16px;height:16px}
+.isteps{list-style:none;padding:0;margin:4px 0 12px;display:flex;flex-direction:column;gap:10px;text-align:left}
+.isteps li{display:flex;align-items:center;gap:12px}
+.isteps li>b{width:30px;height:30px;display:grid;place-items:center;flex:none;background:var(--pink);color:var(--ink);font:800 italic 16px/1 var(--f-d);transform:skewX(var(--sk))}
+.isteps em{font-style:normal;font-weight:700;color:var(--fg)}
+.isteps svg{width:18px;height:18px;vertical-align:-3px;color:var(--cy)}
+.upbar{position:fixed;left:50%;top:calc(12px + env(safe-area-inset-top,0px));transform:translateX(-50%);z-index:90;width:min(460px,calc(100% - 24px));display:flex;align-items:center;gap:12px;padding:10px 10px 10px 14px;background:var(--panel2);border:1px solid var(--line2);border-left:4px solid var(--cy);border-radius:8px;box-shadow:0 12px 40px rgba(0,0,0,.5);animation:upIn .35s var(--spring);transition:opacity .25s,transform .25s}
+.upbar>svg{width:22px;height:22px;color:var(--cy);flex:none}
+.upbar span{flex:1;display:flex;flex-direction:column;line-height:1.25} .upbar small{font-size:12.5px;color:var(--muted)}
+.upbar.out{opacity:0;transform:translate(-50%,-20px)}
+@keyframes upIn{from{opacity:0;transform:translate(-50%,-24px)}}
+
+/* ---------- display settings ---------- */
+.nocoords .chess .co{display:none}
+.nohints .chess .dot::after,.nohints .chess .ring::after,.nohints .ck .can .pc::after,.nohints .ck .nx::after,.nohints .rv .sq.ok::after,.nohints .mill .tg{display:none}
+
+/* ---------- installed app ---------- */
+.standalone body{overscroll-behavior:none;-webkit-user-select:none;user-select:none}
+.standalone input,.standalone textarea{-webkit-user-select:text;user-select:text}
+html,body{-webkit-tap-highlight-color:transparent}
+.instc .btn{flex:none} .instc .it b{white-space:nowrap}

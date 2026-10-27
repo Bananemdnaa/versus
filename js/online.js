@@ -82,7 +82,7 @@
       const before = JSON.stringify(pending);
       pending = p;
       const openList = (p.open || []).filter(o => !dismissed.has(o.id));
-      if (p.invites && p.invites.length) showInvite(p.invites[0]); else if (openList.length && !p.active) showInvite(Object.assign({ open: true }, openList[0])); else hideInvite();
+      if (p.invites && p.invites.length) showInvite(p.invites[0]); else if (openList.length && !p.active && V.settings.openCards !== false) showInvite(Object.assign({ open: true }, openList[0])); else hideInvite();
       if (JSON.stringify(p) !== before && V.ui.view() === 'home' && V.ui.tab() === 'online') refreshTab();
       badge();
     } catch (e) { }

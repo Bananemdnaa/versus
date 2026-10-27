@@ -20,7 +20,10 @@
     // silent: written by the cloud sync itself, so it must not trigger another upload
     set(k, v, silent) { try { localStorage.setItem('versus.' + k, JSON.stringify(v)); } catch (e) { } if (!silent && V.cloud) V.cloud.changed(k); }
   };
-  const settings = V.settings = Object.assign({ sound: true, haptic: true, fx: 'full' }, S.get('settings', {}));
+  const DEFAULTS = { sound: true, vol: 80, haptic: 'strong', fx: 'full', intro: true, coords: true, hints: true, aiFast: false, openCards: true };
+  const settings = V.settings = Object.assign({}, DEFAULTS, S.get('settings', {}));
+  // older saves stored vibration as true/false
+  if (settings.haptic === true) settings.haptic = 'strong'; else if (settings.haptic === false) settings.haptic = 'off';
   const saveSettings = () => S.set('settings', settings);
   let stats = S.get('stats', {});
   let seen = S.get('seen', {});
@@ -37,7 +40,10 @@
   const reduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   V.fxOn = () => settings.fx !== 'low' && !reduced;
   V.coarse = window.matchMedia && window.matchMedia('(pointer: coarse)').matches;
-  function applyFxClass() { document.documentElement.classList.toggle('lowfx', !V.fxOn()); }
+  function applyFxClass() {
+    const r = document.documentElement.classList;
+    r.toggle('lowfx', !V.fxOn()); r.toggle('nocoords', settings.coords === false); r.toggle('nohints', settings.hints === false);
+  }
 
   // ---------- sound and haptics ----------
   let actx = null;
@@ -49,24 +55,43 @@
       const o = actx.createOscillator(), g = actx.createGain(), t = actx.currentTime;
       o.type = type; o.frequency.setValueAtTime(f, t);
       if (slide) o.frequency.exponentialRampToValueAtTime(Math.max(40, f + slide), t + d);
+      vol *= Math.max(0, Math.min(100, settings.vol ?? 80)) / 80;
+      if (vol <= 0) return;
       g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(0.0001, t + d);
       o.connect(g).connect(actx.destination); o.start(t); o.stop(t + d + 0.02);
     } catch (e) { }
   }
-  V.buzz = p => { if (settings.haptic && navigator.vibrate) try { navigator.vibrate(p); } catch (e) { } };
+  // Vibration: Android and most browsers use the Vibration API; iPhones (no API) get a short haptic tap
+  // through a hidden iOS 18 switch. "strong" makes every pulse about twice as long.
+  const IOS = /iP(hone|ad|od)/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  let iosSwitch = null;
+  function iosTap() {
+    try {
+      if (!iosSwitch) { iosSwitch = document.createElement('label'); iosSwitch.setAttribute('aria-hidden', 'true'); iosSwitch.style.cssText = 'position:fixed;left:-100px;top:0;width:1px;height:1px;opacity:0;pointer-events:none'; iosSwitch.innerHTML = '<input type="checkbox" switch tabindex="-1">'; document.body.appendChild(iosSwitch); }
+      iosSwitch.click();
+    } catch (e) { }
+  }
+  V.canVibrate = !!navigator.vibrate || IOS;
+  V.isIOS = IOS;
+  V.buzz = p => {
+    const lvl = settings.haptic; if (!lvl || lvl === 'off') return;
+    const k = lvl === 'light' ? 1 : 2.2;
+    if (navigator.vibrate) { try { navigator.vibrate(Array.isArray(p) ? p.map((x, i) => i % 2 ? x : Math.round(x * k)) : Math.round(p * k)); } catch (e) { } }
+    else if (IOS) iosTap();
+  };
   V.sfx = {
     tick() { tone(1200, 0.025, 'square', 0.02); },
-    move() { tone(520, 0.06, 'triangle', 0.07); V.buzz(8); },
-    place() { tone(320, 0.1, 'triangle', 0.09, -140); V.buzz(14); },
-    hit() { tone(200, 0.22, 'sawtooth', 0.06, -140); V.buzz([20, 30, 30]); },
+    move() { tone(520, 0.06, 'triangle', 0.07); V.buzz(14); },
+    place() { tone(320, 0.1, 'triangle', 0.09, -140); V.buzz(22); },
+    hit() { tone(200, 0.22, 'sawtooth', 0.06, -140); V.buzz([35, 45, 45]); },
     miss() { tone(760, 0.08, 'sine', 0.05, -320); },
-    bad() { tone(130, 0.22, 'square', 0.04); V.buzz(40); },
+    bad() { tone(130, 0.22, 'square', 0.04); V.buzz(60); },
     bounce() { tone(440, 0.04, 'square', 0.04); },
-    goal() { tone(660, 0.12, 'triangle', 0.08, 300); V.buzz(30); },
-    go() { tone(980, 0.12, 'square', 0.05); },
-    ui() { tone(700, 0.035, 'triangle', 0.035); },
-    win() { [523, 659, 784, 1046].forEach((f, i) => setTimeout(() => tone(f, 0.15, 'triangle', 0.08), i * 110)); V.buzz([30, 60, 30, 60, 80]); },
-    lose() { [392, 330, 262].forEach((f, i) => setTimeout(() => tone(f, 0.22, 'triangle', 0.07), i * 150)); V.buzz(120); }
+    goal() { tone(660, 0.12, 'triangle', 0.08, 300); V.buzz(40); },
+    go() { tone(980, 0.12, 'square', 0.05); V.buzz(30); },
+    ui() { tone(700, 0.035, 'triangle', 0.035); V.buzz(8); },
+    win() { [523, 659, 784, 1046].forEach((f, i) => setTimeout(() => tone(f, 0.15, 'triangle', 0.08), i * 110)); V.buzz([45, 70, 45, 70, 120]); },
+    lose() { [392, 330, 262].forEach((f, i) => setTimeout(() => tone(f, 0.22, 'triangle', 0.07), i * 150)); V.buzz(200); }
   };
 
   // ---------- effects ----------
@@ -298,7 +323,16 @@
     user: svg('<circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/>'),
     globe: svg('<circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/>'),
     lock: svg('<rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/>'),
-    shield: svg('<path d="M12 3l8 3v6c0 4.5-3.4 8-8 9-4.6-1-8-4.5-8-9V6z"/>')
+    shield: svg('<path d="M12 3l8 3v6c0 4.5-3.4 8-8 9-4.6-1-8-4.5-8-9V6z"/>'),
+    dl: svg('<path d="M12 3v12M7 10l5 5 5-5"/><path d="M5 21h14"/>'),
+    sync: svg('<path d="M20 12a8 8 0 0 1-14 5.3M4 12a8 8 0 0 1 14-5.3"/><path d="M18 3v4h-4M6 21v-4h4"/>'),
+    bolt: svg('<path d="M13 2L4 14h7l-1 8 9-12h-7z"/>'),
+    hash: svg('<path d="M5 9h15M4 15h15M10 3L8 21M16 3l-2 18"/>'),
+    eye: svg('<path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/>'),
+    film: svg('<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M7 4v16M17 4v16M3 9h4M3 15h4M17 9h4M17 15h4"/>'),
+    bulb: svg('<path d="M9 18h6M10 21h4M12 3a6 6 0 0 0-3.5 10.9c.6.5 1 1.2 1 2.1h5c0-.9.4-1.6 1-2.1A6 6 0 0 0 12 3z"/>'),
+    share: svg('<path d="M12 3v12M8 7l4-4 4 4"/><path d="M5 11v9h14v-9"/>'),
+    phone: svg('<rect x="7" y="2.5" width="10" height="19" rx="2"/><path d="M11 18.5h2"/>'),
   };
 
   // ---------- player colours ----------
@@ -320,6 +354,7 @@
     const v = app.firstElementChild;
     if (v && V.fxOn()) { v.classList.add('enter'); setTimeout(() => v.classList.remove('enter'), 900); }
     window.scrollTo(0, 0);
+    queueGuard();
     return v;
   }
   function totals() {
@@ -388,6 +423,7 @@
   }
   function tabBody() { return homeTab === 'stats' ? statsTab() : homeTab === 'opts' ? optsTab() : homeTab === 'profile' ? (V.account ? V.account.tab() : '') : homeTab === 'online' ? (V.online ? V.online.tab() : '') : gamesTab(); }
   function wireBody(b) {
+    wireInstall(b);
     if (homeTab === 'games') wireGames(b);
     if (homeTab === 'opts') wireOpts(b);
     if (homeTab === 'profile' && V.account) V.account.wire(b);
@@ -412,6 +448,7 @@
     placeInd(shell, true);
     const put = () => {
       body.innerHTML = tabBody();
+      queueGuard();
       body.classList.remove('leave');
       if (dir && V.fxOn()) { body.style.setProperty('--dir', dir); V.fx.pop(body, 'tab-in'); }
       wireBody(body);
@@ -432,6 +469,7 @@
           <h1 class="title"><span>Wähl dein</span> Duell</h1>
           <p class="tagline">${V.games.length} Spiele für zwei an einem Gerät. Oder du gegen die KI in vier Stufen.</p>
         </div>
+        ${installCard()}
         ${rg && !locked(rg) ? `<button class="cont" id="cont" style="--acc:${rg.accent || 'var(--pink)'}"><div class="ic">${rg.icon}</div><div class="ct"><small>Weiterspielen</small><b>${rg.name}</b><span>${rc.mode === 'local' ? 'Zu zweit' : 'Gegen KI · ' + V.LEVELS[rc.level]}</span></div><span class="go">${IC.play}</span></button>` : ''}
         <div class="chips" role="tablist">${['Alle', ...V.CATS].map(c => `<button role="tab" data-f="${c}" class="${homeFilter === c ? 'on' : ''}">${c}</button>`).join('')}</div>
         <div class="tiles">${list.map(tile).join('')}</div>
@@ -600,31 +638,98 @@
 
   function optsTab() {
     const sw = (id, on, label, sub, ic) => `<button class="opt" id="${id}" role="switch" aria-checked="${on}">${ic}<span><b>${label}</b><small>${sub}</small></span><i class="sw ${on ? 'on' : ''}"></i></button>`;
+    const seg = (key, cur, list) => `<div class="oseg" data-k="${key}" role="radiogroup">${list.map(([v, l]) => `<button role="radio" data-v="${v}" aria-checked="${cur === v}" class="${cur === v ? 'on' : ''}">${l}</button>`).join('')}</div>`;
+    const vibSub = !V.canVibrate ? 'Dieser Browser kann nicht vibrieren' : IOS ? 'iPhone ab iOS 18: kurzes Tippen statt Ruckeln' : 'Bei Zügen, Treffern und am Ende';
+    const showVib = V.canVibrate || V.coarse;
+    const u = V.cloud && V.cloud.available() && V.cloud.user();
+    const appRow = standalone()
+      ? `<div class="opt">${IC.phone}<span><b>Läuft als App</b><small>Versus ist auf diesem Gerät installiert</small></span></div>`
+      : `<button class="opt" id="o_inst">${IC.dl}<span><b>Als App installieren</b><small>Eigenes Symbol, startet schneller, ohne Browserleiste</small></span></button>`;
     return `<section class="opts page">
       <h1 class="title"><span>Deine</span> Optionen</h1>
+      <div class="ogroups">
+      <div class="ogroup"><h2 class="oh">Ton und Vibration</h2>
       <div class="optlist">
         ${sw('o_snd', settings.sound, 'Ton', 'Klicks, Treffer und Jubel', IC.sound)}
-        ${'vibrate' in navigator ? sw('o_hap', settings.haptic, 'Vibration', 'Kurzes Ruckeln am Handy', IC.vib) : ''}
-        ${sw('o_fx', settings.fx !== 'low', 'Effekte', 'Konfetti, Partikel, VS-Intro. Aus spart Akku.', IC.spark)}
-      </div>
+        <div class="opt ovol${settings.sound ? '' : ' off'}">${IC.sound}<span><b>Lautstärke</b><input type="range" id="o_vol" min="0" max="100" step="5" value="${settings.vol}" style="--p:${settings.vol}%" aria-label="Lautstärke"></span><em id="o_volv">${settings.vol} %</em></div>
+        ${showVib ? `<div class="opt orow${V.canVibrate ? '' : ' off'}">${IC.vib}<span><b>Vibration</b><small>${vibSub}</small></span>${V.canVibrate ? seg('haptic', settings.haptic, [['off', 'Aus'], ['light', 'Leicht'], ['strong', 'Stark']]) : ''}</div>` : ''}
+      </div></div>
+      <div class="ogroup"><h2 class="oh">Anzeige</h2>
+      <div class="optlist">
+        ${sw('o_fx', settings.fx !== 'low', 'Effekte', 'Konfetti, Partikel, Animationen. Aus spart Akku.', IC.spark)}
+        ${sw('o_intro', settings.intro !== false, 'Intros', 'Start-Animation und VS-Einblendung vor jeder Partie', IC.film)}
+        ${sw('o_coords', settings.coords !== false, 'Koordinaten', 'Buchstaben und Zahlen am Schachbrett', IC.hash)}
+        ${sw('o_hints', settings.hints !== false, 'Zughilfen', 'Zeigt, wohin du ziehen kannst (Schach, Dame, Reversi, Mühle)', IC.bulb)}
+      </div></div>
+      <div class="ogroup"><h2 class="oh">Spiel</h2>
+      <div class="optlist">
+        ${sw('o_fast', !!settings.aiFast, 'Schnelle KI', 'Die KI zieht sofort, ohne Nachdenken und Zielen', IC.bolt)}
+      </div></div>
+      ${V.cloud && V.cloud.available() ? `<div class="ogroup"><h2 class="oh">Online</h2>
+      <div class="optlist">
+        ${sw('o_open', settings.openCards !== false, 'Offene Herausforderungen', 'Einblenden, wenn jemand einen Gegner sucht', IC.globe)}
+        ${u ? sw('o_stealth', !!settings.stealth, 'Online-Status verbergen', 'Freunde sehen nicht, ob und was du gerade spielst', IC.eye) : ''}
+      </div></div>` : ''}
+      <div class="ogroup"><h2 class="oh">App</h2>
+      <div class="optlist small">
+        ${appRow}
+        <button class="opt" id="o_upd">${IC.sync}<span><b>Nach Updates suchen</b><small>Version ${V.VERSION || ''}</small></span></button>
+      </div></div>
+      <div class="ogroup"><h2 class="oh">Daten</h2>
       <div class="optlist small">
         <button class="opt" id="o_tut">${IC.book}<span><b>Tutorials wieder als neu zeigen</b></span></button>
+        <button class="opt" id="o_def">${IC.redo}<span><b>Einstellungen zurücksetzen</b></span></button>
         <button class="opt danger" id="o_rst">${IC.x}<span><b>Bilanz löschen</b></span></button>
+      </div></div>
       </div>
-      <p class="about">Versus ${V.VERSION || ''} · läuft komplett im Browser, ohne Konto und ohne Werbung.<span class="only-fine"> Taste <kbd>?</kbd> zeigt alle Kürzel.</span></p>
+      <p class="about">Versus ${V.VERSION || ''} · ohne Werbung. KI und Spiele zu zweit laufen auch offline.<span class="only-fine"> Taste <kbd>?</kbd> zeigt alle Kürzel.</span></p>
     </section>`;
   }
   function wireOpts(v) {
     const flip = (id, fn) => { const b = v.querySelector('#' + id); if (b) b.onclick = () => { const on = fn(); b.setAttribute('aria-checked', on); b.querySelector('.sw').classList.toggle('on', on); saveSettings(); V.sfx.ui(); }; };
-    flip('o_snd', () => { settings.sound = !settings.sound; const s = document.getElementById('snd'); if (s) s.innerHTML = settings.sound ? IC.sound : IC.mute; return settings.sound; });
-    flip('o_hap', () => { settings.haptic = !settings.haptic; V.buzz(30); return settings.haptic; });
+    flip('o_snd', () => {
+      settings.sound = !settings.sound; const s = document.getElementById('snd'); if (s) s.innerHTML = settings.sound ? IC.sound : IC.mute;
+      const r = v.querySelector('.ovol'); if (r) r.classList.toggle('off', !settings.sound);
+      return settings.sound;
+    });
+    const vol = v.querySelector('#o_vol');
+    vol.oninput = () => { settings.vol = +vol.value; vol.style.setProperty('--p', settings.vol + '%'); v.querySelector('#o_volv').textContent = settings.vol + ' %'; };
+    vol.onchange = () => { saveSettings(); V.sfx.place(); };
+    v.querySelectorAll('.oseg').forEach(g => g.querySelectorAll('button').forEach(b => b.onclick = () => {
+      settings[g.dataset.k] = b.dataset.v; saveSettings();
+      g.querySelectorAll('button').forEach(x => { x.classList.toggle('on', x === b); x.setAttribute('aria-checked', x === b); });
+      V.sfx.ui();
+      if (g.dataset.k === 'haptic') V.buzz([40, 60, 40]);
+    }));
     flip('o_fx', () => { settings.fx = settings.fx === 'low' ? 'full' : 'low'; applyFxClass(); return settings.fx !== 'low'; });
-    v.querySelector('#o_tut').onclick = () => { seen = {}; S.set('seen', seen); toast('Alle Tutorials sind wieder neu'); };
-    const r = v.querySelector('#o_rst');
-    r.onclick = () => {
-      if (!r.classList.contains('sure')) { r.classList.add('sure'); r.querySelector('b').textContent = 'Wirklich löschen? Nochmal tippen'; return; }
-      stats = {}; S.set('stats', stats); toast('Bilanz gelöscht'); home('opts');
+    flip('o_intro', () => (settings.intro = settings.intro === false));
+    flip('o_coords', () => { settings.coords = settings.coords === false; applyFxClass(); return settings.coords; });
+    flip('o_hints', () => { settings.hints = settings.hints === false; applyFxClass(); return settings.hints; });
+    flip('o_fast', () => (settings.aiFast = !settings.aiFast));
+    flip('o_open', () => (settings.openCards = settings.openCards === false));
+    // hiding the online status is stored on the server, so friends see it too
+    const st = v.querySelector('#o_stealth');
+    if (st) st.onclick = async () => {
+      const on = !settings.stealth;
+      try { await V.cloud.rpc('set_stealth', { hide: on }); }
+      catch (e) { toast('Geht erst nach dem nächsten Server-Update'); return; }
+      settings.stealth = on; saveSettings(); V.sfx.ui();
+      st.setAttribute('aria-checked', on); st.querySelector('.sw').classList.toggle('on', on);
     };
+    const inst = v.querySelector('#o_inst'); if (inst) inst.onclick = () => { V.sfx.ui(); install(); };
+    v.querySelector('#o_upd').onclick = () => { V.sfx.ui(); checkUpdate(); };
+    v.querySelector('#o_tut').onclick = () => { seen = {}; S.set('seen', seen); toast('Alle Tutorials sind wieder neu'); };
+    const sure = (b, fn) => b.onclick = () => {
+      if (!b.classList.contains('sure')) { b.classList.add('sure'); b.querySelector('b').textContent = 'Sicher? Nochmal tippen'; return; }
+      fn();
+    };
+    sure(v.querySelector('#o_def'), () => {
+      const keep = settings.stealth;
+      Object.keys(settings).forEach(k => delete settings[k]); Object.assign(settings, DEFAULTS, { stealth: keep }); saveSettings(); applyFxClass();
+      const s = document.getElementById('snd'); if (s) s.innerHTML = IC.sound;
+      toast('Einstellungen zurückgesetzt'); home('opts');
+    });
+    sure(v.querySelector('#o_rst'), () => { stats = {}; S.set('stats', stats); toast('Bilanz gelöscht'); home('opts'); });
   }
 
   // ---------- modal ----------
@@ -643,11 +748,13 @@
     modalEl.addEventListener('pointerdown', e => { if (e.target === modalEl && cls !== 'endm') closeModal(); });
     document.body.appendChild(modalEl);
     nav.hide();
+    queueGuard();
     return modalEl.firstElementChild;
   }
   function closeModal() {
     if (!modalEl) return;
     const el = modalEl; modalEl = null; modalKeys = null;
+    queueGuard();
     el.classList.add('out'); setTimeout(() => el.remove(), V.fxOn() ? 160 : 0);
     const f = modalClose; modalClose = null; if (f) f();
   }
@@ -774,7 +881,7 @@
 
   // ---------- VS intro before each match ----------
   function vsIntro(left, right, quick) {
-    if (!V.fxOn()) return;
+    if (!V.fxOn() || settings.intro === false) return;
     const el = V.el('div', 'vsi' + (quick ? ' quick' : ''), `
       <div class="vsi-l"><div class="vsi-n"><small>${left.sub}</small><b>${left.name}</b></div></div>
       <div class="vsi-r"><div class="vsi-n"><small>${right.sub}</small><b>${right.name}</b></div></div>
@@ -889,7 +996,7 @@
         const s = aiSide, card = pls[s];
         card.classList.add('thinking');
         setStatus(`<span class="c${s}">KI</span> <span class="thinking">${o.quick ? 'macht weiter' : 'denkt'}</span>`);
-        const minT = o.quick ? 380 : [650, 850, 1050, 1250][cfg.level] + Math.random() * 450;
+        const minT = settings.aiFast ? 160 : o.quick ? 380 : [650, 850, 1050, 1250][cfg.level] + Math.random() * 450;
         const t0 = performance.now();
         ctx.later(() => {
           const res = o.think();
@@ -946,7 +1053,7 @@
     function aimAt(o, res, card, isAI, fast, who) {
       const tg = (o.targets ? o.targets(res.move) : []).filter(Boolean);
       let path = [];
-      if (isAI && o.decoys && !o.quick) path = V.shuffle((o.decoys(res.move) || []).filter(x => x && !tg.includes(x))).slice(0, V.rand(3));
+      if (isAI && o.decoys && !o.quick && !settings.aiFast) path = V.shuffle((o.decoys(res.move) || []).filter(x => x && !tg.includes(x))).slice(0, V.rand(3));
       path = path.concat(tg);
       const done = () => {
         aim.hide(); if (card) card.classList.remove('thinking');
@@ -1175,11 +1282,105 @@
     else if (view === 'setup' && wide()) home('games', selected);
   });
 
+  // ---------- app: install, updates, back button ----------
+  function standalone() { return (window.matchMedia && matchMedia('(display-mode: standalone)').matches) || navigator.standalone === true; }
+  let installEvt = null, swReg = null, swWaiting = null, wantReload = false;
+  window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); installEvt = e; refreshInstall(); });
+  window.addEventListener('appinstalled', () => { installEvt = null; S.set('noInstall', true); refreshInstall(); toast('Versus ist jetzt installiert'); });
+  // the install card on the games tab: only where the browser offers it (or on iPhones), until dismissed
+  const installOffer = () => !standalone() && !S.get('noInstall', false) && (!!installEvt || (IOS && V.coarse));
+  function installCard() {
+    return `<div class="instc" data-install${installOffer() ? '' : ' hidden'}><div class="ic">${IC.dl}</div>
+      <div class="it"><b>Als App holen</b><small>Schneller Start, auch offline</small></div>
+      <button class="btn primary sm" data-do="install"><span>Installieren</span></button><button class="x" data-do="noinst" aria-label="Nicht mehr anzeigen">${IC.x}</button></div>`;
+  }
+  function wireInstall(root) {
+    root.querySelectorAll('[data-do=install]').forEach(b => b.onclick = () => { V.sfx.ui(); install(); });
+    root.querySelectorAll('[data-do=noinst]').forEach(b => b.onclick = () => { V.sfx.ui(); S.set('noInstall', true); refreshInstall(); });
+  }
+  function refreshInstall() { document.querySelectorAll('[data-install]').forEach(n => { n.hidden = !installOffer(); }); }
+  async function install() {
+    if (installEvt) {
+      const e = installEvt; installEvt = null;
+      try { e.prompt(); const r = await e.userChoice; if (r && r.outcome === 'accepted') S.set('noInstall', true); } catch (x) { }
+      return refreshInstall();
+    }
+    const step = (n, t) => `<li><b>${n}</b><span>${t}</span></li>`;
+    const m = openModal(`<div class="confirm instm"><h3>Versus installieren</h3>
+      ${IOS ? `<ol class="isteps">${step(1, `Tippe in Safari auf <em>Teilen</em> ${IC.share}`)}${step(2, 'Wähle <em>Zum Home-Bildschirm</em>')}${step(3, 'Tippe oben rechts auf <em>Hinzufügen</em>')}</ol>`
+        : `<ol class="isteps">${step(1, 'Öffne das Menü deines Browsers (⋮ oder ☰)')}${step(2, 'Wähle <em>App installieren</em> oder <em>Zum Startbildschirm</em>')}${step(3, 'Bestätige mit <em>Installieren</em>')}</ol>`}
+      <p>Danach startet Versus wie eine normale App von deinem Startbildschirm.</p>
+      <div class="actions"><button class="btn primary" id="cy"><span>Alles klar</span></button></div></div>`);
+    m.querySelector('#cy').onclick = closeModal;
+  }
+  function updateBar() {
+    if (!swWaiting || document.querySelector('.upbar')) return;
+    const bar = V.el('div', 'upbar', `${IC.sync}<span><b>Neue Version da</b><small>Kurz neu laden, dann ist sie aktiv</small></span><button class="btn primary sm"><span>Neu laden</span></button><button class="x" aria-label="Später">${IC.x}</button>`);
+    document.body.appendChild(bar);
+    bar.querySelector('.btn').onclick = () => {
+      wantReload = true;
+      try { swWaiting.postMessage('skip'); } catch (e) { }
+      setTimeout(() => location.reload(), 1500);
+    };
+    bar.querySelector('.x').onclick = () => { bar.classList.add('out'); setTimeout(() => bar.remove(), 250); };
+  }
+  function registerSW() {
+    if (!('serviceWorker' in navigator) || !/^https?:$/.test(location.protocol)) return;
+    navigator.serviceWorker.register('sw.js').then(reg => {
+      swReg = reg;
+      if (reg.waiting && navigator.serviceWorker.controller) { swWaiting = reg.waiting; updateBar(); }
+      reg.addEventListener('updatefound', () => {
+        const w = reg.installing; if (!w) return;
+        w.addEventListener('statechange', () => { if (w.state === 'installed' && navigator.serviceWorker.controller) { swWaiting = w; updateBar(); } });
+      });
+    }).catch(() => { });
+    // only reload when the player asked for it (the first install also changes the controller)
+    navigator.serviceWorker.addEventListener('controllerchange', () => { if (wantReload) { wantReload = false; location.reload(); } });
+    // apps stay open in the background for days; look for a new version whenever it comes back
+    document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && swReg) swReg.update().catch(() => { }); });
+  }
+  async function checkUpdate() {
+    if (!swReg) { toast('Lade neu …'); return setTimeout(() => location.reload(), 400); }
+    toast('Suche nach Updates …');
+    try { await swReg.update(); } catch (e) { return toast('Keine Verbindung'); }
+    const w = swReg.installing;
+    if (w) return w.addEventListener('statechange', () => { if (w.state === 'installed') { swWaiting = w; updateBar(); } });
+    if (swReg.waiting) { swWaiting = swReg.waiting; return updateBar(); }
+    toast('Du hast die neueste Version');
+  }
+
+  // Back button and back gesture (Android, browsers): one extra history entry stands in for "inside the app".
+  // Back then closes a dialog, leaves a match (with confirmation) or goes one screen up instead of closing Versus.
+  let guarded = false, skipPop = false, guardT = 0;
+  const atRoot = () => !modalEl && view === 'home' && homeTab === 'games';
+  function syncGuard() {
+    try {
+      if (!atRoot() && !guarded) { history.pushState({ versus: 1 }, ''); guarded = true; }
+      else if (atRoot() && guarded) { guarded = false; skipPop = true; history.back(); }
+    } catch (e) { }
+  }
+  const queueGuard = () => { clearTimeout(guardT); guardT = setTimeout(syncGuard, 60); };
+  function backAction() {
+    if (modalEl) { closeModal(); return true; }
+    if (view === 'play' && playApi) { playApi.back(); return true; }
+    if (view === 'admin') { home('profile'); return true; }
+    if (view !== 'home') { home(); return true; }
+    if (homeTab !== 'games') { home('games'); return true; }
+    return false;
+  }
+  window.addEventListener('popstate', () => {
+    if (skipPop) { skipPop = false; return; }
+    guarded = false;
+    backAction();
+    queueGuard();
+  });
+
   // ---------- boot ----------
   // ---------- hooks for the account and admin screens (js/account.js) and the cloud sync ----------
   V.reloadLocal = function () {
     stats = S.get('stats', {}); seen = S.get('seen', {});
-    Object.assign(settings, { sound: true, haptic: true, fx: 'full' }, S.get('settings', {}));
+    Object.assign(settings, DEFAULTS, S.get('settings', {}));
+    if (settings.haptic === true) settings.haptic = 'strong'; else if (settings.haptic === false) settings.haptic = 'off';
     applyFxClass();
     if (view === 'home' && homeTab !== 'profile') home();
   };
@@ -1198,6 +1399,7 @@
     const u = V.cloud.user(), id = u ? u.id : null;
     if (id !== cloudUser) {
       cloudUser = id;
+      if (id && settings.stealth) V.cloud.rpc('set_stealth', { hide: true }).catch(() => { });
       if (view === 'home' && homeTab !== 'profile') return home();
       if (view === 'setup' && selected) return setup(selected);
     }
@@ -1212,10 +1414,15 @@
   V.boot = function () {
     V.games.sort((a, b) => V.CATS.indexOf(a.cat) - V.CATS.indexOf(b.cat) || (a.order || 0) - (b.order || 0));
     applyFxClass();
+    document.documentElement.classList.toggle('standalone', standalone());
+    const q = new URLSearchParams(location.search), qt = q.get('tab');
+    if (qt && TABS.some(t => t[0] === qt)) homeTab = qt;
+    if (q.has('tab') || q.has('app')) try { history.replaceState(null, '', location.pathname); } catch (e) { }
+    registerSW();
     if (!document.getElementById('fx')) { const f = V.el('div'); f.id = 'fx'; document.body.appendChild(f); }
     if (V.cloud && V.cloud.available()) { V.cloud.on(onCloud); V.cloud.init(); }
     const b = document.getElementById('boot');
-    if (!b || !V.fxOn() || getComputedStyle(b).display === 'none') { if (b) b.remove(); home(); return; }
+    if (!b || !V.fxOn() || settings.intro === false || getComputedStyle(b).display === 'none') { if (b) b.remove(); home(); return; }
     let opened = false;
     const open = skip => {
       if (opened) return; opened = true;

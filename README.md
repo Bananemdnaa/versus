@@ -41,9 +41,20 @@ Ohne Konto spielt man als Gast: 4 Gewinnt, Tic Tac Toe, Schiffe versenken, Käse
 
 ## Optionen
 
-Ton, Vibration (am Handy) und Effekte lassen sich unter „Optionen“ abschalten. Mit „Effekte aus“ fallen Konfetti, Partikel, Wackeln und die Hintergrund-Animation weg, das spart Akku. Wer im System „Bewegung reduzieren“ eingestellt hat, bekommt das automatisch.
+- **Ton und Vibration:** Ton an/aus, Lautstärke, Vibration Aus / Leicht / Stark. Android und die meisten Browser nutzen die Vibrations-Schnittstelle; iPhones (ab iOS 18) bekommen stattdessen ein kurzes haptisches Tippen.
+- **Anzeige:** Effekte (aus spart Akku; bei „Bewegung reduzieren“ im System automatisch aus), Intros (Start-Animation und VS-Einblendung), Koordinaten am Schachbrett, Zughilfen (mögliche Züge in Schach, Dame, Reversi und Mühle).
+- **Spiel:** Schnelle KI zieht ohne Nachdenk-Pause und ohne Zielen.
+- **Online:** offene Herausforderungen einblenden; Online-Status vor Freunden verbergen.
+- **App:** installieren, nach Updates suchen. **Daten:** Tutorials zurücksetzen, Einstellungen zurücksetzen, Bilanz löschen.
 
-Statistik, Einstellungen und gesehene Tutorials liegen im `localStorage` des Browsers. Es gibt keine Konten und keine Werbung.
+Statistik, Einstellungen und gesehene Tutorials liegen im `localStorage` des Browsers und werden mit Konto zusätzlich gespeichert. Keine Werbung.
+
+## Als App
+
+Versus ist eine installierbare Web-App (`manifest.webmanifest`, `sw.js`, Symbole in `icons/`). Android/Chrome zeigt auf der Startseite „Als App holen“, iPhones bekommen eine Anleitung (Teilen → Zum Home-Bildschirm). Installiert läuft Versus ohne Browserleiste, startet sofort und funktioniert für KI-Partien und Spiele zu zweit auch offline. Online-Funktionen brauchen weiter Internet.
+
+Der Service Worker lädt Seiten zuerst aus dem Netz und Dateien mit `?v=` aus dem Cache. Kommt eine neue Version, erscheint oben „Neue Version da · Neu laden“. Die Zurück-Taste bzw. -Geste schließt Dialoge, fragt im Spiel vor dem Verlassen nach und geht sonst eine Ebene zurück. Kurzbefehle auf dem App-Symbol: `?tab=online` und `?tab=stats`.
+
 
 ## Aufbau
 
@@ -52,7 +63,7 @@ Statistik, Einstellungen und gesehene Tutorials liegen im `localStorage` des Bro
 - `js/core.js`: Menüs, Statistik, Tutorials, Tastatur, Effekte, KI-Helfer (Alpha-Beta-Suche und Monte-Carlo-Baumsuche)
 - `js/games/*.js`: ein Spiel pro Datei; jedes registriert sich mit `V.register({...})`
 
-Ein neues Spiel ist eine neue Datei in `js/games/` plus ein `<script>`-Eintrag in `index.html`. Nach Änderungen die Versionsnummer `?v=` in `index.html` erhöhen, damit Browser keine alten Dateien aus dem Cache nehmen.
+Ein neues Spiel ist eine neue Datei in `js/games/` plus ein `<script>`-Eintrag in `index.html`. Nach Änderungen die Versionsnummer `?v=` in `index.html`, `V.VERSION` und `CACHE` in `sw.js` erhöhen, damit Browser und App keine alten Dateien aus dem Cache nehmen.
 
 ## Lokal starten
 
@@ -93,6 +104,6 @@ Im Reiter „Online“ sucht man Spieler nach Namen, schickt Freundschaftsanfrag
 - **Rangliste:** gewonnene Online-Partien gegen andere Spieler, gesamt und pro Spiel (Partien gegen die KI zählen nicht). Oben steht dein eigener Platz, darunter ein Podest für die Top 3 und die Liste mit Siegquote. Ausgeblendete Spieler und Dev-Konten erscheinen nicht; Partien gegen ein Dev-Konto zählen für beide Spieler nicht.
 - **Admin-Panel → Partien:** laufende und beendete Partien mit Spielern, Zügen und Ergebnis. „Zuschauen“ zeigt eine laufende Partie live, „Abspielen“ spielt eine beendete Zug für Zug nach. Admins können Partien annullieren (steht im Protokoll).
 
-Dafür einmal `supabase/migrations/20261029000000_friends_matches.sql` und danach `supabase/migrations/20261030000000_open_matches.sql`, für Schiffe versenken online zusätzlich `supabase/migrations/20261031000000_ships_online.sql` und `supabase/migrations/20261101000000_dev_rankings.sql` im SQL-Editor ausführen.
+Dafür einmal `supabase/migrations/20261029000000_friends_matches.sql` und danach `supabase/migrations/20261030000000_open_matches.sql`, für Schiffe versenken online zusätzlich `supabase/migrations/20261031000000_ships_online.sql` und `supabase/migrations/20261101000000_dev_rankings.sql` und für „Online-Status verbergen“ `supabase/migrations/20261102000000_hide_online.sql` im SQL-Editor ausführen.
 
 Neue Migrationen kommen als weitere Datei in `supabase/migrations/` und werden in Reihenfolge einmal im SQL-Editor ausgeführt.
