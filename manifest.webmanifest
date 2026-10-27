@@ -1,0 +1,15 @@
+{
+  "name": "Versus",
+  "short_name": "Versus",
+  "description": "12 Spiele für zwei Spieler an einem Gerät oder gegen die KI.",
+  "lang": "de",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#0b0c15",
+  "theme_color": "#0b0c15",
+  "icons": [
+    { "src": "favicon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }
+  ]
+}
