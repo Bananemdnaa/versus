@@ -48,7 +48,7 @@
     let done = false, t = null;
     const stop = () => { done = true; clearTimeout(t); };
     const m = V.ui.openModal(`<div class="confirm wait"><div class="spin"><i></i><i></i></div>
-      <h3>Warte auf ${esc(name)}</h3><p>${esc(g.name)} · die Einladung läuft, solange dieses Fenster offen ist.</p>
+      <h3>${name ? 'Warte auf ' + esc(name) : 'Suche Gegner'}</h3><p>${esc(g.name)} · ${name ? 'die Einladung läuft, solange dieses Fenster offen ist.' : 'alle eingeloggten Spieler sehen deine Herausforderung. Wer zuerst beitritt, spielt gegen dich.'}</p>
       <div class="actions"><button class="btn ghost" id="wc"><span>Abbrechen</span></button></div></div>`, '', () => {
       if (!done) { stop(); C().rpc('match_cancel', { mid }).catch(() => { }); }
     });
@@ -61,7 +61,7 @@
         if (st.status === 'live') { stop(); V.ui.closeModal(); V.sfx.goal(); return start(st); }
         if (st.status !== 'invited') {
           stop(); V.ui.closeModal();
-          V.ui.toast(st.status === 'declined' ? name + ' hat abgelehnt' : 'Die Einladung ist abgelaufen');
+          V.ui.toast(st.status === 'declined' ? name + ' hat abgelehnt' : name ? 'Die Einladung ist abgelaufen' : 'Niemand ist beigetreten');
           return;
         }
       } catch (e) { }
@@ -81,7 +81,8 @@
       const p = await C().rpc('my_pending');
       const before = JSON.stringify(pending);
       pending = p;
-      if (p.invites && p.invites.length) showInvite(p.invites[0]); else hideInvite();
+      const openList = (p.open || []).filter(o => !dismissed.has(o.id));
+      if (p.invites && p.invites.length) showInvite(p.invites[0]); else if (openList.length && !p.active) showInvite(Object.assign({ open: true }, openList[0])); else hideInvite();
       if (JSON.stringify(p) !== before && V.ui.view() === 'home' && V.ui.tab() === 'online') refreshTab();
       badge();
     } catch (e) { }
@@ -94,19 +95,26 @@
       i.textContent = n;
     });
   }
+  const dismissed = new Set();
+  async function join(id) {
+    try { const st = await C().rpc('match_join', { mid: id }); hideInvite(); start(st); }
+    catch (e) { V.ui.toast(e.message); hideInvite(); check(); }
+  }
   function showInvite(inv) {
     if (cardId === inv.id) return;
     hideInvite(); cardId = inv.id;
     card = V.el('div', 'icard', `<div class="ic-ico">${V.byId[inv.game] ? V.byId[inv.game].icon : ''}</div>
-      <div class="ic-tx"><small>Herausforderung</small><b>${esc(inv.from)}</b><span>${esc(gname(inv.game))}</span></div>
-      <div class="ic-act"><button class="btn primary sm" data-a="ok"><span>Annehmen</span></button><button class="btn ghost sm" data-a="no"><span>Ablehnen</span></button></div>`);
+      <div class="ic-tx"><small>${inv.open ? 'Sucht einen Gegner' : 'Herausforderung'}</small><b>${esc(inv.from)}</b><span>${esc(gname(inv.game))}</span></div>
+      <div class="ic-act"><button class="btn primary sm" data-a="ok"><span>${inv.open ? 'Mitspielen' : 'Annehmen'}</span></button><button class="btn ghost sm" data-a="no"><span>${inv.open ? 'Nein danke' : 'Ablehnen'}</span></button></div>`);
+    if (inv.open) card.classList.add('open');
     document.body.appendChild(card);
     V.sfx.go(); V.buzz([40, 60, 40]);
     card.querySelector('[data-a=ok]').onclick = async () => {
+      if (inv.open) return join(inv.id);
       try { const st = await C().rpc('match_respond', { mid: inv.id, ok: true }); hideInvite(); start(st); }
       catch (e) { V.ui.toast(e.message); hideInvite(); }
     };
-    card.querySelector('[data-a=no]').onclick = () => { C().rpc('match_respond', { mid: inv.id, ok: false }).catch(() => { }); hideInvite(); };
+    card.querySelector('[data-a=no]').onclick = () => { if (inv.open) { dismissed.add(inv.id); return hideInvite(); } C().rpc('match_respond', { mid: inv.id, ok: false }).catch(() => { }); hideInvite(); };
   }
   function hideInvite() { if (card) { card.classList.add('out'); const c = card; setTimeout(() => c.remove(), 250); } card = null; cardId = null; }
 
@@ -160,6 +168,8 @@
     el.innerHTML = (p.active ? `<div class="obanner"><div><small>Laufende Partie</small><b>${esc(gname(p.active.game))} gegen ${esc(p.active.opponent)}</b></div><button class="btn primary sm" id="ores_go"><span>${IC().play}Weiterspielen</span></button></div>` : '') +
       (p.invites || []).map(i => `<div class="obanner inv"><div><small>Herausforderung</small><b>${esc(i.from)} · ${esc(gname(i.game))}</b></div>
         <div class="arow"><button class="btn primary sm" data-acc="${i.id}"><span>Annehmen</span></button><button class="btn ghost sm" data-dec="${i.id}"><span>Ablehnen</span></button></div></div>`).join('');
+    el.innerHTML += (p.open || []).map(o => `<div class="obanner open"><div><small>Sucht einen Gegner</small><b>${esc(o.from)} · ${esc(gname(o.game))}</b></div><button class="btn primary sm" data-join="${o.id}"><span>Mitspielen</span></button></div>`).join('');
+    el.querySelectorAll('[data-join]').forEach(x => x.onclick = () => join(x.dataset.join));
     const go = el.querySelector('#ores_go'); if (go) go.onclick = () => resume(p.active.id);
     el.querySelectorAll('[data-acc]').forEach(x => x.onclick = async () => { try { start(await C().rpc('match_respond', { mid: x.dataset.acc, ok: true })); } catch (e) { V.ui.toast(e.message); check(); } });
     el.querySelectorAll('[data-dec]').forEach(x => x.onclick = () => { C().rpc('match_respond', { mid: x.dataset.dec, ok: false }).then(check, check); });
@@ -187,21 +197,12 @@
     const out = (d.outgoing || []).map(n => `<div class="fline"><span class="adot"></span><b>${esc(n)}</b><small>Anfrage gesendet</small><button class="btn ghost sm" data-rm="${esc(n)}"><span>Zurückziehen</span></button></div>`).join('');
     const fr = (d.friends || []).map(f => `<div class="fline${f.online ? ' on' : ''}"><span class="adot"></span><b>${esc(f.username)}</b>
       <small>${f.busy ? 'spielt gerade online' : f.online ? 'online' + (f.game && V.byId[f.game] ? ' · ' + esc(gname(f.game)) : '') : 'zuletzt ' + ago(f.seen)}</small>
-      <button class="btn sm${f.online ? ' primary' : ''}" data-ch="${esc(f.username)}"><span>Herausfordern</span></button>
       ${sureRemove === f.username ? `<button class="btn ghost sm danger" data-rm="${esc(f.username)}"><span>Wirklich?</span></button>` : `<button class="iconbtn sm" data-sure="${esc(f.username)}" aria-label="Freund entfernen">${IC().x}</button>`}</div>`).join('');
     el.innerHTML = (inc ? `<h4>Anfragen</h4>${inc}` : '') + (fr ? `<h4>Deine Freunde</h4>${fr}` : '<p class="muted">Noch keine Freunde. Such oben nach einem Namen und schick eine Anfrage.</p>') + (out ? `<h4>Gesendet</h4>${out}` : '');
     el.querySelectorAll('[data-yes]').forEach(x => x.onclick = () => C().rpc('friend_respond', { name: x.dataset.yes, ok: true }).then(() => { V.ui.toast('Ihr seid jetzt Freunde'); V.sfx.goal(); loadFriends(b); check(); }, e => V.ui.toast(e.message)));
     el.querySelectorAll('[data-no]').forEach(x => x.onclick = () => C().rpc('friend_respond', { name: x.dataset.no, ok: false }).then(() => { loadFriends(b); check(); }));
     el.querySelectorAll('[data-rm]').forEach(x => x.onclick = () => C().rpc('friend_remove', { name: x.dataset.rm }).then(() => { sureRemove = null; loadFriends(b); }));
     el.querySelectorAll('[data-sure]').forEach(x => x.onclick = () => { sureRemove = x.dataset.sure; fillFriends(b); });
-    el.querySelectorAll('[data-ch]').forEach(x => x.onclick = () => chooseGame(x.dataset.ch));
-  }
-  function chooseGame(name) {
-    const m = V.ui.openModal(`<div class="confirm"><h3>${esc(name)} herausfordern</h3><p>Welches Spiel?</p>
-      <div class="gpick">${ONLINE.map(id => V.byId[id]).filter(Boolean).map(g => `<button data-g="${g.id}" style="--acc:${g.accent || 'var(--pink)'}"><span class="ic">${g.icon}</span><b>${esc(g.name)}</b></button>`).join('')}</div>
-      <div class="actions"><button class="btn ghost" id="gx"><span>Abbrechen</span></button></div></div>`);
-    m.querySelector('#gx').onclick = () => V.ui.closeModal();
-    m.querySelectorAll('[data-g]').forEach(x => x.onclick = () => { const g = V.byId[x.dataset.g]; V.ui.closeModal(); invite(name, g, optsFor(g)); });
   }
   async function loadBoard(b) {
     const el = b.querySelector('#oboard'); if (!el) return;
@@ -228,6 +229,19 @@
     el.querySelectorAll('[data-inv]').forEach(x => x.onclick = () => invite(x.dataset.inv, g, opts));
   }
 
-  V.online = { tab, wire, picker, invite, resume, watch, start, check };
+  // game panel, mode "Online": open challenge for everybody, plus open challenges of others for this game
+  function openPanel(el, g, opts) {
+    if (!el) return;
+    if (!ready()) { el.innerHTML = `<p class="hint">Für Online-Partien brauchst du ein Konto.</p><button class="btn sm" id="plog"><span>${IC().user}Anmelden</span></button>`; el.querySelector('#plog').onclick = () => V.ui.home('profile'); return; }
+    const others = ((pending && pending.open) || []).filter(o => o.game === g.id);
+    el.innerHTML = `<p class="hint">Deine Herausforderung erscheint bei allen eingeloggten Spielern. Wer zuerst beitritt, spielt gegen dich.</p>
+      ${others.map(o => `<div class="fline on"><span class="adot"></span><b>${esc(o.from)}</b><small>sucht gerade einen Gegner</small><button class="btn sm primary" data-join="${o.id}"><span>Mitspielen</span></button></div>`).join('')}
+      <button class="btn primary big" id="seek"><span>${IC().globe}Gegner suchen</span></button>`;
+    el.querySelector('#seek').onclick = () => seek(g, opts);
+    el.querySelectorAll('[data-join]').forEach(x => x.onclick = () => join(x.dataset.join));
+  }
+  const seek = (g, opts) => invite(null, g, opts);
+
+  V.online = { tab, wire, picker, openPanel, seek, invite, resume, watch, start, check };
   if (C()) C().on(() => { if (ready()) startPolling(); else stopPolling(); });
 })();

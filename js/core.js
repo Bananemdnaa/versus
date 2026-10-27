@@ -477,7 +477,7 @@
   // ---------- game panel (desktop side panel and phone setup screen) ----------
   function loadCfg(g) {
     const saved = S.get('setup', {})[g.id] || {};
-    const cfg = { mode: g.noAI ? 'local' : saved.mode === 'online' && !g.online ? 'ai' : (saved.mode || 'ai'), level: saved.level ?? 1, first: saved.first || 'me', opts: {} };
+    const cfg = { mode: g.noAI ? 'local' : (saved.mode === 'online' || saved.mode === 'open') && !g.online ? 'ai' : (saved.mode || 'ai'), level: saved.level ?? 1, first: saved.first || 'me', opts: {} };
     (g.options || []).forEach(o => { cfg.opts[o.id] = saved.opts && saved.opts[o.id] !== undefined ? saved.opts[o.id] : o.def; });
     return cfg;
   }
@@ -503,20 +503,21 @@
       if (V.fxOn()) { V.fx.pop(gp, fresh ? 'gp-new' : 'gp-sw'); clearTimeout(gp._t); gp._t = setTimeout(() => gp.classList.remove('gp-new', 'gp-sw'), 450); }
     }
     gp.querySelector('.gp-body').innerHTML = `
-      <div class="gp-mode" id="mode">
+      <div class="gp-mode${g.online && V.cloud && V.cloud.available() ? ' four' : ''}" id="mode">
         ${g.noAI ? '' : `<button data-v="ai" class="${cfg.mode === 'ai' ? 'on' : ''}">${IC.robot}<span>Gegen KI</span></button>`}
         <button data-v="local" class="${cfg.mode === 'local' ? 'on' : ''}">${IC.users}<span>Zu zweit</span></button>
-        ${g.online && V.cloud && V.cloud.available() ? `<button data-v="online" class="${cfg.mode === 'online' ? 'on' : ''}">${IC.globe}<span>Online</span></button>` : ''}
+        ${g.online && V.cloud && V.cloud.available() ? `<button data-v="online" class="${cfg.mode === 'online' ? 'on' : ''}">${IC.user}<span>Freund</span></button>
+        <button data-v="open" class="${cfg.mode === 'open' ? 'on' : ''}">${IC.globe}<span>Online</span></button>` : ''}
       </div>
       ${cfg.mode === 'ai' ? `<div class="gp-lvl">
         <div class="lv-top"><span>Stärke</span><b class="l${lvl}">${V.LEVELS[lvl]}</b><em>Bilanz ${s.ai[lvl].w}:${s.ai[lvl].l}</em></div>
         <div class="lv-bar" id="level">${V.LEVELS.map((l, i) => `<button data-v="${i}" class="${i <= lvl ? 'fill' : ''} ${i === lvl ? 'on' : ''}" aria-label="${l}" title="${l}"></button>`).join('')}</div>
-        <p class="hint">${(g.levelInfo || LEVEL_INFO)[lvl]}</p></div>` : cfg.mode === 'online' ? '<div class="gp-online" id="ofr"></div>' : `<p class="hint local">Ihr spielt abwechselnd am selben Gerät${g.cat === 'Action' ? ', jeder auf seiner Hälfte' : ''}.</p>`}
+        <p class="hint">${(g.levelInfo || LEVEL_INFO)[lvl]}</p></div>` : cfg.mode === 'online' || cfg.mode === 'open' ? '<div class="gp-online" id="ofr"></div>' :`<p class="hint local">Ihr spielt abwechselnd am selben Gerät${g.cat === 'Action' ? ', jeder auf seiner Hälfte' : ''}.</p>`}
       ${(cfg.mode === 'ai' && !g.noFirst) || (g.options || []).length ? `<div class="gp-more">
         ${cfg.mode === 'ai' && !g.noFirst ? chipRow('first', g.firstTitle || 'Beginn', [['me', firstLabel[0]], ['ai', firstLabel[1]], ['rand', firstLabel[2]]], cfg.first) : ''}
         ${(g.options || []).map(o => chipRow('o_' + o.id, o.label, o.choices, cfg.opts[o.id])).join('')}
       </div>` : ''}
-      <div class="gp-go">${cfg.mode === 'online' ? '' : `<button class="btn primary big" id="go"><span>${IC.play}Spielen</span><kbd class="only-fine">Enter</kbd></button>`}
+      <div class="gp-go">${cfg.mode === 'online' || cfg.mode === 'open' ? '' : `<button class="btn primary big" id="go"><span>${IC.play}Spielen</span><kbd class="only-fine">Enter</kbd></button>`}
         <button class="btn ghost" id="tut"><span>${IC.book}Regeln${seen[g.id] ? '' : '<i class="dot"></i>'}</span></button></div>`;
     const rer = () => renderPanel(root, g, full);
     const on = (id, fn) => { const e = root.querySelector('#' + id); if (e) e.querySelectorAll('button').forEach(b => b.onclick = () => { fn(b.dataset.v); saveCfg(g, cfg); V.sfx.ui(); rer(); }); };
@@ -526,10 +527,11 @@
     (g.options || []).forEach(o => on('o_' + o.id, x => cfg.opts[o.id] = isNaN(+x) ? x : +x));
     const goBtn = root.querySelector('#go'); if (goBtn) goBtn.onclick = () => { saveCfg(g, cfg); play(g, cfg); };
     if (cfg.mode === 'online' && V.online) V.online.picker(root.querySelector('#ofr'), g, cfg.opts);
+    if (cfg.mode === 'open' && V.online) V.online.openPanel(root.querySelector('#ofr'), g, cfg.opts);
     root.querySelector('#tut').onclick = () => tutorial(g, rer);
     panelApi = {
       g,
-      go() { if (cfg.mode === 'online') return; saveCfg(g, cfg); play(g, cfg); },
+      go() { if (cfg.mode === 'online') return; if (cfg.mode === 'open') return V.online && V.online.seek(g, cfg.opts); saveCfg(g, cfg); play(g, cfg); },
       tut() { tutorial(g, rer); },
       level(i) { if (cfg.mode !== 'ai') return; cfg.level = Math.max(0, Math.min(3, i)); saveCfg(g, cfg); V.sfx.tick(); rer(); },
       step(d) { this.level(cfg.level + d); },
@@ -735,8 +737,10 @@
     let el = null;
     const get = () => { if (!el) { el = V.el('div', 'aim'); document.body.appendChild(el); } return el; };
     return {
-      to(target, real) {
-        const e = get(), r = target.getBoundingClientRect(), p = 4, fresh = !e.classList.contains('on');
+      to(target, real, label) {
+        const e = get();
+        e.dataset.label = label || 'KI';
+        const r = target.getBoundingClientRect(), p = 4, fresh = !e.classList.contains('on');
         if (fresh) e.style.transition = 'none';
         e.style.transform = `translate(${r.left - p}px,${r.top - p}px)`;
         e.style.width = r.width + p * 2 + 'px'; e.style.height = r.height + p * 2 + 'px';
@@ -918,7 +922,7 @@
       }
     };
     // crosshair, then the move (shared by the AI and remote players)
-    function aimAt(o, res, card, isAI, fast) {
+    function aimAt(o, res, card, isAI, fast, who) {
       const tg = (o.targets ? o.targets(res.move) : []).filter(Boolean);
       let path = [];
       if (isAI && o.decoys && !o.quick) path = V.shuffle((o.decoys(res.move) || []).filter(x => x && !tg.includes(x))).slice(0, V.rand(3));
@@ -934,7 +938,7 @@
       const step = () => {
         if (i >= path.length) { aim.lock(); return ctx.later(done, 170); }
         const real = i >= path.length - tg.length;
-        aim.to(path[i], real); i++;
+        aim.to(path[i], real, who ? names[who] : 'KI'); i++;
         if (!real) V.sfx.tick();
         ctx.later(step, real ? 240 : 190);
       };
@@ -972,7 +976,7 @@
           const m = o.decode ? o.decode(mv.m) : mv.m;
           if (m == null || m === undefined) return this.illegal();
           const fast = this.queue.length > 0;
-          ctx.later(() => aimAt(o, { move: m }, pls[mv.s], false, fast), fast ? 120 : 60);
+          ctx.later(() => aimAt(o, { move: m }, pls[mv.s], false, fast, mv.s), fast ? 120 : 60);
         },
         moved(s, m) {
           this.applied++;
