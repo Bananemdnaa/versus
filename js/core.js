@@ -841,6 +841,7 @@
     const remote = s => watch || (online && (s === oppSide || (net && net.queue.length > 0)));
     const ctx = {
       stage: v.querySelector('#stage'), mode: cfg.mode, level: cfg.level, aiSide, opts: cfg.opts, sides: g.sides,
+      mySide, watchSides: watch ? { a: M.aSide } : null,
       isAI: s => (ai && s === aiSide) || remote(s),
       name: s => names[s],
       who(s) { return `<span class="c${s}">${esc(names[s])}</span>`; },
@@ -966,6 +967,7 @@
             if (!oppOn && !ended && st.status === 'live' && !this.offWarn) { this.offWarn = true; toast(names[oppSide] + ' ist gerade nicht erreichbar'); }
             if (oppOn) this.offWarn = false;
           }
+          if (this.readyCb && st.fleets_ready) { const f = this.readyCb; this.readyCb = null; f(st); }
           this.pump(); this.checkEnd();
         },
         // the game waits for the next move of a remote side
@@ -1008,6 +1010,17 @@
             .then(() => { if (!this.stopped && alive) ctx.later(() => this.poll(), watch ? 1500 : 1000); });
         },
         stop() { this.stopped = true; }
+      };
+      // Schiffe versenken: fleets and shots are handled by the server (fleets stay secret)
+      ctx.net = {
+        state: () => net.last,
+        fleet: f => V.cloud.rpc('match_fleet', { mid: M.id, f }).then(st => { net.feed(st); return st; }),
+        whenReady(cb) { net.readyCb = cb; if (net.last && net.last.fleets_ready) { net.readyCb = null; cb(net.last); } },
+        async shot(i) {
+          const ply = net.applied; net.applied++;
+          try { const r = await V.cloud.rpc('match_shot', { mid: M.id, ply, cell: i }); net.known = Math.max(net.known, r.n); return r; }
+          catch (e) { net.applied--; throw e; }
+        }
       };
       net.feed(M.init);
       ctx.later(() => net.poll(), 800);

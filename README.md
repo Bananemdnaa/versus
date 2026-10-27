@@ -24,7 +24,7 @@ Regeln im Detail:
 - **Schach:** alle Regeln, also Rochade, en passant, Umwandlung mit Auswahl, Patt, dreifache Wiederholung, 50-Züge-Regel und zu wenig Material.
 - **Dame:** deutsche Regeln mit Schlagzwang, Mehrfachsprüngen und fliegenden Damen; Remis nach 25 Damenzügen pro Spieler ohne Schlagen.
 - **Mühle:** Setzen, Ziehen und Springen ab drei Steinen; Remis nach 30 Zügen pro Spieler ohne Mühle.
-- **Schiffe versenken:** 10×10, fünf Schiffe, die sich nicht berühren dürfen; ein Treffer heißt nochmal schießen.
+- **Schiffe versenken:** 10×10, fünf Schiffe, die sich nicht berühren dürfen; ein Treffer heißt nochmal schießen. Platzieren: Schiffe aus dem Dock unter dem Brett aufs Meer ziehen (grüne Vorschau = passt), Antippen dreht, Ziehen verschiebt, zurück ins Dock ziehen nimmt weg; am PC auch Schiff wählen und Feld anklicken, `R` dreht.
 
 ## Steuerung
 
@@ -82,12 +82,13 @@ Alle Admin-Aktionen prüft der Server selbst (`require_admin`, `require_owner`),
 
 Im Reiter „Online“ sucht man Spieler nach Namen, schickt Freundschaftsanfragen und sieht, wer gerade online ist und was er spielt. Herausgefordert wird direkt im Spiel-Panel: Modus „Freund“ lädt einen Freund ein, Modus „Online“ startet eine offene Herausforderung, die alle eingeloggten Spieler als Karte sehen; wer zuerst „Mitspielen“ drückt, spielt. Nimmt jemand an, werden die Seiten ausgelost und die Partie läuft live, jeder am eigenen Gerät. Du bist dabei immer Pink, dein Gegner Gelb.
 
-- Online spielbar: 4 Gewinnt, Tic Tac Toe, Ultimate Tic Tac Toe, Schach, Dame, Reversi, Mühle, Käsekästchen (Schiffe versenken folgt, weil dort die Flotten geheim bleiben müssen)
+- Online spielbar: 4 Gewinnt, Schiffe versenken, Tic Tac Toe, Ultimate Tic Tac Toe, Schach, Dame, Reversi, Mühle, Käsekästchen
+- Schiffe versenken online: Die Flotten liegen nur auf dem Server, der sie auf die Regeln prüft (5 Schiffe, gerade, ohne Berührung), jeden Schuss auswertet und entscheidet, wer dran ist. Der Gegner sieht ein Schiff erst, wenn es versenkt ist.
 - Beide Browser prüfen jeden Zug nach den Spielregeln; ein ungültiger Zug annulliert die Partie. Am Ende melden beide das Ergebnis, stimmen die Meldungen nicht überein, wird die Partie annulliert.
 - Aufgeben über die Flagge oben rechts. Wer 75 Sekunden nicht erreichbar ist, verliert. Nach einem Neuladen geht es über „Weiterspielen“ im Reiter Online weiter.
 - **Rangliste:** gewonnene Online-Partien gegen andere Spieler, gesamt und pro Spiel (Partien gegen die KI zählen nicht). Ausgeblendete und Dev-Konten erscheinen nicht.
 - **Admin-Panel → Partien:** laufende und beendete Partien mit Spielern, Zügen und Ergebnis. „Zuschauen“ zeigt eine laufende Partie live, „Abspielen“ spielt eine beendete Zug für Zug nach. Admins können Partien annullieren (steht im Protokoll).
 
-Dafür einmal `supabase/migrations/20261029000000_friends_matches.sql` und danach `supabase/migrations/20261030000000_open_matches.sql` im SQL-Editor ausführen.
+Dafür einmal `supabase/migrations/20261029000000_friends_matches.sql` und danach `supabase/migrations/20261030000000_open_matches.sql`, für Schiffe versenken online zusätzlich `supabase/migrations/20261031000000_ships_online.sql` im SQL-Editor ausführen.
 
 Neue Migrationen kommen als weitere Datei in `supabase/migrations/` und werden in Reihenfolge einmal im SQL-Editor ausgeführt.
