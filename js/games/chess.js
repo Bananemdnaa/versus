@@ -308,6 +308,7 @@
       }
       function doMove(m) {
         const mover = P.turn;
+        ctx.moved(numOf[mover], { f: m.f, t: m.t, p: m.promo || null });
         if (m.cap) capd[mover].push(m.cap);
         const fromR = cells[m.f].getBoundingClientRect();
         const row = mover === 'w' ? 7 : 0;
@@ -336,7 +337,7 @@
       }
       function next(chk) {
         const s = numOf[P.turn];
-        const base = ctx.isAI(s) ? '<span class="c' + s + '">KI</span> ist dran' : (ctx.name(s) === 'Du' ? 'Du bist dran' : ctx.who(s) + ' ist dran');
+        const base = ctx.isAI(s) ? ctx.who(s) + ' ist dran' : (ctx.name(s) === 'Du' ? 'Du bist dran' : ctx.who(s) + ' ist dran');
         ctx.turn(s, (chk ? '<b style="color:var(--bad)">Schach!</b> · ' : '') + base);
         const sqn = q => 'abcdefgh'[q & 7] + (8 - (q >> 3));
         const PN = { p: 'Bauer', n: 'Springer', b: 'Läufer', r: 'Turm', q: 'Dame', k: 'König' };
@@ -351,6 +352,7 @@
           targets: m => [cells[m.f], cells[m.t]],
           decoys: m => V.shuffle(moves.filter(x => x.f !== m.f).map(x => cells[x.f])),
           apply: doMove,
+          decode: r => (r && moves.find(x => x.f === r.f && x.t === r.t && (x.promo || null) === (r.p || null))) || null,
           say: m => {
             if (m.castle) return m.castle === 'k' ? 'Kurze Rochade' : 'Lange Rochade';
             const pn = PN[P.b[m.f].toLowerCase()];

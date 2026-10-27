@@ -57,7 +57,8 @@
       const x = (a || {})[id] || {}, y = (b || {})[id] || {};
       out[id] = {
         ai: [0, 1, 2, 3].map(i => { const p = (x.ai || [])[i] || {}, q = (y.ai || [])[i] || {}; return { w: f(p.w, q.w), l: f(p.l, q.l), d: f(p.d, q.d) }; }),
-        local: { a: f((x.local || {}).a, (y.local || {}).a), b: f((x.local || {}).b, (y.local || {}).b), d: f((x.local || {}).d, (y.local || {}).d) }
+        local: { a: f((x.local || {}).a, (y.local || {}).a), b: f((x.local || {}).b, (y.local || {}).b), d: f((x.local || {}).d, (y.local || {}).d) },
+        on: { w: f((x.on || {}).w, (y.on || {}).w), l: f((x.on || {}).l, (y.on || {}).l), d: f((x.on || {}).d, (y.on || {}).d) }
       };
     });
     return out;

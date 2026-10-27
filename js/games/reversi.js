@@ -100,6 +100,7 @@
         });
       }
       function move(i) {
+        ctx.moved(s.turn, i);
         const who = s.turn, f = flips(s.b, i, who);
         s = G.play(s, i); last = i;
         if (V.fxOn()) f.forEach(k => animating.add(k));
@@ -127,13 +128,13 @@
           return;
         }
         if (!mine.length) {
-          ctx.status(score + `${ctx.isAI(s.turn) ? 'KI' : ctx.who(s.turn)} ${ctx.name(s.turn) === 'Du' ? 'musst' : 'muss'} aussetzen`);
+          ctx.status(score + `${ctx.who(s.turn)} ${ctx.name(s.turn) === 'Du' ? 'musst' : 'muss'} aussetzen`);
           s = G.play(s, 'pass'); render();
           ctx.later(next, 1300);
           return;
         }
         render();
-        const base = ctx.isAI(s.turn) ? '<span class="c' + s.turn + '">KI</span> ist dran' : (ctx.name(s.turn) === 'Du' ? 'Du bist dran' : ctx.who(s.turn) + ' ist dran');
+        const base = ctx.isAI(s.turn) ? ctx.who(s.turn) + ' ist dran' : (ctx.name(s.turn) === 'Du' ? 'Du bist dran' : ctx.who(s.turn) + ' ist dran');
         ctx.turn(s.turn, score + base);
         const sqn = q => 'abcdefgh'[q & 7] + ((q >> 3) + 1);
         if (ctx.isAI(s.turn)) ctx.aiTurn({
@@ -151,6 +152,7 @@
           targets: m => [sqs[m]],
           decoys: () => mine.map(m => sqs[m]),
           apply: move,
+          decode: i => (legalFor(s.b, s.turn).includes(i) ? i : null),
           say: m => sqn(m) + ' · ' + flips(s.b, m, s.turn).length + ' umgedreht'
         });
       }

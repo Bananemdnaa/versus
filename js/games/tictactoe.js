@@ -69,6 +69,7 @@
       ctx.keys(e => { if (NUMPAD[e.key] !== undefined && !ctx.isAI(turn)) { move(NUMPAD[e.key]); return true; } return false; });
       function move(i) {
         if (over || b[i]) return;
+        ctx.moved(turn, i);
         b[i] = turn;
         cells[i].innerHTML = turn === 1 ? X : O; cells[i].disabled = true;
         V.sfx.move(); V.fx.burstAt(cells[i], V.hex(turn), 6, 40);
@@ -132,6 +133,7 @@
           targets: m => [cells[m]],
           decoys: () => cells.filter((c, i) => !b[i]),
           apply: move,
+          decode: r => (Number.isInteger(r) && r >= 0 && r < 9 && !b[r] ? r : null),
           say: m => NAMES[m]
         });
       }

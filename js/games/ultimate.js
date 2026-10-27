@@ -93,6 +93,7 @@
         });
       }
       function move(m) {
+        ctx.moved(s.turn, m);
         const before = s.big.slice();
         s = G.play(s, m);
         V.sfx.move();
@@ -121,6 +122,7 @@
           targets: m => [allCells[m]],
           decoys: () => G.moves(s).map(m => allCells[m]),
           apply: move,
+          decode: m => (G.moves(s).includes(m) ? m : null),
           say: m => 'Brett ' + BOARD[(m / 9) | 0]
         });
       }

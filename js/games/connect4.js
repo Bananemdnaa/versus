@@ -100,6 +100,7 @@
       });
       function drop(c) {
         if (over || s.b[c]) return;
+        ctx.moved(s.turn, c);
         const r = dropRow(s.b, c), who = s.turn;
         s = G.play(s, c);
         const cell = board.children[r * C + c];
@@ -136,6 +137,7 @@
           targets: c => [land(c)],
           decoys: () => G.moves(s).map(land),
           apply: drop,
+          decode: c => (G.moves(s).includes(c) ? c : null),
           say: c => 'Spalte ' + (c + 1)
         });
       }

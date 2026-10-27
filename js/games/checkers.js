@@ -163,6 +163,7 @@
         render();
       }
       function doMove(m) {
+        ctx.moved(s.turn, { path: m.path });
         const to = m.path[m.path.length - 1];
         const from = !prefix.length ? m.path[0] : prefix[prefix.length - 1] === to ? (prefix[prefix.length - 2] ?? m.path[0]) : prefix[prefix.length - 1];
         const sl = slideTo(from, to);
@@ -192,6 +193,7 @@
           targets: m => m.path.map(q => cells[q]),
           decoys: m => genMoves(s).filter(x => x.path[0] !== m.path[0]).map(x => cells[x.path[0]]),
           apply: animate,
+          decode: r => (r && Array.isArray(r.path) && genMoves(s).find(x => x.path.join() === r.path.join())) || null,
           say: m => m.caps.length ? `${sqn(m.path[0])} schlägt ${m.caps.length > 1 ? m.caps.length + ' Steine' : sqn(m.caps[0])}` : `${sqn(m.path[0])}–${sqn(m.path[1])}`
         });
       }

@@ -130,13 +130,13 @@
   }
 
   // ---------- admin panel ----------
-  let aTab = 'overview', stats = null, online = null, players = null, logs = null, query = '', aErr = '', box = null, sure = null, liveT = null, busy = false;
+  let aTab = 'overview', mFilter = 'live', mQuery = '', matches = null, stats = null, online = null, players = null, logs = null, query = '', aErr = '', box = null, sure = null, liveT = null, busy = false;
   function admin(t) {
     if (t) aTab = t;
     const v = V.ui.show('admin', `<div class="view admin">
       <div class="sbar"><button class="iconbtn" id="bk" aria-label="Zurück">${IC().back}</button><span class="crumb">Admin-Panel</span>
         ${C().role() ? `<em class="rtag ${C().role()}">${ROLE[C().role()]}</em>` : ''}</div>
-      <div class="chips" id="atabs">${[['overview', 'Übersicht'], ['players', 'Spieler'], ['log', 'Protokoll']].map(([k, l]) => `<button data-t="${k}" class="${aTab === k ? 'on' : ''}">${l}</button>`).join('')}</div>
+      <div class="chips" id="atabs">${[['overview', 'Übersicht'], ['matches', 'Partien'], ['players', 'Spieler'], ['log', 'Protokoll']].map(([k, l]) => `<button data-t="${k}" class="${aTab === k ? 'on' : ''}">${l}</button>`).join('')}</div>
       <div id="abody" class="abody"></div></div>`);
     v.querySelector('#bk').onclick = () => { stopLive(); V.ui.home('profile'); };
     v.querySelectorAll('#atabs button').forEach(x => x.onclick = () => { aTab = x.dataset.t; aErr = ''; box = null; sure = null; V.sfx.ui(); v.querySelectorAll('#atabs button').forEach(y => y.classList.toggle('on', y === x)); draw(); load(); });
@@ -145,6 +145,7 @@
     liveT = setInterval(() => {
       if (V.ui.view() !== 'admin') return stopLive();
       if (aTab === 'overview') C().rpc('admin_online').then(o => { online = o || []; draw(); }, () => { });
+      if (aTab === 'matches' && mFilter === 'live') C().rpc('admin_matches', { st: 'live', q: mQuery, lim: 60 }).then(m => { matches = m || []; draw(); }, () => { });
     }, 20000);
   }
   function stopLive() { clearInterval(liveT); liveT = null; }
@@ -153,6 +154,7 @@
       if (aTab === 'overview') { const [s, o] = await Promise.all([C().rpc('admin_stats'), C().rpc('admin_online')]); stats = s; online = o || []; }
       if (aTab === 'players') players = await C().rpc('admin_players', { q: query, lim: 40 });
       if (aTab === 'log') logs = await C().rpc('admin_log_list', { lim: 80 });
+      if (aTab === 'matches') matches = await C().rpc('admin_matches', { st: mFilter, q: mQuery, lim: 80 });
       aErr = '';
     } catch (e) { aErr = e.message; }
     draw();
@@ -167,7 +169,7 @@
     const host = document.getElementById('abody'); if (!host) return;
     const keep = document.activeElement && host.contains(document.activeElement) && /INPUT|TEXTAREA/.test(document.activeElement.tagName);
     if (keep && !force) return;
-    host.innerHTML = (aErr ? `<p class="aerr big">${esc(aErr)}</p>` : '') + (aTab === 'overview' ? overview() : aTab === 'players' ? playerList() : logList());
+    host.innerHTML = (aErr ? `<p class="aerr big">${esc(aErr)}</p>` : '') + (aTab === 'overview' ? overview() : aTab === 'matches' ? matchList() : aTab === 'players' ? playerList() : logList());
     wireAdmin(host);
   }
   function overview() {
@@ -176,7 +178,7 @@
     const tile = (l, v, s) => `<div class="kpi"><b>${v}</b><span>${l}</span>${s ? `<small>${s}</small>` : ''}</div>`;
     const games = Object.entries(S.games || {}).sort((a, b) => b[1] - a[1]);
     const max = games.length ? games[0][1] : 1;
-    return `<div class="kpis">${tile('Spieler', S.players, '+' + S.new7 + ' in 7 Tagen')}${tile('Online', S.online)}${tile('Aktiv heute', S.active1, S.active7 + ' in 7 Tagen')}${tile('Partien', S.matches)}</div>
+    return `<div class="kpis">${tile('Spieler', S.players, '+' + S.new7 + ' in 7 Tagen')}${tile('Online', S.online)}${tile('Aktiv heute', S.active1, S.active7 + ' in 7 Tagen')}${tile('Partien', S.matches, (S.online_matches || 0) + ' online')}${tile('Live', S.live_matches || 0, (S.friendships || 0) + ' Freundschaften')}</div>
       <div class="agrid">
         <div class="apanel"><h3>Gerade online <small>${(online || []).length}</small></h3>
           ${(online || []).length ? (online || []).map(o => `<div class="aline"><button class="link" data-p="${esc(o.username)}">${esc(o.username)}</button><span>${esc(gameName(o.game))}</span><small>${ago(o.seen)}</small></div>`).join('') : '<p class="muted">Gerade niemand.</p>'}
@@ -225,8 +227,31 @@
     return `<div class="asearch"><input class="inp" id="aq" placeholder="Spieler suchen (Namensanfang)" value="${esc(query)}" autocapitalize="none" spellcheck="false"><button class="btn ghost sm" id="reload"><span>${IC().redo}</span></button></div>
       ${players ? cards || '<p class="muted">Niemand gefunden.</p>' : '<p class="muted">Lädt …</p>'}`;
   }
+  // match log: running and finished online matches; each one can be watched live or replayed move by move
+  function matchList() {
+    const ST = { invited: 'wartet auf Antwort', live: 'läuft', done: 'beendet', void: 'annulliert' };
+    const RES = { win: 'gewonnen', draw: 'remis', resign: 'aufgegeben', abandon: 'verlassen', mismatch: 'Ergebnis strittig' };
+    const rows = (matches || []).map(m => {
+      const a = esc(m.a), b = esc(m.b);
+      const res = m.status === 'done' ? (m.winner ? `<b class="good">${esc(m.winner)}</b> ${RES[m.result] === 'gewonnen' ? 'gewinnt' : 'gewinnt (' + (m.result === 'resign' ? 'Aufgabe' : m.result === 'abandon' ? 'Gegner weg' : esc(m.result)) + ')'}` : 'Remis')
+        : m.status === 'void' ? `annulliert${m.result ? ' · ' + esc(m.result) : ''}` : ST[m.status] || m.status;
+      const live = m.status === 'live';
+      return `<div class="mrow${live ? ' live' : ''}">
+        <div class="m-g">${V.byId[m.game] ? V.byId[m.game].icon : ''}</div>
+        <div class="m-t"><b><button class="link" data-p="${a}">${a}</button> <i>gegen</i> <button class="link" data-p="${b}">${b}</button></b>
+          <small>${esc(gameName(m.game))} · ${m.moves} Züge · ${when(m.finished_at || m.started_at || m.created_at)}${live ? ` · ${m.a_online ? '' : esc(m.a) + ' offline · '}${m.b_online ? '' : esc(m.b) + ' offline'}` : ''}</small>
+          <span class="m-r">${live ? '<em class="rtag live">Live</em> ' : ''}${res}</span></div>
+        <div class="m-a">${m.a_side ? `<button class="btn sm${live ? ' primary' : ''}" data-watch="${m.id}"><span>${live ? 'Zuschauen' : 'Abspielen'}</span></button>` : ''}
+          ${m.status === 'live' || m.status === 'done' ? (sure === 'void:' + m.id ? `<button class="btn ghost sm danger" data-void="${m.id}"><span>Wirklich annullieren?</span></button>` : `<button class="btn ghost sm" data-sure="void:${m.id}"><span>Annullieren</span></button>`) : ''}</div>
+      </div>`;
+    }).join('');
+    return `<div class="asearch"><div class="chips mini" id="mf">${[['live', 'Laufend'], ['done', 'Beendet'], ['all', 'Alle']].map(([k, l]) => `<button data-mf="${k}" class="${mFilter === k ? 'on' : ''}">${l}</button>`).join('')}</div>
+        <input class="inp" id="mq" placeholder="Spieler" value="${esc(mQuery)}" autocapitalize="none" spellcheck="false"><button class="btn ghost sm" id="reload"><span>${IC().redo}</span></button></div>
+      ${mFilter === 'live' ? '<p class="fine">Laufende Partien aktualisieren sich alle 20 Sekunden. „Zuschauen“ zeigt das Brett live, „Abspielen“ spielt eine beendete Partie Zug für Zug nach.</p>' : ''}
+      ${matches ? rows || '<p class="muted">Keine Partien.</p>' : '<p class="muted">Lädt …</p>'}`;
+  }
   function logList() {
-    const L = { hide: 'ausgeblendet', show: 'eingeblendet', ban: 'gesperrt', unban: 'entsperrt', note: 'Notiz', rename: 'umbenannt', reset_stats: 'Bilanz zurückgesetzt', admin_on: 'zum Admin gemacht', admin_off: 'Admin entzogen', dev_on: 'Dev-Konto an', dev_off: 'Dev-Konto aus' };
+    const L = { hide: 'ausgeblendet', show: 'eingeblendet', ban: 'gesperrt', unban: 'entsperrt', note: 'Notiz', rename: 'umbenannt', reset_stats: 'Bilanz zurückgesetzt', admin_on: 'zum Admin gemacht', admin_off: 'Admin entzogen', dev_on: 'Dev-Konto an', dev_off: 'Dev-Konto aus', void_match: 'Partie annulliert' };
     if (!logs) return '<p class="muted">Lädt …</p>';
     if (!logs.length) return '<p class="muted">Noch keine Admin-Aktionen.</p>';
     return `<div class="apanel">${logs.map(l => `<div class="aline log"><small>${when(l.created_at)}</small><b>${esc(l.admin_name || '?')}</b><span>${esc(L[l.action] || l.action)} <button class="link" data-p="${esc(l.target || '')}">${esc(l.target || '')}</button>${l.detail ? ' · ' + esc(l.detail) : ''}</span></div>`).join('')}</div>`;
@@ -240,6 +265,11 @@
       q.oninput = () => { clearTimeout(qTimer); qTimer = setTimeout(() => { query = q.value.trim(); load().then(() => { draw(true); const n = document.getElementById('aq'); if (n) { n.focus(); n.setSelectionRange(n.value.length, n.value.length); } }); }, 350); };
       q.onblur = () => setTimeout(draw, 0);
     }
+    h.querySelectorAll('[data-mf]').forEach(x => x.onclick = () => { mFilter = x.dataset.mf; matches = null; sure = null; V.sfx.ui(); draw(); load(); });
+    const mq = h.querySelector('#mq');
+    if (mq) { mq.onchange = () => { mQuery = mq.value.trim(); matches = null; load(); }; mq.onkeydown = e => { if (e.key === 'Enter') mq.blur(); }; }
+    h.querySelectorAll('[data-watch]').forEach(x => x.onclick = () => { stopLive(); V.online.watch(x.dataset.watch); });
+    h.querySelectorAll('[data-void]').forEach(x => x.onclick = () => act('admin_void_match', { mid: x.dataset.void, why: null }, 'Partie annulliert.'));
     h.querySelectorAll('[data-box]').forEach(x => x.onclick = () => { box = box === x.dataset.box ? null : x.dataset.box; sure = null; draw(); });
     h.querySelectorAll('[data-sure]').forEach(x => x.onclick = () => { sure = x.dataset.sure; draw(); });
     h.querySelectorAll('[data-ban]').forEach(x => x.onclick = () => {

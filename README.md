@@ -78,4 +78,16 @@ Alle Admin-Aktionen prüft der Server selbst (`require_admin`, `require_owner`),
 5. Im Spiel registrieren, dann einmal im SQL-Editor ausführen (Namen anpassen):
    `insert into public.admins (user_id, role) select id, 'owner' from public.profiles where username = 'dein_name' on conflict (user_id) do update set role = 'owner';`
 
+## Freunde, Online-Partien und Ranglisten
+
+Im Reiter „Online“ sucht man Spieler nach Namen, schickt Freundschaftsanfragen und sieht, wer gerade online ist und was er spielt. Freunde fordert man dort mit „Herausfordern“ heraus oder direkt im Spiel-Panel über den Modus „Online“. Die Einladung poppt beim Freund als Karte auf; nimmt er an, werden die Seiten ausgelost und die Partie läuft live, jeder am eigenen Gerät. Du bist dabei immer Pink, dein Gegner Gelb.
+
+- Online spielbar: 4 Gewinnt, Tic Tac Toe, Ultimate Tic Tac Toe, Schach, Dame, Reversi, Mühle, Käsekästchen (Schiffe versenken folgt, weil dort die Flotten geheim bleiben müssen)
+- Beide Browser prüfen jeden Zug nach den Spielregeln; ein ungültiger Zug annulliert die Partie. Am Ende melden beide das Ergebnis, stimmen die Meldungen nicht überein, wird die Partie annulliert.
+- Aufgeben über die Flagge oben rechts. Wer 75 Sekunden nicht erreichbar ist, verliert. Nach einem Neuladen geht es über „Weiterspielen“ im Reiter Online weiter.
+- **Rangliste:** gewonnene Online-Partien gegen andere Spieler, gesamt und pro Spiel (Partien gegen die KI zählen nicht). Ausgeblendete und Dev-Konten erscheinen nicht.
+- **Admin-Panel → Partien:** laufende und beendete Partien mit Spielern, Zügen und Ergebnis. „Zuschauen“ zeigt eine laufende Partie live, „Abspielen“ spielt eine beendete Zug für Zug nach. Admins können Partien annullieren (steht im Protokoll).
+
+Dafür einmal `supabase/migrations/20261029000000_friends_matches.sql` im SQL-Editor ausführen.
+
 Neue Migrationen kommen als weitere Datei in `supabase/migrations/` und werden in Reihenfolge einmal im SQL-Editor ausgeführt.

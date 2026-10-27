@@ -296,6 +296,7 @@
     vib: svg('<rect x="7" y="3" width="10" height="18" rx="2"/><path d="M3 9v6M21 9v6"/>'),
     spark: svg('<path d="M12 3v4M12 17v4M3 12h4M17 12h4M6 6l2.5 2.5M15.5 15.5L18 18M6 18l2.5-2.5M15.5 8.5L18 6"/>'),
     user: svg('<circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/>'),
+    globe: svg('<circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/>'),
     shield: svg('<path d="M12 3l8 3v6c0 4.5-3.4 8-8 9-4.6-1-8-4.5-8-9V6z"/>')
   };
 
@@ -330,7 +331,7 @@
     total += aiGames;
     return { total, aiWins, aiGames, proWins, draws, rate: aiGames ? Math.round(aiWins / aiGames * 100) : 0 };
   }
-  const TABS = [['games', 'Spiele', IC.grid], ['stats', 'Bilanz', IC.chart], ['profile', 'Konto', IC.user], ['opts', 'Optionen', IC.gear]];
+  const TABS = [['games', 'Spiele', IC.grid], ['online', 'Online', IC.globe], ['stats', 'Bilanz', IC.chart], ['profile', 'Konto', IC.user], ['opts', 'Optionen', IC.gear]];
   const logo = '<button class="logo" id="logo" aria-label="Versus Startseite"><span class="l1">VER</span><i class="slash"></i><span class="l2">SUS</span></button>';
   function header(extra = '') {
     return `<header class="top">${logo}${extra}
@@ -378,11 +379,12 @@
     if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => placeInd(v, false));
     wireBody(v.querySelector('.hbody'));
   }
-  function tabBody() { return homeTab === 'stats' ? statsTab() : homeTab === 'opts' ? optsTab() : homeTab === 'profile' ? (V.account ? V.account.tab() : '') : gamesTab(); }
+  function tabBody() { return homeTab === 'stats' ? statsTab() : homeTab === 'opts' ? optsTab() : homeTab === 'profile' ? (V.account ? V.account.tab() : '') : homeTab === 'online' ? (V.online ? V.online.tab() : '') : gamesTab(); }
   function wireBody(b) {
     if (homeTab === 'games') wireGames(b);
     if (homeTab === 'opts') wireOpts(b);
     if (homeTab === 'profile' && V.account) V.account.wire(b);
+    if (homeTab === 'online' && V.online) V.online.wire(b);
     b.querySelectorAll('[data-tab]').forEach(x => x.onclick = () => { V.sfx.ui(); home(x.dataset.tab); });
   }
   // slide the highlight of the active tab to its new place
@@ -475,7 +477,7 @@
   // ---------- game panel (desktop side panel and phone setup screen) ----------
   function loadCfg(g) {
     const saved = S.get('setup', {})[g.id] || {};
-    const cfg = { mode: g.noAI ? 'local' : (saved.mode || 'ai'), level: saved.level ?? 1, first: saved.first || 'me', opts: {} };
+    const cfg = { mode: g.noAI ? 'local' : saved.mode === 'online' && !g.online ? 'ai' : (saved.mode || 'ai'), level: saved.level ?? 1, first: saved.first || 'me', opts: {} };
     (g.options || []).forEach(o => { cfg.opts[o.id] = saved.opts && saved.opts[o.id] !== undefined ? saved.opts[o.id] : o.def; });
     return cfg;
   }
@@ -504,16 +506,17 @@
       <div class="gp-mode" id="mode">
         ${g.noAI ? '' : `<button data-v="ai" class="${cfg.mode === 'ai' ? 'on' : ''}">${IC.robot}<span>Gegen KI</span></button>`}
         <button data-v="local" class="${cfg.mode === 'local' ? 'on' : ''}">${IC.users}<span>Zu zweit</span></button>
+        ${g.online && V.cloud && V.cloud.available() ? `<button data-v="online" class="${cfg.mode === 'online' ? 'on' : ''}">${IC.globe}<span>Online</span></button>` : ''}
       </div>
       ${cfg.mode === 'ai' ? `<div class="gp-lvl">
         <div class="lv-top"><span>Stärke</span><b class="l${lvl}">${V.LEVELS[lvl]}</b><em>Bilanz ${s.ai[lvl].w}:${s.ai[lvl].l}</em></div>
         <div class="lv-bar" id="level">${V.LEVELS.map((l, i) => `<button data-v="${i}" class="${i <= lvl ? 'fill' : ''} ${i === lvl ? 'on' : ''}" aria-label="${l}" title="${l}"></button>`).join('')}</div>
-        <p class="hint">${(g.levelInfo || LEVEL_INFO)[lvl]}</p></div>` : `<p class="hint local">Ihr spielt abwechselnd am selben Gerät${g.cat === 'Action' ? ', jeder auf seiner Hälfte' : ''}.</p>`}
+        <p class="hint">${(g.levelInfo || LEVEL_INFO)[lvl]}</p></div>` : cfg.mode === 'online' ? '<div class="gp-online" id="ofr"></div>' : `<p class="hint local">Ihr spielt abwechselnd am selben Gerät${g.cat === 'Action' ? ', jeder auf seiner Hälfte' : ''}.</p>`}
       ${(cfg.mode === 'ai' && !g.noFirst) || (g.options || []).length ? `<div class="gp-more">
         ${cfg.mode === 'ai' && !g.noFirst ? chipRow('first', g.firstTitle || 'Beginn', [['me', firstLabel[0]], ['ai', firstLabel[1]], ['rand', firstLabel[2]]], cfg.first) : ''}
         ${(g.options || []).map(o => chipRow('o_' + o.id, o.label, o.choices, cfg.opts[o.id])).join('')}
       </div>` : ''}
-      <div class="gp-go"><button class="btn primary big" id="go"><span>${IC.play}Spielen</span><kbd class="only-fine">Enter</kbd></button>
+      <div class="gp-go">${cfg.mode === 'online' ? '' : `<button class="btn primary big" id="go"><span>${IC.play}Spielen</span><kbd class="only-fine">Enter</kbd></button>`}
         <button class="btn ghost" id="tut"><span>${IC.book}Regeln${seen[g.id] ? '' : '<i class="dot"></i>'}</span></button></div>`;
     const rer = () => renderPanel(root, g, full);
     const on = (id, fn) => { const e = root.querySelector('#' + id); if (e) e.querySelectorAll('button').forEach(b => b.onclick = () => { fn(b.dataset.v); saveCfg(g, cfg); V.sfx.ui(); rer(); }); };
@@ -521,11 +524,12 @@
     on('level', x => cfg.level = +x);
     on('first', x => cfg.first = x);
     (g.options || []).forEach(o => on('o_' + o.id, x => cfg.opts[o.id] = isNaN(+x) ? x : +x));
-    root.querySelector('#go').onclick = () => { saveCfg(g, cfg); play(g, cfg); };
+    const goBtn = root.querySelector('#go'); if (goBtn) goBtn.onclick = () => { saveCfg(g, cfg); play(g, cfg); };
+    if (cfg.mode === 'online' && V.online) V.online.picker(root.querySelector('#ofr'), g, cfg.opts);
     root.querySelector('#tut').onclick = () => tutorial(g, rer);
     panelApi = {
       g,
-      go() { saveCfg(g, cfg); play(g, cfg); },
+      go() { if (cfg.mode === 'online') return; saveCfg(g, cfg); play(g, cfg); },
       tut() { tutorial(g, rer); },
       level(i) { if (cfg.mode !== 'ai') return; cfg.level = Math.max(0, Math.min(3, i)); saveCfg(g, cfg); V.sfx.tick(); rer(); },
       step(d) { this.level(cfg.level + d); },
@@ -761,27 +765,40 @@
 
   // ---------- play ----------
   let playApi = null;
+  // Modes: 'ai' (vs. computer), 'local' (two players, one device), 'online' (vs. a friend over the server),
+  // 'watch' (admins follow or replay a match). A remote player is handled like the AI: the game calls
+  // ctx.aiTurn() and gets the move from the network instead of from a search.
   function play(g, cfg, series) {
     const rematch = !!series;
     destroyCurrent(); view = 'play'; lastGame = g; selected = g;
-    S.set('recent', g.id);
+    const online = cfg.mode === 'online', watch = cfg.mode === 'watch', M = cfg.match || {};
+    if (!watch) S.set('recent', g.id);
     if (V.cloud) V.cloud.touch(g.id);
     series = series || { 1: 0, 2: 0, d: 0 };
     const ai = cfg.mode === 'ai';
     const aiSide = ai ? (cfg.first === 'me' ? 2 : cfg.first === 'ai' ? 1 : (Math.random() < 0.5 ? 1 : 2)) : 0;
-    setSwap(ai && aiSide === 1);
-    const L = ai ? 3 - aiSide : 1, R = 3 - L;
+    const mySide = online ? M.side : 0;
+    const oppSide = ai ? aiSide : online ? 3 - mySide : 0;
+    setSwap(oppSide === 1);
+    const L = oppSide ? 3 - oppSide : 1, R = 3 - L;
     const sideLabel = s => g.sides ? g.sides[s] : V.colorName(s);
-    const names = { 1: ai ? (aiSide === 1 ? 'KI' : 'Du') : 'Spieler 1', 2: ai ? (aiSide === 2 ? 'KI' : 'Du') : 'Spieler 2' };
+    const names = { 1: 'Spieler 1', 2: 'Spieler 2' };
+    if (ai) { names[aiSide] = 'KI'; names[3 - aiSide] = 'Du'; }
+    if (online) { names[mySide] = 'Du'; names[oppSide] = M.opp; }
+    if (watch) { names[M.aSide] = M.aName; names[3 - M.aSide] = M.bName; }
+    const esc = t => String(t).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
     const sub = s => sideLabel(s) + (s === 1 && g.cat !== 'Action' ? ' · beginnt' : '');
-    const av = s => ai ? (s === aiSide ? IC.robot : '<span>DU</span>') : `<span>P${s}</span>`;
+    const av = s => ai ? (s === aiSide ? IC.robot : '<span>DU</span>') : online ? (s === mySide ? '<span>DU</span>' : `<span>${esc(names[s].slice(0, 2).toUpperCase())}</span>`) : watch ? `<span>${esc(names[s].slice(0, 2).toUpperCase())}</span>` : `<span>P${s}</span>`;
+    const thinker = s => (ai && s === aiSide) || (online && s === oppSide) || watch;
     const card = (s, pos) => `<div class="pcard pcard-${pos}" id="pl${s}"><span class="av">${av(s)}</span>
-      <span class="nm"><b>${names[s]}</b><small>${sub(s)}${ai && s === aiSide ? ' · ' + V.LEVELS[cfg.level] : ''}</small></span>
+      <span class="nm"><b>${esc(names[s])}</b><small>${sub(s)}${ai && s === aiSide ? ' · ' + V.LEVELS[cfg.level] : ''}</small></span>
       <span class="wins"><b>${series[s]}</b><small>Siege</small></span><em class="tag">am Zug</em>
-      ${ai && s === aiSide ? '<span class="tdots" aria-hidden="true"><i></i><i></i><i></i></span><div class="bubble" aria-live="polite"></div>' : ''}</div>`;
-    const v = mount(`<div class="view play" style="--acc:${g.accent || 'var(--pink)'}">
-      <div class="pbar"><button class="iconbtn" id="pb" aria-label="Zurück">${IC.back}</button><div class="ttl"><b>${g.name}</b><small>${ai ? 'Gegen KI · ' + V.LEVELS[cfg.level] : 'Zu zweit'}</small></div>
-        <button class="iconbtn" id="ph" aria-label="Regeln" title="Regeln (T)">${IC.help}</button><button class="iconbtn" id="pr" aria-label="Neu starten" title="Neue Partie (N)">${IC.redo}</button></div>
+      ${thinker(s) ? '<span class="tdots" aria-hidden="true"><i></i><i></i><i></i></span>' : ''}${ai && s === aiSide ? '<div class="bubble" aria-live="polite"></div>' : ''}</div>`;
+    const sublabel = ai ? 'Gegen KI · ' + V.LEVELS[cfg.level] : online ? 'Online gegen ' + esc(M.opp) : watch ? 'Zuschauen · ' + esc(M.aName) + ' gegen ' + esc(M.bName) : 'Zu zweit';
+    const v = mount(`<div class="view play${online ? ' net' : ''}${watch ? ' watch' : ''}" style="--acc:${g.accent || 'var(--pink)'}">
+      <div class="pbar"><button class="iconbtn" id="pb" aria-label="Zurück">${IC.back}</button><div class="ttl"><b>${g.name}</b><small>${sublabel}</small></div>
+        <button class="iconbtn" id="ph" aria-label="Regeln" title="Regeln (T)">${IC.help}</button>
+        ${online ? `<button class="iconbtn" id="pr" aria-label="Aufgeben" title="Aufgeben">${IC.flag}</button>` : watch ? '' : `<button class="iconbtn" id="pr" aria-label="Neu starten" title="Neue Partie (N)">${IC.redo}</button>`}</div>
       <div class="duel">
         ${card(L, 'l')}
         <div class="score" id="sc"><b class="sl">${series[L]}</b><i>:</i><b class="sr">${series[R]}</b></div>
@@ -816,11 +833,13 @@
       if (stEl.innerHTML === html) return;
       stEl.innerHTML = html; if (V.fxOn()) V.fx.pop(stEl, 'st-in');
     };
+    let net = null;
+    const remote = s => watch || (online && (s === oppSide || (net && net.queue.length > 0)));
     const ctx = {
       stage: v.querySelector('#stage'), mode: cfg.mode, level: cfg.level, aiSide, opts: cfg.opts, sides: g.sides,
-      isAI: s => ai && s === aiSide,
+      isAI: s => (ai && s === aiSide) || remote(s),
       name: s => names[s],
-      who(s) { return `<span class="c${s}">${names[s]}</span>`; },
+      who(s) { return `<span class="c${s}">${esc(names[s])}</span>`; },
       alive: () => alive,
       later(fn, ms) { const t = setTimeout(() => { timers.delete(t); if (alive) fn(); }, ms); timers.add(t); return t; },
       onCleanup(fn) { cleanups.push(fn); },
@@ -829,15 +848,19 @@
         pls[1].classList.toggle('on', s === 1); pls[2].classList.toggle('on', s === 2);
         if (s && s !== lastTurn && V.fxOn()) V.fx.pop(pls[s], 'pcard-in');
         lastTurn = s;
-        const note = s && !ctx.isAI(s) && lastNote ? `<span class="c${aiSide}">KI:</span> ${lastNote} · ` : '';
-        if (html !== false) setStatus(note + (html || (names[s] === 'Du' ? '<span class="c' + s + '">Du</span> bist dran' : ctx.isAI(s) ? '<span class="c' + s + '">KI</span> ist dran' : `${ctx.who(s)} ist dran`)));
+        const note = s && oppSide && s !== oppSide && lastNote ? `${ctx.who(oppSide)}: ${lastNote} · ` : '';
+        if (html !== false) setStatus(note + (html || (names[s] === 'Du' ? '<span class="c' + s + '">Du</span> bist dran' : `${ctx.who(s)} ist dran`)));
         nav.refresh();
       },
+      // Every move goes through here (all modes). Online, your own moves are sent to the server.
+      moved(s, m) { if (net) net.moved(s, m); },
       // One AI move with a bit of theatre: think (min. time per level), let the crosshair hover over
       // a couple of alternatives, lock on the real target(s), then move and comment in the bubble.
       // o.think() -> { move, mood? }, o.targets(move) -> [elements], o.decoys(move) -> [elements],
-      // o.apply(move), o.say(move) -> short text, o.quick -> follow-up move (e.g. extra turn) with less delay
+      // o.apply(move), o.say(move) -> short text, o.quick -> follow-up move (e.g. extra turn) with less delay,
+      // o.decode(raw) -> legal move or null (online: turns the received move back into the game's own form)
       aiTurn(o) {
+        if (net) return net.take(o);
         const s = aiSide, card = pls[s];
         card.classList.add('thinking');
         setStatus(`<span class="c${s}">KI</span> <span class="thinking">${o.quick ? 'macht weiter' : 'denkt'}</span>`);
@@ -845,70 +868,148 @@
         const t0 = performance.now();
         ctx.later(() => {
           const res = o.think();
-          ctx.later(() => aimAt(res), Math.max(0, minT - (performance.now() - t0)));
+          ctx.later(() => aimAt(o, res, card, true), Math.max(0, minT - (performance.now() - t0)));
         }, 70);
-        function aimAt(res) {
-          const tg = (o.targets ? o.targets(res.move) : []).filter(Boolean);
-          let path = [];
-          if (o.decoys && !o.quick) path = V.shuffle((o.decoys(res.move) || []).filter(x => x && !tg.includes(x))).slice(0, V.rand(3));
-          path = path.concat(tg);
-          if (!V.fxOn() || !path.length) return done(res);
-          let i = 0;
-          const step = () => {
-            if (i >= path.length) { aim.lock(); return ctx.later(() => done(res), 170); }
-            const real = i >= path.length - tg.length;
-            aim.to(path[i], real); i++;
-            if (!real) V.sfx.tick();
-            ctx.later(step, real ? 260 : 190);
-          };
-          step();
-        }
-        function done(res) {
-          aim.hide(); card.classList.remove('thinking');
-          lastNote = o.say ? o.say(res.move) : '';
-          speak(lastNote, res.mood);
-          o.apply(res.move);
-        }
       },
       think(fn, ms = 380) { setStatus(`<span class="c${aiSide}">KI</span> <span class="thinking">denkt</span>`); ctx.later(fn, ms); },
       nav(fn, o) { nav.set(fn, o); },
       keys(fn) { keyFn = fn; },
-      end(winner, note) {
+      end(winner, note, fromServer) {
         if (ended || !alive) return; ended = true;
         pls[1].classList.remove('on'); pls[2].classList.remove('on');
         nav.hide();
-        const s = stat(g.id);
-        if (ai) { const r = s.ai[cfg.level]; if (winner === 0) r.d++; else if (winner === aiSide) r.l++; else r.w++; }
-        else { if (winner === 0) s.local.d++; else if (winner === 1) s.local.a++; else s.local.b++; }
-        S.set('stats', stats);
+        if (net && online && !fromServer) net.finish(winner);
+        if (net) net.stop();
+        if (!watch) {
+          const s = stat(g.id);
+          if (ai) { const r = s.ai[cfg.level]; if (winner === 0) r.d++; else if (winner === aiSide) r.l++; else r.w++; }
+          else if (online) { s.on = s.on || { w: 0, l: 0, d: 0 }; if (winner === 0) s.on.d++; else if (winner === mySide) s.on.w++; else s.on.l++; }
+          else { if (winner === 0) s.local.d++; else if (winner === 1) s.local.a++; else s.local.b++; }
+          S.set('stats', stats);
+        }
         if (winner === 0) series.d++; else series[winner]++;
         const sc = v.querySelector('#sc'); sc.innerHTML = `<b class="sl">${series[L]}</b><i>:</i><b class="sr">${series[R]}</b>`; V.fx.pop(sc, 'fx-pop');
         [1, 2].forEach(k => { const b = pls[k].querySelector('.wins b'); if (b.textContent !== String(series[k])) { b.textContent = series[k]; V.fx.pop(b, 'fx-pop'); } });
-        const humanWon = ai && winner && winner !== aiSide;
-        const good = winner && (!ai || humanWon);
+        const meWon = oppSide && winner && winner !== oppSide;
+        const good = winner && (!oppSide || meWon);
         if (good) { V.sfx.win(); setTimeout(() => V.fx.confetti(), 250); }
         else if (winner) { V.sfx.lose(); V.fx.shake(ctx.stage); }
-        const big = winner === 0 ? 'Remis' : ai ? (humanWon ? 'Sieg!' : 'Niederlage') : `${names[winner]} gewinnt`;
-        setStatus(winner === 0 ? 'Unentschieden' : ai ? (humanWon ? '<span class="c' + winner + '">Du hast gewonnen</span>' : '<span class="c' + winner + '">Die KI hat gewonnen</span>') : `${ctx.who(winner)} gewinnt`);
-        const tone = winner === 0 ? 'draw' : ai ? (humanWon ? 'win' : 'lose') : (winner === L ? 'left' : 'right');
+        const big = winner === 0 ? 'Remis' : oppSide ? (meWon ? 'Sieg!' : 'Niederlage') : `${names[winner]} gewinnt`;
+        setStatus(winner === 0 ? 'Unentschieden' : oppSide ? (meWon ? '<span class="c' + winner + '">Du hast gewonnen</span>' : `${ctx.who(winner)} hat gewonnen`) : `${ctx.who(winner)} gewinnt`);
+        const tone = winner === 0 ? 'draw' : oppSide ? (meWon ? 'win' : 'lose') : (winner === L ? 'left' : 'right');
+        const again = () => online ? V.online.invite(M.opp, g, cfg.opts) : play(g, cfg, series);
+        const menu = () => watch ? V.account.admin('matches') : setup(g);
         ctx.later(() => {
           const m = openModal(`<div class="ko ${tone}">
-            <div class="band"><div class="band-in"><span class="kicker">${note || (ai ? 'Gegen KI · ' + V.LEVELS[cfg.level] : g.name)}</span>
-              <h2 aria-label="${big}">${[...big].map((ch, k) => `<span aria-hidden="true" style="--k:${k}">${ch === ' ' ? '&nbsp;' : ch}</span>`).join('')}</h2></div></div>
-            <div class="eseries"><span class="nl">${names[L]}</span><b class="sl">${series[L]}</b><i>:</i><b class="sr">${series[R]}</b><span class="nr">${names[R]}</span></div>
+            <div class="band"><div class="band-in"><span class="kicker">${esc(note || sublabel)}</span>
+              <h2 aria-label="${esc(big)}">${[...big].map((ch, k) => `<span aria-hidden="true" style="--k:${k}">${ch === ' ' ? '&nbsp;' : esc(ch)}</span>`).join('')}</h2></div></div>
+            <div class="eseries"><span class="nl">${esc(names[L])}</span><b class="sl">${series[L]}</b><i>:</i><b class="sr">${series[R]}</b><span class="nr">${esc(names[R])}</span></div>
             ${series.d ? `<p class="small">${series.d}× unentschieden</p>` : ''}
-            <div class="actions"><button class="btn primary" id="er"><span>${IC.redo}Revanche</span><kbd class="only-fine">Enter</kbd></button><button class="btn" id="eb"><span>Brett ansehen</span></button><button class="btn ghost" id="em"><span>Menü</span></button></div></div>`, 'endm', null, false, e => {
-            if (e.key === 'Enter' || e.key === 'n' || e.key === 'N') { play(g, cfg, series); return true; }
+            <div class="actions">${watch ? '' : `<button class="btn primary" id="er"><span>${IC.redo}${online ? 'Revanche anfragen' : 'Revanche'}</span><kbd class="only-fine">Enter</kbd></button>`}<button class="btn" id="eb"><span>Brett ansehen</span></button><button class="btn ghost" id="em"><span>${watch ? 'Zurück' : 'Menü'}</span></button></div></div>`, 'endm', null, false, e => {
+            if ((e.key === 'Enter' || e.key === 'n' || e.key === 'N') && !watch) { again(); return true; }
             if (e.key === 'Escape') { closeModal(); return true; }
-            if (e.key === 'm' || e.key === 'M') { setup(g); return true; }
+            if (e.key === 'm' || e.key === 'M') { menu(); return true; }
             return false;
           });
-          m.querySelector('#er').onclick = () => play(g, cfg, series);
+          const er = m.querySelector('#er'); if (er) er.onclick = again;
           m.querySelector('#eb').onclick = closeModal;
-          m.querySelector('#em').onclick = () => setup(g);
+          m.querySelector('#em').onclick = menu;
         }, g.endDelay ?? 1150);
       }
     };
+    // crosshair, then the move (shared by the AI and remote players)
+    function aimAt(o, res, card, isAI, fast) {
+      const tg = (o.targets ? o.targets(res.move) : []).filter(Boolean);
+      let path = [];
+      if (isAI && o.decoys && !o.quick) path = V.shuffle((o.decoys(res.move) || []).filter(x => x && !tg.includes(x))).slice(0, V.rand(3));
+      path = path.concat(tg);
+      const done = () => {
+        aim.hide(); if (card) card.classList.remove('thinking');
+        lastNote = o.say ? o.say(res.move) : '';
+        if (isAI) speak(lastNote, res.mood);
+        o.apply(res.move);
+      };
+      if (!V.fxOn() || !path.length || fast) return done();
+      let i = 0;
+      const step = () => {
+        if (i >= path.length) { aim.lock(); return ctx.later(done, 170); }
+        const real = i >= path.length - tg.length;
+        aim.to(path[i], real); i++;
+        if (!real) V.sfx.tick();
+        ctx.later(step, real ? 240 : 190);
+      };
+      step();
+    }
+
+    // ---------- network (online and watch) ----------
+    if (online || watch) {
+      net = {
+        queue: [], known: 0, applied: 0, waiting: null, stopped: false, last: null, chain: Promise.resolve(), offWarn: false,
+        feed(st) {
+          if (!st) return;
+          this.last = st;
+          const first = st.total - st.moves.length;
+          st.moves.forEach((mv, k) => {
+            const idx = first + k;
+            if (idx < this.known) return;
+            this.known = idx + 1;
+            if (idx < this.applied) return;
+            this.queue.push(mv);
+          });
+          if (online) {
+            const oppOn = st.role === 'a' ? st.b_online : st.a_online;
+            pls[oppSide].classList.toggle('off', !oppOn);
+            if (!oppOn && !ended && st.status === 'live' && !this.offWarn) { this.offWarn = true; toast(names[oppSide] + ' ist gerade nicht erreichbar'); }
+            if (oppOn) this.offWarn = false;
+          }
+          this.pump(); this.checkEnd();
+        },
+        // the game waits for the next move of a remote side
+        take(o) { this.waiting = o; const s = this.queue.length ? this.queue[0].s : oppSide; if (pls[s]) pls[s].classList.add('thinking'); this.pump(); },
+        pump() {
+          if (!this.waiting || !this.queue.length) return;
+          const o = this.waiting, mv = this.queue.shift(); this.waiting = null;
+          const m = o.decode ? o.decode(mv.m) : mv.m;
+          if (m == null || m === undefined) return this.illegal();
+          const fast = this.queue.length > 0;
+          ctx.later(() => aimAt(o, { move: m }, pls[mv.s], false, fast), fast ? 120 : 60);
+        },
+        moved(s, m) {
+          this.applied++;
+          if (online && s === mySide && this.applied > this.known) this.send(m, this.applied - 1);
+        },
+        send(m, ply) {
+          this.chain = this.chain.then(() => V.cloud.rpc('match_move', { mid: M.id, ply, mv: m }))
+            .then(n => { this.known = Math.max(this.known, n); })
+            .catch(e => { if (!alive) return; toast(/desync/.test(e.message) ? 'Partie wird neu geladen' : 'Zug nicht gesendet: ' + e.message); ctx.later(() => V.online.resume(M.id), 900); });
+        },
+        finish(w) {
+          const n = this.applied;
+          this.chain = this.chain.then(() => V.cloud.rpc('match_finish', { mid: M.id, ply: n, w }))
+            .then(st => { if (st && st.status === 'void') toast('Die Partie wurde annulliert (Ergebnisse passten nicht zusammen).'); }, () => { });
+        },
+        checkEnd() {
+          const st = this.last;
+          if (!st || ended || st.status === 'live' || st.status === 'invited' || this.queue.length || (watch && st.total > this.applied)) return;
+          const w = st.status === 'void' ? 0 : st.winner_side || 0;
+          const loser = w ? names[3 - w] : '';
+          const note = st.status === 'void' ? 'Partie annulliert' : st.result === 'resign' ? loser + ' hat aufgegeben' : st.result === 'abandon' ? loser + ' hat die Partie verlassen' : '';
+          if (st.status === 'void' || st.result === 'resign' || st.result === 'abandon' || watch) ctx.end(w, note, true);
+        },
+        illegal() { if (online) V.cloud.rpc('match_report', { mid: M.id, why: 'illegal move' }).catch(() => { }); toast('Ungültiger Zug empfangen, die Partie wird annulliert.'); ctx.end(0, 'Partie annulliert', true); },
+        poll() {
+          if (this.stopped || !alive) return;
+          V.cloud.rpc('match_state', { mid: M.id, since: this.known })
+            .then(st => { if (alive) this.feed(st); }, () => { })
+            .then(() => { if (!this.stopped && alive) ctx.later(() => this.poll(), watch ? 1500 : 1000); });
+        },
+        stop() { this.stopped = true; }
+      };
+      net.feed(M.init);
+      ctx.later(() => net.poll(), 800);
+      cleanups.push(() => { net.stopped = true; });
+    }
+
     let inst = null;
     current = {
       destroy() {
@@ -918,27 +1019,36 @@
       }
     };
     function leave(to) {
-      if (ended) return to();
+      if (ended || watch) return to();
       if (inst && inst.pause) inst.pause();
-      const m = openModal(`<div class="confirm"><h3>Partie verlassen?</h3><p>Der Stand geht verloren und zählt nicht in der Bilanz.</p>
-        <div class="actions"><button class="btn primary" id="cy"><span>Weiterspielen</span></button><button class="btn ghost" id="cn"><span>Verlassen</span></button></div></div>`, '', () => { if (inst && inst.resume && alive) inst.resume(); }, false, e => {
-        if (e.key === 'Enter') { closeModal(); return true; }
-        return false;
-      });
+      const m = openModal(online
+        ? `<div class="confirm"><h3>Aufgeben?</h3><p>Wenn du die Partie verlässt, gewinnt ${esc(M.opp)}.</p>
+          <div class="actions"><button class="btn primary" id="cy"><span>Weiterspielen</span></button><button class="btn ghost danger" id="cn"><span>Aufgeben</span></button></div></div>`
+        : `<div class="confirm"><h3>Partie verlassen?</h3><p>Der Stand geht verloren und zählt nicht in der Bilanz.</p>
+          <div class="actions"><button class="btn primary" id="cy"><span>Weiterspielen</span></button><button class="btn ghost" id="cn"><span>Verlassen</span></button></div></div>`,
+        '', () => { if (inst && inst.resume && alive) inst.resume(); }, false, e => {
+          if (e.key === 'Enter') { closeModal(); return true; }
+          return false;
+        });
       m.querySelector('#cy').onclick = closeModal;
-      m.querySelector('#cn').onclick = () => { modalClose = null; closeModal(); to(); };
+      m.querySelector('#cn').onclick = () => {
+        modalClose = null; closeModal();
+        if (online) { V.cloud.rpc('match_resign', { mid: M.id }).catch(() => { }); if (to === null) return ctx.end(oppSide, 'Du hast aufgegeben', true); }
+        if (to) to();
+      };
     }
     const tut = () => { if (inst && inst.pause) inst.pause(); tutorial(g, () => { if (inst && inst.resume && alive) inst.resume(); }); };
-    v.querySelector('#pb').onclick = () => leave(() => setup(g));
-    v.querySelector('#pr').onclick = () => leave(() => play(g, cfg, series));
+    v.querySelector('#pb').onclick = () => leave(() => watch ? V.account.admin('matches') : setup(g));
+    const pr = v.querySelector('#pr');
+    if (pr) pr.onclick = () => online ? leave(null) : leave(() => play(g, cfg, series));
     v.querySelector('#ph').onclick = tut;
     playApi = {
       key(e) { return keyFn ? keyFn(e) : false; },
-      back() { leave(() => setup(g)); },
-      restart() { leave(() => play(g, cfg, series)); },
+      back() { leave(() => watch ? V.account.admin('matches') : setup(g)); },
+      restart() { if (!online && !watch) leave(() => play(g, cfg, series)); },
       tut
     };
-    vsIntro({ name: names[L], sub: ai ? sideLabel(L) : sideLabel(L) }, { name: names[R], sub: ai ? 'KI · ' + V.LEVELS[cfg.level] : sideLabel(R) }, rematch);
+    vsIntro({ name: names[L], sub: sideLabel(L) }, { name: names[R], sub: ai ? 'KI · ' + V.LEVELS[cfg.level] : online ? 'online' : sideLabel(R) }, rematch || watch);
     inst = g.start(ctx) || {};
   }
 
@@ -1039,6 +1149,7 @@
   V.ui = {
     IC, toast, openModal, closeModal, header, wireHeader,
     home: (tab, sel) => home(tab, sel),
+    play: (g, cfg, series) => play(g, cfg, series), setup: g => setup(g), wide: () => wide(),
     // full-screen view outside the home tabs (admin panel)
     show(name, html) { destroyCurrent(); view = name; const v = mount(html); wireHeader(v); return v; },
     view: () => view, tab: () => homeTab

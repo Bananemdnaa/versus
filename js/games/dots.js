@@ -120,6 +120,7 @@
         wrap.className = 'dots t' + s.turn + (ctx.isAI(s.turn) || over ? ' lock' : '');
       }
       function move(e) {
+        ctx.moved(s.turn, e);
         last = e;
         const before = s.own.slice();
         const who = s.turn, made = apply(G, s, e);
@@ -145,13 +146,14 @@
       function next(again) {
         const score = `<span class="c1">${s.cnt[1]}</span> : <span class="c2">${s.cnt[2]}</span> · `;
         const base = ctx.isAI(s.turn) ? null : (ctx.name(s.turn) === 'Du' ? 'Du ziehst' : ctx.who(s.turn) + ' zieht') + (again ? ' nochmal' : '');
-        ctx.turn(s.turn, score + (base || '<span class="c' + s.turn + '">KI</span> ist dran'));
+        ctx.turn(s.turn, score + (base || ctx.who(s.turn) + ' ist dran'));
         if (ctx.isAI(s.turn)) ctx.aiTurn({
           quick: !!again,
           think: () => ({ move: aiMove(G, s, ctx.level), mood: (s.cnt[s.turn] - s.cnt[3 - s.turn]) / Math.max(3, n * n / 3) }),
           targets: e => [groups[e]],
           decoys: () => groups.filter(gp => !s.e[+gp.dataset.e]),
           apply: move,
+          decode: e => (Number.isInteger(e) && e >= 0 && e < G.E && !s.e[e] ? e : null),
           say: () => ''
         });
       }

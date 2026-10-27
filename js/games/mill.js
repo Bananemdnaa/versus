@@ -187,6 +187,7 @@
         ctx.status('<b style="color:var(--cy)">Mühle!</b> Tippe auf einen gegnerischen Stein, um ihn zu nehmen.');
       }
       function doMove(m, noSlide) {
+        ctx.moved(s.turn, { f: m.f, t: m.t, r: m.r });
         anim = { f: noSlide ? -1 : m.f, t: noSlide ? -2 : m.t, r: m.r, rs: 3 - s.turn };
         if (noSlide && m.r < 0) anim = null;
         s = play(s, m); sel = -1; last = [m.f, m.t];
@@ -199,7 +200,7 @@
       function next() {
         const p = s.turn, ph = phase(s, p);
         const hint = { place: 'setzt', move: 'zieht', fly: 'springt' }[ph];
-        const who = ctx.isAI(p) ? '<span class="c' + p + '">KI</span>' : ctx.name(p) === 'Du' ? '<span class="c' + p + '">Du</span>' : ctx.who(p);
+        const who = ctx.isAI(p) ? ctx.who(p) : ctx.name(p) === 'Du' ? '<span class="c' + p + '">Du</span>' : ctx.who(p);
         const verb = ctx.name(p) === 'Du' ? { place: 'setzt', move: 'ziehst', fly: 'springst' }[ph].replace(/^setzt$/, 'setzt') : hint;
         ctx.turn(p, `${who} ${ctx.name(p) === 'Du' && ph === 'place' ? 'setzt' : verb}${ph === 'fly' ? ' (nur noch 3 Steine)' : ''}`);
         render();
@@ -215,6 +216,7 @@
           targets: m => (m.f >= 0 ? [hitEl(m.f), hitEl(m.t)] : [hitEl(m.t)]),
           decoys: m => genMoves(s).filter(x => x.t !== m.t).map(x => hitEl(x.t)),
           apply: m => aiApply(m),
+          decode: r => (r && genMoves(s).find(x => x.f === r.f && x.t === r.t && x.r === r.r)) || null,
           say: m => (m.f >= 0 ? `${PN[m.f]}–${PN[m.t]}` : `setzt ${PN[m.t]}`) + (m.r >= 0 ? ', nimmt ' + PN[m.r] : '')
         });
         function aiApply(m) {
@@ -222,7 +224,7 @@
             // show the mill first, then take the stone
             const b = s.b.slice(); if (m.f >= 0) b[m.f] = 0; b[m.t] = p;
             pending = { f: m.f, t: m.t, b }; anim = { f: m.f, t: m.t, r: -1 }; render(); V.sfx.place();
-            ctx.status('<span class="c' + p + '">KI</span> hat eine <b style="color:var(--cy)">Mühle</b>');
+            ctx.status(ctx.who(p) + ' hat eine <b style="color:var(--cy)">Mühle</b>');
             ctx.later(() => { pending = null; doMove(m, true); }, 850);
           } else doMove(m);
         }
