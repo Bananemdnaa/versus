@@ -272,7 +272,8 @@
   function destroyCurrent() { if (current) { current.destroy(); current = null; } nav.reset(); closeModal(); setSwap(false); }
   function mount(html) {
     app.innerHTML = html;
-    const v = app.firstElementChild; if (v && V.fxOn()) v.classList.add('enter');
+    const v = app.firstElementChild;
+    if (v && V.fxOn()) { v.classList.add('enter'); setTimeout(() => v.classList.remove('enter'), 900); }
     window.scrollTo(0, 0);
     return v;
   }
@@ -305,17 +306,54 @@
   }
 
   // ---------- home ----------
+  // The home shell (header + tab bar) stays on screen; switching tabs only swaps the content below it.
   function home(tab, sel) {
-    destroyCurrent(); view = 'home'; if (tab) homeTab = tab;
     if (sel) selected = sel;
     if (!selected) selected = V.byId[S.get('recent')] || V.games[0];
-    const tabs = `<nav class="tabs" aria-label="Bereiche">${TABS.map(([id, l, ic]) => `<button data-tab="${id}" class="${homeTab === id ? 'on' : ''}">${ic}<span>${l}</span></button>`).join('')}</nav>`;
-    const body = homeTab === 'stats' ? statsTab() : homeTab === 'opts' ? optsTab() : gamesTab();
-    const v = mount(`<div class="view home t-${homeTab}">${header(tabs.replace('class="tabs"', 'class="tabs desk"'))}${body}${tabs.replace('class="tabs"', 'class="tabs bar"')}</div>`);
+    const prev = homeTab; if (tab) homeTab = tab;
+    const shell = view === 'home' && !current && app.querySelector('.view.home');
+    if (shell) return swapTab(shell, prev);
+    destroyCurrent(); view = 'home';
+    const tabs = `<nav class="tabs" aria-label="Bereiche"><i class="tab-ind"></i>${TABS.map(([id, l, ic]) => `<button data-tab="${id}" class="${homeTab === id ? 'on' : ''}">${ic}<span>${l}</span></button>`).join('')}</nav>`;
+    const v = mount(`<div class="view home">${header(tabs.replace('class="tabs"', 'class="tabs desk"'))}<div class="hbody">${tabBody()}</div>${tabs.replace('class="tabs"', 'class="tabs bar"')}</div>`);
     wireHeader(v);
-    v.querySelectorAll('[data-tab]').forEach(b => b.onclick = () => { if (b.dataset.tab !== homeTab) { V.sfx.ui(); home(b.dataset.tab); } });
-    if (homeTab === 'games') wireGames(v);
-    if (homeTab === 'opts') wireOpts(v);
+    v.querySelectorAll('.tabs [data-tab]').forEach(b => b.onclick = () => { if (b.dataset.tab !== homeTab) { V.sfx.ui(); home(b.dataset.tab); } });
+    placeInd(v, false);
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => placeInd(v, false));
+    wireBody(v.querySelector('.hbody'));
+  }
+  function tabBody() { return homeTab === 'stats' ? statsTab() : homeTab === 'opts' ? optsTab() : gamesTab(); }
+  function wireBody(b) {
+    if (homeTab === 'games') wireGames(b);
+    if (homeTab === 'opts') wireOpts(b);
+    b.querySelectorAll('[data-tab]').forEach(x => x.onclick = () => { V.sfx.ui(); home(x.dataset.tab); });
+  }
+  // slide the highlight of the active tab to its new place
+  function placeInd(root, anim) {
+    root.querySelectorAll('.tabs').forEach(n => {
+      const ind = n.querySelector('.tab-ind'), on = n.querySelector('button.on');
+      if (!ind || !on || !on.offsetWidth) return;
+      ind.style.transition = anim && V.fxOn() ? '' : 'none';
+      ind.style.width = on.offsetWidth + 'px';
+      ind.style.transform = `translateX(${on.offsetLeft}px)`;
+    });
+  }
+  function swapTab(shell, prev) {
+    const body = shell.querySelector('.hbody');
+    const order = id => TABS.findIndex(t => t[0] === id);
+    const dir = Math.sign(order(homeTab) - order(prev));
+    shell.querySelectorAll('.tabs [data-tab]').forEach(b => b.classList.toggle('on', b.dataset.tab === homeTab));
+    placeInd(shell, true);
+    const put = () => {
+      body.innerHTML = tabBody();
+      body.classList.remove('leave');
+      if (dir && V.fxOn()) { body.style.setProperty('--dir', dir); V.fx.pop(body, 'tab-in'); }
+      wireBody(body);
+    };
+    if (!dir || !V.fxOn()) return put();
+    body.style.setProperty('--dir', dir);
+    body.classList.remove('tab-in'); body.classList.add('leave');
+    setTimeout(() => { window.scrollTo(0, 0); put(); }, 130);
   }
 
   function gamesTab() {
@@ -391,9 +429,21 @@
     const firstLabel = g.firstLabels || ['Du', 'KI', 'Zufall'];
     const chipRow = (id, label, items, val) => `<div class="crow"><span>${label}</span><div class="mini-seg" id="${id}">${items.map(([v, l]) => `<button data-v="${v}" class="${String(v) === String(val) ? 'on' : ''}">${l}</button>`).join('')}</div></div>`;
     const lvl = cfg.level;
-    root.innerHTML = `<div class="gp" style="--acc:${g.accent || 'var(--pink)'}">
-      <div class="gp-art"><span class="cat">${g.cat}</span><div class="ic">${g.icon}</div></div>
-      <div class="gp-txt"><h2>${g.name}</h2><p>${g.desc}</p></div>
+    // Same game: only the settings part is redrawn, the card, icon and text stay as they are.
+    // Other game: the card stays too, only icon and text change with a short crossfade.
+    let gp = root.querySelector('.gp');
+    if (!gp || root.dataset.gid !== g.id) {
+      const fresh = !gp;
+      if (fresh) { root.innerHTML = '<div class="gp"><div class="gp-art"><span class="cat"></span><span class="icw"><span class="ic"></span></span></div><div class="gp-txt"><h2></h2><p></p></div><div class="gp-body"></div></div>'; gp = root.firstElementChild; }
+      root.dataset.gid = g.id;
+      gp.style.setProperty('--acc', g.accent || 'var(--pink)');
+      gp.querySelector('.cat').textContent = g.cat;
+      gp.querySelector('.ic').innerHTML = g.icon;
+      gp.querySelector('h2').textContent = g.name;
+      gp.querySelector('.gp-txt p').textContent = g.desc;
+      if (V.fxOn()) { V.fx.pop(gp, fresh ? 'gp-new' : 'gp-sw'); clearTimeout(gp._t); gp._t = setTimeout(() => gp.classList.remove('gp-new', 'gp-sw'), 450); }
+    }
+    gp.querySelector('.gp-body').innerHTML = `
       <div class="gp-mode" id="mode">
         ${g.noAI ? '' : `<button data-v="ai" class="${cfg.mode === 'ai' ? 'on' : ''}">${IC.robot}<span>Gegen KI</span></button>`}
         <button data-v="local" class="${cfg.mode === 'local' ? 'on' : ''}">${IC.users}<span>Zu zweit</span></button>
@@ -407,9 +457,7 @@
         ${(g.options || []).map(o => chipRow('o_' + o.id, o.label, o.choices, cfg.opts[o.id])).join('')}
       </div>` : ''}
       <div class="gp-go"><button class="btn primary big" id="go"><span>${IC.play}Spielen</span><kbd class="only-fine">Enter</kbd></button>
-        <button class="btn ghost" id="tut"><span>${IC.book}Regeln${seen[g.id] ? '' : '<i class="dot"></i>'}</span></button></div>
-    </div>`;
-    if (V.fxOn()) V.fx.pop(root.firstElementChild, 'gp-in');
+        <button class="btn ghost" id="tut"><span>${IC.book}Regeln${seen[g.id] ? '' : '<i class="dot"></i>'}</span></button></div>`;
     const rer = () => renderPanel(root, g, full);
     const on = (id, fn) => { const e = root.querySelector('#' + id); if (e) e.querySelectorAll('button').forEach(b => b.onclick = () => { fn(b.dataset.v); saveCfg(g, cfg); V.sfx.ui(); rer(); }); };
     on('mode', x => cfg.mode = x);
@@ -842,16 +890,25 @@
   });
 
   // ---------- boot ----------
-  function intro() {
-    if (!V.fxOn() || S.get('introSeen', 0) > Date.now() - 6 * 3600e3) return;
-    S.set('introSeen', Date.now());
-    vsIntro({ name: 'Ver', sub: 'Zwei Spieler' }, { name: 'Sus', sub: 'Ein Gerät' });
-  }
+  // The opening animation lives in index.html (#boot) so it shows on the very first frame.
+  // Its CSS plays the slam on its own; here we only open the doors once the page is ready and at least ~1 s has passed.
   V.boot = function () {
     V.games.sort((a, b) => V.CATS.indexOf(a.cat) - V.CATS.indexOf(b.cat) || (a.order || 0) - (b.order || 0));
     applyFxClass();
     if (!document.getElementById('fx')) { const f = V.el('div'); f.id = 'fx'; document.body.appendChild(f); }
-    intro();
-    home();
+    const b = document.getElementById('boot');
+    if (!b || !V.fxOn() || getComputedStyle(b).display === 'none') { if (b) b.remove(); home(); return; }
+    let opened = false;
+    const open = skip => {
+      if (opened) return; opened = true;
+      window.removeEventListener('keydown', onKey, true);
+      b.classList.add(skip ? 'skip' : 'open');
+      home();
+      setTimeout(() => b.remove(), skip ? 260 : 800);
+    };
+    const onKey = e => { e.preventDefault(); e.stopPropagation(); open(true); };
+    b.addEventListener('pointerdown', () => open(true));
+    window.addEventListener('keydown', onKey, true);
+    setTimeout(() => open(false), Math.max(0, 1250 - performance.now()));
   };
 })();

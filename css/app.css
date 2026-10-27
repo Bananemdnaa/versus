@@ -58,11 +58,15 @@ kbd{display:inline-grid;place-items:center;min-width:22px;height:21px;padding:0 
 .top-r{display:flex;gap:8px}
 .iconbtn{width:42px;height:42px;border-radius:8px;border:1px solid var(--line);background:var(--panel);display:grid;place-items:center;flex:none;transition:border-color .15s,transform .1s,background .15s}
 .iconbtn:hover{border-color:var(--line2);background:var(--panel2)} .iconbtn:active{transform:scale(.92)} .iconbtn svg{width:20px;height:20px}
-.tabs.desk{display:flex;gap:6px}
+.tabs.desk{display:flex;gap:6px;position:relative}
+.tabs.desk .tab-ind{position:absolute;left:0;top:0;height:40px;z-index:0;transition:transform .32s var(--spring),width .32s var(--ease)}
+.tabs.desk .tab-ind::before{content:"";position:absolute;inset:0;background:var(--pink);transform:skewX(var(--sk));box-shadow:3px 3px 0 var(--yellow)}
+.tabs.desk button{position:relative;z-index:1}
 .tabs.desk button{display:flex;align-items:center;gap:8px;height:40px;padding:0 18px;transform:skewX(var(--sk));border:1px solid var(--line);background:var(--panel);color:var(--muted);font:700 italic 15px/1 var(--f-d);letter-spacing:.08em;text-transform:uppercase;transition:color .15s,background .15s,border-color .15s,box-shadow .2s}
 .tabs.desk button svg{width:17px;height:17px}
 .tabs.desk button:hover{color:var(--fg);border-color:var(--line2)}
-.tabs.desk button.on{color:var(--ink);background:var(--pink);border-color:var(--pink);box-shadow:3px 3px 0 var(--yellow)}
+.tabs.desk button.on{color:var(--ink);background:transparent;border-color:transparent}
+.tabs .tab-ind{pointer-events:none}
 .tabs.bar{display:none}
 @media (max-width:959px){
   .tabs.desk{display:none}
@@ -74,7 +78,8 @@ kbd{display:inline-grid;place-items:center;min-width:22px;height:21px;padding:0 
   .tabs.bar button svg{width:22px;height:22px;transition:transform .25s var(--spring)}
   .tabs.bar button.on{color:var(--fg)}
   .tabs.bar button.on svg{color:var(--pink);transform:translateY(-2px)}
-  .tabs.bar button.on::before{content:'';position:absolute;top:0;left:28%;right:28%;height:3px;background:linear-gradient(90deg,var(--pink),var(--yellow));transform:skewX(-30deg)}
+  .tabs.bar .tab-ind{position:absolute;left:0;top:0;height:3px;transition:transform .32s var(--spring),width .32s var(--ease)}
+  .tabs.bar .tab-ind::before{content:"";position:absolute;top:0;bottom:0;left:28%;right:28%;background:linear-gradient(90deg,var(--pink),var(--yellow));transform:skewX(-30deg)}
 }
 
 /* ---------- buttons ---------- */
@@ -149,8 +154,13 @@ kbd{display:inline-grid;place-items:center;min-width:22px;height:21px;padding:0 
 
 /* ---------- game panel ---------- */
 .gp{--acc:var(--pink);background:var(--panel);border:1px solid var(--line);border-radius:10px;overflow:hidden;display:flex;flex-direction:column;box-shadow:6px 6px 0 color-mix(in srgb,var(--acc) 55%,transparent)}
-.gp.gp-in{animation:gpin .32s var(--ease)}
-@keyframes gpin{from{opacity:.3;transform:translateX(12px)}}
+.gp-body{display:contents}
+.gp.gp-new{animation:gpin .35s var(--ease)}
+.gp.gp-sw .icw,.gp.gp-sw .gp-txt{animation:gpsw .3s var(--ease)}
+.gp.gp-sw .gp-art{animation:gpart .3s ease-out}
+@keyframes gpin{from{opacity:0;transform:translateY(10px)}}
+@keyframes gpsw{from{opacity:0;transform:translateY(8px)}}
+@keyframes gpart{from{filter:brightness(1.6)}}
 .gp-art{height:150px;display:grid;place-items:center;position:relative;
   background:repeating-linear-gradient(-60deg,color-mix(in srgb,var(--acc) 10%,transparent) 0 9px,transparent 9px 19px),radial-gradient(80% 120% at 50% 100%,color-mix(in srgb,var(--acc) 28%,transparent),transparent 70%),var(--panel2)}
 .gp-art .ic{width:96px;height:96px;filter:drop-shadow(0 12px 18px rgba(0,0,0,.5));animation:floaty 3.6s ease-in-out infinite}
@@ -423,3 +433,39 @@ kbd{display:inline-grid;place-items:center;min-width:22px;height:21px;padding:0 
 @keyframes fxpop{40%{transform:scale(1.15)}}
 
 @media (prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}}
+
+/* ---------- tab switch: only the content moves ---------- */
+.hbody{--dir:1}
+.hbody.leave{opacity:0;transform:translateX(calc(var(--dir) * -18px));transition:opacity .12s ease-in,transform .12s ease-in}
+.hbody.tab-in{animation:tabIn .34s var(--ease)}
+@keyframes tabIn{from{opacity:0;transform:translateX(calc(var(--dir) * 26px))}}
+.hbody.tab-in .tile{animation-duration:.4s}
+.gp-art .icw{display:grid;place-items:center}
+
+/* ---------- opening animation ---------- */
+#boot{position:fixed;inset:0;z-index:100;overflow:hidden;background:var(--ink);transition:background-color .2s}
+.noboot #boot{display:none}
+#boot .b-l,#boot .b-r{position:absolute;top:0;bottom:0;width:60%}
+#boot .b-l{left:0;background:var(--pink);clip-path:polygon(0 0,93.4% 0,73.4% 100%,0 100%);animation:bL .5s .05s var(--snap) backwards}
+#boot .b-r{right:0;background:var(--yellow);clip-path:polygon(26.6% 0,100% 0,100% 100%,6.6% 100%);animation:bR .5s .05s var(--snap) backwards}
+#boot .b-line{position:absolute;inset:0;background:#fff;clip-path:polygon(55.5% 0,56.5% 0,44.5% 100%,43.5% 100%);animation:bLine .3s .42s ease-out backwards}
+#boot .b-logo{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;gap:.08em;font:800 italic clamp(68px,17vw,180px)/1 var(--f-d);color:var(--ink);letter-spacing:.02em;animation:bShake .35s .72s}
+#boot .b1{animation:bInL .42s .32s var(--snap) backwards} #boot .b2{animation:bInR .42s .32s var(--snap) backwards}
+#boot .b-slash{display:block;width:.13em;height:.95em;background:#fff;box-shadow:0 0 0 .03em var(--ink);transform:skewX(-14deg);animation:bSlash .25s .62s var(--spring) backwards}
+#boot .b-sub{position:absolute;left:0;right:0;bottom:22%;text-align:center;font:700 italic clamp(14px,2.6vw,22px)/1 var(--f-d);letter-spacing:.32em;text-transform:uppercase;color:var(--ink);animation:fadeIn .4s .85s backwards}
+#boot .b-flash{position:absolute;inset:0;background:#fff;opacity:0;pointer-events:none;animation:bFlash .5s .7s ease-out}
+@keyframes bL{from{transform:translateX(-102%)}} @keyframes bR{from{transform:translateX(102%)}}
+@keyframes bLine{from{clip-path:polygon(55.5% 0,56.5% 0,56.5% 0,55.5% 0)}}
+@keyframes bInL{from{transform:translateX(-70vw) skewX(20deg);opacity:0}} @keyframes bInR{from{transform:translateX(70vw) skewX(20deg);opacity:0}}
+@keyframes bSlash{from{transform:skewX(-14deg) scaleY(0)}}
+@keyframes bShake{20%{transform:translate(-6px,3px)}40%{transform:translate(5px,-3px)}60%{transform:translate(-3px,2px)}80%{transform:translate(2px,-1px)}}
+@keyframes bFlash{0%{opacity:.85}100%{opacity:0}}
+/* doors open: the halves leave sideways along the diagonal, the logo flies at the viewer */
+#boot.open{background:transparent;pointer-events:none}
+#boot.open .b-l{animation:bLout .6s cubic-bezier(.7,0,.25,1) forwards}
+#boot.open .b-r{animation:bRout .6s cubic-bezier(.7,0,.25,1) forwards}
+#boot.open .b-line,#boot.open .b-sub{opacity:0;transition:opacity .15s}
+#boot.open .b-logo{animation:bLogoOut .45s ease-in forwards}
+@keyframes bLout{to{transform:translate(-104%,-6%)}} @keyframes bRout{to{transform:translate(104%,6%)}}
+@keyframes bLogoOut{to{transform:scale(1.7);opacity:0}}
+#boot.skip{opacity:0;transition:opacity .22s;pointer-events:none}
