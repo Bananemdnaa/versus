@@ -26,8 +26,8 @@
     short: 'Wer bei Grün zuerst tippt.',
     desc: 'Warte auf Grün und tippe so schnell du kannst. Wer zu früh tippt, schenkt dem anderen den Punkt.',
     sides: { 1: 'Unten', 2: 'Oben' },
-    noFirst: true,
-    keys: [['Leertaste', 'Tippen gegen die KI'], ['L', 'Spieler 1 (unten)'], ['A', 'Spieler 2 (oben)']],
+    noFirst: true, noAI: true,
+    keys: [['L', 'Spieler 1 (unten)'], ['A', 'Spieler 2 (oben)']],
     options: [{ id: 'to', label: 'Punkte zum Sieg', def: 3, choices: [[3, '3'], [5, '5'], [7, '7']] }],
     levelInfo: ['Reagiert in etwa 0,5 Sekunden.', 'Reagiert in etwa 0,38 Sekunden.', 'Reagiert in etwa 0,29 Sekunden.', 'Reagiert in etwa 0,22 Sekunden. Fällt auf Finten fast nie rein.'],
     endDelay: 900,
@@ -37,7 +37,6 @@
       { t: 'Zu zweit an einem Gerät', d: 'Legt das Handy flach zwischen euch. Spieler 1 tippt auf die <b>untere Hälfte</b>, Spieler 2 auf die <b>obere</b>, die für ihn richtig herum steht. Am PC drückt Spieler 1 die Taste <b>L</b> und Spieler 2 die Taste <b>A</b>.' },
       { t: 'Nicht zu früh', d: 'Tippst du, bevor es grün ist, bekommt der <b>Gegner den Punkt</b>. Wie lange es dauert, ist jedes Mal anders.' },
       { t: 'Finten', d: 'Manchmal leuchtet das Feld kurz <b>orange</b> und da steht „Nicht tippen!“. Das ist eine Falle. Wer da tippt, verliert den Punkt. Erst bei Grün gilt es.' },
-      { t: 'Gegen die KI', d: 'Gegen die KI tippst du auf das große Feld oder drückst die Leertaste. Die KI hat je nach Stufe eine andere Reaktionszeit. Die Profi-KI ist so schnell wie sehr gute Menschen.' }
     ],
     start(ctx) {
       const target = ctx.opts.to || 3, ai = ctx.mode === 'ai';

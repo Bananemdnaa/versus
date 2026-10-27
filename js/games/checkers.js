@@ -97,6 +97,7 @@
     id: 'checkers', name: 'Dame', cat: 'Strategie', order: 2, accent: 'var(--pink)',
     short: 'Diagonal ziehen, Steine überspringen.',
     desc: 'Zieh diagonal, spring über gegnerische Steine und mach aus deinen Steinen Damen. Mit Schlagzwang.',
+    levelInfo: ['Anfänger: schaut nur auf den eigenen Zug und lässt oft Steine stehen.', 'Denkt drei Halbzüge voraus und lässt sich gern in Fallen locken.', 'Rechnet sechs Halbzüge tief.', 'Rechnet bis zu 14 Halbzüge tief. Opfer werden durchschaut.'],
     keys: [['Pfeile', 'Dunkles Feld wählen'], ['Enter', 'Stein nehmen, dann Ziel (bei Mehrfachsprung Feld für Feld)']],
     icon: `<svg viewBox="0 0 48 48"><rect x="3" y="3" width="42" height="42" rx="6" fill="#c8cae8"/><path d="M13.5 3H24v10.5H13.5zM34.5 3H45v10.5H34.5zM3 13.5h10.5V24H3zM24 13.5h10.5V24H24zM13.5 24H24v10.5H13.5zM34.5 24H45v10.5H34.5zM3 34.5h10.5V45H3zM24 34.5h10.5V45H24z" fill="#3c4177"/><circle cx="18.75" cy="29.25" r="4.2" fill="#ff4fd8"/><circle cx="29.25" cy="18.75" r="4.2" fill="#ffd84f"/><circle cx="8.25" cy="39.75" r="4.2" fill="#ff4fd8"/></svg>`,
     tutorial: [
@@ -180,11 +181,19 @@
       function next() {
         const n = genMoves(s), must = n[0] && n[0].caps.length;
         ctx.turn(s.turn, ctx.isAI(s.turn) ? null : ((ctx.name(s.turn) === 'Du' ? 'Du bist dran' : ctx.who(s.turn) + ' ist dran') + (must ? ' · <b style="color:var(--cy)">Schlagzwang</b>' : '')));
-        if (ctx.isAI(s.turn)) ctx.think(() => {
-          const L = ctx.level, ms = genMoves(s);
-          const m = Math.random() < [0.3, 0.1, 0, 0][L] ? V.pick(ms) : V.search(G, s, [2, 4, 7, 10][L], [300, 600, 1100, 1900][L]).move;
-          animate(m);
-        }, 250);
+        const sqn = q => 'abcdefgh'[q & 7] + (8 - (q >> 3));
+        if (ctx.isAI(s.turn)) ctx.aiTurn({
+          // Leicht 1 ply loose + random slips, Mittel 3 plies soft choice, Schwer 6 plies, Profi up to 14 plies
+          think: () => {
+            const L = ctx.level;
+            const r = L === 0 ? V.weak(V.searchAll(G, s, 1, 500), 70, 0.3) : L === 1 ? V.pickSoft(V.searchAll(G, s, 3, 800), 25) : V.search(G, s, [6, 14][L - 2], [800, 2200][L - 2]);
+            return { move: r.move, mood: V.mood(r.score, 220) };
+          },
+          targets: m => m.path.map(q => cells[q]),
+          decoys: m => genMoves(s).filter(x => x.path[0] !== m.path[0]).map(x => cells[x.path[0]]),
+          apply: animate,
+          say: m => m.caps.length ? `${sqn(m.path[0])} schlägt ${m.caps.length > 1 ? m.caps.length + ' Steine' : sqn(m.caps[0])}` : `${sqn(m.path[0])}–${sqn(m.path[1])}`
+        });
       }
       function animate(m) {
         // show multi-jumps step by step

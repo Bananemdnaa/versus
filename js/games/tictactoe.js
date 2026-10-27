@@ -49,7 +49,7 @@
     desc: 'Der Klassiker in einer Minute: Wer zuerst drei Zeichen in eine Reihe bringt, gewinnt.',
     sides: { 1: 'X', 2: 'O' },
     keys: [['1–9', 'Feld setzen, angeordnet wie der Ziffernblock'], ['Pfeile', 'Cursor bewegen'], ['Enter', 'Setzen']],
-    levelInfo: ['Setzt fast zufällig.', 'Sieht einfache Drohungen.', 'Patzt nur selten.', 'Spielt perfekt. Mehr als ein Remis ist nicht drin.'],
+    levelInfo: ['Blutiger Anfänger: setzt oft irgendwo hin und übersieht deine Drohungen meistens.', 'Nimmt gern Mitte und Ecken, blockt aber nicht immer.', 'Gewinnt und blockt immer, macht aber ab und zu einen harmlosen Nebenzug.', 'Perfekt und gemein: wählt immer den Zug, bei dem du am leichtesten danebengreifst.'],
     icon: `<svg viewBox="0 0 48 48" fill="none" stroke-linecap="round"><path d="M17 4v40M31 4v40M4 17h40M4 31h40" stroke="#3a4070" stroke-width="3"/><path d="M6 6l7 7M13 6l-7 7" stroke="#ff4fd8" stroke-width="3.4"/><circle cx="24" cy="24" r="4" stroke="#ffd84f" stroke-width="3.4"/><path d="M35 35l7 7M42 35l-7 7" stroke="#ff4fd8" stroke-width="3.4"/></svg>`,
     tutorial: [
       { t: 'Das Ziel', d: 'Zwei Spieler setzen abwechselnd ihr Zeichen auf ein Feld des 3×3-Bretts: <b>X</b> fängt an, dann <b>O</b>. Wer zuerst drei eigene Zeichen in eine Reihe bringt, gewinnt.', demo: V.mini(['x.o', '.x.', 'o..']) },
@@ -88,13 +88,53 @@
         }
         turn = 3 - turn; next();
       }
+      // Leicht: takes wins and blocks most of the time, otherwise plays like a beginner (centre and corners).
+      // Mittel: never misses a win, rarely misses a block. Schwer: optimal, but now and then a safe second-best move.
+      // Profi: optimal and, among equal moves, picks the one that sets the most traps.
       function aiMove() {
+        const L = ctx.level, me = turn, op = 3 - turn;
         const free = b.map((v, i) => v ? -1 : i).filter(i => i >= 0);
-        const p = [0.2, 0.6, 0.88, 1][ctx.level];
-        if (Math.random() < p) { const r = minimax(b.slice(), turn); if (r.m >= 0) return r.m; }
-        return V.pick(free);
+        const winsAt = (p, i) => { b[i] = p; const w = winner(b); b[i] = 0; return w && w.w === p; };
+        const win = free.filter(i => winsAt(me, i)), block = free.filter(i => winsAt(op, i));
+        const vals = free.map(i => { b[i] = me; const v = -minimax(b, op).s; b[i] = 0; return { i, v }; });
+        const best = Math.max(...vals.map(x => x.v));
+        if (L === 0) {
+          if (win.length && Math.random() < 0.5) return V.pick(win);
+          if (block.length && Math.random() < 0.3) return V.pick(block);
+          return V.pick(free);
+        }
+        if (L === 1) {
+          if (win.length && Math.random() < 0.9) return V.pick(win);
+          if (block.length && Math.random() < 0.75) return V.pick(block);
+          const pref = free.filter(i => i === 4 || [0, 2, 6, 8].includes(i));
+          return V.pick(pref.length && Math.random() < 0.6 ? pref : free);
+        }
+        const top = vals.filter(x => x.v >= best - 0.01);
+        if (L === 2) {
+          if (win.length) return V.pick(win);
+          if (block.length) return V.pick(block);
+          if (Math.random() < 0.25) { const ok = vals.filter(x => x.v > -5); if (ok.length) return V.pick(ok).i; }
+          return V.pick(top).i;
+        }
+        top.forEach(x => {
+          b[x.i] = me; x.t = 0;
+          for (const j of free) if (j !== x.i) { b[j] = op; if (minimax(b, me).s > 5) x.t++; b[j] = 0; }
+          b[x.i] = 0;
+        });
+        const mt = Math.max(...top.map(x => x.t));
+        return V.pick(top.filter(x => x.t === mt)).i;
       }
-      function next() { ctx.turn(turn); if (ctx.isAI(turn)) ctx.think(() => move(aiMove())); }
+      const NAMES = ['oben links', 'oben Mitte', 'oben rechts', 'Mitte links', 'Mitte', 'Mitte rechts', 'unten links', 'unten Mitte', 'unten rechts'];
+      function next() {
+        ctx.turn(turn);
+        if (ctx.isAI(turn)) ctx.aiTurn({
+          think: () => { const m = aiMove(); b[m] = turn; const v = -minimax(b, 3 - turn).s; b[m] = 0; return { move: m, mood: v / 9 }; },
+          targets: m => [cells[m]],
+          decoys: () => cells.filter((c, i) => !b[i]),
+          apply: move,
+          say: m => NAMES[m]
+        });
+      }
       next();
     }
   });

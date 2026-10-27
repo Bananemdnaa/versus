@@ -6,7 +6,7 @@
     short: 'Puck ins gegnerische Tor schießen.',
     desc: 'Schieß den Puck mit deinem Schläger ins gegnerische Tor und verteidige dein eigenes.',
     sides: { 1: 'Unten', 2: 'Oben' },
-    noFirst: true,
+    noFirst: true, noAI: true,
     keys: [['Pfeile', 'Schläger unten'], ['W A S D', 'Schläger oben (zu zweit)'], ['Leertaste', 'Pause']],
     options: [{ id: 'to', label: 'Tore zum Sieg', def: 7, choices: [[5, '5'], [7, '7'], [10, '10']] }],
     levelInfo: ['Langsam und verteidigt schlecht.', 'Verteidigt ordentlich, greift selten an.', 'Schnell, greift gezielt an.', 'Blitzschnell und gnadenlos.'],

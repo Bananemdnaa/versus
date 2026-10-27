@@ -51,7 +51,7 @@
     sides: { 1: 'X', 2: 'O' },
     keys: [['Pfeile', 'Cursor über die 81 Felder bewegen'], ['Enter', 'Setzen']],
     icon: `<svg viewBox="0 0 48 48" fill="none" stroke-linecap="round">${[0, 1, 2].map(r => [0, 1, 2].map(c => `<rect x="${3 + c * 14.6}" y="${3 + r * 14.6}" width="12.6" height="12.6" rx="3" fill="#1e2238" stroke="${r === 1 && c === 1 ? '#6ff3ff' : '#2a2f4f'}" stroke-width="1.5"/>`).join('')).join('')}<path d="M6 6l6.6 6.6M12.6 6L6 12.6" stroke="#ff4fd8" stroke-width="2.6"/><circle cx="24" cy="24" r="3.2" stroke="#ffd84f" stroke-width="2.4"/><path d="M35.4 35.4l6.6 6.6M42 35.4l-6.6 6.6" stroke="#ff4fd8" stroke-width="2.6"/></svg>`,
-    levelInfo: ['Spielt eher zufällig.', 'Rechnet ein paar hundert Partien durch.', 'Rechnet tausende Partien pro Zug durch.', 'Volle Rechenzeit. Sehr stark.'],
+    levelInfo: ['Anfänger: spielt pro Zug nur 80 Partien im Kopf durch und achtet kaum darauf, wohin sie dich schickt.', 'Spielt pro Zug 500 Partien durch.', 'Spielt pro Zug 3.000 Partien durch.', 'Nutzt die volle Bedenkzeit, oft über 20.000 Partien pro Zug.'],
     tutorial: [
       { t: 'Neun Bretter', d: 'Das große Brett besteht aus <b>neun kleinen Tic-Tac-Toe-Brettern</b>. Gewinnst du ein kleines Brett, gehört dir dieses Feld im großen Brett.', demo: g9(['xo.......', '.x.......', 'o.x......', '.........', '.........', '.........', '.........', '.........', '.........']) },
       { t: 'Du schickst den Gegner', d: 'Das ist der Clou: Das Feld, auf das du <b>innerhalb</b> eines kleinen Bretts setzt, bestimmt das kleine Brett, in dem der Gegner spielen muss. X setzt hier oben rechts im mittleren Brett, also muss O im Brett oben rechts spielen.', demo: g9(['......hhh', '......hhh', '......hhh', '.....X...', '.........', '.........', '.........', '.........', '.........']) },
@@ -114,13 +114,15 @@
         const free = s.next < 0 && G.moves(s).length > 9;
         ctx.turn(s.turn, (ctx.isAI(s.turn) ? null : undefined));
         if (!ctx.isAI(s.turn) && free) ctx.status((ctx.name(s.turn) === 'Du' ? 'Du darfst' : ctx.who(s.turn) + ' darf') + ' überall spielen');
-        if (ctx.isAI(s.turn)) ctx.think(() => {
-          const L = ctx.level;
-          let m;
-          if (L === 0 && Math.random() < 0.45) m = V.pick(G.moves(s));
-          else m = V.mcts(G, s, [150, 700, 2500, 9000][L], [300, 700, 1300, 2300][L]);
-          move(m);
-        }, 120);
+        const BOARD = ['oben links', 'oben', 'oben rechts', 'links', 'Mitte', 'rechts', 'unten links', 'unten', 'unten rechts'];
+        if (ctx.isAI(s.turn)) ctx.aiTurn({
+          // more simulated games per move = stronger: about 80 / 500 / 3.000 / as many as fit in 2,5 s
+          think: () => { const L = ctx.level, r = V.mcts(G, s, [80, 500, 3000, 60000][L], [300, 700, 1200, 2500][L]); return { move: r.move, mood: (r.rate - 0.5) * 2.4 }; },
+          targets: m => [allCells[m]],
+          decoys: () => G.moves(s).map(m => allCells[m]),
+          apply: move,
+          say: m => 'Brett ' + BOARD[(m / 9) | 0]
+        });
       }
       render(); next();
     }

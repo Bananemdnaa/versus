@@ -65,6 +65,7 @@
     short: 'Einkesseln und umdrehen.',
     desc: 'Schließ gegnerische Steine zwischen zwei eigenen ein und dreh sie um. Am Ende zählt, wer mehr Steine hat.',
     keys: [['Pfeile', 'Feld wählen'], ['Enter', 'Stein setzen']],
+    levelInfo: ['Anfänger: setzt ziemlich wahllos und verschenkt Ecken.', 'Dreht gern viele Steine um und mag Ecken, denkt aber nicht voraus.', 'Rechnet drei Züge tief und spielt die letzten acht Felder perfekt.', 'Rechnet acht Züge tief und spielt die letzten 14 Felder perfekt.'],
     icon: `<svg viewBox="0 0 48 48"><rect x="3" y="3" width="42" height="42" rx="6" fill="#14524a"/><circle cx="17" cy="17" r="6.5" fill="#ff4fd8"/><circle cx="31" cy="17" r="6.5" fill="#ffd84f"/><circle cx="17" cy="31" r="6.5" fill="#ffd84f"/><circle cx="31" cy="31" r="6.5" fill="#ff4fd8"/></svg>`,
     tutorial: [
       { t: 'Aufbau und Ziel', d: 'Am Anfang stehen vier Steine in der Mitte. Pink beginnt. Am Ende gewinnt, wer <b>mehr Steine seiner Farbe</b> auf dem Brett hat.', demo: rm(['........', '........', '........', '...ba...', '...ab...', '........', '........', '........']) },
@@ -134,17 +135,24 @@
         render();
         const base = ctx.isAI(s.turn) ? '<span class="c' + s.turn + '">KI</span> ist dran' : (ctx.name(s.turn) === 'Du' ? 'Du bist dran' : ctx.who(s.turn) + ' ist dran');
         ctx.turn(s.turn, score + base);
-        if (ctx.isAI(s.turn)) ctx.later(() => {
-          const L = ctx.level, empties = s.b.filter(x => !x).length;
-          let m;
-          if (Math.random() < [0.35, 0.1, 0, 0][L]) m = V.pick(mine);
-          else {
-            const depth = L === 3 && empties <= 12 ? 14 : [1, 2, 4, 6][L];
-            m = V.search(G, s, depth, [200, 500, 1000, 1800][L]).move;
-          }
-          if (m === 'pass') m = mine[0];
-          move(m);
-        }, 450);
+        const sqn = q => 'abcdefgh'[q & 7] + ((q >> 3) + 1);
+        if (ctx.isAI(s.turn)) ctx.aiTurn({
+          think: () => {
+            const L = ctx.level, empties = s.b.filter(x => !x).length;
+            let r;
+            // Leicht: random-ish beginner who likes flipping many stones. Mittel: greedy but knows corners.
+            // Schwer 3 plies (endgame solved from 8 empty squares), Profi 8 plies (endgame solved from 14).
+            if (L === 0) r = V.weak(mine.map(m => ({ m, v: flips(s.b, m, s.turn).length * 10 })), 25, 0.3);
+            else if (L === 1) r = V.pickSoft(mine.map(m => ({ m, v: flips(s.b, m, s.turn).length * 10 + W[m] / 3 })), 12);
+            else r = V.search(G, s, empties <= [8, 14][L - 2] ? 20 : [3, 8][L - 2], [900, 2400][L - 2]);
+            let m = r.move; if (m === 'pass') m = mine[0];
+            return { move: m, mood: L ? V.mood(r.score, 160) : undefined };
+          },
+          targets: m => [sqs[m]],
+          decoys: () => mine.map(m => sqs[m]),
+          apply: move,
+          say: m => sqn(m) + ' · ' + flips(s.b, m, s.turn).length + ' umgedreht'
+        });
       }
       next();
     }

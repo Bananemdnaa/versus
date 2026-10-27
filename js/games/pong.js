@@ -47,7 +47,7 @@
     short: 'Schläger gegen Schläger.',
     desc: 'Halte den Ball im Spiel und spiel ihn am Gegner vorbei. Der Ball wird mit jedem Treffer schneller.',
     sides: { 1: 'Unten', 2: 'Oben' },
-    noFirst: true,
+    noFirst: true, noAI: true,
     keys: [['← →', 'Schläger unten'], ['A D', 'Schläger oben (zu zweit)'], ['Leertaste', 'Pause']],
     options: [{ id: 'to', label: 'Punkte zum Sieg', def: 7, choices: [[5, '5'], [7, '7'], [11, '11']] }],
     levelInfo: ['Langsamer Schläger, zielt ungenau.', 'Kommt an die meisten Bälle.', 'Schnell und ziemlich genau.', 'Kaum zu überwinden. Spiel mit den Kanten.'],

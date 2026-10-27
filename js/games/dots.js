@@ -41,8 +41,11 @@
   }
   function aiMove(G, s, L) {
     const op = open(G, s), c = completing(G, s);
-    if (L === 0) return c.length && Math.random() < 0.6 ? V.pick(c) : V.pick(op);
-    if (L === 1) { if (c.length) return V.pick(c); const sf = safe(G, s); return sf.length ? V.pick(sf) : V.pick(op); }
+    // Leicht: beginner, often hands out boxes. Mittel: takes boxes and usually avoids gifts.
+    // Schwer: never hands out a box while a safe line exists, then gives away the smallest chain.
+    // Profi: full look-ahead for the whole endgame (sacrifices, double-crosses).
+    if (L === 0) { if (c.length && Math.random() < 0.6) return V.pick(c); const sf = safe(G, s); return sf.length && Math.random() < 0.45 ? V.pick(sf) : V.pick(op); }
+    if (L === 1) { if (c.length && Math.random() < 0.9) return V.pick(c); const sf = safe(G, s); return sf.length && Math.random() < 0.8 ? V.pick(sf) : greedy(G, s); }
     if (L === 2) return greedy(G, s);
     // Profi: once no safe moves remain, look ahead with full rollouts (finds sacrifices and double-crosses).
     const after = clone(s); let cc; while ((cc = completing(G, after)).length) apply(G, after, cc[0]);
@@ -76,7 +79,7 @@
     desc: 'Zieht abwechselnd Linien zwischen den Punkten. Wer ein Kästchen schließt, bekommt es und zieht nochmal.',
     keys: [['Pfeile', 'Zur nächsten freien Linie springen'], ['Enter', 'Linie ziehen']],
     options: [{ id: 'size', label: 'Feldgröße', def: 4, choices: [[3, '3×3'], [4, '4×4'], [5, '5×5'], [6, '6×6']] }],
-    levelInfo: ['Zieht meist irgendeine Linie.', 'Nimmt Kästchen mit und vermeidet offene Geschenke.', 'Gibt am Ende immer die kleinste Kette ab.', 'Rechnet das Endspiel komplett durch und opfert gezielt.'],
+    levelInfo: ['Anfänger: lässt Kästchen liegen und verschenkt oft welche.', 'Nimmt Kästchen mit und verschenkt nur selten eins.', 'Verschenkt nichts, solange es sichere Linien gibt, und gibt dann die kleinste Kette ab.', 'Rechnet das ganze Endspiel durch und opfert gezielt Kästchen, um die Ketten zu kontrollieren.'],
     icon: `<svg viewBox="0 0 48 48" fill="none" stroke-linecap="round"><rect x="8" y="8" width="16" height="16" fill="rgba(255,79,216,.25)"/><path d="M8 8h16v16H8z" stroke="#ff4fd8" stroke-width="3"/><path d="M24 8h16M40 8v16" stroke="#ffd84f" stroke-width="3"/><path d="M8 40h16" stroke="#ffd84f" stroke-width="3"/>${[8, 24, 40].map(y => [8, 24, 40].map(x => `<circle cx="${x}" cy="${y}" r="3" fill="#cfd2f0"/>`).join('')).join('')}</svg>`,
     tutorial: [
       { t: 'Punkte und Linien', d: 'Das Feld besteht aus Punkten. Ihr zieht abwechselnd <b>eine Linie</b> zwischen zwei benachbarten Punkten, waagerecht oder senkrecht. Tippe dazu auf die gestrichelte Lücke.', demo: demo([[0, 0, 'h', 1], [0, 1, 'h', 2], [1, 0, 'v', 1]], []) },
@@ -143,7 +146,14 @@
         const score = `<span class="c1">${s.cnt[1]}</span> : <span class="c2">${s.cnt[2]}</span> · `;
         const base = ctx.isAI(s.turn) ? null : (ctx.name(s.turn) === 'Du' ? 'Du ziehst' : ctx.who(s.turn) + ' zieht') + (again ? ' nochmal' : '');
         ctx.turn(s.turn, score + (base || '<span class="c' + s.turn + '">KI</span> ist dran'));
-        if (ctx.isAI(s.turn)) ctx.later(() => move(aiMove(G, s, ctx.level)), again ? 320 : 480);
+        if (ctx.isAI(s.turn)) ctx.aiTurn({
+          quick: !!again,
+          think: () => ({ move: aiMove(G, s, ctx.level), mood: (s.cnt[s.turn] - s.cnt[3 - s.turn]) / Math.max(3, n * n / 3) }),
+          targets: e => [groups[e]],
+          decoys: () => groups.filter(gp => !s.e[+gp.dataset.e]),
+          apply: move,
+          say: () => ''
+        });
       }
       render(); next(0);
     }

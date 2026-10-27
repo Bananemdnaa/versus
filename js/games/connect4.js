@@ -64,6 +64,7 @@
     id: 'c4', name: '4 Gewinnt', cat: 'Klassiker', order: 1, accent: 'var(--pink)',
     short: 'Steine fallen lassen, vier verbinden.',
     desc: 'Lass deine Steine in die Spalten fallen. Wer zuerst vier in einer Reihe hat, gewinnt.',
+    levelInfo: ['Anfänger: übersieht deine Dreier oft und lässt auch mal den eigenen Sieg liegen.', 'Blockt offene Dreier, fällt aber auf doppelte Drohungen rein.', 'Rechnet fünf Züge voraus.', 'Rechnet bis zu 14 Züge tief. Fehler werden sofort bestraft.'],
     keys: [['← →', 'Spalte wählen'], ['Enter ↓', 'Stein einwerfen'], ['1–7', 'Direkt in diese Spalte']],
     icon: `<svg viewBox="0 0 48 48"><rect x="3" y="7" width="42" height="36" rx="6" fill="#1a1f5c" stroke="#3b4aa8" stroke-width="2"/>${[0, 1, 2, 3].map(r => [0, 1, 2, 3].map(c => `<circle cx="${10 + c * 9.3}" cy="${14 + r * 8.3}" r="3.3" fill="${(r === 3 && c < 3) || (r === 2 && c === 1) ? '#ff4fd8' : (r === 3 && c === 3) || (r === 2 && c === 0) || (r === 2 && c === 2) ? '#ffd84f' : '#0b0c15'}"/>`).join('')).join('')}</svg>`,
     tutorial: [
@@ -124,13 +125,19 @@
       function next() {
         ctx.turn(s.turn);
         board.classList.toggle('lock', ctx.isAI(s.turn));
-        if (ctx.isAI(s.turn)) ctx.think(() => {
-          const L = ctx.level;
-          let m;
-          if (Math.random() < [0.3, 0.1, 0.02, 0][L]) m = V.pick(G.moves(s));
-          else m = V.search(G, s, [1, 3, 6, 9][L], [300, 600, 1000, 1600][L]).move;
-          drop(m);
-        }, 300);
+        const land = c => board.children[dropRow(s.b, c) * C + c];
+        if (ctx.isAI(s.turn)) ctx.aiTurn({
+          think: () => {
+            const L = ctx.level;
+            // Leicht: only sees its own move and plays loosely. Mittel: two moves ahead. Schwer: 5. Profi: up to 14.
+            const r = L === 0 ? V.weak(V.searchAll(G, s, 1, 500), 40, 0.35) : L === 1 ? V.pickSoft(V.searchAll(G, s, 2, 700), 18) : V.search(G, s, [5, 14][L - 2], [700, 2000][L - 2]);
+            return { move: r.move, mood: V.mood(r.score, 70) };
+          },
+          targets: c => [land(c)],
+          decoys: () => G.moves(s).map(land),
+          apply: drop,
+          say: c => 'Spalte ' + (c + 1)
+        });
       }
       next();
     }

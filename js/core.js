@@ -184,6 +184,46 @@
     return { move: bestMove, score: bestScore };
   };
 
+  // Exact score for every root move (full window). The weaker levels use it to play like a person:
+  // usually a good move, sometimes a decent one, almost never a terrible one.
+  V.searchAll = function (g, s, depth, timeMs = 1200) {
+    const deadline = performance.now() + timeMs;
+    let nodes = 0, stop = false;
+    function nm(s, d, a, b, ply) {
+      const t = g.over(s, ply); if (t !== null) return t;
+      if (d <= 0) return g.eval(s);
+      if ((++nodes & 511) === 0 && performance.now() > deadline) stop = true;
+      if (stop) return g.eval(s);
+      let ms = g.moves(s); if (g.order) ms = g.order(s, ms);
+      let best = -1e9;
+      for (const m of ms) {
+        const v = -nm(g.play(s, m), d - 1, -b, -a, ply + 1);
+        if (v > best) best = v; if (v > a) a = v; if (a >= b) break;
+      }
+      return best;
+    }
+    return g.moves(s).map(m => ({ m, v: -nm(g.play(s, m), depth - 1, -1e9, 1e9, 1) }));
+  };
+  // Softmax choice over scored moves; temp is in the game's own score units (0 = always the best move).
+  V.pickSoft = function (scored, temp) {
+    let best = scored[0];
+    for (const x of scored) if (x.v > best.v) best = x;
+    if (!temp) { const top = scored.filter(x => x.v === best.v); return { move: V.pick(top).m, score: best.v }; }
+    const cl = v => Math.max(-3000, Math.min(3000, v));
+    const w = scored.map(x => Math.exp((cl(x.v) - cl(best.v)) / temp));
+    let r = Math.random() * w.reduce((a, b) => a + b, 0);
+    for (let i = 0; i < scored.length; i++) { r -= w[i]; if (r <= 0) return { move: scored[i].m, score: best.v }; }
+    return { move: best.m, score: best.v };
+  };
+  // Beginner level: a share of plain random moves on top of a very loose soft choice,
+  // so it misses threats and sometimes even its own win.
+  V.weak = function (scored, temp, randomRate) {
+    if (Math.random() < randomRate) { const x = V.pick(scored); return { move: x.m, score: Math.max(...scored.map(y => y.v)) }; }
+    return V.pickSoft(scored, temp);
+  };
+  // how the AI feels about the position, -1 (lost) .. 1 (won)
+  V.mood = (score, unit) => Math.abs(score) > 90000 ? Math.sign(score) : Math.tanh(score / unit);
+
   // Monte Carlo tree search. g.moves, g.play (immutable), g.result(s) -> null|0|1|2, g.turn(s) -> 1|2
   V.mcts = function (g, root, iters, timeMs = 2500) {
     const deadline = performance.now() + timeMs;
@@ -210,7 +250,7 @@
     }
     let best = null;
     for (const k of R.kids) if (!best || k.n > best.n) best = k;
-    return best ? best.m : V.pick(g.moves(root));
+    return best ? { move: best.m, rate: best.w / best.n } : { move: V.pick(g.moves(root)), rate: 0.5 };
   };
 
   // ---------- mini boards for tutorials ----------
@@ -408,11 +448,13 @@
   function tile(g, i) {
     const s = stats[g.id];
     const w = s ? s.ai.reduce((a, r) => a + r.w, 0) : 0, l = s ? s.ai.reduce((a, r) => a + r.l, 0) : 0;
+    const loc = s ? s.local.a + s.local.b + s.local.d : 0;
+    const played = s && (s.ai.reduce((a, r) => a + r.w + r.l + r.d, 0) + loc) > 0;
     const isSel = wide() && selected && selected.id === g.id;
     return `<button class="tile${isSel ? ' sel' : ''}" data-id="${g.id}" style="--acc:${g.accent || 'var(--pink)'};--i:${i}">
       <span class="art"><span class="ic">${g.icon}</span></span>
       <span class="tx"><b>${g.name}</b><small>${g.short}</small></span>
-      <span class="meta">${seen[g.id] ? `<em>${g.cat}</em>` : '<em class="new">Neu</em>'}${s ? `<em class="rec">${w}:${l}</em>` : ''}</span></button>`;
+      <span class="meta">${played ? `<em>${g.cat}</em>` : '<em class="new">Neu</em>'}${played && g.noAI ? `<em class="rec">${loc}× gespielt</em>` : played && w + l ? `<em class="rec">KI ${w}:${l}</em>` : ''}</span></button>`;
   }
 
   // ---------- game panel (desktop side panel and phone setup screen) ----------
@@ -496,6 +538,7 @@
       const s = stats[g.id]; if (!s) return '';
       const w = s.ai.reduce((a, r) => a + r.w, 0), l = s.ai.reduce((a, r) => a + r.l, 0), d = s.ai.reduce((a, r) => a + r.d, 0), n = w + l + d;
       const loc = s.local.a + s.local.b + s.local.d;
+      if (!n && !loc) return '';
       return `<div class="srow" style="--acc:${g.accent || 'var(--pink)'}"><div class="ic">${g.icon}</div>
         <div class="sm"><b>${g.name}</b>
           <div class="wbar">${n ? `<i class="w" style="flex:${w}"></i><i class="d" style="flex:${d}"></i><i class="l" style="flex:${l}"></i>` : '<i class="e"></i>'}</div>
@@ -668,6 +711,25 @@
   })();
   V.nav = nav;
 
+  // ---------- AI crosshair ----------
+  const aim = (function () {
+    let el = null;
+    const get = () => { if (!el) { el = V.el('div', 'aim'); document.body.appendChild(el); } return el; };
+    return {
+      to(target, real) {
+        const e = get(), r = target.getBoundingClientRect(), p = 4, fresh = !e.classList.contains('on');
+        if (fresh) e.style.transition = 'none';
+        e.style.transform = `translate(${r.left - p}px,${r.top - p}px)`;
+        e.style.width = r.width + p * 2 + 'px'; e.style.height = r.height + p * 2 + 'px';
+        e.classList.toggle('real', !!real); e.classList.remove('lock');
+        if (fresh) { void e.offsetWidth; e.style.transition = ''; }
+        e.classList.add('on');
+      },
+      lock() { const e = get(); e.classList.remove('lock'); void e.offsetWidth; e.classList.add('lock'); },
+      hide() { if (el) el.classList.remove('on', 'real', 'lock'); }
+    };
+  })();
+
   // ---------- VS intro before each match ----------
   function vsIntro(left, right, quick) {
     if (!V.fxOn()) return;
@@ -697,9 +759,10 @@
     const names = { 1: ai ? (aiSide === 1 ? 'KI' : 'Du') : 'Spieler 1', 2: ai ? (aiSide === 2 ? 'KI' : 'Du') : 'Spieler 2' };
     const sub = s => sideLabel(s) + (s === 1 && g.cat !== 'Action' ? ' · beginnt' : '');
     const av = s => ai ? (s === aiSide ? IC.robot : '<span>DU</span>') : `<span>P${s}</span>`;
-    const card = (s, pos) => `<div class="pc pc-${pos}" id="pl${s}"><span class="av">${av(s)}</span>
+    const card = (s, pos) => `<div class="pcard pcard-${pos}" id="pl${s}"><span class="av">${av(s)}</span>
       <span class="nm"><b>${names[s]}</b><small>${sub(s)}${ai && s === aiSide ? ' · ' + V.LEVELS[cfg.level] : ''}</small></span>
-      <span class="wins"><b>${series[s]}</b><small>Siege</small></span><em class="tag">am Zug</em></div>`;
+      <span class="wins"><b>${series[s]}</b><small>Siege</small></span><em class="tag">am Zug</em>
+      ${ai && s === aiSide ? '<span class="tdots" aria-hidden="true"><i></i><i></i><i></i></span><div class="bubble" aria-live="polite"></div>' : ''}</div>`;
     const v = mount(`<div class="view play" style="--acc:${g.accent || 'var(--pink)'}">
       <div class="pbar"><button class="iconbtn" id="pb" aria-label="Zurück">${IC.back}</button><div class="ttl"><b>${g.name}</b><small>${ai ? 'Gegen KI · ' + V.LEVELS[cfg.level] : 'Zu zweit'}</small></div>
         <button class="iconbtn" id="ph" aria-label="Regeln" title="Regeln (T)">${IC.help}</button><button class="iconbtn" id="pr" aria-label="Neu starten" title="Neue Partie (N)">${IC.redo}</button></div>
@@ -711,7 +774,28 @@
       </div></div>`);
     const stEl = v.querySelector('#st'), pls = { 1: v.querySelector('#pl1'), 2: v.querySelector('#pl2') };
     const timers = new Set(), cleanups = [];
-    let alive = true, ended = false, keyFn = null, lastTurn = 0;
+    let alive = true, ended = false, keyFn = null, lastTurn = 0, lastNote = '', moodBand = 0, bubbleT = null;
+    const LINES = {
+      3: ['Ich sehe den Sieg.', 'Gleich ist es vorbei.', 'Das war’s wohl.'],
+      2: ['Läuft für mich.', 'Gefällt mir.', 'Nicht schlecht, oder?'],
+      0: ['Mal sehen.', 'Interessant.', 'Okay.', 'Hm.', 'Dein Zug.'],
+      '-2': ['Hmm, knifflig.', 'Du spielst gut.', 'Das wird eng.'],
+      '-3': ['Oh nein.', 'Das sieht übel aus.', 'Respekt.']
+    };
+    function speak(note, mood) {
+      const b = ai && pls[aiSide].querySelector('.bubble'); if (!b) return;
+      let line = '';
+      if (typeof mood === 'number') {
+        const band = mood >= 0.97 ? 3 : mood > 0.45 ? 2 : mood <= -0.97 ? -3 : mood < -0.45 ? -2 : 0;
+        if (band !== moodBand || Math.random() < (band ? 0.35 : 0.18)) line = V.pick(LINES[band]);
+        moodBand = band;
+      } else if (Math.random() < 0.2) line = V.pick(LINES[0]);
+      if (!note && !line) { b.classList.remove('on'); return; }
+      b.innerHTML = (note ? `<b>${note}</b>` : '') + (line ? `<span>${line}</span>` : '');
+      b.classList.remove('on'); void b.offsetWidth; b.classList.add('on');
+      clearTimeout(bubbleT); bubbleT = setTimeout(() => b.classList.remove('on'), 3000);
+    }
+    cleanups.push(() => { clearTimeout(bubbleT); aim.hide(); });
     const setStatus = html => {
       if (stEl.innerHTML === html) return;
       stEl.innerHTML = html; if (V.fxOn()) V.fx.pop(stEl, 'st-in');
@@ -727,10 +811,48 @@
       status: setStatus,
       turn(s, html) {
         pls[1].classList.toggle('on', s === 1); pls[2].classList.toggle('on', s === 2);
-        if (s && s !== lastTurn && V.fxOn()) V.fx.pop(pls[s], 'pc-in');
+        if (s && s !== lastTurn && V.fxOn()) V.fx.pop(pls[s], 'pcard-in');
         lastTurn = s;
-        if (html !== false) setStatus(html || (names[s] === 'Du' ? '<span class="c' + s + '">Du</span> bist dran' : ctx.isAI(s) ? '<span class="c' + s + '">KI</span> ist dran' : `${ctx.who(s)} ist dran`));
+        const note = s && !ctx.isAI(s) && lastNote ? `<span class="c${aiSide}">KI:</span> ${lastNote} · ` : '';
+        if (html !== false) setStatus(note + (html || (names[s] === 'Du' ? '<span class="c' + s + '">Du</span> bist dran' : ctx.isAI(s) ? '<span class="c' + s + '">KI</span> ist dran' : `${ctx.who(s)} ist dran`)));
         nav.refresh();
+      },
+      // One AI move with a bit of theatre: think (min. time per level), let the crosshair hover over
+      // a couple of alternatives, lock on the real target(s), then move and comment in the bubble.
+      // o.think() -> { move, mood? }, o.targets(move) -> [elements], o.decoys(move) -> [elements],
+      // o.apply(move), o.say(move) -> short text, o.quick -> follow-up move (e.g. extra turn) with less delay
+      aiTurn(o) {
+        const s = aiSide, card = pls[s];
+        card.classList.add('thinking');
+        setStatus(`<span class="c${s}">KI</span> <span class="thinking">${o.quick ? 'macht weiter' : 'denkt'}</span>`);
+        const minT = o.quick ? 380 : [650, 850, 1050, 1250][cfg.level] + Math.random() * 450;
+        const t0 = performance.now();
+        ctx.later(() => {
+          const res = o.think();
+          ctx.later(() => aimAt(res), Math.max(0, minT - (performance.now() - t0)));
+        }, 70);
+        function aimAt(res) {
+          const tg = (o.targets ? o.targets(res.move) : []).filter(Boolean);
+          let path = [];
+          if (o.decoys && !o.quick) path = V.shuffle((o.decoys(res.move) || []).filter(x => x && !tg.includes(x))).slice(0, V.rand(3));
+          path = path.concat(tg);
+          if (!V.fxOn() || !path.length) return done(res);
+          let i = 0;
+          const step = () => {
+            if (i >= path.length) { aim.lock(); return ctx.later(() => done(res), 170); }
+            const real = i >= path.length - tg.length;
+            aim.to(path[i], real); i++;
+            if (!real) V.sfx.tick();
+            ctx.later(step, real ? 260 : 190);
+          };
+          step();
+        }
+        function done(res) {
+          aim.hide(); card.classList.remove('thinking');
+          lastNote = o.say ? o.say(res.move) : '';
+          speak(lastNote, res.mood);
+          o.apply(res.move);
+        }
       },
       think(fn, ms = 380) { setStatus(`<span class="c${aiSide}">KI</span> <span class="thinking">denkt</span>`); ctx.later(fn, ms); },
       nav(fn, o) { nav.set(fn, o); },

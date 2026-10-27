@@ -100,6 +100,7 @@
     id: 'mill', name: 'Mühle', cat: 'Strategie', order: 4, accent: 'var(--yellow)',
     short: 'Drei in einer Linie, dann Stein weg.',
     desc: 'Setz und zieh deine neun Steine. Drei in einer Linie sind eine Mühle, dann darfst du einen gegnerischen Stein nehmen.',
+    levelInfo: ['Anfänger: setzt oft planlos und übersieht deine Mühlen meistens.', 'Schließt eigene Mühlen, blockt deine aber nicht immer.', 'Rechnet vier Halbzüge tief.', 'Rechnet bis zu acht Halbzüge tief und baut gern Zwickmühlen.'],
     keys: [['Pfeile', 'Punkt wählen'], ['Enter', 'Setzen, Stein nehmen oder ziehen']],
     icon: `<svg viewBox="0 0 48 48" fill="none"><path d="M5 5h38v38H5zM13 13h22v22H13zM20 20h8v8h-8zM24 5v15M24 28v15M5 24h15M28 24h15" stroke="#3a4070" stroke-width="2.4"/><circle cx="5" cy="5" r="4" fill="#ff4fd8"/><circle cx="24" cy="5" r="4" fill="#ff4fd8"/><circle cx="43" cy="5" r="4" fill="#ff4fd8"/><circle cx="35" cy="35" r="4" fill="#ffd84f"/><circle cx="13" cy="24" r="4" fill="#ffd84f"/></svg>`,
     tutorial: [
@@ -202,9 +203,21 @@
         const verb = ctx.name(p) === 'Du' ? { place: 'setzt', move: 'ziehst', fly: 'springst' }[ph].replace(/^setzt$/, 'setzt') : hint;
         ctx.turn(p, `${who} ${ctx.name(p) === 'Du' && ph === 'place' ? 'setzt' : verb}${ph === 'fly' ? ' (nur noch 3 Steine)' : ''}`);
         render();
-        if (ctx.isAI(p)) ctx.think(() => {
-          const L = ctx.level, ms = genMoves(s);
-          const m = Math.random() < [0.35, 0.12, 0.02, 0][L] ? V.pick(ms) : V.search(G, s, [1, 3, 4, 6][L], [250, 600, 1100, 1900][L]).move;
+        const hitEl = i => svgBox.querySelector(`[data-i="${i}"]`);
+        const PN = ['a7', 'd7', 'g7', 'b6', 'd6', 'f6', 'c5', 'd5', 'e5', 'a4', 'b4', 'c4', 'e4', 'f4', 'g4', 'c3', 'd3', 'e3', 'b2', 'd2', 'f2', 'a1', 'd1', 'g1'];
+        if (ctx.isAI(p)) ctx.aiTurn({
+          // Leicht 1 ply loose + random slips, Mittel 2 plies soft choice, Schwer 4 plies, Profi up to 8 plies
+          think: () => {
+            const L = ctx.level;
+            const r = L === 0 ? V.weak(V.searchAll(G, s, 1, 500), 90, 0.35) : L === 1 ? V.pickSoft(V.searchAll(G, s, 2, 800), 35) : V.search(G, s, [4, 8][L - 2], [900, 2200][L - 2]);
+            return { move: r.move, mood: V.mood(r.score, 260) };
+          },
+          targets: m => (m.f >= 0 ? [hitEl(m.f), hitEl(m.t)] : [hitEl(m.t)]),
+          decoys: m => genMoves(s).filter(x => x.t !== m.t).map(x => hitEl(x.t)),
+          apply: m => aiApply(m),
+          say: m => (m.f >= 0 ? `${PN[m.f]}–${PN[m.t]}` : `setzt ${PN[m.t]}`) + (m.r >= 0 ? ', nimmt ' + PN[m.r] : '')
+        });
+        function aiApply(m) {
           if (m.r >= 0) {
             // show the mill first, then take the stone
             const b = s.b.slice(); if (m.f >= 0) b[m.f] = 0; b[m.t] = p;
@@ -212,7 +225,7 @@
             ctx.status('<span class="c' + p + '">KI</span> hat eine <b style="color:var(--cy)">Mühle</b>');
             ctx.later(() => { pending = null; doMove(m, true); }, 850);
           } else doMove(m);
-        }, 300);
+        }
       }
       next();
     }

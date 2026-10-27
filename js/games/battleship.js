@@ -41,11 +41,13 @@
     const sh = tgt.shots;
     const unknown = []; for (let i = 0; i < N * N; i++) if (!sh[i]) unknown.push(i);
     const hits = []; for (let i = 0; i < N * N; i++) if (sh[i] === 2) hits.push(i);
+    // Leicht: mostly blind shots, sometimes next to a hit. Mittel: shoots around hits until the ship is sunk.
+    // Schwer: follows the line of a ship and searches in a chessboard pattern. Profi: probability map.
+    if (level === 3) return density(tgt, unknown, hits);
     if (level === 0) {
-      if (hits.length && Math.random() < 0.5) { const c = hits.flatMap(nb4).filter(i => !sh[i]); if (c.length) return V.pick(c); }
+      if (hits.length && Math.random() < 0.55) { const c = hits.flatMap(nb4).filter(i => !sh[i]); if (c.length) return V.pick(c); }
       return V.pick(unknown);
     }
-    if (level === 3) return density(tgt, unknown, hits);
     if (hits.length) {
       if (level === 2 && hits.length >= 2) {
         const rows = new Set(hits.map(i => (i / N) | 0)), cols = new Set(hits.map(i => i % N));
@@ -109,7 +111,7 @@
     short: 'Versteckte Flotten, gezielte Schüsse.',
     desc: 'Versteck deine Flotte und finde die Schiffe des Gegners zuerst. Treffer heißt: nochmal schießen.',
     keys: [['Pfeile', 'Feld wählen'], ['Enter', 'Schiff legen oder schießen'], ['R', 'Schiff drehen'], ['Z', 'Flotte zufällig verteilen'], ['F', 'Fertig']],
-    levelInfo: ['Schießt meistens blind.', 'Jagt angeschossene Schiffe gezielt.', 'Sucht im Schachbrettmuster und verfolgt Treffer.', 'Rechnet für jedes Feld die Wahrscheinlichkeit aus.'],
+    levelInfo: ['Anfänger: schießt meist blind, auch nach einem Treffer.', 'Schießt blind und dann rund um jeden Treffer.', 'Folgt der Richtung eines getroffenen Schiffs und sucht im Schachbrettmuster.', 'Rechnet bei jedem Schuss für jedes Feld die Wahrscheinlichkeit aus.'],
     icon: `<svg viewBox="0 0 48 48" fill="none"><rect x="3" y="3" width="42" height="42" rx="6" fill="#112040"/><path d="M3 17h42M3 31h42M17 3v42M31 3v42" stroke="#1f3566" stroke-width="1.5"/><path d="M7 38h22l-3 4H10z" fill="#4a5c96"/><path d="M13 38v-4h8v4" fill="#4a5c96"/><circle cx="35" cy="12" r="5" fill="#ff5d73"/><circle cx="35" cy="12" r="2" fill="#ffe0e5"/><circle cx="24" cy="23" r="1.8" fill="#6874aa"/><circle cx="12" cy="11" r="1.8" fill="#6874aa"/></svg>`,
     tutorial: [
       { t: 'Das Ziel', d: 'Jeder hat ein Meer mit 10×10 Feldern und versteckt darin seine Flotte. Ihr schießt abwechselnd auf das Meer des Gegners. Wer zuerst <b>alle gegnerischen Schiffe versenkt</b>, gewinnt.' },
@@ -294,8 +296,18 @@
         const pre = lastMsg ? lastMsg + ' · ' : '';
         if (ctx.isAI(turn)) {
           ctx.turn(turn, false);
-          ctx.status(pre + '<span class="c' + turn + '">KI</span> <span class="thinking">zielt</span>');
-          ctx.later(() => shoot(aiShot(ctx.level, P[human])), 550);
+          const again = !!lastMsg && !lastMsg.includes('Wasser');
+          ctx.aiTurn({
+            quick: again,
+            think: () => {
+              const left = P[human].ships.filter(x => x.hits < x.l).length, mine = P[ctx.aiSide].ships.filter(x => x.hits < x.l).length;
+              return { move: aiShot(ctx.level, P[human]), mood: (mine - left) / 3 };
+            },
+            targets: i => [ob.q[i]],
+            decoys: () => ob.q.filter((q, i) => !P[human].shots[i]),
+            apply: shoot,
+            say: () => ''
+          });
         } else {
           ctx.turn(turn, pre + (local ? ctx.who(turn) + ' schießt' : 'Du schießt') + (lastMsg && !lastMsg.includes('Wasser') ? ' nochmal' : ''));
         }

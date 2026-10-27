@@ -156,15 +156,13 @@
       return best;
     }
     let root = V.shuffle(legal(P, false)).sort((x, y) => mvv(y) - mvv(x));
-    let best = root[0];
+    let best = root[0], score = 0;
     if (noise) {
-      // weak levels: full-width shallow search with random noise on every root move
-      let bv = -1e9;
-      for (const m of root) {
-        const u = make(P, m); const v = -nm(depth - 1, -1e9, 1e9, 1) + (Math.random() - 0.5) * noise; unmake(P, u);
-        if (v > bv) { bv = v; best = m; }
-      }
-      return best;
+      // weak levels: exact score for every move at a shallow depth, then a human-like soft choice
+      const scored = root.map(m => { const u = make(P, m); const v = -nm(depth - 1, -1e9, 1e9, 1); unmake(P, u); return { m, v }; });
+      stop = false;
+      const r = V.pickSoft(scored, noise);
+      return { move: r.move, score: r.score };
     }
     for (let d = 1; d <= depth; d++) {
       let a = -1e9, bm = null;
@@ -173,10 +171,10 @@
         if (stop) break;
         if (v > a) { a = v; bm = m; }
       }
-      if (bm) { best = bm; root = [bm, ...root.filter(x => x !== bm)]; }
+      if (bm) { best = bm; score = a; root = [bm, ...root.filter(x => x !== bm)]; }
       if (stop || a > 90000) break;
     }
-    return best;
+    return { move: best, score };
   }
 
   const GLYPH = { k: '♚', q: '♛', r: '♜', b: '♝', n: '♞', p: '♟' };
@@ -222,7 +220,7 @@
     sides: { 1: 'Weiß', 2: 'Schwarz' },
     keys: [['Pfeile', 'Feld wählen'], ['Enter', 'Figur nehmen, dann Zielfeld'], ['1–4', 'Bei Umwandlung: Dame, Turm, Läufer, Springer']],
     firstTitle: 'Deine Farbe', firstLabels: ['Weiß', 'Schwarz', 'Zufall'],
-    levelInfo: ['Sieht nur einen Zug weit und patzt oft. Gut für Einsteiger.', 'Schlägt hängende Figuren und deckt eigene.', 'Rechnet drei Züge voraus. Fordernd für Vereinsspieler-Anfänger.', 'Rechnet so tief, wie die Zeit erlaubt.'],
+    levelInfo: ['Anfänger: zieht oft planlos und lässt Figuren hängen.', 'Schlägt, was offen herumsteht, übersieht aber Gabeln und Fesselungen.', 'Rechnet drei Halbzüge genau. Hängende Figuren verzeiht sie nicht.', 'Rechnet bis zu acht Halbzüge tief und nimmt sich Zeit dafür.'],
     endDelay: 1300,
     icon: `<svg viewBox="0 0 48 48"><rect x="3" y="3" width="42" height="42" rx="6" fill="#585e9c"/><path d="M3 3h10.5v10.5H3zM24 3h10.5v10.5H24zM13.5 13.5H24V24H13.5zM34.5 13.5H45V24H34.5zM3 24h10.5v10.5H3zM24 24h10.5v10.5H24zM13.5 34.5H24V45H13.5zM34.5 34.5H45V45H34.5z" fill="#b9bce6"/><text x="24" y="34" text-anchor="middle" font-size="30" fill="#fafaff" stroke="#14142a" stroke-width="1">♞&#xFE0E;</text></svg>`,
     tutorial: [
@@ -340,11 +338,25 @@
         const s = numOf[P.turn];
         const base = ctx.isAI(s) ? '<span class="c' + s + '">KI</span> ist dran' : (ctx.name(s) === 'Du' ? 'Du bist dran' : ctx.who(s) + ' ist dran');
         ctx.turn(s, (chk ? '<b style="color:var(--bad)">Schach!</b> · ' : '') + base);
-        if (ctx.isAI(s)) ctx.think(() => {
-          const L = ctx.level;
-          const m = think(P, [1, 2, 4, 6][L], [400, 700, 1400, 2600][L], [260, 70, 0, 0][L]);
-          doMove(m);
-        }, 120);
+        const sqn = q => 'abcdefgh'[q & 7] + (8 - (q >> 3));
+        const PN = { p: 'Bauer', n: 'Springer', b: 'Läufer', r: 'Turm', q: 'Dame', k: 'König' };
+        if (ctx.isAI(s)) ctx.aiTurn({
+          // Leicht: 1 ply + captures, soft choice (misses tactics). Mittel: 2 plies + captures, small slips.
+          // Schwer: 4 plies exact. Profi: iterative deepening up to 8 plies within ~2.8 s.
+          think: () => {
+            const L = ctx.level;
+            const r = L === 0 && Math.random() < 0.25 ? { move: V.pick(moves), score: 0 } : think(P, [1, 1, 3, 8][L], [1500, 1500, 1200, 2600][L], [220, 60, 0, 0][L]);
+            return { move: r.move, mood: V.mood(r.score, 450) };
+          },
+          targets: m => [cells[m.f], cells[m.t]],
+          decoys: m => V.shuffle(moves.filter(x => x.f !== m.f).map(x => cells[x.f])),
+          apply: doMove,
+          say: m => {
+            if (m.castle) return m.castle === 'k' ? 'Kurze Rochade' : 'Lange Rochade';
+            const pn = PN[P.b[m.f].toLowerCase()];
+            return `${pn} ${m.cap ? 'schlägt ' : ''}${sqn(m.t)}${m.promo ? ' wird ' + NAME[m.promo] : ''}`;
+          }
+        });
       }
       render(); next(false);
     }

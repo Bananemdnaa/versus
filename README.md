@@ -16,7 +16,8 @@ Am Laptop ist die Startseite ein Auswahlbildschirm: links die Spiele, rechts dir
 
 Du bist immer Pink und links, die KI immer Gelb und rechts, egal wer anfängt. Zu zweit ist Spieler 1 Pink, Spieler 2 Gelb.
 
-- **Gegen KI:** Leicht, Mittel, Schwer und Profi. Bei den Brettspielen wählst du, wer anfängt (bei Schach deine Farbe).
+- **Gegen KI** (alle Brettspiele): Leicht ist ein echter Anfänger, Mittel ein Gelegenheitsspieler, Schwer rechnet sauber ein paar Züge voraus, Profi rechnet so tief, wie die Bedenkzeit erlaubt. Du wählst, wer anfängt (bei Schach deine Farbe). Die KI denkt sichtbar nach, zielt mit einem Fadenkreuz auf ihren Zug, schreibt ihren letzten Zug in die Statuszeile und kommentiert die Lage in einer Sprechblase.
+- **Action-Spiele** gibt es nur zu zweit, weil dort eine KI nur über die Reaktionszeit stark oder schwach wäre.
 - **2 Spieler, ein Gerät:** abwechselnd am selben Handy oder PC. Bei Schiffe versenken kommt zwischen den Zügen ein Wechsel-Bildschirm, damit keiner die Flotte des anderen sieht.
 
 Regeln im Detail:
