@@ -5,7 +5,7 @@
 
   // Project URL and publishable key from Supabase (Settings → API). Both are public by design;
   // the database protects itself with row level security and server-side checks.
-  const CFG = { url: '', key: '' };
+  const CFG = { url: 'https://ygnngmtvncmdunsdnwtk.supabase.co', key: 'sb_publishable_DWz8MXxA0PM-rQOqnVMJGQ_FqadTjHg' };
   // Supabase needs an e-mail address internally; this domain is ours (GitHub Pages), no mails are sent.
   const MAIL = 'bananemdnaa.github.io';
   const NAME_RE = /^[a-z0-9_-]{3,16}$/;
