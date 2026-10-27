@@ -434,17 +434,15 @@
   function wireTiles(root) {
     root.querySelectorAll('.tile').forEach(t => {
       const g = V.byId[t.dataset.id];
+      // Laptop: a click only selects the game; the round starts with the Spielen button or Enter.
       t.onclick = () => {
-        V.sfx.ui();
-        if (!wide()) return setup(g);
-        if (selected === g && t.classList.contains('sel')) return startFromCfg(g);
-        selectTile(g);
+        if (!wide()) { V.sfx.ui(); return setup(g); }
+        if (selected === g && t.classList.contains('sel')) return;
+        V.sfx.ui(); selectTile(g);
       };
-      t.addEventListener('dblclick', () => { if (wide()) startFromCfg(g); });
       t.addEventListener('focus', () => { if (wide() && selected !== g) selectTile(g); });
     });
   }
-  function startFromCfg(g) { play(g, loadCfg(g)); }
   function tile(g, i) {
     const s = stats[g.id];
     const w = s ? s.ai.reduce((a, r) => a + r.w, 0) : 0, l = s ? s.ai.reduce((a, r) => a + r.l, 0) : 0;
