@@ -45,20 +45,20 @@
   .c4ghost{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;padding:0 11px}
   .c4ghost div{aspect-ratio:1;border-radius:50%;transform:scale(.88);opacity:0;transition:opacity .12s}
   .c4ghost div.on{opacity:.45}
-  .c4{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;padding:10px;background:#1a1f5c;border-radius:10px;border:1px solid #3b4aa8;box-shadow:0 0 50px -16px #4f6bff;cursor:pointer;touch-action:manipulation}
-  .c4 .cell{aspect-ratio:1;border-radius:50%;background:var(--bg);position:relative;box-shadow:inset 0 3px 6px rgba(0,0,0,.7)}
-  .c4 .disc,.c4ghost div{position:relative}
-  .c4 .disc{position:absolute;inset:5%;border-radius:50%}
-  .c4 .p1,.c4ghost .p1{background:radial-gradient(circle at 35% 30%,var(--p1hi),var(--p1) 62%);box-shadow:0 0 12px color-mix(in srgb,var(--p1) 55%,transparent)}
-  .c4 .p2,.c4ghost .p2{background:radial-gradient(circle at 35% 30%,var(--p2hi),var(--p2) 62%);box-shadow:0 0 12px color-mix(in srgb,var(--p2) 50%,transparent)}
-  .c4 .drop{animation:c4drop calc(.18s + var(--f)*.05s) cubic-bezier(.55,0,1,.45) both}
+  .c4b{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;padding:10px;background:#1a1f5c;border-radius:10px;border:1px solid #3b4aa8;box-shadow:0 0 50px -16px #4f6bff;cursor:pointer;touch-action:manipulation}
+  .c4b .cell{aspect-ratio:1;border-radius:50%;background:var(--bg);position:relative;box-shadow:inset 0 3px 6px rgba(0,0,0,.7)}
+  .c4b .disc,.c4ghost div{position:relative}
+  .c4b .disc{position:absolute;inset:5%;border-radius:50%}
+  .c4b .p1,.c4ghost .p1{background:radial-gradient(circle at 35% 30%,var(--p1hi),var(--p1) 62%);box-shadow:0 0 12px color-mix(in srgb,var(--p1) 55%,transparent)}
+  .c4b .p2,.c4ghost .p2{background:radial-gradient(circle at 35% 30%,var(--p2hi),var(--p2) 62%);box-shadow:0 0 12px color-mix(in srgb,var(--p2) 50%,transparent)}
+  .c4b .drop{animation:c4drop calc(.18s + var(--f)*.05s) cubic-bezier(.55,0,1,.45) both}
   @keyframes c4drop{from{transform:translateY(calc(var(--f) * -120%))}75%{transform:translateY(0)}88%{transform:translateY(-7%)}to{transform:none}}
-  .c4 .w .disc{box-shadow:0 0 0 3px var(--cy),0 0 22px var(--cy);animation:c4win 1s ease-in-out infinite}
+  .c4b .w .disc{box-shadow:0 0 0 3px var(--cy),0 0 22px var(--cy);animation:c4win 1s ease-in-out infinite}
   @keyframes c4win{50%{transform:scale(.86)}}
-  .c4.done .cell:not(.w) .disc{opacity:.4;transition:opacity .5s}
-  .c4 .cell{transition:background .15s}
-  .c4.hov .cell.col{background:#141733}
-  .c4.lock{cursor:default}`);
+  .c4b.done .cell:not(.w) .disc{opacity:.4;transition:opacity .5s}
+  .c4b .cell{transition:background .15s}
+  .c4b.hov .cell.col{background:#141733}
+  .c4b.lock{cursor:default}`);
 
   V.register({
     id: 'c4', name: '4 Gewinnt', cat: 'Klassiker', order: 1, accent: 'var(--pink)',
@@ -76,7 +76,7 @@
     ],
     start(ctx) {
       let s = { b: Array(R * C).fill(0), turn: 1, last: -1, n: 0 }, over = false, busy = false;
-      const wrap = V.el('div', 'c4wrap'), ghost = V.el('div', 'c4ghost'), board = V.el('div', 'c4');
+      const wrap = V.el('div', 'c4wrap'), ghost = V.el('div', 'c4ghost'), board = V.el('div', 'c4b');
       for (let c = 0; c < C; c++) ghost.appendChild(V.el('div'));
       for (let i = 0; i < R * C; i++) { const cell = V.el('div', 'cell'); cell.dataset.c = i % C; board.appendChild(cell); }
       wrap.append(ghost, board); ctx.stage.appendChild(wrap);

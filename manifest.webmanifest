@@ -2,7 +2,7 @@
   "id": "./",
   "name": "Versus",
   "short_name": "Versus",
-  "description": "Spiele für zwei: 4 Gewinnt, Schach, Schiffe versenken, Dame und mehr. Am selben Handy, gegen die KI oder online gegen Freunde.",
+  "description": "Spiele für zwei bis vier: 4 Gewinnt, Schach, Ludo, Lichtrenner, Schiffe versenken und mehr. Am selben Handy, gegen die KI oder online gegen Freunde.",
   "lang": "de",
   "dir": "ltr",
   "start_url": "./?app=1",

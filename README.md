@@ -1,14 +1,27 @@
 # Versus
 
-12 Spiele für zwei Spieler an einem Gerät oder allein gegen die KI in vier Stufen. Jedes Spiel hat ein eigenes Tutorial.
+17 Spiele für zwei bis vier Spieler an einem Gerät oder allein gegen die KI in vier Stufen. Jedes Spiel hat ein eigenes Tutorial.
 
 **Spielen:** https://bananemdnaa.github.io/versus/
 
 ## Spiele
 
-- **Klassiker:** 4 Gewinnt, Schiffe versenken, Tic Tac Toe, Ultimate Tic Tac Toe, Käsekästchen
-- **Strategie:** Schach, Dame, Reversi, Mühle
-- **Action:** Reaktionsduell, Pong, Air Hockey (beide spielen gleichzeitig am selben Handy, jeder auf seiner Hälfte)
+- **Klassiker:** 4 Gewinnt, Schiffe versenken, Tic Tac Toe, Fünf in einer Reihe, Ultimate Tic Tac Toe, Käsekästchen, Ludo (2–4)
+- **Strategie:** Schach, Dame, Reversi, Mühle, Kalaha
+- **Action:** Reaktionsduell, Pong, Air Hockey (beide spielen gleichzeitig am selben Handy, jeder auf seiner Hälfte), Lichtrenner (2–4), Sumo-Arena (2–4)
+
+## Bis zu vier Spieler
+
+Ludo, Lichtrenner und Sumo-Arena gehen mit 2, 3 oder 4 Spielern (Einstellung „Spieler“). Gegen die KI bist du immer Pink, die anderen Plätze übernehmen Computer-Spieler in der gewählten Stärke; zu zweit, dritt oder viert spielt ihr am selben Gerät. Farben: Spieler 1 Pink, 2 Gelb, 3 Cyan, 4 Grün.
+
+- **Ludo:** jeder vier Figuren; mit einer 6 raus (Pflicht, wenn das Startfeld frei ist), nach einer 6 nochmal, drei Versuche, wenn keine Figur draußen steht; Rauswerfen, genaue Augenzahl im Ziel.
+- **Lichtrenner:** jeder lenkt mit zwei Knöpfen (links/rechts aus Sicht des Rads), es wird mit der Zeit schneller. Letzter Fahrer holt den Punkt.
+- **Sumo-Arena:** ein Knopf pro Spieler. Der Pfeil dreht sich, Halten schiebt in Pfeilrichtung. Nach ein paar Sekunden schrumpft der Ring.
+- Am Handy liegt das Gerät flach in der Mitte: Spieler 1 und 3 sitzen unten, 2 und 4 oben, deren Knöpfe stehen gedreht. Am PC hat jeder eigene Tasten (siehe unten), die Knöpfe sind dort ausgeblendet.
+
+Weitere Regeln:
+- **Fünf in einer Reihe:** 13×13 oder 15×15, fünf oder mehr in einer Reihe gewinnen. Am Handy setzt der erste Tipp eine Vorschau, der zweite den Stein.
+- **Kalaha:** 6 Mulden mit 3, 4 oder 6 Steinen, Extrazug im eigenen Speicher, Fangen aus der leeren eigenen Mulde, am Ende bekommt jeder die Steine seiner Seite.
 
 ## Modi
 
@@ -17,7 +30,7 @@ Am Laptop ist die Startseite ein Auswahlbildschirm: links die Spiele, rechts dir
 Du bist immer Pink und links, die KI immer Gelb und rechts, egal wer anfängt. Zu zweit ist Spieler 1 Pink, Spieler 2 Gelb.
 
 - **Gegen KI** (alle Brettspiele): Leicht ist ein echter Anfänger, Mittel ein Gelegenheitsspieler, Schwer rechnet sauber ein paar Züge voraus, Profi rechnet so tief, wie die Bedenkzeit erlaubt. Du wählst, wer anfängt (bei Schach deine Farbe). Die KI denkt sichtbar nach, zielt mit einem Fadenkreuz auf ihren Zug, schreibt ihren letzten Zug in die Statuszeile und kommentiert die Lage in einer Sprechblase.
-- **Action-Spiele** gibt es nur zu zweit, weil dort eine KI nur über die Reaktionszeit stark oder schwach wäre.
+- **Action-Spiele:** Reaktionsduell, Pong und Air Hockey gibt es nur zu zweit, weil dort eine KI nur über die Reaktionszeit stark oder schwach wäre. Lichtrenner und Sumo-Arena haben eine KI, weil es dort auf Planung und Timing ankommt.
 - **2 Spieler, ein Gerät:** abwechselnd am selben Handy oder PC. Bei Schiffe versenken kommt zwischen den Zügen ein Wechsel-Bildschirm, damit keiner die Flotte des anderen sieht.
 
 Regeln im Detail:
@@ -33,7 +46,9 @@ Alles geht mit Finger oder Maus. Am PC zusätzlich mit der Tastatur, `?` zeigt a
 - Spielauswahl: Pfeiltasten wählen ein Spiel, `Enter` startet es, `1`–`4` stellen die KI-Stärke ein, `S` wechselt zwischen „Gegen KI“ und „Zu zweit“, `T` öffnet die Regeln
 - Brettspiele: Pfeiltasten bewegen einen Cursor über das Brett, `Enter` oder `Leertaste` setzt bzw. wählt aus
 - `N` neue Partie, `T` Tutorial, `Esc` zurück, `M` Ton an oder aus
-- Eigene Tasten: 4 Gewinnt `1`–`7`, Tic Tac Toe `1`–`9` wie der Ziffernblock, Schiffe versenken `R` drehen, `Z` zufällig, `F` fertig, Pong `←` `→` und `A` `D`, Air Hockey Pfeiltasten und `W` `A` `S` `D`, Reaktionsduell `Leertaste` bzw. `L` und `A`
+- Eigene Tasten: 4 Gewinnt `1`–`7`, Tic Tac Toe `1`–`9` wie der Ziffernblock, Schiffe versenken `R` drehen, `Z` zufällig, `F` fertig, Pong `←` `→` und `A` `D`, Air Hockey Pfeiltasten und `W` `A` `S` `D`, Reaktionsduell `Leertaste` bzw. `L` und `A`, Kalaha `1`–`6`, Ludo `Leertaste` würfeln und `1`–`4` Figur
+- Lichtrenner: Spieler 1 `A` `D`, Spieler 2 `←` `→`, Spieler 3 `C` `B`, Spieler 4 `J` `L` (gegen die KI auch die Pfeiltasten)
+- Sumo-Arena: Spieler 1 `A`, Spieler 2 `←`, Spieler 3 `C`, Spieler 4 `J` gedrückt halten (gegen die KI auch `Leertaste`)
 
 ## Gast-Modus
 
@@ -107,7 +122,7 @@ Im Reiter „Online“ sucht man Spieler nach Namen, schickt Freundschaftsanfrag
 
 - **Freunde hinzufügen:** „Hinzufügen“ im Reiter Online bietet drei Wege: Name suchen (Ergebnisse erscheinen beim Tippen), „Mein Code“ mit QR-Code, Link zum Teilen und kurzem Freundescode, oder „Code eingeben“. Wer den Code eingibt oder den QR-Code bzw. Link öffnet, ist sofort befreundet, ohne Bestätigung. Ein neuer Code macht alte Links ungültig. Wer den Link ohne Konto öffnet, wird zum Anmelden geschickt und danach automatisch befreundet.
 - **Freunde verwalten:** Jeder Freund hat einen „Spielen“-Knopf (Spiel wählen, Einladung geht raus); ein Tipp auf die Zeile öffnet das Profil mit Herausfordern und Entfernen. Neue Anfragen erscheinen als Karte, egal wo man in der App ist, und lassen sich direkt annehmen. Nach einer offenen Herausforderung gegen Unbekannte kann man den Gegner im Ergebnis-Fenster als Freund hinzufügen.
-- Online spielbar: 4 Gewinnt, Schiffe versenken, Tic Tac Toe, Ultimate Tic Tac Toe, Schach, Dame, Reversi, Mühle, Käsekästchen
+- Online spielbar: 4 Gewinnt, Schiffe versenken, Tic Tac Toe, Fünf in einer Reihe, Ultimate Tic Tac Toe, Schach, Dame, Reversi, Mühle, Kalaha, Käsekästchen
 - Schiffe versenken online: Die Flotten liegen nur auf dem Server, der sie auf die Regeln prüft (5 Schiffe, gerade, ohne Berührung), jeden Schuss auswertet und entscheidet, wer dran ist. Der Gegner sieht ein Schiff erst, wenn es versenkt ist.
 - Beide Browser prüfen jeden Zug nach den Spielregeln; ein ungültiger Zug annulliert die Partie. Am Ende melden beide das Ergebnis, stimmen die Meldungen nicht überein, wird die Partie annulliert.
 - Aufgeben über die Flagge oben rechts. Wer 75 Sekunden nicht erreichbar ist, verliert. Nach einem Neuladen geht es über „Weiterspielen“ im Reiter Online weiter.
@@ -118,6 +133,6 @@ Im Reiter „Online“ sucht man Spieler nach Namen, schickt Freundschaftsanfrag
 - **Schachuhr:** Bei Schach zu zweit und online 3, 5 oder 10 Minuten pro Spieler plus 2 Sekunden pro Zug. Online rechnet der Server die Zeit aus den Zugzeiten, wer über die Zeit kommt, verliert.
 - **Admin-Panel → Partien:** laufende und beendete Partien mit Spielern, Zügen und Ergebnis. „Zuschauen“ zeigt eine laufende Partie live, „Abspielen“ spielt eine beendete Zug für Zug nach. Admins können Partien annullieren (steht im Protokoll).
 
-Dafür einmal `supabase/migrations/20261029000000_friends_matches.sql` und danach `supabase/migrations/20261030000000_open_matches.sql`, für Schiffe versenken online zusätzlich `supabase/migrations/20261031000000_ships_online.sql` und `supabase/migrations/20261101000000_dev_rankings.sql` und für „Online-Status verbergen“ `supabase/migrations/20261102000000_hide_online.sql`, für die Wochen-Rangliste `supabase/migrations/20261103000000_weekly_rankings.sql`, für Profile, Reaktionen, Revanche und Schachuhr `supabase/migrations/20261104000000_profiles_social.sql`, für Freundescodes `supabase/migrations/20261105000000_friend_codes.sql` im SQL-Editor ausführen.
+Dafür einmal `supabase/migrations/20261029000000_friends_matches.sql` und danach `supabase/migrations/20261030000000_open_matches.sql`, für Schiffe versenken online zusätzlich `supabase/migrations/20261031000000_ships_online.sql` und `supabase/migrations/20261101000000_dev_rankings.sql` und für „Online-Status verbergen“ `supabase/migrations/20261102000000_hide_online.sql`, für die Wochen-Rangliste `supabase/migrations/20261103000000_weekly_rankings.sql`, für Profile, Reaktionen, Revanche und Schachuhr `supabase/migrations/20261104000000_profiles_social.sql`, für Freundescodes `supabase/migrations/20261105000000_friend_codes.sql` und für Fünf in einer Reihe und Kalaha online `supabase/migrations/20261106000000_more_games.sql` im SQL-Editor ausführen.
 
 Neue Migrationen kommen als weitere Datei in `supabase/migrations/` und werden in Reihenfolge einmal im SQL-Editor ausgeführt.

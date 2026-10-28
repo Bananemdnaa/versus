@@ -2,7 +2,7 @@
 (function () {
   'use strict';
   const C = () => V.cloud, IC = () => V.ui.IC;
-  const ONLINE = ['c4', 'ships', 'ttt', 'uttt', 'chess', 'checkers', 'reversi', 'mill', 'dots'];
+  const ONLINE = ['c4', 'ships', 'ttt', 'uttt', 'gomoku', 'chess', 'checkers', 'reversi', 'mill', 'kalaha', 'dots'];
   ONLINE.forEach(id => { if (V.byId[id]) V.byId[id].online = true; });
   const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const gname = id => (V.byId[id] ? V.byId[id].name : id || '');

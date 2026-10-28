@@ -898,7 +898,7 @@
     tutorial({
       id: '_welcome', name: 'Willkommen',
       tutorial: [
-        { t: 'Willkommen bei Versus', demo: `<div class="wicons">${icons}</div>`, d: `<b>${V.games.length} Spiele für zwei</b>: Klassiker wie 4 Gewinnt und Schach, Strategie und schnelle Action-Duelle. Gemacht für eine schnelle Runde zwischendurch mit Freunden.` },
+        { t: 'Willkommen bei Versus', demo: `<div class="wicons">${icons}</div>`, d: `<b>${V.games.length} Spiele für zwei bis vier</b>: Klassiker wie 4 Gewinnt und Schach, Strategie und schnelle Action-Duelle. Gemacht für eine schnelle Runde zwischendurch mit Freunden.` },
         { t: 'Drei Arten zu spielen', demo: `<div class="wmodes">${mode(IC.robot, 'KI', '4 Stufen')}${mode(IC.users, 'Zu zweit', 'ein Gerät')}${mode(IC.globe, 'Online', 'mit Freunden')}</div>`, d: '<b>Gegen die KI</b> von Anfänger bis Profi, <b>zu zweit</b> an einem Handy, oder <b>online</b> gegen Freunde. Die Rangliste startet jeden Montag neu.' },
         { t: 'Leg los', demo: `<div class="wmodes">${mode(IC.help, 'Tutorial', 'in jedem Spiel')}${mode(IC.user, 'Konto', 'kostenlos')}${mode(IC.dl, 'App', 'installierbar')}</div>`, d: 'Jedes Spiel erklärt sich beim ersten Mal selbst. Als Gast spielst du sofort los; mit einem Konto sind alle Spiele, Freunde und Online-Partien dabei.' }
       ]
