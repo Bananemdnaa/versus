@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Versus Test</title>
+<link rel="stylesheet" href="css/app.css">
+<style id="game-css"></style>
+<style>
+  html, body { background: #08090f; color: #e8e9f3; }
+  #rep { position: fixed; right: 8px; top: 8px; z-index: 9999; width: min(440px, calc(100vw - 16px)); max-height: calc(100vh - 16px); overflow: auto;
+    background: rgba(8, 9, 15, .94); border: 1px solid #333; border-radius: 10px; padding: 10px 12px; font: 13px/1.45 system-ui, sans-serif; }
+  #rep h1 { font-size: 15px; margin: 0 0 6px; }
+  #rep table { width: 100%; border-collapse: collapse; }
+  #rep td { padding: 2px 4px; border-top: 1px solid #222; vertical-align: top; }
+  #rep .ok { color: #5dff9d; } #rep .bad { color: #ff5d7a; } #rep .run { color: #ffd84f; }
+  #rep small { color: #999; }
+</style>
+</head>
+<body>
+<div id="app"></div>
+<div id="fx" aria-hidden="true"></div>
+<div id="rep"><h1>Versus Test</h1><p id="sum">Lädt …</p><table id="tb"></table></div>
+<script>
+// Plays every game with the AI on all seats and reports errors, stalls and finished rounds.
+// Parameters: ?games=c4,chess  ?level=0..3  ?rounds=2  ?timeout=90 (seconds per round)
+(async function () {
+  'use strict';
+  const q = new URLSearchParams(location.search);
+  const level = Math.max(0, Math.min(3, +(q.get('level') || 0)));
+  const rounds = Math.max(1, +(q.get('rounds') || 1));
+  const timeout = Math.max(5, +(q.get('timeout') || 90)) * 1000;
+  const only = q.get('games') ? q.get('games').split(',') : null;
+  const sum = document.getElementById('sum'), tb = document.getElementById('tb');
+
+  // Fast-forward: the games' timers (thinking pauses, animations) run in order on a virtual clock, as fast as
+  // the browser can. That also keeps the test going in a hidden tab, where real timers fire at most once per second.
+  // The test's own time limits keep using real timers. Action games run on animation frames and only get smoke-tested.
+  const realTimeout = setTimeout.bind(window), realClear = clearTimeout.bind(window);
+  let timerQ = [], timerSeq = 0, vnow = 0, pumping = false;
+  const mc = new MessageChannel();
+  mc.port1.onmessage = () => {
+    pumping = false;
+    if (!timerQ.length) return;
+    timerQ.sort((a, b) => a.t - b.t || a.id - b.id);
+    const x = timerQ.shift(); vnow = Math.max(vnow, x.t);
+    pump();
+    x.fn(...x.args);
+  };
+  const pump = () => { if (!pumping && timerQ.length) { pumping = true; mc.port2.postMessage(0); } };
+  window.setTimeout = (fn, ms, ...args) => { const id = ++timerSeq; timerQ.push({ id, t: vnow + (+ms || 0), fn, args }); pump(); return id; };
+  window.clearTimeout = id => { timerQ = timerQ.filter(x => x.id !== id); };
+  const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+
+  // load the same scripts as the app (without Supabase and without booting the menus);
+  // the timestamp gets past the service worker, which would hand out its cached copies
+  const html = await (await fetch('index.html', { cache: 'no-store' })).text();
+  const srcs = [...html.matchAll(/<script src="(js\/[^"]+)"><\/script>/g)].map(m => m[1]);
+  for (const src of srcs) await new Promise((ok, fail) => { const s = document.createElement('script'); s.src = src + '&t=' + Date.now(); s.onload = ok; s.onerror = () => fail(new Error(src)); document.body.appendChild(s); });
+  Object.assign(V.settings, { fx: 'low', intro: false, aiFast: true, sound: false, music: false, haptic: 'off' });
+  V.games.sort((a, b) => V.CATS.indexOf(a.cat) - V.CATS.indexOf(b.cat) || (a.order || 0) - (b.order || 0));
+
+  let errs = [];
+  addEventListener('error', e => errs.push(e.message + (e.filename ? ' (' + e.filename.split('/').pop() + ':' + e.lineno + ')' : '')));
+  addEventListener('unhandledrejection', e => errs.push('Promise: ' + (e.reason && e.reason.message || e.reason)));
+
+  // every game once with its default options; party games additionally with four players
+  const runs = [];
+  V.games.filter(g => !g.noAI && (!only || only.includes(g.id))).forEach(g => {
+    const opts = {}; (g.options || []).forEach(o => { opts[o.id] = o.def; });
+    runs.push({ g, opts, label: g.name });
+    if (g.party && opts.n !== 4) runs.push({ g, opts: Object.assign({}, opts, { n: 4 }), label: g.name + ' · 4' });
+  });
+  const skipped = V.games.filter(g => g.noAI && (!only || only.includes(g.id))).map(g => g.name);
+
+  let bad = 0;
+  for (const [i, r] of runs.entries()) {
+    const row = tb.insertRow(); row.innerHTML = `<td>${esc(r.label)}</td><td class="run">läuft …</td>`;
+    sum.textContent = `${i + 1}/${runs.length} · Stufe ${V.LEVELS[level]} · ${rounds} Runde(n)`;
+    const res = [];
+    for (let k = 0; k < rounds; k++) {
+      errs = [];
+      const t0 = performance.now();
+      const out = await new Promise(done => {
+        const t = realTimeout(() => done({ stall: true }), timeout);
+        try {
+          V.ui.play(r.g, { mode: 'ai', level, first: k % 2 ? 'ai' : 'me', opts: r.opts, auto: true, onEnd: (w, note) => { realClear(t); done({ w, note }); } });
+        } catch (e) { realClear(t); errs.push(e.message); done({ crash: true }); }
+      });
+      await new Promise(ok => realTimeout(ok, 50));
+      res.push(Object.assign(out, { errs: errs.slice(), ms: performance.now() - t0 }));
+      V.closeModal();
+    }
+    // action games without a computer opponent for every seat end by timeout; that only counts when errors came with it
+    const action = r.g.cat === 'Action';
+    const fail = res.some(x => x.crash || x.errs.length || (x.stall && !action));
+    if (fail) bad++;
+    const info = res.map(x => x.crash ? 'Absturz' : x.stall ? (action ? 'Zeit um' : 'hängt') : (x.w ? 'Sieg ' + x.w : 'Remis') + ` <small>${(x.ms / 1000).toFixed(1)} s</small>`).join(' · ');
+    const err = [...new Set(res.flatMap(x => x.errs))].map(e => `<br><small class="bad">${esc(e)}</small>`).join('');
+    row.cells[1].className = fail ? 'bad' : 'ok';
+    row.cells[1].innerHTML = info + err;
+  }
+  V.ui.home && V._.mount('<div class="view"></div>');
+  sum.innerHTML = `<b class="${bad ? 'bad' : 'ok'}">${bad ? bad + ' von ' + runs.length + ' mit Fehlern' : 'Alle ' + runs.length + ' Läufe ohne Fehler'}</b>` +
+    (skipped.length ? `<br><small>Ohne KI, nicht getestet: ${esc(skipped.join(', '))}</small>` : '');
+  window.testResult = { bad, runs: runs.length };
+})().catch(e => { document.getElementById('sum').innerHTML = '<b class="bad">Test konnte nicht starten: ' + e.message + '</b>'; });
+</script>
+</body>
+</html>

@@ -408,7 +408,7 @@
             quick: again,
             think: () => {
               const left = P[me].ships.filter(x => x.hits < x.l).length, mine = P[ctx.aiSide].ships.filter(x => x.hits < x.l).length;
-              return { move: aiShot(ctx.level, P[me]), mood: (mine - left) / 3 };
+              return { move: aiShot(ctx.level, P[3 - turn]), mood: (mine - left) / 3 };
             },
             targets: m => [tgtBoard().q[typeof m === 'number' ? m : m.i]],
             decoys: () => ob.q.filter((q, i) => !P[me].shots[i]),
@@ -436,7 +436,7 @@
       }
 
       if (local) placeFor(1, p1 => { setFleet(P[1], p1); passTo(2, 'Jetzt versteckst du deine Flotte. Spieler 1 schaut weg.', () => placeFor(2, p2 => { setFleet(P[2], p2); passTo(1, 'Die Schlacht beginnt. Du schießt zuerst.', battle); })); });
-      else if (ai) { setFleet(P[ctx.aiSide], randomPlacement()); placeFor(me, placed => { setFleet(P[me], placed); V.sfx.goal(); battle(); }); }
+      else if (ai) { setFleet(P[ctx.aiSide], randomPlacement()); if (ctx.auto) { setFleet(P[me], randomPlacement()); battle(); } else placeFor(me, placed => { setFleet(P[me], placed); V.sfx.goal(); battle(); }); }
       else if (online) {
         unknownFleet(P[3 - me]);
         const s = ctx.net.state() || {};

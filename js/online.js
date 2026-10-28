@@ -47,8 +47,8 @@
     let mid;
     try { mid = await C().rpc('match_invite', { opp: name, gm: g.id, op: opts || optsFor(g) }); }
     catch (e) { V.ui.toast(e.message); V.sfx.bad(); return; }
-    let done = false, t = null;
-    const stop = () => { done = true; clearTimeout(t); };
+    let done = false, t = null, ch = null;
+    const stop = () => { done = true; clearTimeout(t); if (ch) ch.close(); };
     const m = V.ui.openModal(`<div class="confirm wait"><div class="spin"><i></i><i></i></div>
       <h3>${name ? 'Warte auf ' + esc(name) : 'Suche Gegner'}</h3><p>${esc(g.name)} · ${name ? 'die Einladung läuft, solange dieses Fenster offen ist.' : 'alle eingeloggten Spieler sehen deine Herausforderung. Wer zuerst beitritt, spielt gegen dich.'}</p>
       <div class="actions"><button class="btn ghost" id="wc"><span>Abbrechen</span></button></div></div>`, '', () => {
@@ -57,6 +57,7 @@
     m.querySelector('#wc').onclick = () => V.ui.closeModal();
     const poll = async () => {
       if (done) return;
+      clearTimeout(t);
       try {
         const st = await C().rpc('match_state', { mid, since: 0 });
         if (done) return;
@@ -70,13 +71,24 @@
       t = setTimeout(poll, 1500);
     };
     t = setTimeout(poll, 1200);
+    // the invited player pokes the match channel when the match starts, and the invitation channel of their name gets a poke now
+    ch = C().channel('m:' + mid, () => { if (!done) poll(); });
+    if (name) C().poke('u:' + name);
   }
 
   // ---------- incoming invitations (polled while logged in) ----------
   let pendT = null, pending = null, tpending = null, card = null, cardId = null, lastFriendN = -1;
   const toldReq = new Set();
-  function startPolling() { if (pendT) return; pendT = setInterval(check, 5000); check(); }
-  function stopPolling() { clearInterval(pendT); pendT = null; hideInvite(); pending = null; }
+  // invitations and friend requests to me also arrive as a poke on the channel of my name, then we look at once
+  let meChan = null, meName = null;
+  function listenMe() {
+    const u = C().user(), n = u && u.username;
+    if (n === meName) return;
+    if (meChan) meChan.close();
+    meName = n; meChan = n ? C().channel('u:' + n, () => check()) : null;
+  }
+  function startPolling() { listenMe(); if (pendT) return; pendT = setInterval(check, 5000); check(); }
+  function stopPolling() { clearInterval(pendT); pendT = null; hideInvite(); pending = null; listenMe(); }
   async function check() {
     if (!ready()) return stopPolling();
     if (document.querySelector('.view.play.net, .view.play.watch')) return;
@@ -159,7 +171,7 @@
             <div id="ofriends">${V.skel()}</div>
           </div></div>` : ''}
         <div class="ocol"><div class="apanel"><div class="rtop"><h3>Rangliste</h3><div class="oseg rper" id="oper">${[['week', 'Diese Woche'], ['all', 'Für immer']].map(([k, l]) => `<button data-p="${k}" class="${boardPeriod === k ? 'on' : ''}">${l}</button>`).join('')}</div></div>
-          <div class="rgames" id="obg">${[['', 'Alle Spiele'], ...ONLINE.map(id => [id, gname(id)])].map(([id, l]) => `<button data-g="${id}" class="${boardGame === id ? 'on' : ''}" title="${esc(l)}">${id && V.byId[id] ? `<span class="ic">${V.byId[id].icon}</span>` : `<span class="ic all">${IC().trophy}</span>`}<small>${esc(id ? l : 'Alle')}</small></button>`).join('')}</div>
+          <div class="rgames" id="obg">${[['', 'Alle Spiele'], ...ONLINE.concat(TABLE).filter(id => V.byId[id]).map(id => [id, gname(id)])].map(([id, l]) => `<button data-g="${id}" class="${boardGame === id ? 'on' : ''}" title="${esc(l)}">${id && V.byId[id] ? `<span class="ic">${V.byId[id].icon}</span>` : `<span class="ic all">${IC().trophy}</span>`}<small>${esc(id ? l : 'Alle')}</small></button>`).join('')}</div>
           <div id="oboard">${V.skel()}</div></div></div>
       </div></section>`;
   }
@@ -252,6 +264,7 @@
   }
   async function request(name) {
     const r = await C().rpc('friend_request', { name });
+    C().poke('u:' + name);
     V.ui.toast({ sent: 'Anfrage an ' + name + ' gesendet', accepted: 'Du und ' + name + ' seid jetzt Freunde', friends: 'Ihr seid schon Freunde', pending: 'Schon angefragt' }[r] || r);
     if (r === 'accepted') V.sfx.goal(); else V.sfx.ui();
     changed();
@@ -607,7 +620,8 @@
     try { const st = await C().rpc('party_join', { tid: id || null, cd: code || null }); if (st.status === 'live') return startTable(st); lobby(st); }
     catch (e) { V.ui.toast(noServer(e)); V.sfx.bad(); check(); }
   }
-  function stopLobby() { clearTimeout(lobbyT); lobbyT = null; lobbyId = null; }
+  let lobbyChan = null;
+  function stopLobby() { clearTimeout(lobbyT); lobbyT = null; lobbyId = null; if (lobbyChan) { lobbyChan.close(); lobbyChan = null; } }
   function lobby(st) {
     stopLobby(); hideInvite();
     lobbyId = st.id;
@@ -621,7 +635,7 @@
       <div id="lbhost"></div>
       <div class="actions" id="lba"></div></div>`, 'lobm', () => {
       // closing the lobby means leaving the table (the host closes it)
-      if (!starting) C().rpc('party_leave', { tid: st.id }).catch(() => { });
+      if (!starting) C().rpc('party_leave', { tid: st.id }).then(() => C().poke('t:' + st.id), () => { });
       stopLobby();
     });
     m.querySelector('#lbx').onclick = V.ui.closeModal;
@@ -670,12 +684,13 @@
       f.innerHTML = fr.map(x => `<div class="fline${x.online ? ' on' : ''}"><span class="adot"></span><b>${esc(x.username)}</b><small>${x.busy ? 'spielt gerade' : x.online ? 'online' : ago(x.seen)}</small><button class="btn sm${x.online ? ' primary' : ''}" data-tinv="${esc(x.username)}"><span>Einladen</span></button></div>`).join('');
       f.querySelectorAll('[data-tinv]').forEach(b => { if (cur.names.includes(b.dataset.tinv)) { b.disabled = true; b.querySelector('span').textContent = 'Am Tisch'; } });
       f.querySelectorAll('[data-tinv]').forEach(b => b.onclick = async () => {
-        try { await C().rpc('party_invite', { tid: st.id, name: b.dataset.tinv }); b.disabled = true; b.querySelector('span').textContent = 'Eingeladen'; V.sfx.ui(); }
+        try { await C().rpc('party_invite', { tid: st.id, name: b.dataset.tinv }); C().poke('u:' + b.dataset.tinv); b.disabled = true; b.querySelector('span').textContent = 'Eingeladen'; V.sfx.ui(); }
         catch (e) { V.ui.toast(e.message); }
       });
     }
     const poll = async () => {
       if (lobbyId !== st.id) return;
+      clearTimeout(lobbyT);
       try {
         const s = await C().rpc('party_state', { tid: st.id, since: 0 });
         if (lobbyId !== st.id) return;
@@ -689,6 +704,8 @@
     };
     draw();
     lobbyT = setTimeout(poll, 1200);
+    // joining, leaving and the start poke the table channel (hello: the others see me sitting down at once)
+    lobbyChan = C().channel('t:' + st.id, poll, true);
   }
   // game panel, mode "Online" for table games: open a table, join an open one or enter a code
   function tablePanel(el, g, opts, lvl) {

@@ -385,8 +385,8 @@
         if (el) el.querySelector('button').onclick = go;
         h.res.go = go;
         // online the next hand starts on its own after a few seconds, so nobody waits for one person
-        if (ctx.mode === 'table' || ctx.fast()) {
-          let n = ctx.fast() ? 0 : 8; const ct = el && el.querySelector('.ct');
+        if (ctx.mode === 'table' || ctx.fast() || ctx.auto) {
+          let n = ctx.fast() || ctx.auto ? 0 : 8; const ct = el && el.querySelector('.ct');
           const tick = () => { if (!waitNext) return; if (n <= 0) return go(); if (ct) ct.textContent = `weiter in ${n} s`; n--; ctx.later(tick, 1000); };
           tick();
         }

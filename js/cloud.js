@@ -16,12 +16,20 @@
   const listeners = new Set();
   const emit = () => listeners.forEach(f => { try { f(); } catch (e) { } });
 
-  try {
-    if (CFG.url && CFG.key && window.supabase && window.supabase.createClient) {
-      sb = window.supabase.createClient(CFG.url, CFG.key, { auth: { persistSession: true, autoRefreshToken: true, storageKey: 'versus-auth' } });
-      state.status = 'guest';
-    }
-  } catch (e) { sb = null; }
+  // The Supabase library loads in the background, so the menus do not wait for it. Until init() has asked the
+  // server who is logged in, nobody counts as a guest (no locked games flashing up for logged-in players).
+  const LIB = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.4/dist/umd/supabase.js';
+  let failed = !(CFG.url && CFG.key), starting = !failed;
+  const lib = failed ? Promise.resolve(null) : new Promise(done => {
+    const s = document.createElement('script'); s.src = LIB; s.async = true;
+    s.onload = () => {
+      try { sb = window.supabase.createClient(CFG.url, CFG.key, { auth: { persistSession: true, autoRefreshToken: true, storageKey: 'versus-auth' } }); state.status = 'guest'; }
+      catch (e) { sb = null; }
+      done(sb);
+    };
+    s.onerror = () => done(null);
+    document.head.appendChild(s);
+  }).then(c => { if (!c) { failed = true; starting = false; emit(); } return c; });
 
   const S = () => V.store;
   const meta = () => S().get('cloudmeta', {});
@@ -129,22 +137,51 @@
     startBeat();
   }
 
+  async function need() { if (!(await lib)) throw new Error('Keine Verbindung zum Server.'); }
+
+  // ---------- realtime pokes ----------
+  // After a move the other browsers get a short signal on a shared channel and fetch the new state at once,
+  // instead of waiting for their next poll. No game data goes over the channel; the server stays the only source.
+  // hello: also poke once as soon as the channel is connected (the other side learns that we are here).
+  function channel(name, onPoke, hello) {
+    let ch = null, live = false, closed = false;
+    lib.then(c => {
+      if (!c || closed || !c.channel) return;
+      ch = c.channel('versus:' + name, { config: { broadcast: { self: false } } });
+      ch.on('broadcast', { event: 'poke' }, () => { if (!closed) onPoke(); });
+      ch.subscribe(st => {
+        const was = live; live = st === 'SUBSCRIBED';
+        if (live && !was && hello) send();
+      });
+    });
+    const send = () => { if (live && ch) ch.send({ type: 'broadcast', event: 'poke', payload: {} }).catch(() => { }); };
+    return {
+      live: () => live,
+      poke: send,
+      close() { closed = true; live = false; if (ch && sb) try { sb.removeChannel(ch); } catch (e) { } }
+    };
+  }
+
   const C = V.cloud = {
-    available: () => !!sb,
+    available: () => !failed,
+    // true until the first answer about the login (the menus treat that time as "not a guest")
+    starting: () => starting,
     user: () => (user ? { id: user.id, username: (info && info.username) || (user.user_metadata && user.user_metadata.username) || '' } : null),
     info: () => info,
     role: () => (info && info.role) || null,
     state: () => state,
     on(f) { listeners.add(f); return () => listeners.delete(f); },
     async init() {
-      if (!sb) return;
+      if (!(await lib)) return;
       try {
         const r = await sb.auth.getSession();
         user = r.data && r.data.session ? r.data.session.user : null;
       } catch (e) { user = null; }
+      starting = false;
       if (user) await afterLogin(); else emit();
     },
     async signUp(name, pw) {
+      await need();
       const u = clean(name);
       if (!NAME_RE.test(u)) throw new Error('Benutzername: 3 bis 16 Zeichen, nur a–z, 0–9, _ und -.');
       if (String(pw).length < 6) throw new Error('Das Passwort ist zu kurz (mindestens 6 Zeichen).');
@@ -153,6 +190,7 @@
       user = d.user; await afterLogin();
     },
     async signIn(name, pw) {
+      await need();
       const d = check(await sb.auth.signInWithPassword({ email: clean(name) + '@' + MAIL, password: pw }));
       user = d.user; await afterLogin();
     },
@@ -185,7 +223,10 @@
       emit();
     },
     async syncNow() { if (!user) return; try { await pull(); } catch (e) { state.status = 'error'; state.error = e.message; emit(); } },
-    async rpc(name, args) { return check(await sb.rpc(name, args || {})); },
+    async rpc(name, args) { await need(); return check(await sb.rpc(name, args || {})); },
+    channel,
+    // a single poke on a channel we do not listen to (e.g. the invitation channel of another player)
+    poke(name) { const c = channel(name, () => { }, true); setTimeout(() => c.close(), 4000); },
     touch,
     changed(key) { if (KEYS.includes(key)) schedule(); }
   };
