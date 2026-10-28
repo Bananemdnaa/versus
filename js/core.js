@@ -3,7 +3,7 @@
 
   const V = window.V = { games: [], byId: {} };
   V.LEVELS = ['Leicht', 'Mittel', 'Schwer', 'Profi'];
-  V.CATS = ['Klassiker', 'Strategie', 'Action'];
+  V.CATS = ['Klassiker', 'Brettspiele', 'Strategie', 'Action'];
   const LEVEL_INFO = [
     'Macht oft Fehler. Gut zum Lernen.',
     'Spielt solide, übersieht aber einiges.',
@@ -315,6 +315,41 @@
     return res;
   };
 
+  // ---------- board game pieces: a 3D die and a pawn (Ludo, Leiterspiel) ----------
+  const PIP = { 1: [4], 2: [0, 8], 3: [0, 4, 8], 4: [0, 2, 6, 8], 5: [0, 2, 4, 6, 8], 6: [0, 2, 3, 5, 6, 8] };
+  // rotation that brings face n to the front
+  const FACE = { 1: [0, 0], 2: [0, -90], 3: [-90, 0], 4: [90, 0], 5: [0, 90], 6: [0, 180] };
+  V.die = function () {
+    const el = V.el('button', 'die3w', `<span class="die3">${[1, 2, 3, 4, 5, 6].map(n => `<i class="df f${n}">${Array.from({ length: 9 }, (_, k) => `<b class="${PIP[n].includes(k) ? 'on' : ''}"></b>`).join('')}</i>`).join('')}</span>`);
+    el.setAttribute('aria-label', 'Würfeln');
+    const cube = el.firstElementChild;
+    let spinX = 0, spinY = 0, val = 5;
+    const put = () => { cube.style.transform = `rotateX(${spinX + FACE[val][0]}deg) rotateY(${spinY + FACE[val][1]}deg)`; };
+    put();
+    return {
+      el,
+      // roll: tumble a few times and land on n
+      show(n, roll) {
+        val = n;
+        if (roll && V.fxOn()) { spinX += 360 * (1 + V.rand(2)); spinY += 360 * (1 + V.rand(2)); cube.classList.add('rolling'); setTimeout(() => cube.classList.remove('rolling'), 650); }
+        put(); el.dataset.v = n;
+      },
+      color(c) { el.style.setProperty('--dc', c); },
+      state(cls) { el.classList.remove('wait', 'off'); if (cls) el.classList.add(cls); }
+    };
+  };
+  V.pawn = c => `<svg class="pawn" viewBox="0 0 40 54" aria-hidden="true" style="color:${c}"><ellipse cx="20" cy="49" rx="15" ry="4.5" fill="rgba(0,0,0,.35)"/>
+    <path d="M7 47c0-6 4-10 8-12l2-10c-5-2-7-6-6-10 1-6 5-9 9-9s8 3 9 9c1 4-1 8-6 10l2 10c4 2 8 6 8 12z" fill="currentColor"/>
+    <path d="M7 47c0-6 4-10 8-12l2-10c-5-2-7-6-6-10 1-6 5-9 9-9s8 3 9 9c1 4-1 8-6 10l2 10c4 2 8 6 8 12z" fill="url(#pwShade)"/>
+    <ellipse cx="16" cy="12" rx="3.2" ry="4.2" fill="#fff" opacity=".55"/><path d="M12 44c1-4 3-6 5-7" stroke="#fff" stroke-width="2" stroke-linecap="round" opacity=".35" fill="none"/></svg>`;
+  // shared gradient for the pawns (once per page)
+  (function () {
+    const s = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    s.setAttribute('width', '0'); s.setAttribute('height', '0'); s.style.position = 'absolute';
+    s.innerHTML = '<defs><linearGradient id="pwShade" x1="0" x2="1"><stop offset="0" stop-color="#fff" stop-opacity=".18"/><stop offset=".55" stop-color="#000" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".38"/></linearGradient></defs>';
+    document.body.appendChild(s);
+  })();
+
   // ---------- mini boards for tutorials ----------
   const MINI_BASE = {
     '.': { c: '' }, ' ': { c: 'nb' }, a: { c: 'd1' }, b: { c: 'd2' }, A: { c: 'd1 rg' }, B: { c: 'd2 rg' },
@@ -391,7 +426,7 @@
   const wide = () => wideMQ.matches;
   let current = null, view = 'home', homeTab = 'games', homeFilter = 'Alle', selected = null;
   function destroyCurrent() { if (current) { current.destroy(); current = null; } nav.reset(); closeModal(); setSwap(false); }
-  const musicFor = g => g.cat === 'Action' ? 'action' : g.cat === 'Strategie' ? 'think' : 'play';
+  const musicFor = g => g.cat === 'Action' ? 'action' : g.cat === 'Strategie' || g.cat === 'Brettspiele' ? 'think' : 'play';
   function mount(html) {
     app.innerHTML = html;
     const v = app.firstElementChild;
@@ -573,7 +608,7 @@
   // ---------- game panel (desktop side panel and phone setup screen) ----------
   function loadCfg(g) {
     const saved = S.get('setup', {})[g.id] || {};
-    const cfg = { mode: g.noAI ? 'local' : (saved.mode === 'online' || saved.mode === 'open') && !g.online ? 'ai' : (saved.mode || 'ai'), level: saved.level ?? 1, first: saved.first || 'me', opts: {} };
+    const cfg = { mode: g.noAI ? 'local' : ((saved.mode === 'online' || saved.mode === 'open') && !g.online) || (saved.mode === 'table' && !g.table) ? 'ai' : (saved.mode || 'ai'), level: saved.level ?? 1, first: saved.first || 'me', opts: {} };
     (g.options || []).forEach(o => { cfg.opts[o.id] = saved.opts && saved.opts[o.id] !== undefined ? saved.opts[o.id] : o.def; });
     return cfg;
   }
@@ -612,21 +647,23 @@
       return;
     }
     gp.querySelector('.gp-body').innerHTML = `
-      <div class="gp-mode${g.online && V.cloud && V.cloud.available() ? ' four' : ''}" id="mode">
+      <div class="gp-mode${g.online && V.cloud && V.cloud.available() ? ' four' : g.table && V.cloud && V.cloud.available() ? ' three' : ''}" id="mode">
         ${g.noAI ? '' : `<button data-v="ai" class="${cfg.mode === 'ai' ? 'on' : ''}">${IC.robot}<span>Gegen KI</span></button>`}
-        <button data-v="local" class="${cfg.mode === 'local' ? 'on' : ''}">${IC.users}<span>Zu zweit</span></button>
+        <button data-v="local" class="${cfg.mode === 'local' ? 'on' : ''}">${IC.users}<span>${g.party ? 'Am Gerät' : 'Zu zweit'}</span></button>
         ${g.online && V.cloud && V.cloud.available() ? `<button data-v="online" class="${cfg.mode === 'online' ? 'on' : ''}${guest() ? ' lockd' : ''}">${guest() ? IC.lock : IC.user}<span>Freund</span></button>
         <button data-v="open" class="${cfg.mode === 'open' ? 'on' : ''}${guest() ? ' lockd' : ''}">${guest() ? IC.lock : IC.globe}<span>Online</span></button>` : ''}
+        ${g.table && V.cloud && V.cloud.available() ? `<button data-v="table" class="${cfg.mode === 'table' ? 'on' : ''}${guest() ? ' lockd' : ''}">${guest() ? IC.lock : IC.globe}<span>Online</span></button>` : ''}
       </div>
-      ${cfg.mode === 'ai' ? `<div class="gp-lvl">
+      ${cfg.mode === 'ai' || cfg.mode === 'table' ? `<div class="gp-lvl">
         <div class="lv-top"><span>Stärke</span><b class="l${lvl}">${V.LEVELS[lvl]}</b><em>Bilanz ${s.ai[lvl].w}:${s.ai[lvl].l}</em></div>
         <div class="lv-bar" id="level">${V.LEVELS.map((l, i) => `<button data-v="${i}" class="${i <= lvl ? 'fill' : ''} ${i === lvl ? 'on' : ''}" aria-label="${l}" title="${l}"></button>`).join('')}</div>
-        <p class="hint">${(g.levelInfo || LEVEL_INFO)[lvl]}</p></div>` : cfg.mode === 'online' || cfg.mode === 'open' ? '<div class="gp-online" id="ofr"></div>' :`<p class="hint local">${g.localHint || `Ihr spielt abwechselnd am selben Gerät${g.cat === 'Action' ? ', jeder auf seiner Hälfte' : ''}.`}</p>`}
+        <p class="hint">${cfg.mode === 'table' ? 'So stark spielt die KI auf freien Plätzen.' : (g.levelInfo || LEVEL_INFO)[lvl]}</p></div>` : cfg.mode === 'online' || cfg.mode === 'open' ? '<div class="gp-online" id="ofr"></div>' :`<p class="hint local">${g.localHint || `Ihr spielt abwechselnd am selben Gerät${g.cat === 'Action' ? ', jeder auf seiner Hälfte' : ''}.`}</p>`}
       ${(cfg.mode === 'ai' && !g.noFirst) || optsHere.length ? `<div class="gp-more">
         ${cfg.mode === 'ai' && !g.noFirst ? chipRow('first', g.firstTitle || 'Beginn', [['me', firstLabel[0]], ['ai', firstLabel[1]], ['rand', firstLabel[2]]], cfg.first) : ''}
         ${optsHere.map(o => chipRow('o_' + o.id, o.label, o.choices, cfg.opts[o.id])).join('')}
       </div>` : ''}
-      <div class="gp-go">${cfg.mode === 'online' || cfg.mode === 'open' ? '' : `<button class="btn primary big" id="go"><span>${IC.play}Spielen</span><kbd class="only-fine">Enter</kbd></button>`}
+      ${cfg.mode === 'table' ? '<div class="gp-online" id="ofr"></div>' : ''}
+      <div class="gp-go">${cfg.mode === 'online' || cfg.mode === 'open' || cfg.mode === 'table' ? '' : `<button class="btn primary big" id="go"><span>${IC.play}Spielen</span><kbd class="only-fine">Enter</kbd></button>`}
         <button class="btn ghost" id="tut"><span>${IC.book}Regeln${seen[g.id] ? '' : '<i class="dot"></i>'}</span></button></div>`;
     const rer = () => renderPanel(root, g, full);
     const on = (id, fn) => { const e = root.querySelector('#' + id); if (e) e.querySelectorAll('button').forEach(b => b.onclick = () => { fn(b.dataset.v); saveCfg(g, cfg); V.sfx.ui(); rer(); }); };
@@ -637,12 +674,13 @@
     const goBtn = root.querySelector('#go'); if (goBtn) goBtn.onclick = () => { saveCfg(g, cfg); play(g, cfg); };
     if (cfg.mode === 'online' && V.online) V.online.picker(root.querySelector('#ofr'), g, cfg.opts);
     if (cfg.mode === 'open' && V.online) V.online.openPanel(root.querySelector('#ofr'), g, cfg.opts);
+    if (cfg.mode === 'table' && V.online) V.online.tablePanel(root.querySelector('#ofr'), g, cfg.opts, cfg.level);
     root.querySelector('#tut').onclick = () => tutorial(g, rer);
     panelApi = {
       g,
-      go() { if (cfg.mode === 'online') return; if (cfg.mode === 'open') return V.online && V.online.seek(g, cfg.opts); saveCfg(g, cfg); play(g, cfg); },
+      go() { if (cfg.mode === 'online') return; if (cfg.mode === 'table') return V.online && V.online.table(g, cfg.opts, cfg.level); if (cfg.mode === 'open') return V.online && V.online.seek(g, cfg.opts); saveCfg(g, cfg); play(g, cfg); },
       tut() { tutorial(g, rer); },
-      level(i) { if (cfg.mode !== 'ai') return; cfg.level = Math.max(0, Math.min(3, i)); saveCfg(g, cfg); V.sfx.tick(); rer(); },
+      level(i) { if (cfg.mode !== 'ai' && cfg.mode !== 'table') return; cfg.level = Math.max(0, Math.min(3, i)); saveCfg(g, cfg); V.sfx.tick(); rer(); },
       step(d) { this.level(cfg.level + d); },
       mode() { if (g.noAI) return; cfg.mode = cfg.mode === 'ai' ? 'local' : 'ai'; saveCfg(g, cfg); V.sfx.tick(); rer(); }
     };
@@ -1009,9 +1047,14 @@
   function play(g, cfg, series) {
     let rematch = !!series;
     const clockMin = g.id === 'chess' && cfg.mode !== 'ai' && [3, 5, 10].includes(+(cfg.opts && cfg.opts.clock)) ? +cfg.opts.clock : 0;
-    if (cfg.mode !== 'watch' && (locked(g) || (guest() && (cfg.mode === 'online' || cfg.mode === 'open')))) { toast('Dafür brauchst du ein Konto'); return home('profile'); }
+    if (cfg.mode !== 'watch' && (locked(g) || (guest() && ['online', 'open', 'table'].includes(cfg.mode)))) { toast('Dafür brauchst du ein Konto'); return home('profile'); }
     destroyCurrent(); view = 'play'; lastGame = g; selected = g;
     const online = cfg.mode === 'online', watch = cfg.mode === 'watch', M = cfg.match || {};
+    // 'table': an online table with 2-4 seats (party games). Seats, names and the dice seed come from the server;
+    // seats run by the AI are computed by the host's browser.
+    const table = cfg.mode === 'table', T = table ? M.init : null;
+    const tbots = new Set(table ? T.bots || [] : []);
+    let thost = table ? T.host : 0;
     if (!watch) S.set('recent', g.id);
     if (V.cloud) V.cloud.touch(g.id);
     // an online rematch keeps the score between the same two players (sides may have swapped)
@@ -1021,10 +1064,10 @@
     const ai = cfg.mode === 'ai';
     // Party games (g.party): 2-4 players (option "n"). You are always player 1; every other seat is
     // a computer player against the AI, or a person at the same device.
-    const party = !!g.party, N = party ? Math.max(2, Math.min(4, +(cfg.opts && cfg.opts.n) || 2)) : 2, SIDES = [1, 2, 3, 4].slice(0, N);
+    const party = !!g.party, N = party ? Math.max(2, Math.min(4, +(table ? T.n : cfg.opts && cfg.opts.n) || 2)) : 2, SIDES = [1, 2, 3, 4].slice(0, N);
     if (party) SIDES.forEach(s => { if (series[s] == null) series[s] = 0; });
     const aiSide = party ? 0 : ai ? (cfg.first === 'me' ? 2 : cfg.first === 'ai' ? 1 : (Math.random() < 0.5 ? 1 : 2)) : 0;
-    const mySide = online ? M.side : 0;
+    const mySide = online ? M.side : table ? M.seat : 0;
     const oppSide = ai ? aiSide : online ? 3 - mySide : 0;
     setSwap(oppSide === 1);
     const L = oppSide ? 3 - oppSide : 1, R = 3 - L;
@@ -1032,24 +1075,26 @@
     const names = { 1: 'Spieler 1', 2: 'Spieler 2', 3: 'Spieler 3', 4: 'Spieler 4' };
     if (ai && party) SIDES.forEach(s => { names[s] = s === 1 ? 'Du' : N > 2 ? 'KI ' + (s - 1) : 'KI'; });
     else if (ai) { names[aiSide] = 'KI'; names[3 - aiSide] = 'Du'; }
-    const me = ai ? (party ? 1 : 3 - aiSide) : online ? mySide : 0;
-    const botSide = s => ai && (party ? s !== 1 : s === aiSide);
+    if (table) SIDES.forEach(s => { names[s] = s === mySide ? 'Du' : T.names[s - 1] && !tbots.has(s) ? T.names[s - 1] : 'KI'; });
+    const me = ai ? (party ? 1 : 3 - aiSide) : online || table ? mySide : 0;
+    const botSide = s => (ai && (party ? s !== 1 : s === aiSide)) || (table && tbots.has(s));
+    const amHost = () => table && thost === mySide;
     if (online) { names[mySide] = 'Du'; names[oppSide] = M.opp; }
     if (watch) { names[M.aSide] = M.aName; names[3 - M.aSide] = M.bName; }
     const esc = t => String(t).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
     const sub = s => sideLabel(s) + (s === 1 && g.cat !== 'Action' ? ' · beginnt' : '');
-    const av = s => ai ? (botSide(s) ? IC.robot : '<span>DU</span>') : online ? (s === mySide ? '<span>DU</span>' : `<span>${esc(names[s].slice(0, 2).toUpperCase())}</span>`) : watch ? `<span>${esc(names[s].slice(0, 2).toUpperCase())}</span>` : `<span>P${s}</span>`;
-    const thinker = s => botSide(s) || (online && s === oppSide) || watch;
+    const av = s => ai || table ? (botSide(s) ? IC.robot : s === me ? '<span>DU</span>' : `<span>${esc(names[s].slice(0, 2).toUpperCase())}</span>`) : online ? (s === mySide ? '<span>DU</span>' : `<span>${esc(names[s].slice(0, 2).toUpperCase())}</span>`) : watch ? `<span>${esc(names[s].slice(0, 2).toUpperCase())}</span>` : `<span>P${s}</span>`;
+    const thinker = s => botSide(s) || (online && s === oppSide) || (table && s !== mySide) || watch;
     const card = (s, pos) => `<div class="pcard pcard-${pos} ps${s}" id="pl${s}"><span class="av">${av(s)}</span>
       <span class="nm"><b>${esc(names[s])}</b><small>${sub(s)}${botSide(s) ? ' · ' + V.LEVELS[cfg.level] : ''}</small></span>
       ${clockMin ? `<span class="clk" id="ck${s}"></span>` : ''}<span class="wins"><b>${series[s]}</b><small>Siege</small></span><em class="tag">am Zug</em>
       ${thinker(s) ? '<span class="tdots" aria-hidden="true"><i></i><i></i><i></i></span>' : ''}${ai && s === aiSide ? '<div class="bubble" aria-live="polite"></div>' : ''}</div>`;
-    const sublabel = party ? (ai ? `Gegen ${N > 2 ? N - 1 + ' KIs' : 'KI'} · ` + V.LEVELS[cfg.level] : N + ' Spieler') : ai ? 'Gegen KI · ' + V.LEVELS[cfg.level] : online ? 'Online gegen ' + esc(M.opp) : watch ? 'Zuschauen · ' + esc(M.aName) + ' gegen ' + esc(M.bName) : 'Zu zweit';
-    const v = mount(`<div class="view play${online ? ' net' : ''}${watch ? ' watch' : ''}" style="--acc:${g.accent || 'var(--pink)'}">
+    const sublabel = table ? `Online-Tisch · ${N} Spieler` : party ? (ai ? `Gegen ${N > 2 ? N - 1 + ' KIs' : 'KI'} · ` + V.LEVELS[cfg.level] : N + ' Spieler') : ai ? 'Gegen KI · ' + V.LEVELS[cfg.level] : online ? 'Online gegen ' + esc(M.opp) : watch ? 'Zuschauen · ' + esc(M.aName) + ' gegen ' + esc(M.bName) : 'Zu zweit';
+    const v = mount(`<div class="view play${online || table ? ' net' : ''}${watch ? ' watch' : ''}" style="--acc:${g.accent || 'var(--pink)'}">
       <div class="pbar"><button class="iconbtn" id="pb" aria-label="Zurück">${IC.back}</button><div class="ttl"><b>${g.name}</b><small>${sublabel}</small></div>
         <button class="iconbtn" id="ph" aria-label="Regeln" title="Regeln (T)">${IC.help}</button>
         ${online ? `<button class="iconbtn" id="pe" aria-label="Reaktion senden" title="Reaktion">${IC.smile}</button>` : ''}
-        ${online ? `<button class="iconbtn" id="pr" aria-label="Aufgeben" title="Aufgeben">${IC.flag}</button>` : watch ? '' : `<button class="iconbtn" id="pr" aria-label="Neu starten" title="Neue Partie (N)">${IC.redo}</button>`}</div>
+        ${online ? `<button class="iconbtn" id="pr" aria-label="Aufgeben" title="Aufgeben">${IC.flag}</button>` : watch || table ? '' : `<button class="iconbtn" id="pr" aria-label="Neu starten" title="Neue Partie (N)">${IC.redo}</button>`}</div>
       <div class="duel${party ? ' party n' + N : ''}">
         ${party ? `<div class="pcol pcol-l">${SIDES.filter(s => s % 2).map(s => card(s, 'l')).join('')}</div><div class="pcol pcol-r">${SIDES.filter(s => !(s % 2)).map(s => card(s, 'r')).join('')}</div>` : `${card(L, 'l')}
         <div class="score" id="sc"><b class="sl">${series[L]}</b><i>:</i><b class="sr">${series[R]}</b></div>
@@ -1085,12 +1130,17 @@
       if (stEl.innerHTML === html) return;
       stEl.innerHTML = html; if (V.fxOn()) V.fx.pop(stEl, 'st-in');
     };
-    let net = null;
+    let net = null, tnet = null;
     let clock = null;
-    const remote = s => watch || (online && (s === oppSide || (net && net.queue.length > 0)));
+    const remote = s => watch || (online && (s === oppSide || (net && net.queue.length > 0))) || (table && (s !== mySide || (tnet && tnet.queue.length > 0)));
+    // dice and other luck: at a table every browser draws the same numbers from the shared seed
+    let seed = table ? (T.seed >>> 0) || 1 : 0;
+    const rng = table ? () => { seed = (seed + 0x6D2B79F5) >>> 0; let t = seed; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; } : Math.random;
     const ctx = {
       stage: v.querySelector('#stage'), mode: cfg.mode, level: cfg.level, aiSide, opts: cfg.opts, sides: g.sides, n: N, players: SIDES,
-      mySide, watchSides: watch ? { a: M.aSide } : null,
+      mySide, watchSides: watch ? { a: M.aSide } : null, rng,
+      // true while a table catches up on moves that were already played (after joining late or reloading)
+      fast: () => !!(tnet && tnet.queue.length > 1),
       isAI: s => botSide(s) || remote(s),
       name: s => names[s],
       who(s) { return `<span class="c${s}">${esc(names[s])}</span>`; },
@@ -1108,7 +1158,7 @@
         nav.refresh();
       },
       // Every move goes through here (all modes). Online, your own moves are sent to the server.
-      moved(s, m) { if (net) net.moved(s, m); },
+      moved(s, m) { if (net) net.moved(s, m); if (tnet) tnet.moved(s, m); },
       // One AI move with a bit of theatre: think (min. time per level), let the crosshair hover over
       // a couple of alternatives, lock on the real target(s), then move and comment in the bubble.
       // o.think() -> { move, mood? }, o.targets(move) -> [elements], o.decoys(move) -> [elements],
@@ -1116,6 +1166,8 @@
       // o.decode(raw) -> legal move or null (online: turns the received move back into the game's own form)
       aiTurn(o) {
         if (net) return net.take(o);
+        // at a table only the host plays the AI seats; everything else (and any backlog) comes from the server
+        if (tnet && (tnet.queue.length || !(tbots.has(o.side) && amHost()))) return tnet.take(o);
         const s = o.side || aiSide, card = pls[s];
         card.classList.add('thinking');
         setStatus(`<span class="c${s}">${esc(names[s])}</span> <span class="thinking">${o.quick ? 'macht weiter' : 'denkt'}</span>`);
@@ -1135,10 +1187,11 @@
         nav.hide();
         if (net && online && !fromServer) net.finish(winner);
         if (net) { if (online) net.after = true; else net.stop(); }
+        if (tnet) { if (!fromServer) tnet.finish(winner); tnet.stop(); }
         if (!watch) {
           const s = stat(g.id);
           if (ai) { const r = s.ai[cfg.level]; if (winner === 0) r.d++; else if (winner === me) r.w++; else r.l++; }
-          else if (online) { s.on = s.on || { w: 0, l: 0, d: 0 }; if (winner === 0) s.on.d++; else if (winner === mySide) s.on.w++; else s.on.l++; }
+          else if (online || table) { s.on = s.on || { w: 0, l: 0, d: 0 }; if (winner === 0) s.on.d++; else if (winner === mySide) s.on.w++; else s.on.l++; }
           else { if (winner === 0) s.local.d++; else if (winner === 1) s.local.a++; else s.local.b++; }
           S.set('stats', stats);
         }
@@ -1152,7 +1205,7 @@
         const big = winner === 0 ? 'Remis' : me ? (meWon ? 'Sieg!' : 'Niederlage') : `${names[winner]} gewinnt`;
         setStatus(winner === 0 ? 'Unentschieden' : me ? (meWon ? '<span class="c' + winner + '">Du hast gewonnen</span>' : `${ctx.who(winner)} hat gewonnen`) : `${ctx.who(winner)} gewinnt`);
         const tone = winner === 0 ? 'draw' : me ? (meWon ? 'win' : 'lose') : party ? 'w' + winner : (winner === L ? 'left' : 'right');
-        const again = () => online ? net.rematch(series) : play(g, cfg, series);
+        const again = () => online ? net.rematch(series) : table ? (closeModal(), V.online.table(g, cfg.opts, cfg.level)) : play(g, cfg, series);
         const menu = () => watch ? V.account.admin('matches') : setup(g);
         ctx.later(() => {
           const m = openModal(`<div class="ko ${tone}">
@@ -1162,7 +1215,7 @@
             ${series.d ? `<p class="small">${series.d}× unentschieden</p>` : ''}
             ${online ? `<div class="kemo" id="kemo"></div><div class="kquick">${['gg', 'clap', 'haha', 'sweat'].map(e => `<button data-emo="${e}">${EMO[e]}</button>`).join('')}</div>` : ''}
             ${online && V.online.friendOf(M.opp) === false ? `<button class="btn ghost sm efr" id="efr"><span>${IC.plus}${esc(M.opp)} als Freund hinzufügen</span></button>` : ''}
-            <div class="actions">${watch ? '' : `<button class="btn primary" id="er"><span>${IC.redo}${online ? 'Revanche anfragen' : 'Revanche'}</span><kbd class="only-fine">Enter</kbd></button>`}<button class="btn" id="eb"><span>Brett ansehen</span></button><button class="btn ghost" id="em"><span>${watch ? 'Zurück' : 'Menü'}</span></button></div></div>`, 'endm', null, false, e => {
+            <div class="actions">${watch ? '' : `<button class="btn primary" id="er"><span>${IC.redo}${online ? 'Revanche anfragen' : table ? 'Neuer Tisch' : 'Revanche'}</span><kbd class="only-fine">Enter</kbd></button>`}<button class="btn" id="eb"><span>Brett ansehen</span></button><button class="btn ghost" id="em"><span>${watch ? 'Zurück' : 'Menü'}</span></button></div></div>`, 'endm', null, false, e => {
             if ((e.key === 'Enter' || e.key === 'n' || e.key === 'N') && !watch) { again(); return true; }
             if (e.key === 'Escape') { closeModal(); return true; }
             if (e.key === 'm' || e.key === 'M') { menu(); return true; }
@@ -1322,6 +1375,73 @@
       });
     }
 
+    // ---------- online table (2-4 seats) ----------
+    // Every action (rolling, moving a piece) is a move in one shared list. Each browser applies the list in order,
+    // so all see the same game. Own moves and, for the host, the AI seats' moves are sent to the server.
+    if (table) {
+      tnet = {
+        queue: [], known: 0, applied: 0, waiting: null, stopped: false, chain: Promise.resolve(), told: new Set(),
+        feed(st) {
+          if (!st) return;
+          thost = st.host;
+          (st.bots || []).forEach(b => {
+            if (tbots.has(b)) return;
+            tbots.add(b);
+            if (b !== mySide && pls[b]) {
+              const nm = pls[b].querySelector('.nm small'); if (nm) nm.textContent = sideLabel(b) + ' · KI übernimmt';
+              pls[b].querySelector('.av').innerHTML = IC.robot;
+              toast(names[b] + ' ist weg, die KI spielt weiter');
+            }
+          });
+          SIDES.forEach(s => { if (pls[s]) pls[s].classList.toggle('off', s !== mySide && !tbots.has(s) && st.online && st.online[s - 1] === false); });
+          const first = st.total - st.moves.length;
+          st.moves.forEach((mv, k) => {
+            const idx = first + k;
+            if (idx < this.known) return;
+            this.known = idx + 1;
+            if (idx < this.applied) return;
+            this.queue.push(mv);
+          });
+          this.pump();
+          // a seat we wait for was handed to the AI and I am (now) the host: play it here
+          const w = this.waiting;
+          if (w && !this.queue.length && tbots.has(w.side) && amHost()) { this.waiting = null; ctx.aiTurn(w); }
+          if ((st.status === 'done' || st.status === 'void') && !ended && !this.queue.length && this.applied >= st.total)
+            ctx.end(st.status === 'void' ? 0 : st.winner || 0, st.status === 'void' ? 'Der Tisch wurde aufgelöst' : '', true);
+        },
+        take(o) { this.waiting = o; if (pls[o.side]) pls[o.side].classList.add('thinking'); this.pump(); },
+        pump() {
+          if (!this.waiting || !this.queue.length) return;
+          const o = this.waiting, mv = this.queue.shift(); this.waiting = null;
+          const m = mv.s === o.side ? (o.decode ? o.decode(mv.m) : mv.m) : null;
+          if (m == null) return this.broken();
+          const fast = this.queue.length > 0;
+          ctx.later(() => aimAt(o, { move: m }, pls[mv.s], false, fast, mv.s), fast ? 90 : 60);
+        },
+        moved(s, m) {
+          this.applied++;
+          if ((s === mySide || (tbots.has(s) && amHost())) && this.applied > this.known) this.send(s, m, this.applied - 1);
+        },
+        send(s, m, ply) {
+          this.chain = this.chain.then(() => V.cloud.rpc('party_move', { tid: M.id, ply, s, mv: m }))
+            .then(n => { this.known = Math.max(this.known, n); })
+            .catch(e => { if (!alive) return; toast(/desync/.test(e.message) ? 'Tisch wird neu geladen' : 'Zug nicht gesendet: ' + e.message); ctx.later(() => V.online.resumeTable(M.id), 900); });
+        },
+        finish(w) { const n = this.applied; this.chain = this.chain.then(() => V.cloud.rpc('party_finish', { tid: M.id, ply: n, w })).catch(() => { }); },
+        broken() { toast('Der Spielstand passt nicht zusammen, lade neu …'); ctx.later(() => V.online.resumeTable(M.id), 600); },
+        poll() {
+          if (this.stopped || !alive) return;
+          V.cloud.rpc('party_state', { tid: M.id, since: this.known })
+            .then(st => { if (alive) this.feed(st); }, () => { })
+            .then(() => { if (!this.stopped && alive) ctx.later(() => this.poll(), 1000); });
+        },
+        stop() { this.stopped = true; }
+      };
+      tnet.feed(T);
+      ctx.later(() => tnet.poll(), 800);
+      cleanups.push(() => { tnet.stopped = true; });
+    }
+
     // ---------- reactions ----------
     function showEmote(s, e) {
       if (!EMO[e] || !pls[s]) return;
@@ -1399,6 +1519,8 @@
       const m = openModal(online
         ? `<div class="confirm"><h3>Aufgeben?</h3><p>Wenn du die Partie verlässt, gewinnt ${esc(M.opp)}.</p>
           <div class="actions"><button class="btn primary" id="cy"><span>Weiterspielen</span></button><button class="btn ghost danger" id="cn"><span>Aufgeben</span></button></div></div>`
+        : table ? `<div class="confirm"><h3>Tisch verlassen?</h3><p>Die anderen spielen weiter, die KI übernimmt deinen Platz. Zurück an den Tisch kommst du dann nicht mehr.</p>
+          <div class="actions"><button class="btn primary" id="cy"><span>Weiterspielen</span></button><button class="btn ghost danger" id="cn"><span>Verlassen</span></button></div></div>`
         : `<div class="confirm"><h3>Partie verlassen?</h3><p>Der Stand geht verloren und zählt nicht in der Bilanz.</p>
           <div class="actions"><button class="btn primary" id="cy"><span>Weiterspielen</span></button><button class="btn ghost" id="cn"><span>Verlassen</span></button></div></div>`,
         '', () => { if (inst && inst.resume && alive) inst.resume(); }, false, e => {
@@ -1409,6 +1531,7 @@
       m.querySelector('#cn').onclick = () => {
         modalClose = null; closeModal();
         if (online) { V.cloud.rpc('match_resign', { mid: M.id }).catch(() => { }); if (to === null) return ctx.end(oppSide, 'Du hast aufgegeben', true); }
+        if (table) V.cloud.rpc('party_leave', { tid: M.id }).catch(() => { });
         if (to) to();
       };
     }
@@ -1650,8 +1773,9 @@
     const q = new URLSearchParams(location.search), qt = q.get('tab');
     // friend link from a QR code or a message: handled by js/online.js once the login is known
     if (q.get('add')) try { sessionStorage.setItem('versus.add', q.get('add').slice(0, 12)); } catch (e) { }
+    if (q.get('table')) try { sessionStorage.setItem('versus.table', q.get('table').slice(0, 12)); } catch (e) { }
     if (qt && TABS.some(t => t[0] === qt)) homeTab = qt;
-    if (q.has('tab') || q.has('app') || q.has('add')) try { history.replaceState(null, '', location.pathname); } catch (e) { }
+    if (q.has('tab') || q.has('app') || q.has('add') || q.has('table')) try { history.replaceState(null, '', location.pathname); } catch (e) { }
     registerSW();
     netState();
     if (!document.getElementById('fx')) { const f = V.el('div'); f.id = 'fx'; document.body.appendChild(f); }

@@ -81,6 +81,11 @@
   .mill .lastm{stroke:rgba(255,255,255,.6);stroke-width:.05}
   .mill .mil{stroke:var(--cy);stroke-width:.14;stroke-linecap:round;opacity:.8}
   @keyframes spin{to{stroke-dashoffset:-.4}}
+  .mill .mboard{border-radius:14px;padding:2%}
+  .mill .mboard .bd{stroke:#5d3a1c;stroke-width:.11}
+  .mill .mboard .pt{fill:#5d3a1c}
+  .mill .mboard .s1,.mill .mboard .s2{stroke:rgba(0,0,0,.35);stroke-width:.05;filter:drop-shadow(0 .07px .04px rgba(0,0,0,.55))}
+  .mill .mboard .mil{stroke:#fff;opacity:.9}
   .hands{display:flex;justify-content:space-between;gap:10px;font-size:12px;color:var(--muted)}
   .hands div{display:flex;align-items:center;gap:3px;flex-wrap:wrap}
   .hands i{width:12px;height:12px;border-radius:50%;display:inline-block}
@@ -97,7 +102,7 @@
   }
 
   V.register({
-    id: 'mill', name: 'Mühle', cat: 'Strategie', order: 4, accent: 'var(--yellow)',
+    id: 'mill', name: 'Mühle', cat: 'Brettspiele', order: 4, accent: 'var(--yellow)',
     short: 'Drei in einer Linie, dann Stein weg.',
     desc: 'Setz und zieh deine neun Steine. Drei in einer Linie sind eine Mühle, dann darfst du einen gegnerischen Stein nehmen.',
     levelInfo: ['Anfänger: setzt oft planlos und übersieht deine Mühlen meistens.', 'Schließt eigene Mühlen, blockt deine aber nicht immer.', 'Rechnet vier Halbzüge tief.', 'Rechnet bis zu acht Halbzüge tief und baut gern Zwickmühlen.'],
@@ -114,7 +119,7 @@
     start(ctx) {
       let s = { b: Array(24).fill(0), turn: 1, hand: { 1: 9, 2: 9 }, on: { 1: 0, 2: 0 }, quiet: 0 }, over = false;
       let sel = -1, pending = null, last = null, anim = null;
-      const wrap = V.el('div', 'mill'), hands = V.el('div', 'hands'), svgBox = V.el('div');
+      const wrap = V.el('div', 'mill'), hands = V.el('div', 'hands'), svgBox = V.el('div', 'mboard wood');
       wrap.append(svgBox, hands); ctx.stage.appendChild(wrap);
       svgBox.addEventListener('click', e => { const t = e.target.closest('[data-i]'); if (t) tap(+t.dataset.i); });
       ctx.nav(() => [...svgBox.querySelectorAll('.hit')], { round: true, pad: -4, start: () => 4 });

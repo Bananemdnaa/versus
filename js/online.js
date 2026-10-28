@@ -73,7 +73,7 @@
   }
 
   // ---------- incoming invitations (polled while logged in) ----------
-  let pendT = null, pending = null, card = null, cardId = null, lastFriendN = -1;
+  let pendT = null, pending = null, tpending = null, card = null, cardId = null, lastFriendN = -1;
   const toldReq = new Set();
   function startPolling() { if (pendT) return; pendT = setInterval(check, 5000); check(); }
   function stopPolling() { clearInterval(pendT); pendT = null; hideInvite(); pending = null; }
@@ -82,22 +82,30 @@
     if (document.querySelector('.view.play.net, .view.play.watch')) return;
     try {
       const p = await C().rpc('my_pending');
-      const before = JSON.stringify(pending);
+      // tables for 2-4 players (older servers without them just have none)
+      try { tpending = await C().rpc('party_pending'); } catch (e) { tpending = null; }
+      const tp = tpending || {};
+      const before = JSON.stringify([pending, tpending]);
       pending = p;
       const openList = (p.open || []).filter(o => !dismissed.has(o.id));
-      // one card at a time: challenge first, then a new friend request, then open challenges
+      const tInv = (tp.invites || []).filter(o => !dismissed.has(o.id)), tOpen = (tp.open || []).filter(o => !dismissed.has(o.id));
+      // one card at a time: challenge first, then table invitations, a new friend request, then open challenges and tables
       const frName = p.req_from && (cardId === 'fr:' + p.req_from || !toldReq.has(p.req_from)) ? p.req_from : null;
-      if (p.invites && p.invites.length) showInvite(p.invites[0]);
+      const busy = p.active || tp.mine;
+      if (lobbyId) hideInvite();
+      else if (p.invites && p.invites.length) showInvite(p.invites[0]);
+      else if (tInv.length && !busy) showInvite(Object.assign({ table: true }, tInv[0]));
       else if (frName) { toldReq.add(frName); showFriendCard(frName); }
-      else if (openList.length && !p.active && V.settings.openCards !== false) showInvite(Object.assign({ open: true }, openList[0]));
+      else if (openList.length && !busy && V.settings.openCards !== false) showInvite(Object.assign({ open: true }, openList[0]));
+      else if (tOpen.length && !busy && V.settings.openCards !== false) showInvite(Object.assign({ table: true, open: true }, tOpen[0]));
       else hideInvite();
       if (typeof p.friend_n === 'number') { if (lastFriendN >= 0 && p.friend_n > lastFriendN) newFriends(); lastFriendN = p.friend_n; }
-      if (JSON.stringify(p) !== before && V.ui.view() === 'home' && V.ui.tab() === 'online') refreshTab();
+      if (JSON.stringify([p, tpending]) !== before && V.ui.view() === 'home' && V.ui.tab() === 'online') refreshTab();
       badge();
     } catch (e) { }
   }
   function badge() {
-    const n = pending ? (pending.requests || 0) + (pending.invites || []).length : 0;
+    const n = (pending ? (pending.requests || 0) + (pending.invites || []).length : 0) + (tpending ? (tpending.invites || []).length : 0);
     document.querySelectorAll('.tabs [data-tab="online"]').forEach(b => {
       let i = b.querySelector('.nb'); if (!n) { if (i) i.remove(); return; }
       if (!i) { i = document.createElement('i'); i.className = 'nb'; b.appendChild(i); }
@@ -113,11 +121,16 @@
     if (cardId === inv.id) return;
     hideInvite(); cardId = inv.id;
     card = V.el('div', 'icard', `<div class="ic-ico">${V.byId[inv.game] ? V.byId[inv.game].icon : ''}</div>
-      <div class="ic-tx"><small>${inv.open ? 'Sucht einen Gegner' : 'Herausforderung'}</small><b>${esc(inv.from)}</b><span>${esc(gname(inv.game))}</span></div>
-      <div class="ic-act"><button class="btn primary sm" data-a="ok"><span>${inv.open ? 'Mitspielen' : 'Annehmen'}</span></button><button class="btn ghost sm" data-a="no"><span>${inv.open ? 'Nein danke' : 'Ablehnen'}</span></button></div>`);
+      <div class="ic-tx"><small>${inv.table ? (inv.open ? `Offener Tisch · ${inv.players}/${inv.n}` : 'Einladung an den Tisch') : inv.open ? 'Sucht einen Gegner' : 'Herausforderung'}</small><b>${esc(inv.from)}</b><span>${esc(gname(inv.game))}${inv.table && !inv.open ? ` · ${inv.players}/${inv.n} Plätze` : ''}</span></div>
+      <div class="ic-act"><button class="btn primary sm" data-a="ok"><span>${inv.table ? 'Hinsetzen' : inv.open ? 'Mitspielen' : 'Annehmen'}</span></button><button class="btn ghost sm" data-a="no"><span>${inv.open ? 'Nein danke' : 'Ablehnen'}</span></button></div>`);
     if (inv.open) card.classList.add('open');
     document.body.appendChild(card);
     V.sfx.go(); V.buzz([40, 60, 40]);
+    if (inv.table) {
+      card.querySelector('[data-a=ok]').onclick = () => { hideInvite(); joinTable(inv.id); };
+      card.querySelector('[data-a=no]').onclick = () => { dismissed.add(inv.id); if (!inv.open) C().rpc('party_decline', { tid: inv.id }).catch(() => { }); hideInvite(); };
+      return;
+    }
     card.querySelector('[data-a=ok]').onclick = async () => {
       if (inv.open) return join(inv.id);
       try { const st = await C().rpc('match_respond', { mid: inv.id, ok: true }); hideInvite(); start(st); }
@@ -196,6 +209,14 @@
       (p.invites || []).map(i => `<div class="obanner inv"><div><small>Herausforderung</small><b>${esc(i.from)} · ${esc(gname(i.game))}</b></div>
         <div class="arow"><button class="btn primary sm" data-acc="${i.id}"><span>Annehmen</span></button><button class="btn ghost sm" data-dec="${i.id}"><span>Ablehnen</span></button></div></div>`).join('');
     el.innerHTML += (p.open || []).map(o => `<div class="obanner open"><div><small>Sucht einen Gegner</small><b>${esc(o.from)} · ${esc(gname(o.game))}</b></div><button class="btn primary sm" data-join="${o.id}"><span>Mitspielen</span></button></div>`).join('');
+    const tp = tpending || {};
+    el.innerHTML += (tp.mine ? `<div class="obanner"><div><small>${tp.mine.status === 'live' ? 'Dein Tisch läuft' : 'Dein Tisch wartet'}</small><b>${esc(gname(tp.mine.game))}</b></div><button class="btn primary sm" data-tres="${tp.mine.id}"><span>${IC().play}Zurück an den Tisch</span></button></div>` : '') +
+      (tp.invites || []).map(i => `<div class="obanner inv"><div><small>Einladung an den Tisch · ${i.players}/${i.n}</small><b>${esc(i.from)} · ${esc(gname(i.game))}</b></div>
+        <div class="arow"><button class="btn primary sm" data-tjoin="${i.id}"><span>Hinsetzen</span></button><button class="btn ghost sm" data-tdec="${i.id}"><span>Ablehnen</span></button></div></div>`).join('') +
+      (tp.open || []).map(o => `<div class="obanner open"><div><small>Offener Tisch · ${o.players}/${o.n}</small><b>${esc(o.from)} · ${esc(gname(o.game))}</b></div><button class="btn primary sm" data-tjoin="${o.id}"><span>Mitspielen</span></button></div>`).join('');
+    el.querySelectorAll('[data-tres]').forEach(x => x.onclick = () => resumeTable(x.dataset.tres));
+    el.querySelectorAll('[data-tjoin]').forEach(x => x.onclick = () => joinTable(x.dataset.tjoin));
+    el.querySelectorAll('[data-tdec]').forEach(x => x.onclick = () => { C().rpc('party_decline', { tid: x.dataset.tdec }).then(check, check); });
     el.querySelectorAll('[data-join]').forEach(x => x.onclick = () => join(x.dataset.join));
     const go = el.querySelector('#ores_go'); if (go) go.onclick = () => resume(p.active.id);
     el.querySelectorAll('[data-acc]').forEach(x => x.onclick = async () => { try { start(await C().rpc('match_respond', { mid: x.dataset.acc, ok: true })); } catch (e) { V.ui.toast(e.message); check(); } });
@@ -555,6 +576,144 @@
     e.stopPropagation(); V.sfx.ui(); profile(x.dataset.prof);
   });
 
-  V.online = { tab, wire, picker, openPanel, seek, invite, resume, watch, start, check, profile, addFriends, challenge, friendOf, request };
-  if (C()) C().on(() => { if (ready()) { startPolling(); consumeAdd(); } else { stopPolling(); fstate = null; lastFriendN = -1; askLogin(); } });
+  // ---------- tables for 2-4 players (party games) ----------
+  // Someone opens a table (seat 1, host), invites friends, shares the code or makes it visible for everybody.
+  // The host starts; empty seats are played by the AI. Server: supabase/migrations/20261107000000_party_tables.sql
+  const TABLE = ['ludo', 'ladder'];
+  TABLE.forEach(id => { if (V.byId[id]) V.byId[id].table = true; });
+  let lobbyT = null, lobbyId = null;
+  const tableLink = c => location.origin + location.pathname + '?table=' + c;
+  const noServer = e => /party_|function/i.test(e.message) ? 'Online-Tische kommen nach dem nächsten Server-Update.' : e.message;
+  function startTable(st) {
+    const g = V.byId[st.game]; if (!g) return V.ui.toast('Unbekanntes Spiel');
+    stopLobby(); hideInvite();
+    V.ui.play(g, { mode: 'table', level: st.lvl, opts: Object.assign({}, st.opts, { n: st.n }), match: { id: st.id, seat: st.seat, init: st } });
+  }
+  async function resumeTable(id) {
+    try {
+      const st = await C().rpc('party_state', { tid: id, since: 0 });
+      if (st.status === 'live') return startTable(st);
+      if (st.status === 'lobby') { V.ui.home('online'); return lobby(st); }
+      V.ui.toast('Das Spiel an diesem Tisch ist vorbei.'); V.ui.home('online');
+    } catch (e) { V.ui.toast(e.message); V.ui.home('online'); }
+  }
+  async function table(g, opts, lvl) {
+    if (!ready()) { V.ui.toast('Dafür brauchst du ein Konto'); return V.ui.home('profile'); }
+    try { lobby(await C().rpc('party_create', { gm: g.id, op: opts || optsFor(g), n: +(opts && opts.n) || 4, lvl: lvl ?? 1, pub: false })); }
+    catch (e) { V.ui.toast(noServer(e)); V.sfx.bad(); }
+  }
+  async function joinTable(id, code) {
+    if (!ready()) { V.ui.toast('Dafür brauchst du ein Konto'); return V.ui.home('profile'); }
+    try { const st = await C().rpc('party_join', { tid: id || null, cd: code || null }); if (st.status === 'live') return startTable(st); lobby(st); }
+    catch (e) { V.ui.toast(noServer(e)); V.sfx.bad(); check(); }
+  }
+  function stopLobby() { clearTimeout(lobbyT); lobbyT = null; lobbyId = null; }
+  function lobby(st) {
+    stopLobby(); hideInvite();
+    lobbyId = st.id;
+    let cur = st, starting = false, sure = false, friendsShown = false;
+    const g = V.byId[st.game] || { name: st.game, icon: '' };
+    const isHost = () => cur.seat === cur.host;
+    const m = V.ui.openModal(`<div class="lobby">
+      <div class="fadd-h"><span class="lb-ic">${g.icon}</span><div class="lb-t"><small>Online-Tisch · ${cur.n} Plätze</small><h3>${esc(g.name)}</h3></div><button class="iconbtn" id="lbx" aria-label="Schließen">${IC().x}</button></div>
+      <div class="lb-seats" id="lbs"></div>
+      <div class="lb-code"><div><small>Tischcode</small><b>${esc(cur.code)}</b></div><button class="btn sm" id="lbsh"><span>${IC().share}Link teilen</span></button></div>
+      <div id="lbhost"></div>
+      <div class="actions" id="lba"></div></div>`, 'lobm', () => {
+      // closing the lobby means leaving the table (the host closes it)
+      if (!starting) C().rpc('party_leave', { tid: st.id }).catch(() => { });
+      stopLobby();
+    });
+    m.querySelector('#lbx').onclick = V.ui.closeModal;
+    m.querySelector('#lbsh').onclick = () => {
+      V.sfx.ui();
+      const link = tableLink(cur.code), text = `Komm an meinen ${g.name}-Tisch in Versus (Code ${cur.code}):`;
+      if (navigator.share) navigator.share({ title: 'Versus', text, url: link }).catch(() => { }); else copy(link);
+    };
+    const SEAT = ['Pink', 'Gelb', 'Cyan', 'Grün'];
+    function draw() {
+      const humans = cur.names.slice(0, cur.n).filter(Boolean).length;
+      m.querySelector('#lbs').innerHTML = Array.from({ length: cur.n }, (_, i) => {
+        const nm = cur.names[i], s = i + 1;
+        return `<div class="lb-seat s${s}${nm ? '' : ' free'}"><span class="lb-dot"></span><b>${nm ? esc(nm) : 'Frei'}</b>
+          <small>${nm ? (s === cur.host ? 'Gastgeber' : '') + (s === cur.seat ? (s === cur.host ? ' · du' : 'du') : '') + (nm && cur.online && cur.online[i] === false ? ' · offline' : '') : 'spielt sonst die KI'}</small><em>${SEAT[i]}</em></div>`;
+      }).join('');
+      const act = m.querySelector('#lba');
+      if (isHost()) {
+        act.innerHTML = `<button class="btn primary big" id="lbgo"${humans < 2 ? ' disabled' : ''}><span>${IC().play}${humans < 2 ? 'Warte auf Mitspieler' : 'Spiel starten'}</span></button>`;
+        act.querySelector('#lbgo').onclick = async () => {
+          try { const s = await C().rpc('party_start', { tid: st.id }); starting = true; V.ui.closeModal(); V.sfx.goal(); startTable(s); }
+          catch (e) { V.ui.toast(e.message); V.sfx.bad(); }
+        };
+        if (!friendsShown) { friendsShown = true; hostTools(); }
+        m.querySelectorAll('[data-tinv]').forEach(b => { if (cur.names.includes(b.dataset.tinv)) { b.disabled = true; b.querySelector('span').textContent = 'Am Tisch'; } });
+      } else {
+        const hn = cur.names[cur.host - 1];
+        act.innerHTML = `<p class="fhint lb-wait"><span class="spin"><i></i><i></i></span>Warte, bis ${esc(hn || 'der Gastgeber')} startet …</p>`;
+        m.querySelector('#lbhost').innerHTML = '';
+        friendsShown = false;
+      }
+    }
+    async function hostTools() {
+      const el = m.querySelector('#lbhost');
+      el.innerHTML = `<button class="opt" id="lbpub" role="switch" aria-checked="${!!cur.open}">${IC().globe}<span><b>Für alle sichtbar</b><small>Jeder eingeloggte Spieler kann sich dazusetzen</small></span><i class="sw ${cur.open ? 'on' : ''}"></i></button>
+        <h4>Freunde einladen</h4><div id="lbf">${V.skel(2)}</div>`;
+      el.querySelector('#lbpub').onclick = async () => {
+        const on = !cur.open;
+        try { await C().rpc('party_open', { tid: st.id, pub: on }); cur.open = on; const b = el.querySelector('#lbpub'); b.setAttribute('aria-checked', on); b.querySelector('.sw').classList.toggle('on', on); V.sfx.ui(); }
+        catch (e) { V.ui.toast(e.message); }
+      };
+      let d; try { d = await fetchFriends(); } catch (e) { el.querySelector('#lbf').innerHTML = `<p class="aerr">${esc(e.message)}</p>`; return; }
+      const f = el.querySelector('#lbf'); if (!f) return;
+      const fr = (d.friends || []).slice().sort((a, b) => (b.online && !b.busy) - (a.online && !a.busy));
+      if (!fr.length) { f.innerHTML = '<p class="fhint">Noch keine Freunde. Teil einfach den Link oder den Tischcode.</p>'; return; }
+      f.innerHTML = fr.map(x => `<div class="fline${x.online ? ' on' : ''}"><span class="adot"></span><b>${esc(x.username)}</b><small>${x.busy ? 'spielt gerade' : x.online ? 'online' : ago(x.seen)}</small><button class="btn sm${x.online ? ' primary' : ''}" data-tinv="${esc(x.username)}"><span>Einladen</span></button></div>`).join('');
+      f.querySelectorAll('[data-tinv]').forEach(b => { if (cur.names.includes(b.dataset.tinv)) { b.disabled = true; b.querySelector('span').textContent = 'Am Tisch'; } });
+      f.querySelectorAll('[data-tinv]').forEach(b => b.onclick = async () => {
+        try { await C().rpc('party_invite', { tid: st.id, name: b.dataset.tinv }); b.disabled = true; b.querySelector('span').textContent = 'Eingeladen'; V.sfx.ui(); }
+        catch (e) { V.ui.toast(e.message); }
+      });
+    }
+    const poll = async () => {
+      if (lobbyId !== st.id) return;
+      try {
+        const s = await C().rpc('party_state', { tid: st.id, since: 0 });
+        if (lobbyId !== st.id) return;
+        const before = JSON.stringify([cur.names, cur.host, cur.online]);
+        cur = s;
+        if (s.status === 'live' && s.seat) { starting = true; V.ui.closeModal(); V.sfx.goal(); return startTable(s); }
+        if (s.status !== 'lobby' || !s.seat) { starting = true; V.ui.closeModal(); return V.ui.toast(s.status === 'canceled' ? 'Der Tisch wurde geschlossen' : 'Du sitzt nicht mehr an diesem Tisch'); }
+        if (JSON.stringify([s.names, s.host, s.online]) !== before) { const joined = s.names.filter(Boolean).length > JSON.parse(before)[0].filter(Boolean).length; draw(); if (joined) V.sfx.goal(); }
+      } catch (e) { }
+      lobbyT = setTimeout(poll, 1500);
+    };
+    draw();
+    lobbyT = setTimeout(poll, 1200);
+  }
+  // game panel, mode "Online" for table games: open a table, join an open one or enter a code
+  function tablePanel(el, g, opts, lvl) {
+    if (!el) return;
+    if (!ready()) { el.innerHTML = `<p class="hint">Für Online-Tische brauchst du ein Konto.</p><button class="btn sm" id="plog"><span>${IC().user}Anmelden</span></button>`; el.querySelector('#plog').onclick = () => V.ui.home('profile'); return; }
+    const open = ((tpending && tpending.open) || []).filter(o => o.game === g.id);
+    el.innerHTML = `<p class="hint">Eröffne einen Tisch für ${+(opts && opts.n) || 4} Spieler und lade Freunde ein. Freie Plätze spielt die KI.</p>
+      ${open.map(o => `<div class="fline on"><span class="adot"></span><b>${esc(o.from)}</b><small>Tisch · ${o.players}/${o.n}</small><button class="btn sm primary" data-tjoin="${o.id}"><span>Mitspielen</span></button></div>`).join('')}
+      <button class="btn primary big" id="topen"><span>${IC().users}Tisch eröffnen</span></button>
+      <form class="tcode" id="tcf"><input class="inp" id="tci" placeholder="Tischcode" maxlength="6" autocapitalize="characters" autocomplete="off" spellcheck="false"><button class="btn sm" type="submit"><span>Beitreten</span></button></form>`;
+    el.querySelector('#topen').onclick = () => { V.sfx.ui(); table(g, opts, lvl); };
+    el.querySelectorAll('[data-tjoin]').forEach(b => b.onclick = () => joinTable(b.dataset.tjoin));
+    const i = el.querySelector('#tci');
+    i.oninput = () => { i.value = i.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 5); };
+    el.querySelector('#tcf').onsubmit = e => { e.preventDefault(); if (i.value.length === 5) joinTable(null, i.value); else V.ui.toast('Der Tischcode hat 5 Zeichen'); };
+  }
+  // table link (?table=CODE)
+  function consumeTable() {
+    let code = null; try { code = sessionStorage.getItem('versus.table'); } catch (e) { }
+    if (!code || !ready()) return;
+    if (busyScreen()) return setTimeout(consumeTable, 1200);
+    try { sessionStorage.removeItem('versus.table'); } catch (e) { }
+    joinTable(null, code);
+  }
+
+  V.online = { tab, wire, picker, openPanel, seek, invite, resume, watch, start, check, profile, addFriends, challenge, friendOf, request, table, tablePanel, resumeTable };
+  if (C()) C().on(() => { if (ready()) { startPolling(); consumeAdd(); consumeTable(); } else { stopPolling(); fstate = null; lastFriendN = -1; askLogin(); } });
 })();

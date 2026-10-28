@@ -76,9 +76,10 @@
   };
 
   V.css(`
-  .ck{display:grid;grid-template-columns:repeat(8,1fr);width:min(var(--bw),600px);border-radius:12px;overflow:hidden;border:2px solid #3b4170;box-shadow:0 0 40px -14px var(--p1);user-select:none;touch-action:manipulation}
+  .ck{display:grid;grid-template-columns:repeat(8,1fr);width:min(var(--bw),600px);border-radius:12px;overflow:hidden;user-select:none;touch-action:manipulation}
+  .ck.wood{padding:0;background:#5d3a1c}
   .ck .sq{aspect-ratio:1;position:relative;display:grid;place-items:center}
-  .ck .lt{background:#c8cae8} .ck .dk{background:#3c4177;cursor:pointer}
+  .ck .lt{background:linear-gradient(135deg,#f3e0bb,#e8cf9f)} .ck .dk{background:linear-gradient(135deg,#a87443,#8d5d33);cursor:pointer}
   .ck .pc{width:78%;height:78%;border-radius:50%;display:grid;place-items:center;font-size:clamp(14px,4.6vw,26px);line-height:1;transition:transform .15s}
   .ck .s1{background:radial-gradient(circle at 35% 30%,var(--p1hi),var(--p1) 62%);box-shadow:0 3px 0 var(--p1lo),0 0 12px color-mix(in srgb,var(--p1) 45%,transparent);color:var(--p1ink)}
   .ck .s2{background:radial-gradient(circle at 35% 30%,var(--p2hi),var(--p2) 62%);box-shadow:0 3px 0 var(--p2lo),0 0 12px color-mix(in srgb,var(--p2) 40%,transparent);color:var(--p2ink)}
@@ -89,12 +90,12 @@
   .ck .sel .pc{transform:scale(1.1);box-shadow:0 0 0 3px #fff,0 0 20px var(--cy)}
   .ck .gone .pc{opacity:.3}
   .ck .nx::after{content:'';position:absolute;width:30%;height:30%;border-radius:50%;background:var(--cy);opacity:.8;box-shadow:0 0 12px var(--cy)}
-  .ck .lastm{background:#55497f}`);
+  .ck .lastm{background:linear-gradient(135deg,#7a4f2a,#6a4322)}`);
 
   const cm = rows => V.mini(rows, { k: { c: 'k1', t: '' }, K: { c: 'k2', t: '' } }, { checker: true, w: 230 });
 
   V.register({
-    id: 'checkers', name: 'Dame', cat: 'Strategie', order: 2, accent: 'var(--pink)',
+    id: 'checkers', name: 'Dame', cat: 'Brettspiele', order: 3, accent: 'var(--pink)',
     short: 'Diagonal ziehen, Steine überspringen.',
     desc: 'Zieh diagonal, spring über gegnerische Steine und mach aus deinen Steinen Damen. Mit Schlagzwang.',
     levelInfo: ['Anfänger: schaut nur auf den eigenen Zug und lässt oft Steine stehen.', 'Denkt drei Halbzüge voraus und lässt sich gern in Fallen locken.', 'Rechnet sechs Halbzüge tief.', 'Rechnet bis zu 14 Halbzüge tief. Opfer werden durchschaut.'],
@@ -113,7 +114,7 @@
       for (let sq = 0; sq < 64; sq++) { const r = sq >> 3, c = sq & 7; if ((r + c) % 2) { if (r < 3) b0[sq] = 2; else if (r > 4) b0[sq] = 1; } }
       let s = { b: b0, turn: 1, quiet: 0 }, over = false, sel = -1, prefix = [], last = null;
       const flip = ctx.mode === 'ai' && ctx.aiSide === 1;
-      const board = V.el('div', 'ck'), cells = {};
+      const board = V.el('div', 'ck wood'), cells = {};
       const order = [...Array(64).keys()]; if (flip) order.reverse();
       order.forEach(sq => { const d = V.el('div', 'sq ' + (((sq >> 3) + (sq & 7)) % 2 ? 'dk' : 'lt')); d.dataset.sq = sq; cells[sq] = d; board.appendChild(d); });
       ctx.stage.appendChild(board);
