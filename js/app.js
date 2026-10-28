@@ -133,7 +133,8 @@
   function gamesTab() {
     const recent = S.get('recent', null), rg = recent && V.byId[recent];
     const rc = rg && loadCfg(rg);
-    const list = V.games.filter(g => homeFilter === 'Alle' || g.cat === homeFilter);
+    // the chips count the games of a category; guests see how many of them they can play right away
+    const count = c => { const l = V.games.filter(g => c === 'Alle' || g.cat === c); return guest() ? l.filter(g => !locked(g)).length + '/' + l.length : l.length; };
     return `<div class="select">
       <section class="sel-main">
         <div class="sel-head">
@@ -142,20 +143,44 @@
         </div>
         ${installCard()}
         ${rg && !locked(rg) ? `<button class="cont" id="cont" style="--acc:${rg.accent || 'var(--pink)'}"><div class="ic">${rg.icon}</div><div class="ct"><small>Weiterspielen</small><b>${rg.name}</b><span>${rc.mode === 'local' ? 'Zu zweit' : 'Gegen KI · ' + V.LEVELS[rc.level]}</span></div><span class="go">${IC.play}</span></button>` : ''}
-        <div class="chips" role="tablist">${['Alle', ...V.CATS].map(c => `<button role="tab" data-f="${c}" class="${homeFilter === c ? 'on' : ''}">${c}</button>`).join('')}</div>
-        <div class="tiles">${list.map(tile).join('')}</div>
+        <div class="chips" role="tablist">${['Alle', ...V.CATS].map(c => `<button role="tab" data-f="${c}" class="${homeFilter === c ? 'on' : ''}">${c}<small>${count(c)}</small></button>`).join('')}</div>
+        <div id="glist">${gameList()}</div>
       </section>
       <aside class="sel-panel" id="panel"></aside>
     </div>`;
   }
+  // Phone, "Alle": one row per category that you swipe sideways, so all games fit on about one and a half screens.
+  // A chosen category (and the laptop) shows a grid. Guests get the free games first and the others
+  // collected in one "Mit Konto" box instead of a wall of locked tiles.
+  function gameList() {
+    const list = V.games.filter(g => homeFilter === 'Alle' || g.cat === homeFilter);
+    const free = list.filter(g => !locked(g)), shut = list.filter(g => locked(g));
+    // the entrance stagger restarts in every row, so lower rows do not wait for the ones above
+    let i = 0;
+    const tiles = (games, cls = '') => `<div class="tiles${cls}">${games.map(g => tile(g, i++)).join('')}</div>`;
+    const row = (title, games) => {
+      if (!games.length) return '';
+      i = Math.min(i, 2);
+      return `<section class="grow"><h2 class="gh">${title}<small>${games.length}</small></h2>${tiles(games, ' row')}</section>`;
+    };
+    if (!wide() && homeFilter === 'Alle') return guest() ? row('Sofort spielbar', free) + lockBox(shut) : V.CATS.map(c => row(c, list.filter(g => g.cat === c))).join('');
+    return (free.length ? tiles(free) : '') + lockBox(shut);
+  }
+  function lockBox(games) {
+    if (!games.length) return '';
+    return `<div class="lockc"><div class="lk-h"><span class="lki">${IC.lock}</span><div><b>Mit Konto: ${games.length} weitere Spiele</b><small>Kostenlos. Dazu Online-Partien, Freunde und die Rangliste.</small></div></div>
+      <div class="lk-ics">${games.map(g => `<button class="lkg" data-id="${g.id}" style="--acc:${g.accent || 'var(--pink)'}" aria-label="${g.name} (mit Konto)"><span class="ic">${g.icon}</span><small>${g.name}</small></button>`).join('')}</div>
+      <button class="btn primary sm" data-tab="profile"><span>${IC.user}Konto erstellen</span></button></div>`;
+  }
   function wireGames(v) {
-    wireTiles(v.querySelector('.tiles'));
+    wireTiles(v.querySelector('#glist'));
     v.querySelectorAll('.chips button').forEach(b => b.onclick = () => {
       homeFilter = b.dataset.f; V.sfx.ui();
       v.querySelectorAll('.chips button').forEach(x => x.classList.toggle('on', x === b));
-      const tl = v.querySelector('.tiles');
-      tl.innerHTML = V.games.filter(g => homeFilter === 'Alle' || g.cat === homeFilter).map(tile).join('');
+      const tl = v.querySelector('#glist');
+      tl.innerHTML = gameList();
       wireTiles(tl);
+      tl.querySelectorAll('[data-tab]').forEach(x => x.onclick = () => { V.sfx.ui(); home(x.dataset.tab); });
     });
     const c = v.querySelector('#cont');
     if (c) c.onclick = () => { const g = V.byId[S.get('recent')]; V.sfx.ui(); play(g, loadCfg(g)); };
@@ -163,11 +188,11 @@
   }
   function selectTile(g) {
     selected = g;
-    app.querySelectorAll('.tile').forEach(t => t.classList.toggle('sel', t.dataset.id === g.id));
+    app.querySelectorAll('.tile, .lkg').forEach(t => t.classList.toggle('sel', t.dataset.id === g.id));
     const p = app.querySelector('#panel'); if (p) renderPanel(p, g, false);
   }
   function wireTiles(root) {
-    root.querySelectorAll('.tile').forEach(t => {
+    root.querySelectorAll('.tile, .lkg').forEach(t => {
       const g = V.byId[t.dataset.id];
       // Laptop: a click only selects the game; the round starts with the Spielen button or Enter.
       t.onclick = () => {
@@ -341,10 +366,12 @@
         ${sw('o_intro', settings.intro !== false, 'Intros', 'Start-Animation und VS-Einblendung vor jeder Partie', IC.film)}
         ${sw('o_coords', settings.coords !== false, 'Koordinaten', 'Buchstaben und Zahlen am Schachbrett', IC.hash)}
         ${sw('o_hints', settings.hints !== false, 'Zughilfen', 'Zeigt, wohin du ziehen kannst (Schach, Dame, Reversi, Mühle)', IC.bulb)}
+        <div class="opt orow">${IC.grid}<span><b>Spielbrett</b><small>Schach, Dame und Reversi</small></span>${seg('board', settings.board || 'std', [['std', 'Standard'], ['neon', 'Neon'], ['wood', 'Holz']])}</div>
       </div></div>
       <div class="ogroup"><h2 class="oh">Spiel</h2>
       <div class="optlist">
         ${sw('o_fast', !!settings.aiFast, 'Schnelle KI', 'Die KI zieht sofort, ohne Nachdenken und Zielen', IC.bolt)}
+        ${sw('o_face', !!settings.face, 'Gegenüber sitzen', 'Zu zweit am Handy: Name und Hinweise für Spieler 2 stehen auf dem Kopf', IC.users)}
       </div></div>
       ${V.cloud && V.cloud.available() ? `<div class="ogroup"><h2 class="oh">Online</h2>
       <div class="optlist">
@@ -388,6 +415,7 @@
       g.querySelectorAll('button').forEach(x => { x.classList.toggle('on', x === b); x.setAttribute('aria-checked', x === b); });
       V.sfx.ui();
       if (g.dataset.k === 'haptic') V.buzz([40, 60, 40]);
+      if (g.dataset.k === 'board') applyFxClass();
     }));
     // a long test pulse; if nothing is felt, the phone itself is muting web vibration (silent mode, do not disturb, intensity 0)
     const vt = v.querySelector('#o_vtest');
@@ -404,6 +432,7 @@
     flip('o_coords', () => { settings.coords = settings.coords === false; applyFxClass(); return settings.coords; });
     flip('o_hints', () => { settings.hints = settings.hints === false; applyFxClass(); return settings.hints; });
     flip('o_fast', () => (settings.aiFast = !settings.aiFast));
+    flip('o_face', () => (settings.face = !settings.face));
     flip('o_open', () => (settings.openCards = settings.openCards === false));
     // hiding the online status is stored on the server, so friends see it too
     const st = v.querySelector('#o_stealth');
@@ -635,11 +664,11 @@
     };
     if (view === 'home') {
       if (homeTab !== 'games') return;
-      if (DIRS[k]) { e.preventDefault(); spatial([...app.querySelectorAll('.tile')], ...DIRS[k]); return; }
+      if (DIRS[k]) { e.preventDefault(); spatial([...app.querySelectorAll('.tile, .lkg')], ...DIRS[k]); return; }
       if (wide() && panelKeys()) { e.preventDefault(); return; }
       if (k === 'Enter' && wide() && panelApi) {
         const f = document.activeElement;
-        if (f && f.tagName === 'BUTTON' && !f.classList.contains('tile')) return;
+        if (f && f.tagName === 'BUTTON' && !f.classList.contains('tile') && !f.classList.contains('lkg')) return;
         e.preventDefault(); panelApi.go();
       }
       return;

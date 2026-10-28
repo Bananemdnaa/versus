@@ -20,7 +20,7 @@
     // silent: written by the cloud sync itself, so it must not trigger another upload
     set(k, v, silent) { try { localStorage.setItem('versus.' + k, JSON.stringify(v)); } catch (e) { } if (!silent && V.cloud) V.cloud.changed(k); }
   };
-  const DEFAULTS = { sound: true, vol: 80, music: true, mvol: 45, haptic: 'strong', fx: 'full', intro: true, coords: true, hints: true, aiFast: false, openCards: true };
+  const DEFAULTS = { sound: true, vol: 80, music: true, mvol: 45, haptic: 'strong', fx: 'full', intro: true, coords: true, hints: true, aiFast: false, openCards: true, board: 'std', face: false };
   const settings = V.settings = Object.assign({}, DEFAULTS, S.get('settings', {}));
   // older saves stored vibration as true/false
   if (settings.haptic === true) settings.haptic = 'strong'; else if (settings.haptic === false) settings.haptic = 'off';
@@ -43,6 +43,8 @@
   function applyFxClass() {
     const r = document.documentElement.classList;
     r.toggle('lowfx', !V.fxOn()); r.toggle('nocoords', settings.coords === false); r.toggle('nohints', settings.hints === false);
+    // board style for Schach, Dame and Reversi: standard (each its own), all neon or all wood
+    r.toggle('bd-neon', settings.board === 'neon'); r.toggle('bd-wood', settings.board === 'wood');
   }
 
   // ---------- sound and haptics ----------

@@ -71,10 +71,13 @@ Beim allerersten Öffnen erklären drei kurze Folien, was Versus ist und wie man
 ## Optionen
 
 - **Ton und Vibration:** Ton an/aus (Effekte und Musik zusammen), Lautstärke Effekte, Musik an/aus mit eigener Lautstärke, Vibration Aus / Leicht / Stark mit Test-Knopf. Spürt man beim Test nichts, steht das Handy meist auf Lautlos oder Nicht stören, dann unterdrückt Android Vibrationen von Webseiten. Android und die meisten Browser nutzen die Vibrations-Schnittstelle; iPhones (ab iOS 18) bekommen stattdessen ein kurzes haptisches Tippen.
-- **Anzeige:** Effekte (aus spart Akku; bei „Bewegung reduzieren“ im System automatisch aus), Intros (Start-Animation und VS-Einblendung), Koordinaten am Schachbrett, Zughilfen (mögliche Züge in Schach, Dame, Reversi und Mühle).
-- **Spiel:** Schnelle KI zieht ohne Nachdenk-Pause und ohne Zielen.
+- **Anzeige:** Effekte (aus spart Akku; bei „Bewegung reduzieren“ im System automatisch aus), Intros (Start-Animation und VS-Einblendung), Koordinaten am Schachbrett, Zughilfen (mögliche Züge in Schach, Dame, Reversi und Mühle), Spielbrett für Schach, Dame und Reversi: Standard (Schach Neon, Dame Holz, Reversi grün), alles Neon oder alles Holz.
+- **Spiel:** Schnelle KI zieht ohne Nachdenk-Pause und ohne Zielen. „Gegenüber sitzen“: Zu zweit am Handy steht die Karte von Spieler 2 oben auf dem Kopf, der Hinweis dreht sich, wenn Spieler 2 dran ist. âGegenÃ¼ber sitzenâ: Zu zweit am Handy steht die Karte von Spieler 2 oben auf dem Kopf, der Hinweis dreht sich, wenn Spieler 2 dran ist.
 - **Online:** offene Herausforderungen einblenden; Online-Status vor Freunden verbergen.
 - **App:** installieren, nach Updates suchen. **Daten:** Tutorials zurücksetzen, Einstellungen zurücksetzen, Bilanz löschen.
+
+
+Startseite: Am Handy stehen die Spiele in Reihen pro Kategorie, die man seitlich wischt; ein Chip zeigt eine Kategorie als Raster. Die Zahl am Chip ist die Anzahl der Spiele (als Gast: frei spielbar / insgesamt). Gäste sehen die freien Spiele zuerst, alle anderen in einem Kasten „Mit Konto“. Nach jeder Partie macht „Ergebnis teilen“ ein Bild mit Spiel, Namen und Spielstand (am Handy direkt teilen, sonst als PNG speichern).
 
 Statistik, Einstellungen und gesehene Tutorials liegen im `localStorage` des Browsers und werden mit Konto zusätzlich gespeichert. Keine Werbung.
 

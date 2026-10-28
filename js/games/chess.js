@@ -186,23 +186,32 @@
   .capt{display:flex;gap:1px;min-height:22px;font-size:18px;line-height:1;align-items:center;flex-wrap:wrap}
   .capt span{opacity:.85} .capt .w{color:#f3f3ff;text-shadow:0 0 1px #000} .capt .b{color:#121225;text-shadow:0 0 1px #fff}
   .capt em{font-style:normal;font-size:12px;color:var(--muted);margin-left:6px}
-  .chess{display:grid;grid-template-columns:repeat(8,1fr);border-radius:12px;overflow:hidden;border:2px solid #3b4170;box-shadow:0 0 40px -14px var(--cy);user-select:none;-webkit-user-select:none;touch-action:manipulation}
+  .chess{display:grid;grid-template-columns:repeat(8,1fr);border-radius:12px;overflow:hidden;border:2px solid #4a52a0;box-shadow:0 0 0 1px rgba(98,240,255,.18),0 0 46px -12px var(--cy);user-select:none;-webkit-user-select:none;touch-action:manipulation}
   .chess .sq{aspect-ratio:1;position:relative;display:grid;place-items:center;font-size:clamp(26px,9.4vw,52px);line-height:1;cursor:pointer}
-  .chess .lt{background:#b9bce6} .chess .dk{background:#585e9c}
-  .chess .lastm.lt{background:#d9d58f} .chess .lastm.dk{background:#9c9a55}
+  .chess .lt{background:#272c5c} .chess .dk{background:#1a1d40}
+  .chess .lastm.lt{background:#3b3474} .chess .lastm.dk{background:#2f2963}
+  .chess .lastm{box-shadow:inset 0 0 0 2px rgba(255,79,216,.5)}
   .chess .sel{box-shadow:inset 0 0 0 4px var(--cy)}
   .chess .chk{background:radial-gradient(circle,#ff5d73 0,#ff5d73 30%,transparent 72%)!important;animation:chk 1s ease-in-out infinite}
   @keyframes chk{50%{filter:brightness(1.35)}}
   .chess .pc{display:block;position:relative;z-index:2;transition:transform .15s}
   .chess .sel .pc{transform:scale(1.12) translateY(-2px)}
   .chess .dot::after,.chess .ring::after{animation:miniIn .25s var(--spring)}
-  .chess .pw{color:#fafaff;text-shadow:0 0 1px #000,0 0 2px #000,0 2px 2px rgba(0,0,0,.4)}
-  .chess .pb{color:#14142a;text-shadow:0 0 1px rgba(255,255,255,.7),0 2px 2px rgba(0,0,0,.35)}
-  .chess .dot::after{content:'';position:absolute;width:28%;height:28%;border-radius:50%;background:rgba(20,20,50,.38)}
-  .chess .ring::after{content:'';position:absolute;inset:6%;border-radius:50%;box-shadow:inset 0 0 0 4px rgba(20,20,50,.4)}
+  .chess .pw{color:#fff;text-shadow:0 0 1px #000,0 0 8px color-mix(in srgb,var(--p1) 80%,transparent),0 2px 3px rgba(0,0,0,.6)}
+  .chess .pb{color:#07070f;-webkit-text-stroke:.8px var(--p2);text-shadow:0 0 8px color-mix(in srgb,var(--p2) 70%,transparent),0 2px 3px rgba(0,0,0,.6)}
+  .chess .dot::after{content:'';position:absolute;width:28%;height:28%;border-radius:50%;background:rgba(98,240,255,.5);box-shadow:0 0 10px rgba(98,240,255,.6)}
+  .chess .ring::after{content:'';position:absolute;inset:6%;border-radius:50%;box-shadow:inset 0 0 0 4px rgba(98,240,255,.6)}
   .chess .co{position:absolute;font-family:var(--f-d);font-size:10px;font-weight:600;opacity:.7}
   .chess .co.f{bottom:2px;right:4px} .chess .co.r{top:2px;left:4px}
-  .chess .lt .co{color:#585e9c} .chess .dk .co{color:#b9bce6}
+  .chess .lt .co{color:#8189d0} .chess .dk .co{color:#6b73ba}
+  /* Holz (Optionen → Spielbrett) */
+  .bd-wood .chess{border:6px solid #5d3a1c;box-shadow:0 18px 40px -14px rgba(0,0,0,.8)}
+  .bd-wood .chess .lt{background:#ecd3a6} .bd-wood .chess .dk{background:#b5835a}
+  .bd-wood .chess .lastm.lt{background:#e8d47c} .bd-wood .chess .lastm.dk{background:#c9a24f} .bd-wood .chess .lastm{box-shadow:none}
+  .bd-wood .chess .pw{color:#fffaf0;text-shadow:0 0 1px #000,0 0 2px #000,0 2px 2px rgba(0,0,0,.45)}
+  .bd-wood .chess .pb{color:#1c120a;-webkit-text-stroke:0;text-shadow:0 0 1px rgba(255,255,255,.6),0 2px 2px rgba(0,0,0,.35)}
+  .bd-wood .chess .dot::after{background:rgba(60,30,10,.35);box-shadow:none} .bd-wood .chess .ring::after{box-shadow:inset 0 0 0 4px rgba(60,30,10,.45)}
+  .bd-wood .chess .lt .co{color:#9a6a40} .bd-wood .chess .dk .co{color:#f0d9b0}
   .promo{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
   .promo button{aspect-ratio:1;border-radius:12px;background:#b9bce6;font-size:44px;display:grid;place-items:center;border:2px solid transparent}
   .promo button:hover{border-color:var(--cy)} .promo small{display:block;font-size:11px;color:#1d1d3a;font-family:var(--f-b)}`);
