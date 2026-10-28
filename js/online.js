@@ -579,7 +579,7 @@
   // ---------- tables for 2-4 players (party games) ----------
   // Someone opens a table (seat 1, host), invites friends, shares the code or makes it visible for everybody.
   // The host starts; empty seats are played by the AI. Server: supabase/migrations/20261107000000_party_tables.sql
-  const TABLE = ['ludo', 'ladder'];
+  const TABLE = ['ludo', 'ladder', 'yacht', 'maumau'];
   TABLE.forEach(id => { if (V.byId[id]) V.byId[id].table = true; });
   let lobbyT = null, lobbyId = null;
   const tableLink = c => location.origin + location.pathname + '?table=' + c;

@@ -1,13 +1,13 @@
 # Versus
 
-18 Spiele für zwei bis vier Spieler an einem Gerät, online oder allein gegen die KI in vier Stufen. Jedes Spiel hat ein eigenes Tutorial.
+20 Spiele für zwei bis vier Spieler an einem Gerät, online oder allein gegen die KI in vier Stufen. Jedes Spiel hat ein eigenes Tutorial.
 
 **Spielen:** https://bananemdnaa.github.io/versus/
 
 ## Spiele
 
 - **Klassiker:** 4 Gewinnt, Schiffe versenken, Tic Tac Toe, Fünf in einer Reihe, Ultimate Tic Tac Toe, Käsekästchen
-- **Brettspiele:** Ludo (wie Mensch ärgere dich nicht, 2–4), Leiterspiel (2–4), Dame, Mühle; mit eigenem Holzbrett-Look, Spielfiguren und 3D-Würfel
+- **Brettspiele:** Ludo (wie Mensch ärgere dich nicht, 2–4), Leiterspiel (2–4), Dame, Mühle, Würfelblock (wie Kniffel, 2–4), Mau-Mau (2–4); mit Holzbrett-Look, Spielfiguren, 3D-Würfeln und Karten
 - **Strategie:** Schach, Reversi, Kalaha
 - **Action:** Reaktionsduell, Pong, Air Hockey (beide spielen gleichzeitig am selben Handy, jeder auf seiner Hälfte), Lichtrenner (2–4), Sumo-Arena (2–4)
 
@@ -17,6 +17,8 @@ Ludo, Leiterspiel, Lichtrenner und Sumo-Arena gehen mit 2, 3 oder 4 Spielern (Ei
 
 - **Ludo:** jeder vier Figuren; mit einer 6 raus (Pflicht, wenn das Startfeld frei ist), nach einer 6 nochmal, drei Versuche, wenn keine Figur draußen steht; Rauswerfen, genaue Augenzahl im Ziel.
 - **Leiterspiel:** 100 Felder, Leitern hoch, Schlangen runter, genau 100 gewinnt (zu viel prallt zurück). Reines Glück.
+- **Würfelblock:** 5 Würfel, bis zu 3 Würfe, Würfel zum Behalten antippen, 13 Felder wie bei Kniffel, Bonus 35 ab 63 oben.
+- **Mau-Mau:** 32 Karten, 5 auf die Hand; 7 = zwei ziehen (stapelbar), 8 = aussetzen, Bube passt immer und wünscht eine Farbe. Am selben Gerät kommt vor jedem Zug „Gib das Gerät an …“, damit niemand fremde Karten sieht.
 - **Lichtrenner:** jeder lenkt mit zwei Knöpfen (links/rechts aus Sicht des Rads), es wird mit der Zeit schneller. Letzter Fahrer holt den Punkt.
 - **Sumo-Arena:** ein Knopf pro Spieler. Der Pfeil dreht sich, Halten schiebt in Pfeilrichtung. Nach ein paar Sekunden schrumpft der Ring.
 - Am Handy liegt das Gerät flach in der Mitte: Spieler 1 und 3 sitzen unten, 2 und 4 oben, deren Knöpfe stehen gedreht. Am PC hat jeder eigene Tasten (siehe unten), die Knöpfe sind dort ausgeblendet.
@@ -125,7 +127,7 @@ Im Reiter „Online“ sucht man Spieler nach Namen, schickt Freundschaftsanfrag
 - **Freunde hinzufügen:** „Hinzufügen“ im Reiter Online bietet drei Wege: Name suchen (Ergebnisse erscheinen beim Tippen), „Mein Code“ mit QR-Code, Link zum Teilen und kurzem Freundescode, oder „Code eingeben“. Wer den Code eingibt oder den QR-Code bzw. Link öffnet, ist sofort befreundet, ohne Bestätigung. Ein neuer Code macht alte Links ungültig. Wer den Link ohne Konto öffnet, wird zum Anmelden geschickt und danach automatisch befreundet.
 - **Freunde verwalten:** Jeder Freund hat einen „Spielen“-Knopf (Spiel wählen, Einladung geht raus); ein Tipp auf die Zeile öffnet das Profil mit Herausfordern und Entfernen. Neue Anfragen erscheinen als Karte, egal wo man in der App ist, und lassen sich direkt annehmen. Nach einer offenen Herausforderung gegen Unbekannte kann man den Gegner im Ergebnis-Fenster als Freund hinzufügen.
 - Online spielbar: 4 Gewinnt, Schiffe versenken, Tic Tac Toe, Fünf in einer Reihe, Ultimate Tic Tac Toe, Schach, Dame, Reversi, Mühle, Kalaha, Käsekästchen
-- **Online-Tische (2–4 Spieler):** Ludo und Leiterspiel. Im Spiel-Panel unter „Online“ eröffnet man einen Tisch (man ist Gastgeber auf Platz 1), lädt Freunde ein, teilt den Tischcode oder Link (`?table=CODE`) oder stellt den Tisch „für alle sichtbar“. Eingeladene bekommen eine Karte, offene Tische stehen im Reiter Online. Der Gastgeber startet, sobald mindestens ein Mitspieler sitzt; leere Plätze spielt die KI (gerechnet im Browser des Gastgebers). Würfel kommen aus einem gemeinsamen Startwert, alle sehen dieselben Augen. Wer 45 Sekunden weg ist oder den Tisch verlässt, wird von der KI ersetzt, geht der Gastgeber, übernimmt der nächste. Tische zählen in der eigenen Bilanz, aber (noch) nicht in der Rangliste.
+- **Online-Tische (2–4 Spieler):** Ludo, Leiterspiel, Würfelblock und Mau-Mau. Im Spiel-Panel unter „Online“ eröffnet man einen Tisch (man ist Gastgeber auf Platz 1), lädt Freunde ein, teilt den Tischcode oder Link (`?table=CODE`) oder stellt den Tisch „für alle sichtbar“. Eingeladene bekommen eine Karte, offene Tische stehen im Reiter Online. Der Gastgeber startet, sobald mindestens ein Mitspieler sitzt; leere Plätze spielt die KI (gerechnet im Browser des Gastgebers). Würfel kommen aus einem gemeinsamen Startwert, alle sehen dieselben Augen. Wer 45 Sekunden weg ist oder den Tisch verlässt, wird von der KI ersetzt, geht der Gastgeber, übernimmt der nächste. Tische zählen in der eigenen Bilanz, aber (noch) nicht in der Rangliste.
 - Schiffe versenken online: Die Flotten liegen nur auf dem Server, der sie auf die Regeln prüft (5 Schiffe, gerade, ohne Berührung), jeden Schuss auswertet und entscheidet, wer dran ist. Der Gegner sieht ein Schiff erst, wenn es versenkt ist.
 - Beide Browser prüfen jeden Zug nach den Spielregeln; ein ungültiger Zug annulliert die Partie. Am Ende melden beide das Ergebnis, stimmen die Meldungen nicht überein, wird die Partie annulliert.
 - Aufgeben über die Flagge oben rechts. Wer 75 Sekunden nicht erreichbar ist, verliert. Nach einem Neuladen geht es über „Weiterspielen“ im Reiter Online weiter.
@@ -136,6 +138,6 @@ Im Reiter „Online“ sucht man Spieler nach Namen, schickt Freundschaftsanfrag
 - **Schachuhr:** Bei Schach zu zweit und online 3, 5 oder 10 Minuten pro Spieler plus 2 Sekunden pro Zug. Online rechnet der Server die Zeit aus den Zugzeiten, wer über die Zeit kommt, verliert.
 - **Admin-Panel → Partien:** laufende und beendete Partien mit Spielern, Zügen und Ergebnis. „Zuschauen“ zeigt eine laufende Partie live, „Abspielen“ spielt eine beendete Zug für Zug nach. Admins können Partien annullieren (steht im Protokoll).
 
-Dafür einmal `supabase/migrations/20261029000000_friends_matches.sql` und danach `supabase/migrations/20261030000000_open_matches.sql`, für Schiffe versenken online zusätzlich `supabase/migrations/20261031000000_ships_online.sql` und `supabase/migrations/20261101000000_dev_rankings.sql` und für „Online-Status verbergen“ `supabase/migrations/20261102000000_hide_online.sql`, für die Wochen-Rangliste `supabase/migrations/20261103000000_weekly_rankings.sql`, für Profile, Reaktionen, Revanche und Schachuhr `supabase/migrations/20261104000000_profiles_social.sql`, für Freundescodes `supabase/migrations/20261105000000_friend_codes.sql` , für Fünf in einer Reihe und Kalaha online `supabase/migrations/20261106000000_more_games.sql` und für Online-Tische `supabase/migrations/20261107000000_party_tables.sql` im SQL-Editor ausführen.
+Dafür einmal `supabase/migrations/20261029000000_friends_matches.sql` und danach `supabase/migrations/20261030000000_open_matches.sql`, für Schiffe versenken online zusätzlich `supabase/migrations/20261031000000_ships_online.sql` und `supabase/migrations/20261101000000_dev_rankings.sql` und für „Online-Status verbergen“ `supabase/migrations/20261102000000_hide_online.sql`, für die Wochen-Rangliste `supabase/migrations/20261103000000_weekly_rankings.sql`, für Profile, Reaktionen, Revanche und Schachuhr `supabase/migrations/20261104000000_profiles_social.sql`, für Freundescodes `supabase/migrations/20261105000000_friend_codes.sql` , für Fünf in einer Reihe und Kalaha online `supabase/migrations/20261106000000_more_games.sql`, für Online-Tische `supabase/migrations/20261107000000_party_tables.sql` und für die neuen Tisch-Spiele, Go und Backgammon `supabase/migrations/20261108000000_party_games.sql` im SQL-Editor ausführen.
 
 Neue Migrationen kommen als weitere Datei in `supabase/migrations/` und werden in Reihenfolge einmal im SQL-Editor ausgeführt.

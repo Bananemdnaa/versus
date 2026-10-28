@@ -1038,3 +1038,29 @@ html,body{-webkit-tap-highlight-color:transparent}
 .lb-wait .spin{margin:0;flex:none} .lb-wait .spin i{border-width:3px} .lb-wait .spin i+i{inset:5px}
 /* laptop: the thinking dots sit in the card's corner instead of adding a row */
 @media (min-width:960px){.pcard .tdots{position:absolute;top:16px;right:16px;margin:0} .pcard-r .tdots{right:auto;left:16px}}
+
+/* ---------- playing cards ---------- */
+.card{--cw:64px;width:var(--cw);aspect-ratio:5/7;flex:none;position:relative;border-radius:calc(var(--cw) * .1);background:linear-gradient(160deg,#fff,#f1eee6);box-shadow:0 1px 0 rgba(255,255,255,.6) inset,0 3px 8px rgba(0,0,0,.45),0 0 0 1px rgba(0,0,0,.25);color:#15172a;user-select:none;transition:transform .18s var(--ease),box-shadow .18s}
+.card.red{color:#d62b4d}
+.card .tl,.card .br{position:absolute;display:flex;flex-direction:column;align-items:center;font:800 calc(var(--cw) * .26)/1 var(--f-d);letter-spacing:-.03em}
+.card .tl{left:7%;top:5%} .card .br{right:7%;bottom:5%;transform:rotate(180deg)}
+.card small{font-size:.8em;line-height:.9}
+.card em{position:absolute;inset:0;display:grid;place-items:center;font-style:normal;font-size:calc(var(--cw) * .48);line-height:1}
+.card em.fc{font:800 italic calc(var(--cw) * .5)/1 var(--f-d);background:radial-gradient(circle,rgba(0,0,0,.06) 40%,transparent 41%)}
+.card.back{background:repeating-linear-gradient(45deg,#ff4fd8 0 6px,#c93aac 6px 12px);box-shadow:0 3px 8px rgba(0,0,0,.45),0 0 0 1px rgba(0,0,0,.35)}
+.card.back i{position:absolute;inset:8%;border-radius:calc(var(--cw) * .07);border:2px solid rgba(255,255,255,.75);background:radial-gradient(circle,#ffd84f 0 18%,transparent 19%)}
+.card.can{cursor:pointer}
+.card.can:hover{transform:translateY(-6px)}
+.card.no{filter:brightness(.62) saturate(.6)}
+.card.sel{transform:translateY(-12px);box-shadow:0 0 0 3px var(--cyan),0 8px 16px rgba(0,0,0,.5)}
+.card.deal{animation:cdeal .32s var(--ease) backwards}
+@keyframes cdeal{from{transform:translate(var(--fx,0),var(--fy,-60px)) rotate(-8deg) scale(.6);opacity:0}}
+.felt{background:radial-gradient(120% 90% at 50% 40%,#22704a,#164a31 70%,#0f3522);border:6px solid #5d3a1c;box-shadow:inset 0 0 40px rgba(0,0,0,.5),0 18px 40px -14px rgba(0,0,0,.8)}
+
+/* ---------- hand the device to the next person ---------- */
+.handoff{position:absolute;inset:-6px;z-index:20;display:grid;place-items:center;background:rgba(8,9,15,.94);border-radius:14px;backdrop-filter:blur(6px);animation:fadein .2s}
+.handoff .ho-in{display:flex;flex-direction:column;align-items:center;gap:10px;text-align:center;padding:20px;max-width:320px}
+.handoff .ho-av{width:64px;height:64px;display:grid;place-items:center;border-radius:50%;border:3px solid currentColor;font:800 italic 24px/1 var(--f-d)}
+.handoff h3{margin:0;font:800 italic 26px/1.1 var(--f-d);text-transform:uppercase}
+.handoff p{margin:0;color:var(--muted)}
+@keyframes fadein{from{opacity:0}}

@@ -350,6 +350,26 @@
     document.body.appendChild(s);
   })();
 
+  // ---------- playing cards (Mau-Mau, Poker, Memory) ----------
+  // a card is a code: rank '23456789TJQKA' + suit 'SHDC' (Pik, Herz, Karo, Kreuz), e.g. 'TH' = Herz 10
+  const SUIT = { S: '♠', H: '♥', D: '♦', C: '♣' }, SUIT_NAME = { S: 'Pik', H: 'Herz', D: 'Karo', C: 'Kreuz' };
+  const RANK = { T: '10', J: 'B', Q: 'D', K: 'K', A: 'A' }, RANK_NAME = { J: 'Bube', Q: 'Dame', K: 'König', A: 'Ass', T: '10' };
+  V.cardName = c => SUIT_NAME[c[1]] + ' ' + (RANK_NAME[c[0]] || c[0]);
+  V.suitName = s => SUIT_NAME[s];
+  V.suitSym = s => SUIT[s];
+  V.card = (c, cls = '') => {
+    if (!c) return `<div class="card back ${cls}"><i></i></div>`;
+    const r = RANK[c[0]] || c[0], s = SUIT[c[1]], red = c[1] === 'H' || c[1] === 'D';
+    const face = 'JQK'.includes(c[0]) ? `<em class="fc">${r}</em>` : `<em>${s}</em>`;
+    return `<div class="card ${red ? 'red' : 'blk'} ${cls}" data-c="${c}"><b class="tl">${r}<small>${s}</small></b>${face}<b class="br">${r}<small>${s}</small></b></div>`;
+  };
+  // a shuffled deck from a random source (ctx.rng keeps it the same for everybody online)
+  V.deck = (rng, ranks = '23456789TJQKA') => {
+    const d = []; for (const s of 'SHDC') for (const r of ranks) d.push(r + s);
+    for (let i = d.length - 1; i > 0; i--) { const j = Math.floor(rng() * (i + 1)); [d[i], d[j]] = [d[j], d[i]]; }
+    return d;
+  };
+
   // ---------- mini boards for tutorials ----------
   const MINI_BASE = {
     '.': { c: '' }, ' ': { c: 'nb' }, a: { c: 'd1' }, b: { c: 'd2' }, A: { c: 'd1 rg' }, B: { c: 'd2 rg' },
@@ -1131,16 +1151,37 @@
       stEl.innerHTML = html; if (V.fxOn()) V.fx.pop(stEl, 'st-in');
     };
     let net = null, tnet = null;
-    let clock = null;
+    let clock = null, listener = null, handSeen = 0;
     const remote = s => watch || (online && (s === oppSide || (net && net.queue.length > 0))) || (table && (s !== mySide || (tnet && tnet.queue.length > 0)));
-    // dice and other luck: at a table every browser draws the same numbers from the shared seed
-    let seed = table ? (T.seed >>> 0) || 1 : 0;
-    const rng = table ? () => { seed = (seed + 0x6D2B79F5) >>> 0; let t = seed; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; } : Math.random;
+    // dice, shuffled cards and other luck: online every browser draws the same numbers from a shared seed
+    // (tables get it from the server, duels derive it from the match id)
+    const idSeed = id => { let h = 2166136261; for (const ch of String(id)) h = Math.imul(h ^ ch.charCodeAt(0), 16777619); return h >>> 0; };
+    let seed = table ? (T.seed >>> 0) || 1 : online || watch ? idSeed(M.id) || 1 : 0;
+    const rng = seed ? () => { seed = (seed + 0x6D2B79F5) >>> 0; let t = seed; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; } : Math.random;
     const ctx = {
       stage: v.querySelector('#stage'), mode: cfg.mode, level: cfg.level, aiSide, opts: cfg.opts, sides: g.sides, n: N, players: SIDES,
       mySide, watchSides: watch ? { a: M.aSide } : null, rng,
       // true while a table catches up on moves that were already played (after joining late or reloading)
       fast: () => !!(tnet && tnet.queue.length > 1),
+      // games where everybody acts at the same time (Stadt Land Fluss): listen(fn) gets every action (s, m) in
+      // one order for all browsers; submit(m, s) sends an action (s defaults to your own seat, the host may act for AI seats)
+      listen(fn) { listener = fn; if (tnet) tnet.pump(); },
+      submit(m, s) {
+        s = s || mySide || 1;
+        if (tnet) return tnet.submit(s, m);
+        ctx.later(() => listener && listener(s, m), 0);
+      },
+      amHost: () => !table || amHost(),
+      // hidden cards at one device: before a person's turn, ask the others to look away (only when 2+ people share it)
+      handoff(s, text, cb) {
+        const people = SIDES.filter(k => !ctx.isAI(k));
+        if (cfg.mode !== 'local' || people.length < 2 || handSeen === s) return cb();
+        handSeen = s;
+        const el = V.el('div', 'handoff', `<div class="ho-in"><span class="ho-av c${s}">${esc(names[s].slice(0, 2).toUpperCase())}</span><h3>Gib das Gerät an <span class="c${s}">${esc(names[s])}</span></h3><p>${text || 'Die anderen schauen kurz weg.'}</p><button class="btn primary big" data-enter><span>Ich bin ${esc(names[s])}</span></button></div>`);
+        ctx.stage.appendChild(el);
+        el.querySelector('button').onclick = () => { el.remove(); V.sfx.ui(); cb(); };
+      },
+      handReset() { handSeen = 0; },
       isAI: s => botSide(s) || remote(s),
       name: s => names[s],
       who(s) { return `<span class="c${s}">${esc(names[s])}</span>`; },
@@ -1410,7 +1451,16 @@
             ctx.end(st.status === 'void' ? 0 : st.winner || 0, st.status === 'void' ? 'Der Tisch wurde aufgelöst' : '', true);
         },
         take(o) { this.waiting = o; if (pls[o.side]) pls[o.side].classList.add('thinking'); this.pump(); },
+        // simultaneous games: actions are only applied once they come back from the server, so all see one order
+        submit(s, m) {
+          this.chain = this.chain.then(() => V.cloud.rpc('party_move', { tid: M.id, ply: -1, s, mv: m }))
+            .catch(e => { if (alive) toast('Nicht gesendet: ' + e.message); });
+        },
         pump() {
+          if (listener) {
+            while (this.queue.length) { const mv = this.queue.shift(); this.applied++; listener(mv.s, mv.m); }
+            return;
+          }
           if (!this.waiting || !this.queue.length) return;
           const o = this.waiting, mv = this.queue.shift(); this.waiting = null;
           const m = mv.s === o.side ? (o.decode ? o.decode(mv.m) : mv.m) : null;
