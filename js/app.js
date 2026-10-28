@@ -443,7 +443,7 @@
       ${V.cloud && V.cloud.available() ? `<div class="ogroup"><h2 class="oh">Online</h2>
       <div class="optlist">
         ${sw('o_open', settings.openCards !== false, 'Offene Herausforderungen', 'Einblenden, wenn jemand einen Gegner sucht', IC.globe)}
-        ${u ? sw('o_stealth', !!settings.stealth, 'Online-Status verbergen', 'Freunde sehen nicht, ob und was du gerade spielst', IC.eye) : ''}
+        ${u ? sw('o_stealth', !!settings.stealth, 'Online-Status verbergen', 'Freunde sehen nicht, ob und was du gerade spielst, und können nicht zuschauen', IC.eye) : ''}
       </div></div>` : ''}
       <div class="ogroup"><h2 class="oh">App</h2>
       <div class="optlist small">

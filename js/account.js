@@ -393,7 +393,7 @@
     h.querySelectorAll('[data-mf]').forEach(x => x.onclick = () => { mFilter = x.dataset.mf; matches = null; sure = null; V.sfx.ui(); draw(); load(); });
     const mq = h.querySelector('#mq');
     if (mq) { mq.onchange = () => { mQuery = mq.value.trim(); matches = null; load(); }; mq.onkeydown = e => { if (e.key === 'Enter') mq.blur(); }; }
-    h.querySelectorAll('[data-watch]').forEach(x => x.onclick = () => { stopLive(); V.online.watch(x.dataset.watch); });
+    h.querySelectorAll('[data-watch]').forEach(x => x.onclick = () => { stopLive(); V.online.watch(x.dataset.watch, true); });
     h.querySelectorAll('[data-void]').forEach(x => x.onclick = () => act('admin_void_match', { mid: x.dataset.void, why: null }, 'Partie annulliert.'));
     h.querySelectorAll('[data-box]').forEach(x => x.onclick = () => { box = box === x.dataset.box ? null : x.dataset.box; sure = null; draw(); });
     h.querySelectorAll('[data-sure]').forEach(x => x.onclick = () => { sure = x.dataset.sure; draw(); });

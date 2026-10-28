@@ -1186,3 +1186,15 @@ html,body{-webkit-tap-highlight-color:transparent}
 .gnone svg{color:var(--muted)}
 /* screens where you type (Galgenmännchen, Stadt Land Fluss) stay at the top: the phone keyboard would cover a low input and scroll the page */
 @media (max-width:959px){.play .stage:has(input.inp){margin-top:0;margin-bottom:0}}
+
+/* ---------- offline countdown, watchers, reactions from watching friends ---------- */
+.offnote{display:flex;align-items:center;gap:8px;max-width:min(520px,100%);padding:6px 12px;border-radius:6px;border:1px solid color-mix(in srgb,var(--warn) 45%,var(--line));background:color-mix(in srgb,var(--warn) 10%,var(--panel));color:var(--fg);font-size:13.5px;line-height:1.35;animation:fadein .25s}
+.offnote svg{width:18px;height:18px;flex:none;color:var(--warn)}
+.watchn{display:inline-flex;align-items:center;gap:4px;padding:0 8px;height:30px;border-radius:99px;background:var(--panel2);border:1px solid var(--line);color:var(--muted);font:700 italic 14px/1 var(--f-d)}
+.watchn[hidden]{display:none}
+.watchn svg{width:16px;height:16px;color:var(--cy)}
+.center{position:relative}
+.emo-w{position:absolute;z-index:6;left:var(--x,50%);top:40%;display:flex;flex-direction:column;align-items:center;gap:2px;pointer-events:none;transform:translateX(-50%);animation:emoW 2.6s var(--ease) forwards}
+.emo-w b{font-size:34px;line-height:1;filter:drop-shadow(0 4px 8px rgba(0,0,0,.5))}
+.emo-w small{padding:2px 7px;border-radius:99px;background:rgba(8,9,15,.8);color:var(--cy);font:700 italic 12px/1.2 var(--f-d);letter-spacing:.04em}
+@keyframes emoW{0%{opacity:0;transform:translate(-50%,20px) scale(.6)}12%{opacity:1;transform:translate(-50%,0) scale(1.1)}80%{opacity:1}100%{opacity:0;transform:translate(-50%,-90px) scale(1)}}

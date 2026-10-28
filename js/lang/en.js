@@ -55,7 +55,7 @@
     'Sprache': 'Language', 'Deutsch': 'Deutsch',
     'Schnelle KI': 'Fast AI', 'Die KI zieht sofort, ohne Nachdenken und Zielen': 'The AI moves right away, without thinking and aiming',
     'Offene Herausforderungen': 'Open challenges', 'Einblenden, wenn jemand einen Gegner sucht': 'Show when someone is looking for an opponent',
-    'Online-Status verbergen': 'Hide online status', 'Freunde sehen nicht, ob und was du gerade spielst': 'Friends do not see whether or what you are playing',
+    'Online-Status verbergen': 'Hide online status', 'Freunde sehen nicht, ob und was du gerade spielst, und können nicht zuschauen': 'Friends do not see whether or what you are playing, and cannot watch',
     'Läuft als App': 'Running as an app', 'Versus ist auf diesem Gerät installiert': 'Versus is installed on this device',
     'Als App installieren': 'Install as app', 'Eigenes Symbol, startet schneller, ohne Browserleiste': 'Own icon, starts faster, no browser bar',
     'Nach Updates suchen': 'Check for updates', 'Version #': 'Version #',
@@ -855,6 +855,17 @@
     'Favorit': 'Favourite', 'Zu Favoriten (F)': 'Add to favourites (F)', 'Aus Favoriten entfernen': 'Remove from favourites',
     'Favorit an oder aus': 'Favourite on or off'
   });
+  // ---------- offline matches, watching friends ----------
+  A({
+    'Abgebrochen': 'Called off', 'Partie abgebrochen': 'Match called off', 'Zuschauer': 'Spectators', 'Du warst zu lange offline': 'You were offline for too long',
+    'Ein Spieler war zu lange offline': 'A player was offline for too long', 'Zuschauen': 'Watch', 'offline': 'offline'
+  });
+  V.i18n.pat([
+    [/^(\S+) ist offline · ohne Rückkehr endet die Partie in (\d+) s ohne Sieger$/, "$1 is offline · if they don't come back, the match ends in $2 s with no winner"],
+    [/^(\S+) war zu lange offline$/, '$1 was offline for too long'],
+    [/^spielt (.+) gegen ([a-z0-9_-]{3,16})$/, (m, g, n) => 'playing ' + g + ' vs. ' + n]
+  ]);
+
   // ---------- words that differ by game ----------
   A({ 'Remis': 'Draw', 'Ziehen': 'Moving' });
   V.i18n.ctx('[data-g=go], [data-g=reversi]', { 'Passen': 'Pass', 'Gepasst': 'Passed' });

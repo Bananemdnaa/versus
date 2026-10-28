@@ -103,7 +103,8 @@
     const v = mount(`<div class="view play${online || table ? ' net' : ''}${watch ? ' watch' : ''}${facing ? ' facing' + (g.turnBoard ? ' rotboard' : '') : ''}" data-g="${g.id}" style="--acc:${g.accent || 'var(--pink)'}">
       <div class="pbar"><button class="iconbtn" id="pb" aria-label="Zurück">${IC.back}</button><div class="ttl"><b>${g.name}</b><small>${sublabel}</small></div>
         <button class="iconbtn" id="ph" aria-label="Regeln" title="Regeln (T)">${IC.help}</button>
-        ${online ? `<button class="iconbtn" id="pe" aria-label="Reaktion senden" title="Reaktion">${IC.smile}</button>` : ''}
+        <span class="watchn" id="pw" hidden title="Zuschauer">${IC.eye}<b></b></span>
+        ${online || (watch && !M.admin) ? `<button class="iconbtn" id="pe" aria-label="Reaktion senden" title="Reaktion">${IC.smile}</button>` : ''}
         ${online ? `<button class="iconbtn" id="pr" aria-label="Aufgeben" title="Aufgeben">${IC.flag}</button>` : watch || table ? '' : `<button class="iconbtn" id="pr" aria-label="Neu starten" title="Neue Partie (N)">${IC.redo}</button>`}</div>
       <div class="duel${party ? ' party n' + N : ''}">
         ${party ? `<div class="pcol pcol-l">${SIDES.filter(s => s % 2).map(s => card(s, 'l')).join('')}</div><div class="pcol pcol-r">${SIDES.filter(s => !(s % 2)).map(s => card(s, 'r')).join('')}</div>` : `${card(L, 'l')}
@@ -233,22 +234,24 @@
       think(fn, ms = 380) { setStatus(`<span class="c${aiSide}">KI</span> <span class="thinking">denkt</span>`); ctx.later(fn, ms); },
       nav(fn, o) { nav.set(fn, o); },
       keys(fn) { keyFn = fn; },
-      end(winner, note, fromServer) {
+      // off: the match was called off (opponent offline, voided) – no winner, nothing counts
+      end(winner, note, fromServer, off) {
         if (ended || !alive) return; ended = true;
+        if (off) winner = 0;
         SIDES.forEach(k => pls[k].classList.remove('on'));
         nav.hide();
         if (net && online && !fromServer) net.finish(winner);
         if (net) { if (online) net.after = true; else net.stop(); }
         if (tnet) { if (!fromServer) tnet.finish(winner); tnet.stop(); }
         if (cfg.onEnd) cfg.onEnd(winner, note);
-        if (!watch && !auto) {
+        if (!watch && !auto && !off) {
           const s = stat(g.id);
           if (ai) { const r = s.ai[cfg.level]; if (winner === 0) r.d++; else if (winner === me) r.w++; else r.l++; }
           else if (online || table) { s.on = s.on || { w: 0, l: 0, d: 0 }; if (winner === 0) s.on.d++; else if (winner === mySide) s.on.w++; else s.on.l++; }
           else { if (winner === 0) s.local.d++; else if (winner === 1) s.local.a++; else s.local.b++; }
           S.set('stats', P.stats);
         }
-        if (winner === 0) series.d++; else series[winner]++;
+        if (off) { } else if (winner === 0) series.d++; else series[winner]++;
         const sc = v.querySelector('#sc'); if (sc) { sc.innerHTML = `<b class="sl">${series[L]}</b><i>:</i><b class="sr">${series[R]}</b>`; V.fx.pop(sc, 'fx-pop'); }
         SIDES.forEach(k => { const b = pls[k].querySelector('.wins b'); if (b.textContent !== String(series[k])) { b.textContent = series[k]; V.fx.pop(b, 'fx-pop'); } });
         const meWon = me && winner === me;
@@ -256,11 +259,11 @@
         if (good) { V.sfx.win(); setTimeout(() => V.fx.confetti(), 250); }
         else if (winner) { V.sfx.lose(); V.fx.shake(ctx.stage); }
         // V.t: the letters are animated one by one, so the translation has to happen before the split
-        const big = V.t(winner === 0 ? 'Remis' : me ? (meWon ? 'Sieg!' : 'Niederlage') : `${names[winner]} gewinnt`);
-        setStatus(winner === 0 ? 'Unentschieden' : me ? (meWon ? '<span class="c' + winner + '">Du hast gewonnen</span>' : `${ctx.who(winner)} hat gewonnen`) : `${ctx.who(winner)} gewinnt`);
+        const big = V.t(off ? 'Abgebrochen' : winner === 0 ? 'Remis' : me ? (meWon ? 'Sieg!' : 'Niederlage') : `${names[winner]} gewinnt`);
+        setStatus(off ? esc(note || 'Partie abgebrochen') : winner === 0 ? 'Unentschieden' :me ? (meWon ? '<span class="c' + winner + '">Du hast gewonnen</span>' : `${ctx.who(winner)} hat gewonnen`) : `${ctx.who(winner)} gewinnt`);
         const tone = winner === 0 ? 'draw' : me ? (meWon ? 'win' : 'lose') : party ? 'w' + winner : (winner === L ? 'left' : 'right');
         const again = () => online ? net.rematch(series) : table ? (closeModal(), V.online.table(g, cfg.opts, cfg.level)) : play(g, cfg, series);
-        const menu = () => watch ? V.account.admin('matches') : setup(g);
+        const menu = () => watch ? (M.admin ? V.account.admin('matches') : V.ui.home('online')) : setup(g);
         ctx.later(() => {
           const m = openModal(`<div class="ko ${tone}">
             <div class="band"><div class="band-in"><span class="kicker">${esc(note || sublabel)}${online && net && net.last && net.last.ranked === false ? ' · zählt nicht für die Rangliste' : ''}</span>
@@ -314,6 +317,14 @@
     }
 
     // ---------- network (online and watch) ----------
+    const OFF_AFTER = 75, myName = V.cloud && V.cloud.user() ? V.cloud.user().username : '';
+    // a line under the status while the opponent is offline, with the seconds until the match is called off
+    function offNote(html) {
+      let n = v.querySelector('.offnote');
+      if (!html) { if (n) n.remove(); return; }
+      if (!n) { n = V.el('div', 'offnote'); v.querySelector('.center').insertBefore(n, v.querySelector('#stage')); }
+      n.innerHTML = `${IC.wifioff}<span>${html}</span>`;
+    }
     if (online || watch) {
       net = {
         queue: [], known: 0, applied: 0, waiting: null, stopped: false, last: null, chain: Promise.resolve(), offWarn: false, react: 0, fed: false, after: false, clockAt: 0, mine: null, started: false, told: null,
@@ -331,11 +342,19 @@
           if (online) {
             const oppOn = st.role === 'a' ? st.b_online : st.a_online;
             pls[oppSide].classList.toggle('off', !oppOn);
-            if (!oppOn && !ended && st.status === 'live' && !this.offWarn) { this.offWarn = true; toast(names[oppSide] + ' ist gerade nicht erreichbar'); }
-            if (oppOn) this.offWarn = false;
+            // the server calls the match off after 75 seconds without a sign of life (no winner, it doesn't count)
+            const idle = st.role === 'a' ? st.b_idle : st.a_idle;
+            offNote(!oppOn && !ended && st.status === 'live' ? `${esc(names[oppSide])} ist offline · ohne Rückkehr endet die Partie in ${Math.max(0, OFF_AFTER - (idle || 0))} s ohne Sieger` : '');
           }
+          const wn = v.querySelector('#pw');
+          if (wn) { wn.hidden = !st.watchers; wn.querySelector('b').textContent = st.watchers || ''; }
           if (st.clock) this.clockAt = performance.now();
-          (st.reacts || []).forEach(r => { if (r.id <= this.react) return; this.react = r.id; if (this.fed && (watch || r.side !== mySide)) showEmote(r.side, r.e); });
+          (st.reacts || []).forEach(r => {
+            if (r.id <= this.react) return; this.react = r.id;
+            // side 0: a friend watching; my own reactions are already on screen
+            if (!this.fed || (r.side === 0 && r.name === myName) || (!watch && r.side === mySide)) return;
+            showEmote(r.side, r.e, r.name);
+          });
           this.fed = true;
           if (this.after) this.rematchUI();
           if (this.readyCb && st.fleets_ready) { const f = this.readyCb; this.readyCb = null; f(st); }
@@ -373,8 +392,13 @@
           const w = st.status === 'void' ? 0 : st.winner_side || 0;
           const loser = w ? names[3 - w] : '';
           const me = online && w && 3 - w === mySide;
-          const note = st.status === 'void' ? 'Partie annulliert' : st.result === 'resign' ? (me ? 'Du hast aufgegeben' : loser + ' hat aufgegeben') : st.result === 'time' ? (me ? 'Deine Zeit ist abgelaufen' : loser + ': Zeit abgelaufen') : st.result === 'abandon' ? (me ? 'Du hast die Partie verlassen' : loser + ' hat die Partie verlassen') : '';
-          if (st.status === 'void' || st.result === 'resign' || st.result === 'abandon' || st.result === 'time' || watch) ctx.end(w, note, true);
+          offNote('');
+          // offline: whoever was gone longer is the one who dropped out
+          const meOff = online && (st.role === 'a' ? st.a_idle > st.b_idle : st.b_idle > st.a_idle);
+          if (st.status === 'void' && st.result === 'offline') return ctx.end(0, watch ? 'Ein Spieler war zu lange offline' : meOff ? 'Du warst zu lange offline' : names[oppSide] + ' war zu lange offline', true, true);
+          if (st.status === 'void') return ctx.end(0, 'Partie annulliert', true, true);
+          const note =st.result === 'resign' ? (me ? 'Du hast aufgegeben' : loser + ' hat aufgegeben') : st.result === 'time' ? (me ? 'Deine Zeit ist abgelaufen' : loser + ': Zeit abgelaufen') : st.result === 'abandon' ? (me ? 'Du hast die Partie verlassen' : loser + ' hat die Partie verlassen') : '';
+          if (st.result === 'resign' || st.result === 'abandon' || st.result === 'time' || watch) ctx.end(w, note, true);
         },
         illegal() { if (online) rpc('match_report', { mid: M.id, why: 'illegal move' }).catch(() => { }); toast('Ungültiger Zug empfangen, die Partie wird annulliert.'); ctx.end(0, 'Partie annulliert', true); },
         poll() { pollOnce(this, () => V.cloud.rpc('match_state', { mid: M.id, since: this.known }), () => (watch || this.after ? 1500 : 1000)); },
@@ -559,8 +583,17 @@
     }
 
     // ---------- reactions ----------
-    function showEmote(s, e) {
-      if (!EMO[e] || !pls[s]) return;
+    function showEmote(s, e, who) {
+      if (!EMO[e]) return;
+      // a friend watching: a chip that floats up over the board, with the name
+      if (s === 0) {
+        const c = v.querySelector('.center'); if (!c) return;
+        const b = V.el('span', 'emo-w', `<b>${EMO[e]}</b><small>${esc(who === myName ? 'Du' : who || 'Zuschauer')}</small>`);
+        b.style.setProperty('--x', (15 + Math.random() * 70).toFixed(0) + '%');
+        c.appendChild(b); setTimeout(() => b.remove(), 2600); V.sfx.tick();
+        return;
+      }
+      if (!pls[s]) return;
       const b = V.el('span', 'emo' + (e === 'gg' ? ' txt' : ''), EMO[e]); pls[s].appendChild(b); setTimeout(() => b.remove(), 2600);
       const k = document.querySelector('.ko #kemo');
       if (k) { const t = V.el('span', 'kemo-i', `<b>${EMO[e]}</b><small>${esc(names[s])}</small>`); k.appendChild(t); setTimeout(() => t.remove(), 2600); }
@@ -568,8 +601,8 @@
     }
     let emoT = 0;
     function sendEmote(e) {
-      if (!online || !net || performance.now() - emoT < 1000) return;
-      emoT = performance.now(); showEmote(mySide, e);
+      if (!(online || watch) || !net || performance.now() - emoT < (watch ? 2000 : 1000)) return;
+      emoT = performance.now(); showEmote(watch ? 0 : mySide, e, myName);
       rpc('match_react', { mid: M.id, e }).catch(() => { });
     }
     const pe = v.querySelector('#pe');
@@ -652,13 +685,13 @@
       };
     }
     const tut = () => { if (inst && inst.pause) inst.pause(); tutorial(g, () => { if (inst && inst.resume && alive) inst.resume(); }); };
-    v.querySelector('#pb').onclick = () => leave(() => watch ? V.account.admin('matches') : setup(g));
+    v.querySelector('#pb').onclick = () => leave(() => watch ? (M.admin ? V.account.admin('matches') : V.ui.home('online')) : setup(g));
     const pr = v.querySelector('#pr');
     if (pr) pr.onclick = () => online ? leave(null) : leave(() => play(g, cfg, series));
     v.querySelector('#ph').onclick = tut;
     P.playApi = {
       key(e) { return keyFn ? keyFn(e) : false; },
-      back() { leave(() => watch ? V.account.admin('matches') : setup(g)); },
+      back() { leave(() => watch ? (M.admin ? V.account.admin('matches') : V.ui.home('online')) : setup(g)); },
       restart() { if (!online && !watch) leave(() => play(g, cfg, series)); },
       tut
     };

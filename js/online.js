@@ -33,12 +33,14 @@
       V.ui.toast('Diese Partie ist schon vorbei.'); V.ui.home('online');
     } catch (e) { V.ui.toast(e.message); V.ui.home('online'); }
   }
-  async function watch(id) {
+  // watch a running match: admins any (and replays), friends the live matches of their friends
+  async function watch(id, admin) {
     try {
       const st = await C().rpc('match_state', { mid: id, since: 0 });
       if (!st.a_side) return V.ui.toast('Die Partie hat noch nicht angefangen.');
+      if (!admin && st.status !== 'live') { V.ui.toast('Diese Partie ist schon vorbei.'); return refreshTab(); }
       const g = V.byId[st.game];
-      V.ui.play(g, { mode: 'watch', opts: st.opts || {}, match: { id: st.id, aSide: st.a_side, aName: st.a_name, bName: st.b_name, init: st } });
+      V.ui.play(g, { mode: 'watch', opts: st.opts || {}, match: { id: st.id, aSide: st.a_side, aName: st.a_name, bName: st.b_name, init: st, admin: !!admin } });
     } catch (e) { V.ui.toast(e.message); }
   }
 
@@ -239,7 +241,7 @@
     el.querySelectorAll('[data-acc]').forEach(x => x.onclick = async () => { try { start(await C().rpc('match_respond', { mid: x.dataset.acc, ok: true })); } catch (e) { V.ui.toast(e.message); check(); } });
     el.querySelectorAll('[data-dec]').forEach(x => x.onclick = () => { C().rpc('match_respond', { mid: x.dataset.dec, ok: false }).then(check, check); });
   }
-  const fstatus = f => f.busy ? 'spielt gerade online' : f.online ? 'online' + (f.game && V.byId[f.game] ? ' · ' + esc(gname(f.game)) : '') : f.seen ? 'zuletzt ' + ago(f.seen) : 'offline';
+  const fstatus = f => f.busy && f.match_opp ? `spielt ${esc(gname(f.match_game))} gegen ${esc(f.match_opp)}` : f.busy ? 'spielt gerade online' :f.online ? 'online' + (f.game && V.byId[f.game] ? ' · ' + esc(gname(f.game)) : '') : f.seen ? 'zuletzt ' + ago(f.seen) : 'offline';
   function fillFriends(b) {
     const el = b.querySelector('#ofriends'); if (!el || !friendsData) return;
     if (friendsData.error) { el.innerHTML = `<p class="aerr">${esc(friendsData.error)}</p>`; return; }
@@ -250,7 +252,8 @@
       <button class="btn primary sm" data-yes="${esc(n)}"><span>Annehmen</span></button><button class="iconbtn sm" data-no="${esc(n)}" aria-label="Anfrage von ${esc(n)} ablehnen" title="Ablehnen">${IC().x}</button></div>`).join('');
     const rows = fr.map(f => `<div class="frow${f.online ? ' on' : ''}" data-prof="${esc(f.username)}"><span class="fav">${initials(f.username)}<i></i></span>
       <div class="ft"><b>${esc(f.username)}</b><small>${fstatus(f)}</small></div>
-      <button class="btn sm${f.online && !f.busy ? ' primary' : ''}" data-play="${esc(f.username)}"><span>${IC().play}Spielen</span></button></div>`).join('');
+      ${f.watchable && f.match ? `<button class="btn sm primary" data-watchf="${esc(f.match)}"><span>${IC().eye}Zuschauen</span></button>`
+        : `<button class="btn sm${f.online && !f.busy ? ' primary' : ''}" data-play="${esc(f.username)}"><span>${IC().play}Spielen</span></button>`}</div>`).join('');
     const out = (d.outgoing || []).length ? `<div class="fout"><small>Angefragt</small>${d.outgoing.map(n => `<span class="fchip">${esc(n)}<button data-rm="${esc(n)}" aria-label="Anfrage an ${esc(n)} zurückziehen" title="Zurückziehen">${IC().x}</button></span>`).join('')}</div>` : '';
     const empty = `<div class="fempty">${IC().users}<b>Noch keine Freunde</b><p>Zeig deinen QR-Code, schick deinen Link oder such nach einem Namen. Danach könnt ihr euch mit einem Tipp herausfordern.</p>
       <div class="arow"><button class="btn primary sm" data-addt="code"><span>${IC().qr}Mein Code</span></button><button class="btn sm" data-addt="search"><span>Name suchen</span></button></div></div>`;
@@ -258,6 +261,7 @@
     el.querySelectorAll('[data-yes]').forEach(x => x.onclick = e => { e.stopPropagation(); respond(x.dataset.yes, true); });
     el.querySelectorAll('[data-no]').forEach(x => x.onclick = e => { e.stopPropagation(); respond(x.dataset.no, false); });
     el.querySelectorAll('[data-play]').forEach(x => x.onclick = e => { e.stopPropagation(); V.sfx.ui(); challenge(x.dataset.play); });
+    el.querySelectorAll('[data-watchf]').forEach(x => x.onclick = e => { e.stopPropagation(); V.sfx.ui(); watch(x.dataset.watchf); });
     el.querySelectorAll('[data-rm]').forEach(x => x.onclick = e => { e.stopPropagation(); C().rpc('friend_remove', { name: x.dataset.rm }).then(() => { V.ui.toast('Anfrage zurückgezogen'); changed(); }, er => V.ui.toast(er.message)); });
     el.querySelectorAll('[data-addt]').forEach(x => x.onclick = () => { V.sfx.ui(); addFriends(x.dataset.addt); });
   }
