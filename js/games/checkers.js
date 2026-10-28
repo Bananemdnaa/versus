@@ -90,7 +90,10 @@
   .ck .sel .pc{transform:scale(1.1);box-shadow:0 0 0 3px #fff,0 0 20px var(--cy)}
   .ck .gone .pc{opacity:.3}
   .ck .nx::after{content:'';position:absolute;width:30%;height:30%;border-radius:50%;background:var(--cy);opacity:.8;box-shadow:0 0 12px var(--cy)}
-  .ck .lastm{background:linear-gradient(135deg,#7a4f2a,#6a4322)}`);
+  .ck .lastm{background:linear-gradient(135deg,#7a4f2a,#6a4322)}
+  /* Neon (Optionen: Spielbrett) */
+  .bd-neon .ck{border:2px solid #4a52a0;box-shadow:0 0 46px -12px var(--cy)}
+  .bd-neon .ck .lt{background:#232857} .bd-neon .ck .dk{background:#15183a} .bd-neon .ck .lastm{background:#2f2963;box-shadow:inset 0 0 0 2px rgba(255,79,216,.5)}`);
 
   const cm = rows => V.mini(rows, { k: { c: 'k1', t: '' }, K: { c: 'k2', t: '' } }, { checker: true, w: 230 });
 

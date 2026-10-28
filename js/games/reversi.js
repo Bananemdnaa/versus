@@ -56,7 +56,11 @@
   .rv .sq.ok::after{animation:miniIn .3s var(--spring)}
   .rv .st.new{animation:pop .25s}
   .rv .lastm{box-shadow:inset 0 0 0 2px rgba(255,255,255,.55)}
-  @keyframes rvflip{0%{transform:rotateY(0)}50%{transform:rotateY(90deg) scale(1.1)}100%{transform:rotateY(0)}}`);
+  @keyframes rvflip{0%{transform:rotateY(0)}50%{transform:rotateY(90deg) scale(1.1)}100%{transform:rotateY(0)}}
+  /* Neon and wood (Optionen: Spielbrett) */
+  .bd-neon .rv{background:#11132e;border-color:#4a52a0;box-shadow:0 0 46px -12px var(--cy)} .bd-neon .rv .sq{background:#1c2048}
+  .bd-wood .rv{background:#5d3a1c;border-color:#3c240f;box-shadow:0 18px 40px -14px rgba(0,0,0,.8)} .bd-wood .rv .sq{background:linear-gradient(135deg,#e2bd88,#c99a60)}
+  .bd-wood .rv .sq.ok::after{border-color:rgba(60,30,10,.45)} .bd-wood .rv .lastm{box-shadow:inset 0 0 0 2px rgba(60,30,10,.55)}`);
 
   const rm = rows => V.mini(rows, { '.': { c: '' } }, { w: 240 });
 

@@ -842,6 +842,13 @@
     'Umdrehen': 'Flipping', 'Turm!': 'Rook!', 'Springer!': 'Knight!', 'Läufer!': 'Bishop!', 'Versus # · ohne Werbung. KI und Spiele zu zweit laufen auch offline.{0}': 'Versus # · no ads. AI and two-player games also work offline.{0}',
     'Du gewinnst #': 'You win #', 'Schnellboot': 'Patrol boat'
   });
+  A({
+    'Spielbrett': 'Board style', 'Schach, Dame und Reversi': 'Chess, checkers and Reversi', 'Standard': 'Standard', 'Neon': 'Neon', 'Holz': 'Wood',
+    'Gegenüber sitzen': 'Sitting opposite', 'Zu zweit am Handy: Name und Hinweise für Spieler 2 stehen auf dem Kopf': "Two players on one phone: player 2's name and hints are upside down",
+    'Ergebnis teilen': 'Share result', 'Bild gespeichert': 'Picture saved', 'Bild ging nicht': "Picture didn't work", 'Sofort spielbar': 'Play right away',
+    'Mit Konto: # weitere Spiele': 'With an account: # more games', 'Kostenlos. Dazu Online-Partien, Freunde und die Rangliste.': 'Free. Plus online matches, friends and the ranking.',
+    'Deine Herausforderung erscheint bei allen eingeloggten Spielern. Wer zuerst beitritt, spielt gegen dich.': 'Your challenge shows up for all signed-in players. Whoever joins first plays you.'
+  });
   // ---------- words that differ by game ----------
   A({ 'Remis': 'Draw', 'Ziehen': 'Moving' });
   V.i18n.ctx('[data-g=go], [data-g=reversi]', { 'Passen': 'Pass', 'Gepasst': 'Passed' });

@@ -98,7 +98,9 @@
       ${clockMin ? `<span class="clk" id="ck${s}"></span>` : ''}<span class="wins"><b>${series[s]}</b><small>Siege</small></span><em class="tag">am Zug</em>
       ${thinker(s) ? '<span class="tdots" aria-hidden="true"><i></i><i></i><i></i></span>' : ''}${ai && s === aiSide ? '<div class="bubble" aria-live="polite"></div>' : ''}</div>`;
     const sublabel = table ? `Online-Tisch · ${N} Spieler` : party ? (ai ? `Gegen ${N > 2 ? N - 1 + ' KIs' : 'KI'} · ` + V.LEVELS[cfg.level] : N + ' Spieler') : ai ? 'Gegen KI · ' + V.LEVELS[cfg.level] : online ? 'Online gegen ' + esc(M.opp) : watch ? 'Zuschauen · ' + esc(M.aName) + ' gegen ' + esc(M.bName) : 'Zu zweit';
-    const v = mount(`<div class="view play${online || table ? ' net' : ''}${watch ? ' watch' : ''}" data-g="${g.id}" style="--acc:${g.accent || 'var(--pink)'}">
+    // two people at one phone, sitting opposite: player 2's card (and the status on their turn) is turned around
+    const facing = cfg.mode === 'local' && settings.face && !party && g.cat !== 'Action';
+    const v = mount(`<div class="view play${online || table ? ' net' : ''}${watch ? ' watch' : ''}${facing ? ' facing' + (g.turnBoard ? ' rotboard' : '') : ''}" data-g="${g.id}" style="--acc:${g.accent || 'var(--pink)'}">
       <div class="pbar"><button class="iconbtn" id="pb" aria-label="Zurück">${IC.back}</button><div class="ttl"><b>${g.name}</b><small>${sublabel}</small></div>
         <button class="iconbtn" id="ph" aria-label="Regeln" title="Regeln (T)">${IC.help}</button>
         ${online ? `<button class="iconbtn" id="pe" aria-label="Reaktion senden" title="Reaktion">${IC.smile}</button>` : ''}
@@ -200,6 +202,7 @@
       turn(s, html) {
         if (clock) clock.turn(s);
         SIDES.forEach(k => pls[k].classList.toggle('on', s === k));
+        v.classList.toggle('turn-r', s === R);
         if (s && s !== lastTurn && V.fxOn()) V.fx.pop(pls[s], 'pcard-in');
         lastTurn = s;
         const note = s && oppSide && s !== oppSide && lastNote ? `${ctx.who(oppSide)}: ${lastNote} · ` : '';
@@ -266,6 +269,7 @@
             ${series.d ? `<p class="small">${series.d}× unentschieden</p>` : ''}
             ${online ? `<div class="kemo" id="kemo"></div><div class="kquick">${['gg', 'clap', 'haha', 'sweat'].map(e => `<button data-emo="${e}">${EMO[e]}</button>`).join('')}</div>` : ''}
             ${online && V.online.friendOf(M.opp) === false && !(V.cloud.user() && V.cloud.user().anon) ? `<button class="btn ghost sm efr" id="efr"><span>${IC.plus}${esc(M.opp)} als Freund hinzufügen</span></button>` : ''}
+            ${watch ? '' : `<button class="btn ghost sm eshare" id="es"><span>${IC.share}Ergebnis teilen</span></button>`}
             ${online && V.online.report ? `<button class="link erep" id="erep">${esc(M.opp)} melden</button>` : ''}
             <div class="actions">${watch ? '' : `<button class="btn primary" id="er"><span>${IC.redo}${online ? 'Revanche anfragen' : table ? 'Neuer Tisch' : 'Revanche'}</span><kbd class="only-fine">Enter</kbd></button>`}<button class="btn" id="eb"><span>Brett ansehen</span></button><button class="btn ghost" id="em"><span>${watch ? 'Zurück' : 'Menü'}</span></button></div></div>`, 'endm', null, false, e => {
             if ((e.key === 'Enter' || e.key === 'n' || e.key === 'N') && !watch) { again(); return true; }
@@ -279,6 +283,7 @@
           if (efr) efr.onclick = () => V.online.request(M.opp).then(r => { efr.disabled = true; efr.querySelector('span').textContent = r === 'accepted' || r === 'friends' ? 'Ihr seid jetzt Freunde' : 'Anfrage gesendet'; }, e => toast(e.message));
           const erep = m.querySelector('#erep'); if (erep) erep.onclick = () => V.online.report(M.opp, M.id);
           if (online && net) net.rematchUI();
+          const es = m.querySelector('#es'); if (es) es.onclick = () => { V.sfx.ui(); shareCard(); };
           m.querySelector('#eb').onclick = closeModal;
           m.querySelector('#em').onclick = menu;
         }, g.endDelay ?? 1150);
@@ -499,6 +504,58 @@
       chan = V.cloud.channel('t:' + M.id, () => kick(tnet), true);
       ctx.later(() => tnet.poll(), 800);
       cleanups.push(() => { tnet.stopped = true; closeChan(); });
+    }
+
+    // ---------- result picture ----------
+    // A square picture of the series (game, names, score) for the group chat. Phones share it directly,
+    // elsewhere it is saved as a PNG.
+    async function shareCard() {
+      const W = 1080, cv = document.createElement('canvas'); cv.width = W; cv.height = W;
+      const c = cv.getContext('2d'), D = '"Saira Condensed", "Arial Narrow", sans-serif';
+      try { await document.fonts.load(`800 italic 100px ${D}`); } catch (e) { }
+      const font = (px, w = 800) => { c.font = `italic ${w} ${px}px ${D}`; };
+      const fit = (text, px, max) => { font(px); while (px > 20 && c.measureText(text).width > max) font(px -= 4); };
+      c.fillStyle = '#08090f'; c.fillRect(0, 0, W, W);
+      const bg = c.createLinearGradient(0, 0, W, 0);
+      bg.addColorStop(0, 'rgba(255,79,216,.24)'); bg.addColorStop(0.5, 'rgba(255,79,216,.03)'); bg.addColorStop(0.5, 'rgba(255,216,79,.03)'); bg.addColorStop(1, 'rgba(255,216,79,.2)');
+      c.fillStyle = bg; c.fillRect(0, 0, W, W);
+      c.strokeStyle = 'rgba(255,255,255,.08)'; c.lineWidth = 3; c.beginPath(); c.moveTo(W / 2 + 150, 0); c.lineTo(W / 2 - 150, W); c.stroke();
+      c.textAlign = 'center'; c.textBaseline = 'alphabetic';
+      font(70); c.fillStyle = '#ff4fd8'; c.fillText('VER', W / 2 - 70, 130); c.fillStyle = '#ffd84f'; c.fillText('SUS', W / 2 + 72, 130);
+      c.fillStyle = '#fff'; c.fillRect(W / 2 - 4, 76, 8, 62);
+      c.fillStyle = '#fff'; fit(g.name.toUpperCase(), 104, W - 140); c.fillText(g.name.toUpperCase(), W / 2, 280);
+      c.fillStyle = '#9a9cc4'; font(34, 700); c.fillText(v.querySelector('.pbar .ttl small').textContent.toUpperCase(), W / 2, 336);
+      let text;
+      if (party) {
+        const order = SIDES.slice().sort((a, b) => series[b] - series[a]);
+        order.forEach((s, k) => {
+          const y = 470 + k * 120;
+          c.fillStyle = 'rgba(255,255,255,.05)'; c.fillRect(150, y - 80, W - 300, 100);
+          c.fillStyle = V.hex(s); c.fillRect(150, y - 80, 10, 100);
+          c.textAlign = 'left'; fit(V.t(names[s]).toUpperCase(), 60, 560); c.fillText(V.t(names[s]).toUpperCase(), 196, y - 8);
+          c.textAlign = 'right'; font(76); c.fillText(String(series[s]), W - 190, y - 4);
+        });
+        c.textAlign = 'center';
+        text = `${g.name}: ` + order.map(s => `${names[s]} ${series[s]}`).join(', ');
+      } else {
+        font(300); c.fillStyle = V.hex(L); c.fillText(String(series[L]), W / 2 - 200, 690);
+        c.fillStyle = '#5c5f86'; c.fillText(':', W / 2, 670);
+        c.fillStyle = V.hex(R); c.fillText(String(series[R]), W / 2 + 200, 690);
+        [[L, W / 2 - 200], [R, W / 2 + 200]].forEach(([s, x]) => { c.fillStyle = '#fff'; fit(V.t(names[s]).toUpperCase(), 54, 380); c.fillText(V.t(names[s]).toUpperCase(), x, 790); });
+        if (series.d) { c.fillStyle = '#9a9cc4'; font(32, 700); c.fillText(V.t(series.d + '× unentschieden').toUpperCase(), W / 2, 860); }
+        text = `${g.name}: ${names[L]} ${series[L]}:${series[R]} ${names[R]}`;
+      }
+      c.fillStyle = '#6f7299'; font(30, 700);
+      c.fillText(new Date().toLocaleDateString('de-DE') + '  ·  BANANEMDNAA.GITHUB.IO/VERSUS', W / 2, W - 60);
+      const blob = await new Promise(ok => cv.toBlob(ok, 'image/png'));
+      if (!blob) return toast('Bild ging nicht');
+      const file = new File([blob], 'versus-' + g.id + '.png', { type: 'image/png' });
+      try {
+        if (navigator.canShare && navigator.canShare({ files: [file] })) return await navigator.share({ files: [file], title: 'Versus', text });
+      } catch (e) { if (e && e.name === 'AbortError') return; }
+      const a = V.el('a'); a.href = URL.createObjectURL(blob); a.download = file.name;
+      document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+      toast('Bild gespeichert');
     }
 
     // ---------- reactions ----------
