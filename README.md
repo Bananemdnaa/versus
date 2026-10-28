@@ -39,6 +39,10 @@ Alles geht mit Finger oder Maus. Am PC zusätzlich mit der Tastatur, `?` zeigt a
 
 Ohne Konto spielt man als Gast: 4 Gewinnt, Tic Tac Toe, Schiffe versenken, Käsekästchen, Reaktionsduell und Pong gegen die KI oder zu zweit. Die übrigen Spiele, Freund- und Online-Partien und die Rangliste brauchen ein kostenloses Konto. Die Liste steht in `js/core.js` bei `GUEST_GAMES`.
 
+## Erster Start
+
+Beim allerersten Öffnen erklären drei kurze Folien, was Versus ist und wie man spielt. „Tutorials wieder als neu zeigen“ in den Optionen zeigt sie erneut.
+
 ## Optionen
 
 - **Ton und Vibration:** Ton an/aus (Effekte und Musik zusammen), Lautstärke Effekte, Musik an/aus mit eigener Lautstärke, Vibration Aus / Leicht / Stark mit Test-Knopf. Spürt man beim Test nichts, steht das Handy meist auf Lautlos oder Nicht stören, dann unterdrückt Android Vibrationen von Webseiten. Android und die meisten Browser nutzen die Vibrations-Schnittstelle; iPhones (ab iOS 18) bekommen stattdessen ein kurzes haptisches Tippen.
@@ -106,8 +110,12 @@ Im Reiter „Online“ sucht man Spieler nach Namen, schickt Freundschaftsanfrag
 - Beide Browser prüfen jeden Zug nach den Spielregeln; ein ungültiger Zug annulliert die Partie. Am Ende melden beide das Ergebnis, stimmen die Meldungen nicht überein, wird die Partie annulliert.
 - Aufgeben über die Flagge oben rechts. Wer 75 Sekunden nicht erreichbar ist, verliert. Nach einem Neuladen geht es über „Weiterspielen“ im Reiter Online weiter.
 - **Rangliste:** gewonnene Online-Partien gegen andere Spieler, gesamt und pro Spiel (Partien gegen die KI zählen nicht). Standard ist die Wochenwertung, die jeden Montag um 0:00 Uhr neu startet (mit Countdown und den besten drei der Vorwoche); „Für immer“ zeigt die ewige Wertung. Oben steht dein eigener Platz, darunter ein Podest für die Top 3 und die Liste mit Siegquote. Ausgeblendete Spieler und Dev-Konten erscheinen nicht; Partien gegen ein Dev-Konto zählen für beide Spieler nicht.
+- **Profile:** Ein Tipp auf einen Namen (Freunde, Suche, Rangliste) zeigt das Profil: Siege, Niederlagen, Siegquote, Wochenplatz, Siegesserie, euer direkter Vergleich, Bilanz pro Spiel und die letzten Partien. Von dort aus kann man herausfordern oder eine Freundschaftsanfrage schicken. Das eigene Profil steht im Reiter Konto unter „Profil und Verlauf“.
+- **Reaktionen:** Im Online-Spiel öffnet der Smiley oben acht Reaktionen (GG, 😮, 😂, 🙈, 🤔, 🔥, 👏, 😅), die beim Gegner über seiner Karte aufsteigen. Nach der Partie gibt es vier davon direkt im Ergebnis-Fenster.
+- **Revanche:** Wer zuerst „Revanche“ drückt, lädt ein; drückt der andere auch, geht es sofort weiter, mit getauschten Farben und dem Spielstand der Serie.
+- **Schachuhr:** Bei Schach zu zweit und online 3, 5 oder 10 Minuten pro Spieler plus 2 Sekunden pro Zug. Online rechnet der Server die Zeit aus den Zugzeiten, wer über die Zeit kommt, verliert.
 - **Admin-Panel → Partien:** laufende und beendete Partien mit Spielern, Zügen und Ergebnis. „Zuschauen“ zeigt eine laufende Partie live, „Abspielen“ spielt eine beendete Zug für Zug nach. Admins können Partien annullieren (steht im Protokoll).
 
-Dafür einmal `supabase/migrations/20261029000000_friends_matches.sql` und danach `supabase/migrations/20261030000000_open_matches.sql`, für Schiffe versenken online zusätzlich `supabase/migrations/20261031000000_ships_online.sql` und `supabase/migrations/20261101000000_dev_rankings.sql` und für „Online-Status verbergen“ `supabase/migrations/20261102000000_hide_online.sql`, für die Wochen-Rangliste `supabase/migrations/20261103000000_weekly_rankings.sql` im SQL-Editor ausführen.
+Dafür einmal `supabase/migrations/20261029000000_friends_matches.sql` und danach `supabase/migrations/20261030000000_open_matches.sql`, für Schiffe versenken online zusätzlich `supabase/migrations/20261031000000_ships_online.sql` und `supabase/migrations/20261101000000_dev_rankings.sql` und für „Online-Status verbergen“ `supabase/migrations/20261102000000_hide_online.sql`, für die Wochen-Rangliste `supabase/migrations/20261103000000_weekly_rankings.sql`, für Profile, Reaktionen, Revanche und Schachuhr `supabase/migrations/20261104000000_profiles_social.sql` im SQL-Editor ausführen.
 
 Neue Migrationen kommen als weitere Datei in `supabase/migrations/` und werden in Reihenfolge einmal im SQL-Editor ausgeführt.

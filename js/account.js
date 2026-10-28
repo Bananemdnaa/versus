@@ -50,6 +50,7 @@
         <div class="sync ${sync[0]}"><i></i><span>${sync[1]}</span><button class="btn ghost sm" id="a_sync"><span>${IC().redo}Abgleichen</span></button></div>
         <div class="arow">
           ${role ? `<button class="btn primary" id="a_admin"><span>${IC().shield}Admin-Panel</span></button>` : ''}
+          <button class="btn" id="a_prof"><span>${IC().trophy}Profil und Verlauf</span></button>
           <button class="btn" id="a_out"><span>Abmelden</span></button>
         </div>
       </div>
@@ -94,6 +95,7 @@
     if (q('#a_sync')) q('#a_sync').onclick = () => { V.sfx.ui(); c.syncNow(); };
     if (q('#a_out')) q('#a_out').onclick = async () => { V.sfx.ui(); await c.signOut(); V.ui.toast('Abgemeldet'); V.ui.home('profile'); };
     if (q('#a_admin')) q('#a_admin').onclick = () => { V.sfx.ui(); admin(); };
+    if (q('#a_prof')) q('#a_prof').onclick = () => { V.sfx.ui(); V.online.profile(c.user().username); };
     b.querySelectorAll('[data-box]').forEach(x => x.onclick = () => { openBox = openBox === x.dataset.box ? null : x.dataset.box; V.sfx.ui(); V.ui.home('profile'); });
     if (q('#f_rename')) q('#f_rename').onsubmit = async e => {
       e.preventDefault();
@@ -230,7 +232,7 @@
   // match log: running and finished online matches; each one can be watched live or replayed move by move
   function matchList() {
     const ST = { invited: 'wartet auf Antwort', live: 'läuft', done: 'beendet', void: 'annulliert' };
-    const RES = { win: 'gewonnen', draw: 'remis', resign: 'aufgegeben', abandon: 'verlassen', mismatch: 'Ergebnis strittig' };
+    const RES = { win: 'gewonnen', draw: 'remis', resign: 'aufgegeben', abandon: 'verlassen', time: 'Zeit abgelaufen', mismatch: 'Ergebnis strittig' };
     const rows = (matches || []).map(m => {
       const a = esc(m.a), b = esc(m.b);
       const res = m.status === 'done' ? (m.winner ? `<b class="good">${esc(m.winner)}</b> ${RES[m.result] === 'gewonnen' ? 'gewinnt' : 'gewinnt (' + (m.result === 'resign' ? 'Aufgabe' : m.result === 'abandon' ? 'Gegner weg' : esc(m.result)) + ')'}` : 'Remis')

@@ -11,7 +11,8 @@
     const s = Math.max(0, (Date.now() - new Date(t).getTime()) / 1000);
     if (s < 3600) return `vor ${Math.max(1, Math.round(s / 60))} Min.`;
     if (s < 86400) return `vor ${Math.round(s / 3600)} Std.`;
-    return `vor ${Math.round(s / 86400)} Tagen`;
+    const d = Math.round(s / 86400);
+    return d === 1 ? 'gestern' : `vor ${d} Tagen`;
   }
   const ready = () => C() && C().available() && C().user();
   const optsFor = g => { const s = (V.store.get('setup', {})[g.id] || {}).opts || {}; const o = {}; (g.options || []).forEach(x => { o[x.id] = s[x.id] !== undefined ? s[x.id] : x.def; }); return o; };
@@ -184,7 +185,7 @@
     const el = b.querySelector('#ores'); if (!el) return;
     if (msg) { el.innerHTML = `<p class="aerr">${esc(msg)}</p>`; return; }
     if (!searchRes || !searchRes.length) { el.innerHTML = searchRes ? '<p class="muted">Niemand gefunden.</p>' : ''; return; }
-    el.innerHTML = searchRes.map(r => `<div class="fline"><span class="adot"></span><b>${esc(r.username)}</b>
+    el.innerHTML = searchRes.map(r => `<div class="fline"><span class="adot"></span><b class="plink" data-prof="${esc(r.username)}">${esc(r.username)}</b>
       ${r.state === 'friend' ? '<em class="rtag">Freund</em>' : r.state === 'outgoing' ? '<em class="rtag">angefragt</em>' : `<button class="btn sm${r.state === 'incoming' ? ' primary' : ''}" data-req="${esc(r.username)}"><span>${r.state === 'incoming' ? 'Annehmen' : 'Anfrage senden'}</span></button>`}</div>`).join('');
     el.querySelectorAll('[data-req]').forEach(x => x.onclick = async () => {
       try {
@@ -201,7 +202,7 @@
     const inc = (d.incoming || []).map(n => `<div class="fline req"><span class="adot"></span><b>${esc(n)}</b><small>möchte dein Freund sein</small>
       <button class="btn primary sm" data-yes="${esc(n)}"><span>Annehmen</span></button><button class="btn ghost sm" data-no="${esc(n)}"><span>Nein</span></button></div>`).join('');
     const out = (d.outgoing || []).map(n => `<div class="fline"><span class="adot"></span><b>${esc(n)}</b><small>Anfrage gesendet</small><button class="btn ghost sm" data-rm="${esc(n)}"><span>Zurückziehen</span></button></div>`).join('');
-    const fr = (d.friends || []).map(f => `<div class="fline${f.online ? ' on' : ''}"><span class="adot"></span><b>${esc(f.username)}</b>
+    const fr = (d.friends || []).map(f => `<div class="fline${f.online ? ' on' : ''}"><span class="adot"></span><b class="plink" data-prof="${esc(f.username)}">${esc(f.username)}</b>
       <small>${f.busy ? 'spielt gerade online' : f.online ? 'online' + (f.game && V.byId[f.game] ? ' · ' + esc(gname(f.game)) : '') : 'zuletzt ' + ago(f.seen)}</small>
       ${sureRemove === f.username ? `<button class="btn ghost sm danger" data-rm="${esc(f.username)}"><span>Wirklich?</span></button>` : `<button class="iconbtn sm" data-sure="${esc(f.username)}" aria-label="Freund entfernen">${IC().x}</button>`}</div>`).join('');
     el.innerHTML = (inc ? `<h4>Anfragen</h4>${inc}` : '') + (fr ? `<h4>Deine Freunde</h4>${fr}` : '<p class="muted">Noch keine Freunde. Such oben nach einem Namen und schick eine Anfrage.</p>') + (out ? `<h4>Gesendet</h4>${out}` : '');
@@ -240,9 +241,9 @@
     const pod = top.slice(0, 3);
     const order = [pod[1], pod[0], pod[2]].filter(Boolean);
     const podium = `<div class="podium">${order.map(r => `<div class="pod p${Math.min(r.pos, 3)}${r.username === myName ? ' me' : ''}">
-        <span class="medal">${r.pos}</span><b>${esc(r.username)}</b><em>${r.wins}</em><small>${r.wins === 1 ? 'Sieg' : 'Siege'} · ${pct(r)} %</small><i class="step"></i></div>`).join('')}</div>`;
+        <span class="medal">${r.pos}</span><b class="plink" data-prof="${esc(r.username)}">${esc(r.username)}</b><em>${r.wins}</em><small>${r.wins === 1 ? 'Sieg' : 'Siege'} · ${pct(r)} %</small><i class="step"></i></div>`).join('')}</div>`;
     const row = (r, cls = '') => `<div class="rrow ${cls}"><span class="pos">${r.pos}</span>
-        <span class="who"><b>${esc(r.username)}</b>${r.username === myName ? '<em class="rtag">Du</em>' : ''}<small>${r.played} Partien</small></span>
+        <span class="who"><b class="plink" data-prof="${esc(r.username)}">${esc(r.username)}</b>${r.username === myName ? '<em class="rtag">Du</em>' : ''}<small>${r.played} Partien</small></span>
         <span class="rate"><i style="--w:${pct(r)}%"></i><small>${pct(r)} %</small></span><span class="w">${r.wins}</span></div>`;
     const rest = top.slice(3);
     el.innerHTML = head + mine + podium +
@@ -277,6 +278,60 @@
   }
   const seek = (g, opts) => invite(null, g, opts);
 
-  V.online = { tab, wire, picker, openPanel, seek, invite, resume, watch, start, check };
+  // ---------- player profile: numbers, per game, head-to-head and the latest matches ----------
+  async function profile(name) {
+    if (!ready()) return V.ui.toast('Dafür brauchst du ein Konto');
+    const m = V.ui.openModal(`<div class="prof">${V.skel(4)}</div>`, 'profm');
+    let p;
+    try { p = await C().rpc('player_profile', { name }); }
+    catch (e) { m.innerHTML = `<div class="prof"><p class="aerr">${esc(/player_profile|function/i.test(e.message) ? 'Profile kommen nach dem nächsten Server-Update.' : e.message)}</p><div class="actions"><button class="btn" id="pc"><span>Schließen</span></button></div></div>`; m.querySelector('#pc').onclick = V.ui.closeModal; return; }
+    if (!document.body.contains(m)) return;
+    const t = p.total || {}, pct = (w, n) => (n ? Math.round(w / n * 100) : 0);
+    const RES = { win: ['S', 'Sieg'], loss: ['N', 'Niederlage'], draw: ['R', 'Remis'], void: ['–', 'annulliert'] };
+    const status = p.me ? 'Das bist du' : p.online ? '<b class="good">online</b>' : p.seen ? 'zuletzt ' + ago(p.seen) : 'Status verborgen';
+    const games = (p.games || []).map(g => `<div class="pgame"><span class="ic">${V.byId[g.game] ? V.byId[g.game].icon : ''}</span><span class="pg-n"><b>${esc(gname(g.game))}</b><small>${g.played} Partien</small></span>
+      <span class="pg-bar"><i class="w" style="flex:${g.wins}"></i><i class="d" style="flex:${g.played - g.wins - g.losses}"></i><i class="l" style="flex:${g.losses}"></i></span><em>${g.wins}:${g.losses}</em></div>`).join('');
+    const recent = (p.recent || []).map(r => `<div class="prec ${r.res}"><span class="pr-r" title="${RES[r.res][1]}">${RES[r.res][0]}</span>
+      <span class="ic">${V.byId[r.game] ? V.byId[r.game].icon : ''}</span><span class="pr-t"><b>${esc(gname(r.game))}</b><small>gegen ${r.opp ? `<button class="link" data-prof="${esc(r.opp)}">${esc(r.opp)}</button>` : '?'}${r.result === 'resign' ? ' · aufgegeben' : r.result === 'abandon' ? ' · verlassen' : r.result === 'time' ? ' · Zeit' : ''}${r.ranked ? '' : ' · nicht gewertet'}</small></span>
+      <span class="pr-d">${ago(r.at)}</span></div>`).join('');
+    const vs = p.vs && p.vs.played ? `<div class="pvs"><small>Ihr beide</small><b><span class="me">${p.vs.wins}</span><i>:</i><span>${p.vs.losses}</span></b><small>${p.vs.played} Partien${p.vs.draws ? ' · ' + p.vs.draws + ' remis' : ''}</small></div>` : '';
+    const act = p.me ? '' : p.friend === 'friend' ? `<button class="btn primary" id="pch"><span>${IC().globe}Herausfordern</span></button>`
+      : p.friend === 'outgoing' ? '<button class="btn" disabled><span>Anfrage gesendet</span></button>'
+      : `<button class="btn primary" id="padd"><span>${IC().user}${p.friend === 'incoming' ? 'Anfrage annehmen' : 'Als Freund hinzufügen'}</span></button>`;
+    m.innerHTML = `<div class="prof">
+      <div class="phead"><span class="abig">${esc(p.username.slice(0, 2).toUpperCase())}</span>
+        <div><b>${esc(p.username)}</b>${p.dev ? '<em class="rtag dev">Dev</em>' : ''}<small>${status} · dabei seit ${new Date(p.since).toLocaleDateString('de-DE', { month: 'long', year: 'numeric' })}</small></div>
+        <button class="iconbtn" id="pc" aria-label="Schließen">${IC().x}</button></div>
+      <div class="kpis pk">
+        <div class="kpi"><b>${t.wins || 0}</b><span>Siege</span></div>
+        <div class="kpi"><b>${t.losses || 0}</b><span>Niederlagen</span></div>
+        <div class="kpi"><b>${pct(t.wins, t.played)} %</b><span>Siegquote</span></div>
+        <div class="kpi"><b>${p.week ? '#' + p.week.pos : '–'}</b><span>Diese Woche</span></div>
+      </div>
+      ${p.streak >= 2 ? `<div class="pstreak">${IC().bolt}<b>${p.streak} Siege in Folge</b></div>` : ''}
+      ${vs}
+      ${games ? `<h4>Spiele</h4><div class="pgames">${games}</div>` : ''}
+      <h4>Letzte Partien</h4>
+      <div class="precs">${recent || '<p class="muted">Noch keine Online-Partien.</p>'}</div>
+      ${act ? `<div class="actions">${act}</div>` : ''}
+      <div class="pchoose" id="pgs" hidden>${ONLINE.filter(id => V.byId[id]).map(id => `<button data-g="${id}"><span class="ic">${V.byId[id].icon}</span><small>${esc(gname(id))}</small></button>`).join('')}</div>
+    </div>`;
+    m.querySelector('#pc').onclick = V.ui.closeModal;
+    m.querySelectorAll('[data-prof]').forEach(x => x.onclick = () => { V.sfx.ui(); profile(x.dataset.prof); });
+    const add = m.querySelector('#padd');
+    if (add) add.onclick = () => C().rpc('friend_request', { name: p.username }).then(r => { V.ui.toast(r === 'accepted' || r === 'friends' ? 'Ihr seid jetzt Freunde' : 'Anfrage gesendet'); V.sfx.goal(); profile(p.username); }, e => V.ui.toast(e.message));
+    const ch = m.querySelector('#pch');
+    if (ch) ch.onclick = () => { V.sfx.ui(); const g = m.querySelector('#pgs'); g.hidden = !g.hidden; if (!g.hidden) g.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); };
+    m.querySelectorAll('#pgs [data-g]').forEach(x => x.onclick = () => { const g = V.byId[x.dataset.g]; V.ui.closeModal(); invite(p.username, g, optsFor(g)); });
+  }
+
+  // any player name with data-prof opens that profile (friends, search, ranking)
+  document.addEventListener('click', e => {
+    const x = e.target.closest && e.target.closest('[data-prof]');
+    if (!x || x.closest('.prof') || !ready()) return;
+    e.stopPropagation(); V.sfx.ui(); profile(x.dataset.prof);
+  });
+
+  V.online = { tab, wire, picker, openPanel, seek, invite, resume, watch, start, check, profile };
   if (C()) C().on(() => { if (ready()) startPolling(); else stopPolling(); });
 })();

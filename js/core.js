@@ -339,6 +339,7 @@
     share: svg('<path d="M12 3v12M8 7l4-4 4 4"/><path d="M5 11v9h14v-9"/>'),
     phone: svg('<rect x="7" y="2.5" width="10" height="19" rx="2"/><path d="M11 18.5h2"/>'),
     music: svg('<path d="M9 18V5l11-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="17" cy="16" r="3"/>'),
+    smile: svg('<circle cx="12" cy="12" r="9"/><path d="M8.5 14.5a4.5 4.5 0 0 0 7 0"/><path d="M9 9.5h.01M15 9.5h.01"/>'),
     wifioff: svg('<path d="M2 8.8a15 15 0 0 1 4.2-2.6M10.7 5.1A15 15 0 0 1 22 8.8M5 12.5a10 10 0 0 1 5.2-2.7M16.3 10.4A10 10 0 0 1 19 12.5M8.5 16.1a5 5 0 0 1 7 0"/><path d="M3 3l18 18"/><circle cx="12" cy="19.5" r=".8"/>'),
   };
 
@@ -367,14 +368,16 @@
     return v;
   }
   function totals() {
-    let total = 0, aiWins = 0, aiGames = 0, proWins = 0, draws = 0;
+    let total = 0, aiWins = 0, aiGames = 0, proWins = 0, draws = 0, onWins = 0, onGames = 0;
     for (const id in stats) {
       const s = stats[id];
+      if (s.on) { onWins += s.on.w; onGames += s.on.w + s.on.l + s.on.d; }
       s.ai.forEach((r, i) => { aiWins += r.w; aiGames += r.w + r.l + r.d; draws += r.d; if (i === 3) proWins += r.w; });
       total += s.local.a + s.local.b + s.local.d;
     }
-    total += aiGames;
-    return { total, aiWins, aiGames, proWins, draws, rate: aiGames ? Math.round(aiWins / aiGames * 100) : 0 };
+    total += aiGames + onGames;
+    const rated = aiGames + onGames;
+    return { total, aiWins, aiGames, proWins, draws, onWins, onGames, rate: rated ? Math.round((aiWins + onWins) / rated * 100) : 0 };
   }
   const TABS = [['games', 'Spiele', IC.grid], ['online', 'Online', IC.globe], ['stats', 'Bilanz', IC.chart], ['profile', 'Konto', IC.user], ['opts', 'Optionen', IC.gear]];
   const logo = '<button class="logo" id="logo" aria-label="Versus Startseite"><span class="l1">VER</span><i class="slash"></i><span class="l2">SUS</span></button>';
@@ -544,6 +547,8 @@
   let panelApi = null;
   function renderPanel(root, g, full) {
     const cfg = loadCfg(g), s = stat(g.id);
+    // options can be limited to some modes (e.g. the chess clock makes no sense against the AI)
+    const optsHere = (g.options || []).filter(o => !o.modes || o.modes.includes(cfg.mode));
     const firstLabel = g.firstLabels || ['Du', 'KI', 'Zufall'];
     const chipRow = (id, label, items, val) => `<div class="crow"><span>${label}</span><div class="mini-seg" id="${id}">${items.map(([v, l]) => `<button data-v="${v}" class="${String(v) === String(val) ? 'on' : ''}">${l}</button>`).join('')}</div></div>`;
     const lvl = cfg.level;
@@ -583,9 +588,9 @@
         <div class="lv-top"><span>Stärke</span><b class="l${lvl}">${V.LEVELS[lvl]}</b><em>Bilanz ${s.ai[lvl].w}:${s.ai[lvl].l}</em></div>
         <div class="lv-bar" id="level">${V.LEVELS.map((l, i) => `<button data-v="${i}" class="${i <= lvl ? 'fill' : ''} ${i === lvl ? 'on' : ''}" aria-label="${l}" title="${l}"></button>`).join('')}</div>
         <p class="hint">${(g.levelInfo || LEVEL_INFO)[lvl]}</p></div>` : cfg.mode === 'online' || cfg.mode === 'open' ? '<div class="gp-online" id="ofr"></div>' :`<p class="hint local">Ihr spielt abwechselnd am selben Gerät${g.cat === 'Action' ? ', jeder auf seiner Hälfte' : ''}.</p>`}
-      ${(cfg.mode === 'ai' && !g.noFirst) || (g.options || []).length ? `<div class="gp-more">
+      ${(cfg.mode === 'ai' && !g.noFirst) || optsHere.length ? `<div class="gp-more">
         ${cfg.mode === 'ai' && !g.noFirst ? chipRow('first', g.firstTitle || 'Beginn', [['me', firstLabel[0]], ['ai', firstLabel[1]], ['rand', firstLabel[2]]], cfg.first) : ''}
-        ${(g.options || []).map(o => chipRow('o_' + o.id, o.label, o.choices, cfg.opts[o.id])).join('')}
+        ${optsHere.map(o => chipRow('o_' + o.id, o.label, o.choices, cfg.opts[o.id])).join('')}
       </div>` : ''}
       <div class="gp-go">${cfg.mode === 'online' || cfg.mode === 'open' ? '' : `<button class="btn primary big" id="go"><span>${IC.play}Spielen</span><kbd class="only-fine">Enter</kbd></button>`}
         <button class="btn ghost" id="tut"><span>${IC.book}Regeln${seen[g.id] ? '' : '<i class="dot"></i>'}</span></button></div>`;
@@ -627,13 +632,14 @@
     const t = totals();
     const rows = V.games.map(g => {
       const s = stats[g.id]; if (!s) return '';
-      const w = s.ai.reduce((a, r) => a + r.w, 0), l = s.ai.reduce((a, r) => a + r.l, 0), d = s.ai.reduce((a, r) => a + r.d, 0), n = w + l + d;
+      const on = s.on || { w: 0, l: 0, d: 0 }, onN = on.w + on.l + on.d;
+      const w = s.ai.reduce((a, r) => a + r.w, on.w), l = s.ai.reduce((a, r) => a + r.l, on.l), d = s.ai.reduce((a, r) => a + r.d, on.d), n = w + l + d;
       const loc = s.local.a + s.local.b + s.local.d;
       if (!n && !loc) return '';
       return `<div class="srow" style="--acc:${g.accent || 'var(--pink)'}"><div class="ic">${g.icon}</div>
         <div class="sm"><b>${g.name}</b>
           <div class="wbar">${n ? `<i class="w" style="flex:${w}"></i><i class="d" style="flex:${d}"></i><i class="l" style="flex:${l}"></i>` : '<i class="e"></i>'}</div>
-          <div class="lv">${V.LEVELS.map((lv, k) => `<span>${lv} ${s.ai[k].w}:${s.ai[k].l}</span>`).join('')}${loc ? `<span>Zu zweit ${loc}</span>` : ''}</div>
+          <div class="lv">${onN ? `<span class="lon">Online ${on.w}:${on.l}</span>` : ''}${V.LEVELS.map((lv, k) => s.ai[k].w + s.ai[k].l + s.ai[k].d ? `<span>${lv} ${s.ai[k].w}:${s.ai[k].l}</span>` : '').join('')}${loc ? `<span>Zu zweit ${loc}</span>` : ''}</div>
         </div><div class="sn"><b>${w}:${l}</b><small>${n ? Math.round(w / n * 100) + ' %' : '–'}</small></div></div>`;
     }).join('');
     return `<section class="stats page">
@@ -641,10 +647,10 @@
       <div class="kpis">
         <div class="kpi"><b>${t.total}</b><span>Partien</span></div>
         <div class="kpi"><b>${t.aiWins}</b><span>Siege gegen KI</span></div>
+        <div class="kpi"><b>${t.onWins}</b><span>Online-Siege</span></div>
         <div class="kpi"><b>${t.rate} %</b><span>Siegquote</span></div>
-        <div class="kpi"><b>${t.proWins}</b><span>Siege gegen Profi</span></div>
       </div>
-      <div class="slist">${rows || `<div class="empty">${IC.trophy}<b>Noch keine Partien</b><p>Spiel eine Runde, dann steht hier deine Bilanz pro Spiel und KI-Stufe.</p><button class="btn primary" data-tab="games"><span>Spiel aussuchen</span></button></div>`}</div>
+      <div class="slist">${rows || `<div class="empty">${IC.trophy}<b>Noch keine Partien</b><p>Spiel eine Runde, dann steht hier deine Bilanz pro Spiel: gegen die KI, online und zu zweit.</p><button class="btn primary" data-tab="games"><span>Spiel aussuchen</span></button></div>`}</div>
       ${rows ? '<div class="legend"><span><i class="w"></i>Siege</span><span><i class="d"></i>Remis</span><span><i class="l"></i>Niederlagen</span></div>' : ''}
     </section>`;
   }
@@ -849,6 +855,21 @@
     render();
   }
 
+  // first start: three short slides about what Versus is (shown once, like a tutorial)
+  function welcome() {
+    if (seen._welcome) return;
+    const icons = ['c4', 'chess', 'ships', 'ttt', 'pong', 'reversi'].map(id => V.byId[id] ? `<i style="--k:${'c4,chess,ships,ttt,pong,reversi'.split(',').indexOf(id)}">${V.byId[id].icon}</i>` : '').join('');
+    const mode = (ic, b, s) => `<div class="wmode">${ic}<b>${b}</b><small>${s}</small></div>`;
+    tutorial({
+      id: '_welcome', name: 'Willkommen',
+      tutorial: [
+        { t: 'Willkommen bei Versus', demo: `<div class="wicons">${icons}</div>`, d: `<b>${V.games.length} Spiele für zwei</b>: Klassiker wie 4 Gewinnt und Schach, Strategie und schnelle Action-Duelle. Gemacht für eine schnelle Runde zwischendurch mit Freunden.` },
+        { t: 'Drei Arten zu spielen', demo: `<div class="wmodes">${mode(IC.robot, 'KI', '4 Stufen')}${mode(IC.users, 'Zu zweit', 'ein Gerät')}${mode(IC.globe, 'Online', 'mit Freunden')}</div>`, d: '<b>Gegen die KI</b> von Anfänger bis Profi, <b>zu zweit</b> an einem Handy, oder <b>online</b> gegen Freunde. Die Rangliste startet jeden Montag neu.' },
+        { t: 'Leg los', demo: `<div class="wmodes">${mode(IC.help, 'Tutorial', 'in jedem Spiel')}${mode(IC.user, 'Konto', 'kostenlos')}${mode(IC.dl, 'App', 'installierbar')}</div>`, d: 'Jedes Spiel erklärt sich beim ersten Mal selbst. Als Gast spielst du sofort los; mit einem Konto sind alle Spiele, Freunde und Online-Partien dabei.' }
+      ]
+    });
+  }
+
   // ---------- keyboard board cursor ----------
   // A glowing frame that jumps between the items of a board with the arrow keys; Enter/Space clicks the item.
   const nav = (function () {
@@ -944,16 +965,23 @@
 
   // ---------- play ----------
   let playApi = null;
+  let rematchCarry = null;
+  // quick reactions in online matches (ids are checked by the server)
+  const EMO = { gg: 'GG', wow: '😮', haha: '😂', oops: '🙈', think: '🤔', fire: '🔥', clap: '👏', sweat: '😅' };
   // Modes: 'ai' (vs. computer), 'local' (two players, one device), 'online' (vs. a friend over the server),
   // 'watch' (admins follow or replay a match). A remote player is handled like the AI: the game calls
   // ctx.aiTurn() and gets the move from the network instead of from a search.
   function play(g, cfg, series) {
-    const rematch = !!series;
+    let rematch = !!series;
+    const clockMin = g.id === 'chess' && cfg.mode !== 'ai' && [3, 5, 10].includes(+(cfg.opts && cfg.opts.clock)) ? +cfg.opts.clock : 0;
     if (cfg.mode !== 'watch' && (locked(g) || (guest() && (cfg.mode === 'online' || cfg.mode === 'open')))) { toast('Dafür brauchst du ein Konto'); return home('profile'); }
     destroyCurrent(); view = 'play'; lastGame = g; selected = g;
     const online = cfg.mode === 'online', watch = cfg.mode === 'watch', M = cfg.match || {};
     if (!watch) S.set('recent', g.id);
     if (V.cloud) V.cloud.touch(g.id);
+    // an online rematch keeps the score between the same two players (sides may have swapped)
+    if (online && !series && rematchCarry && rematchCarry.opp === M.opp) { series = { [M.side]: rematchCarry.me, [3 - M.side]: rematchCarry.them, d: rematchCarry.d }; rematch = true; }
+    rematchCarry = null;
     series = series || { 1: 0, 2: 0, d: 0 };
     const ai = cfg.mode === 'ai';
     const aiSide = ai ? (cfg.first === 'me' ? 2 : cfg.first === 'ai' ? 1 : (Math.random() < 0.5 ? 1 : 2)) : 0;
@@ -972,12 +1000,13 @@
     const thinker = s => (ai && s === aiSide) || (online && s === oppSide) || watch;
     const card = (s, pos) => `<div class="pcard pcard-${pos}" id="pl${s}"><span class="av">${av(s)}</span>
       <span class="nm"><b>${esc(names[s])}</b><small>${sub(s)}${ai && s === aiSide ? ' · ' + V.LEVELS[cfg.level] : ''}</small></span>
-      <span class="wins"><b>${series[s]}</b><small>Siege</small></span><em class="tag">am Zug</em>
+      ${clockMin ? `<span class="clk" id="ck${s}"></span>` : ''}<span class="wins"><b>${series[s]}</b><small>Siege</small></span><em class="tag">am Zug</em>
       ${thinker(s) ? '<span class="tdots" aria-hidden="true"><i></i><i></i><i></i></span>' : ''}${ai && s === aiSide ? '<div class="bubble" aria-live="polite"></div>' : ''}</div>`;
     const sublabel = ai ? 'Gegen KI · ' + V.LEVELS[cfg.level] : online ? 'Online gegen ' + esc(M.opp) : watch ? 'Zuschauen · ' + esc(M.aName) + ' gegen ' + esc(M.bName) : 'Zu zweit';
     const v = mount(`<div class="view play${online ? ' net' : ''}${watch ? ' watch' : ''}" style="--acc:${g.accent || 'var(--pink)'}">
       <div class="pbar"><button class="iconbtn" id="pb" aria-label="Zurück">${IC.back}</button><div class="ttl"><b>${g.name}</b><small>${sublabel}</small></div>
         <button class="iconbtn" id="ph" aria-label="Regeln" title="Regeln (T)">${IC.help}</button>
+        ${online ? `<button class="iconbtn" id="pe" aria-label="Reaktion senden" title="Reaktion">${IC.smile}</button>` : ''}
         ${online ? `<button class="iconbtn" id="pr" aria-label="Aufgeben" title="Aufgeben">${IC.flag}</button>` : watch ? '' : `<button class="iconbtn" id="pr" aria-label="Neu starten" title="Neue Partie (N)">${IC.redo}</button>`}</div>
       <div class="duel">
         ${card(L, 'l')}
@@ -1014,6 +1043,7 @@
       stEl.innerHTML = html; if (V.fxOn()) V.fx.pop(stEl, 'st-in');
     };
     let net = null;
+    let clock = null;
     const remote = s => watch || (online && (s === oppSide || (net && net.queue.length > 0)));
     const ctx = {
       stage: v.querySelector('#stage'), mode: cfg.mode, level: cfg.level, aiSide, opts: cfg.opts, sides: g.sides,
@@ -1026,6 +1056,7 @@
       onCleanup(fn) { cleanups.push(fn); },
       status: setStatus,
       turn(s, html) {
+        if (clock) clock.turn(s);
         pls[1].classList.toggle('on', s === 1); pls[2].classList.toggle('on', s === 2);
         if (s && s !== lastTurn && V.fxOn()) V.fx.pop(pls[s], 'pcard-in');
         lastTurn = s;
@@ -1060,7 +1091,7 @@
         pls[1].classList.remove('on'); pls[2].classList.remove('on');
         nav.hide();
         if (net && online && !fromServer) net.finish(winner);
-        if (net) net.stop();
+        if (net) { if (online) net.after = true; else net.stop(); }
         if (!watch) {
           const s = stat(g.id);
           if (ai) { const r = s.ai[cfg.level]; if (winner === 0) r.d++; else if (winner === aiSide) r.l++; else r.w++; }
@@ -1078,7 +1109,7 @@
         const big = winner === 0 ? 'Remis' : oppSide ? (meWon ? 'Sieg!' : 'Niederlage') : `${names[winner]} gewinnt`;
         setStatus(winner === 0 ? 'Unentschieden' : oppSide ? (meWon ? '<span class="c' + winner + '">Du hast gewonnen</span>' : `${ctx.who(winner)} hat gewonnen`) : `${ctx.who(winner)} gewinnt`);
         const tone = winner === 0 ? 'draw' : oppSide ? (meWon ? 'win' : 'lose') : (winner === L ? 'left' : 'right');
-        const again = () => online ? V.online.invite(M.opp, g, cfg.opts) : play(g, cfg, series);
+        const again = () => online ? net.rematch(series) : play(g, cfg, series);
         const menu = () => watch ? V.account.admin('matches') : setup(g);
         ctx.later(() => {
           const m = openModal(`<div class="ko ${tone}">
@@ -1086,6 +1117,7 @@
               <h2 aria-label="${esc(big)}">${[...big].map((ch, k) => `<span aria-hidden="true" style="--k:${k}">${ch === ' ' ? '&nbsp;' : esc(ch)}</span>`).join('')}</h2></div></div>
             <div class="eseries"><span class="nl">${esc(names[L])}</span><b class="sl">${series[L]}</b><i>:</i><b class="sr">${series[R]}</b><span class="nr">${esc(names[R])}</span></div>
             ${series.d ? `<p class="small">${series.d}× unentschieden</p>` : ''}
+            ${online ? `<div class="kemo" id="kemo"></div><div class="kquick">${['gg', 'clap', 'haha', 'sweat'].map(e => `<button data-emo="${e}">${EMO[e]}</button>`).join('')}</div>` : ''}
             <div class="actions">${watch ? '' : `<button class="btn primary" id="er"><span>${IC.redo}${online ? 'Revanche anfragen' : 'Revanche'}</span><kbd class="only-fine">Enter</kbd></button>`}<button class="btn" id="eb"><span>Brett ansehen</span></button><button class="btn ghost" id="em"><span>${watch ? 'Zurück' : 'Menü'}</span></button></div></div>`, 'endm', null, false, e => {
             if ((e.key === 'Enter' || e.key === 'n' || e.key === 'N') && !watch) { again(); return true; }
             if (e.key === 'Escape') { closeModal(); return true; }
@@ -1093,6 +1125,8 @@
             return false;
           });
           const er = m.querySelector('#er'); if (er) er.onclick = again;
+          m.querySelectorAll('[data-emo]').forEach(b => b.onclick = () => sendEmote(b.dataset.emo));
+          if (online && net) net.rematchUI();
           m.querySelector('#eb').onclick = closeModal;
           m.querySelector('#em').onclick = menu;
         }, g.endDelay ?? 1150);
@@ -1125,7 +1159,7 @@
     // ---------- network (online and watch) ----------
     if (online || watch) {
       net = {
-        queue: [], known: 0, applied: 0, waiting: null, stopped: false, last: null, chain: Promise.resolve(), offWarn: false,
+        queue: [], known: 0, applied: 0, waiting: null, stopped: false, last: null, chain: Promise.resolve(), offWarn: false, react: 0, fed: false, after: false, clockAt: 0, mine: null, started: false, told: null,
         feed(st) {
           if (!st) return;
           this.last = st;
@@ -1143,6 +1177,10 @@
             if (!oppOn && !ended && st.status === 'live' && !this.offWarn) { this.offWarn = true; toast(names[oppSide] + ' ist gerade nicht erreichbar'); }
             if (oppOn) this.offWarn = false;
           }
+          if (st.clock) this.clockAt = performance.now();
+          (st.reacts || []).forEach(r => { if (r.id <= this.react) return; this.react = r.id; if (this.fed && (watch || r.side !== mySide)) showEmote(r.side, r.e); });
+          this.fed = true;
+          if (this.after) this.rematchUI();
           if (this.readyCb && st.fleets_ready) { const f = this.readyCb; this.readyCb = null; f(st); }
           this.pump(); this.checkEnd();
         },
@@ -1175,17 +1213,48 @@
           if (!st || ended || st.status === 'live' || st.status === 'invited' || this.queue.length || (watch && st.total > this.applied)) return;
           const w = st.status === 'void' ? 0 : st.winner_side || 0;
           const loser = w ? names[3 - w] : '';
-          const note = st.status === 'void' ? 'Partie annulliert' : st.result === 'resign' ? loser + ' hat aufgegeben' : st.result === 'abandon' ? loser + ' hat die Partie verlassen' : '';
-          if (st.status === 'void' || st.result === 'resign' || st.result === 'abandon' || watch) ctx.end(w, note, true);
+          const me = online && w && 3 - w === mySide;
+          const note = st.status === 'void' ? 'Partie annulliert' : st.result === 'resign' ? (me ? 'Du hast aufgegeben' : loser + ' hat aufgegeben') : st.result === 'time' ? (me ? 'Deine Zeit ist abgelaufen' : loser + ': Zeit abgelaufen') : st.result === 'abandon' ? (me ? 'Du hast die Partie verlassen' : loser + ' hat die Partie verlassen') : '';
+          if (st.status === 'void' || st.result === 'resign' || st.result === 'abandon' || st.result === 'time' || watch) ctx.end(w, note, true);
         },
         illegal() { if (online) V.cloud.rpc('match_report', { mid: M.id, why: 'illegal move' }).catch(() => { }); toast('Ungültiger Zug empfangen, die Partie wird annulliert.'); ctx.end(0, 'Partie annulliert', true); },
         poll() {
           if (this.stopped || !alive) return;
           V.cloud.rpc('match_state', { mid: M.id, since: this.known })
             .then(st => { if (alive) this.feed(st); }, () => { })
-            .then(() => { if (!this.stopped && alive) ctx.later(() => this.poll(), watch ? 1500 : 1000); });
+            .then(() => { if (!this.stopped && alive) ctx.later(() => this.poll(), watch || this.after ? 1500 : 1000); });
         },
-        stop() { this.stopped = true; }
+        stop() { this.stopped = true; },
+        // Rematch: whoever asks first invites, the other one accepts by asking too. Score carries over.
+        async rematch(series) {
+          if (this.started) return;
+          rematchCarry = { opp: M.opp, me: series[mySide], them: series[oppSide], d: series.d };
+          try {
+            const st = await V.cloud.rpc('match_rematch', { mid: M.id });
+            if (st.status === 'live') { this.started = true; closeModal(); return V.online.start(st); }
+            this.mine = st.id; this.rematchUI();
+          } catch (e) {
+            if (/match_rematch|function/i.test(e.message)) return V.online.invite(M.opp, g, cfg.opts);
+            rematchCarry = null; toast(e.message); V.sfx.bad();
+          }
+        },
+        rematchUI() {
+          const r = this.last && this.last.rematch, btn = document.querySelector('.ko #er span');
+          if (!r || this.started) return;
+          if (r.status === 'live' && (r.id === this.mine || r.from === M.opp)) {
+            if (r.id !== this.mine) return;
+            this.started = true; closeModal(); return V.online.resume(r.id);
+          }
+          const set = (txt, cls) => { if (!btn) return; btn.innerHTML = IC.redo + txt; btn.parentNode.classList.toggle('pulse', cls === 'pulse'); btn.parentNode.classList.toggle('waiting', cls === 'wait'); };
+          if (r.status === 'invited' && r.from === M.opp) {
+            set('Revanche annehmen', 'pulse');
+            if (this.told !== r.id) { this.told = r.id; toast(M.opp + ' will eine Revanche!'); V.sfx.goal(); }
+          } else if (r.status === 'invited' && r.id === this.mine) set('Warte auf ' + esc(M.opp) + ' …', 'wait');
+          else if (r.id === this.mine && r.status !== 'invited') {
+            this.mine = null; set('Revanche anfragen', '');
+            toast(r.status === 'declined' ? M.opp + ' möchte keine Revanche' : 'Keine Antwort auf die Revanche');
+          }
+        }
       };
       // Schiffe versenken: fleets and shots are handled by the server (fleets stay secret)
       ctx.net = {
@@ -1200,7 +1269,74 @@
       };
       net.feed(M.init);
       ctx.later(() => net.poll(), 800);
-      cleanups.push(() => { net.stopped = true; });
+      cleanups.push(() => {
+        net.stopped = true;
+        // leaving while my rematch request is still open withdraws it
+        if (net.mine && !net.started) V.cloud.rpc('match_cancel', { mid: net.mine }).catch(() => { });
+      });
+    }
+
+    // ---------- reactions ----------
+    function showEmote(s, e) {
+      if (!EMO[e] || !pls[s]) return;
+      const b = V.el('span', 'emo' + (e === 'gg' ? ' txt' : ''), EMO[e]); pls[s].appendChild(b); setTimeout(() => b.remove(), 2600);
+      const k = document.querySelector('.ko #kemo');
+      if (k) { const t = V.el('span', 'kemo-i', `<b>${EMO[e]}</b><small>${esc(names[s])}</small>`); k.appendChild(t); setTimeout(() => t.remove(), 2600); }
+      V.sfx.tick();
+    }
+    let emoT = 0;
+    function sendEmote(e) {
+      if (!online || !net || performance.now() - emoT < 1000) return;
+      emoT = performance.now(); showEmote(mySide, e);
+      V.cloud.rpc('match_react', { mid: M.id, e }).catch(() => { });
+    }
+    const pe = v.querySelector('#pe');
+    if (pe) {
+      let pick = null;
+      const close = () => { if (pick) { pick.remove(); pick = null; } };
+      pe.onclick = ev => {
+        ev.stopPropagation(); V.sfx.ui();
+        if (pick) return close();
+        pick = V.el('div', 'emopick', Object.keys(EMO).map(e => `<button data-e="${e}">${EMO[e]}</button>`).join(''));
+        v.querySelector('.pbar').appendChild(pick);
+        pick.querySelectorAll('button').forEach(b => b.onclick = x => { x.stopPropagation(); sendEmote(b.dataset.e); close(); });
+      };
+      const outside = ev => { if (pick && !pick.contains(ev.target)) close(); };
+      document.addEventListener('pointerdown', outside); cleanups.push(() => document.removeEventListener('pointerdown', outside));
+    }
+
+    // ---------- chess clock ----------
+    // Local: counted here (paused while a dialog is open). Online and watching: computed from the server's move times.
+    if (clockMin) {
+      const left = { 1: clockMin * 60000, 2: clockMin * 60000 }, els = { 1: v.querySelector('#ck1'), 2: v.querySelector('#ck2') };
+      let run = 0, lastT = performance.now(), flagT = 0;
+      const fmt = ms => { ms = Math.max(0, ms); if (ms < 10000) return (Math.floor(ms / 100) / 10).toFixed(1); const s = Math.ceil(ms / 1000); return Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0'); };
+      clock = {
+        turn(s) {
+          if (net || ended) return;
+          const t = performance.now(); if (run && !modalEl) left[run] -= t - lastT; lastT = t;
+          if (run && s && s !== run) left[run] += 2000;
+          run = s;
+        }
+      };
+      const tick = () => {
+        if (!alive) return;
+        const now = performance.now();
+        let show = left, on = run;
+        if (net) {
+          const c = net.last && net.last.clock;
+          if (!c) return;
+          const el = c.live && !ended ? now - net.clockAt : 0;
+          show = { 1: c[1] - (c.turn === 1 ? el : 0), 2: c[2] - (c.turn === 2 ? el : 0) }; on = c.live && !ended ? c.turn : 0;
+          if (online && on && show[on] <= 0 && now - flagT > 2500) { flagT = now; V.cloud.rpc('match_flag', { mid: M.id }).catch(() => { }); }
+        } else if (!ended) {
+          if (run && !modalEl) left[run] -= now - lastT;
+          lastT = now;
+          if (run && left[run] <= 0) { left[run] = 0; const s = run; run = 0; ctx.end(3 - s, names[s] + ': Zeit abgelaufen'); }
+        } else on = 0;
+        [1, 2].forEach(s => { const e = els[s]; if (!e) return; e.textContent = fmt(show[s]); e.classList.toggle('run', s === on); e.classList.toggle('low', show[s] < 20000); });
+      };
+      const iv = setInterval(tick, 100); cleanups.push(() => clearInterval(iv)); tick();
     }
 
     let inst = null;
@@ -1472,13 +1608,14 @@
     if (!document.getElementById('fx')) { const f = V.el('div'); f.id = 'fx'; document.body.appendChild(f); }
     if (V.cloud && V.cloud.available()) { V.cloud.on(onCloud); V.cloud.init(); }
     const b = document.getElementById('boot');
-    if (!b || !V.fxOn() || settings.intro === false || getComputedStyle(b).display === 'none') { if (b) b.remove(); home(); return; }
+    if (!b || !V.fxOn() || settings.intro === false || getComputedStyle(b).display === 'none') { if (b) b.remove(); home(); setTimeout(welcome, 300); return; }
     let opened = false;
     const open = skip => {
       if (opened) return; opened = true;
       window.removeEventListener('keydown', onKey, true);
       b.classList.add(skip ? 'skip' : 'open');
       home();
+      setTimeout(welcome, skip ? 350 : 900);
       setTimeout(() => b.remove(), skip ? 260 : 800);
     };
     const onKey = e => { e.preventDefault(); e.stopPropagation(); open(true); };
