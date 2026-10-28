@@ -40,8 +40,9 @@
 
   V.css(`
   .hm{width:min(var(--bw),620px);display:flex;flex-direction:column;gap:12px;align-items:center}
+  .hm-mask{-webkit-text-security:disc;text-security:disc}
   .hm-top{display:flex;gap:16px;align-items:center;width:100%;justify-content:center}
-  .hm-gal{width:clamp(110px,28vw,150px);aspect-ratio:1;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:6px}
+  .hm-gal{width:clamp(84px,min(28vw,17vh),150px);aspect-ratio:1;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:6px}
   .hm-gal svg{width:100%;height:100%;fill:none;stroke:#e7e9ff;stroke-width:3.2;stroke-linecap:round;stroke-linejoin:round}
   .hm-gal .part{opacity:0;transition:opacity .3s}
   .hm-gal .part.on{opacity:1;animation:hmdraw .4s var(--ease)}
@@ -56,7 +57,7 @@
   .hm-word i.on{animation:hmin .35s var(--spring);color:var(--good)} .hm-word i.lost{color:var(--bad)}
   @keyframes hmin{from{transform:scale(1.7);opacity:0}}
   .hm-keys{display:grid;grid-template-columns:repeat(10,1fr);gap:5px;width:100%}
-  .hm-keys button{height:clamp(36px,9vw,44px);border-radius:8px;background:var(--panel2);border:1px solid var(--line2);font:800 italic 18px/1 var(--f-d);color:var(--fg)}
+  .hm-keys button{height:clamp(32px,min(9vw,5.6vh),44px);border-radius:8px;background:var(--panel2);border:1px solid var(--line2);font:800 italic 18px/1 var(--f-d);color:var(--fg)}
   .hm-keys button:hover:not(:disabled){background:var(--panel3)}
   .hm-keys button.hit{background:color-mix(in srgb,var(--good) 30%,var(--panel));color:var(--good);border-color:var(--good)}
   .hm-keys button.miss{opacity:.3;text-decoration:line-through}
@@ -117,11 +118,12 @@
       }
       function pickUI() {
         wrap.innerHTML = `<div class="hm-pick"><h3>Dein geheimes Wort</h3><p>3 bis 16 Buchstaben, ein einzelnes Wort. Die anderen raten es gleich.</p>
-          <div class="row"><input class="inp" id="hmw" maxlength="16" autocomplete="off" spellcheck="false" autocapitalize="characters" type="password"><button class="btn sm" id="hme" type="button" aria-label="Wort zeigen">${V.ui.IC.eye}</button></div>
+          <div class="row"><input class="inp hm-mask" id="hmw" type="text" name="hm-word" maxlength="16" autocomplete="off" autocorrect="off" spellcheck="false" autocapitalize="characters" data-1p-ignore data-lpignore="true" data-bwignore data-form-type="other"><button class="btn sm" id="hme" type="button" aria-label="Wort zeigen">${V.ui.IC.eye}</button></div>
           <div class="row"><button class="btn ghost" id="hmr"><span>Zufallswort</span></button><button class="btn primary" id="hmo"><span>Los geht's</span></button></div><p class="aerr" id="hmx"></p></div>`;
         const i = wrap.querySelector('#hmw'), x = wrap.querySelector('#hmx');
-        wrap.querySelector('#hme').onclick = () => { i.type = i.type === 'password' ? 'text' : 'password'; };
-        wrap.querySelector('#hmr').onclick = () => { i.value = V.pick(LIST); i.type = 'text'; };
+        // hidden with dots by CSS, not as a password field: otherwise browsers and password managers offer to fill or save it
+        wrap.querySelector('#hme').onclick = () => i.classList.toggle('hm-mask');
+        wrap.querySelector('#hmr').onclick = () => { i.value = V.pick(LIST); i.classList.remove('hm-mask'); };
         const go = () => { const w = clean(i.value); if (w.length < 3) { x.textContent = 'Mindestens 3 Buchstaben.'; return V.sfx.bad(); } act({ w: enc(w) }); };
         wrap.querySelector('#hmo').onclick = go;
         i.onkeydown = e => { if (e.key === 'Enter') go(); };

@@ -143,28 +143,81 @@
         </div>
         ${installCard()}
         ${rg && !locked(rg) ? `<button class="cont" id="cont" style="--acc:${rg.accent || 'var(--pink)'}"><div class="ic">${rg.icon}</div><div class="ct"><small>Weiterspielen</small><b>${rg.name}</b><span>${rc.mode === 'local' ? 'Zu zweit' : 'Gegen KI · ' + V.LEVELS[rc.level]}</span></div><span class="go">${IC.play}</span></button>` : ''}
-        <div class="chips" role="tablist">${['Alle', ...V.CATS].map(c => `<button role="tab" data-f="${c}" class="${homeFilter === c ? 'on' : ''}">${c}<small>${count(c)}</small></button>`).join('')}</div>
+        <div class="gfind">
+          <label class="gsearch">${IC.search}<input id="gq" type="search" placeholder="Spiel suchen" autocomplete="off" spellcheck="false" enterkeyhint="go" aria-label="Spiel suchen" value="${escA(homeQuery)}"><kbd class="only-fine">/</kbd></label>
+          <div class="chips" role="tablist">${['Alle', ...V.CATS].map(c => `<button role="tab" data-f="${c}" class="${homeFilter === c && !homeQuery ? 'on' : ''}">${c}<small>${count(c)}</small></button>`).join('')}</div>
+        </div>
         <div id="glist">${gameList()}</div>
       </section>
       <aside class="sel-panel" id="panel"></aside>
     </div>`;
   }
+  // ---------- favourites, recently played, search ----------
+  const favs = () => S.get('favs', []).filter(id => V.byId[id]);
+  const isFav = g => favs().includes(g.id);
+  function toggleFav(g) {
+    const on = !isFav(g);
+    S.set('favs', on ? [...favs(), g.id] : favs().filter(id => id !== g.id));
+    V.sfx.ui(); toast(on ? g.name + ' ist jetzt ein Favorit' : g.name + ' aus Favoriten entfernt');
+    refreshList();
+  }
+  const escA = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  // other names people search for
+  const ALIAS = {
+    c4: 'vier gewinnt connect four', yacht: 'kniffel yahtzee würfel', ludo: 'mensch ärgere dich nicht', ladder: 'schlangen und leitern snakes ladders',
+    ships: 'battleship', checkers: 'draughts', mill: 'nine mens morris', kalaha: 'mancala bohnen', reversi: 'othello', maumau: 'uno karten',
+    poker: 'texas holdem karten chips', memory: 'paare karten', dots: 'dots and boxes', gomoku: 'gomoku', hangman: 'hangman wörter raten',
+    slf: 'wörter kategorien', tron: 'snake lightcycle', hockey: 'airhockey', reaction: 'reaktion schnell', go: 'baduk weiqi', uttt: 'tic tac toe'
+  };
+  const norm = s => String(s).toLowerCase().replace(/ä|ae/g, 'a').replace(/ö|oe/g, 'o').replace(/ü|ue/g, 'u').replace(/ß/g, 'ss').replace(/[^a-z0-9 ]+/g, ' ');
+  // every word of the query has to appear somewhere; name hits come first
+  function search(q) {
+    const words = norm(q).split(' ').filter(Boolean);
+    return V.games.map(g => {
+      const name = norm(g.name), hay = [name, norm(g.short), norm(g.cat), norm(ALIAS[g.id] || ''), g.party ? 'party bis zu vier 4 spieler' : 'zu zweit duell', g.online ? 'online' : ''].join(' ');
+      if (!words.every(w => hay.includes(w))) return null;
+      return { g, rank: name.startsWith(words[0]) ? 0 : name.includes(words[0]) ? 1 : 2 };
+    }).filter(Boolean).sort((a, b) => a.rank - b.rank).map(x => x.g);
+  }
+
   // Phone, "Alle": one row per category that you swipe sideways, so all games fit on about one and a half screens.
-  // A chosen category (and the laptop) shows a grid. Guests get the free games first and the others
-  // collected in one "Mit Konto" box instead of a wall of locked tiles.
+  // Laptop, "Alle": compact tiles in sections (favourites, recently played, then each category).
+  // A chosen category shows a grid, a search shows the hits from all categories. Guests get the free games first
+  // and the others collected in one "Mit Konto" box instead of a wall of locked tiles.
   function gameList() {
-    const list = V.games.filter(g => homeFilter === 'Alle' || g.cat === homeFilter);
-    const free = list.filter(g => !locked(g)), shut = list.filter(g => locked(g));
-    // the entrance stagger restarts in every row, so lower rows do not wait for the ones above
+    const W = wide(), cmp = W ? ' cmp' : '';
+    // the entrance stagger restarts in every section, so lower ones do not wait for the ones above
     let i = 0;
-    const tiles = (games, cls = '') => `<div class="tiles${cls}">${games.map(g => tile(g, i++)).join('')}</div>`;
-    const row = (title, games) => {
+    const tiles = (games, cls = cmp) => `<div class="tiles${cls}">${games.map(g => tile(g, i++)).join('')}</div>`;
+    const section = (title, games, cls = W ? cmp : ' row') => {
       if (!games.length) return '';
       i = Math.min(i, 2);
-      return `<section class="grow"><h2 class="gh">${title}<small>${games.length}</small></h2>${tiles(games, ' row')}</section>`;
+      return `<section class="grow"><h2 class="gh">${title}<small>${games.length}</small></h2>${tiles(games, cls)}</section>`;
     };
-    if (!wide() && homeFilter === 'Alle') return guest() ? row('Sofort spielbar', free) + lockBox(shut) : V.CATS.map(c => row(c, list.filter(g => g.cat === c))).join('');
-    return (free.length ? tiles(free) : '') + lockBox(shut);
+    const split = list => [list.filter(g => !locked(g)), list.filter(g => locked(g))];
+    if (homeQuery.trim()) {
+      const hits = search(homeQuery), [free, shut] = split(hits);
+      if (!hits.length) return `<div class="empty gnone">${IC.search}<b>Kein Spiel gefunden</b><p>Versuch einen anderen Namen oder schau unter Alle.</p><button class="btn sm" data-clear><span>Suche löschen</span></button></div>`;
+      return section('Treffer', free, cmp) + lockBox(shut);
+    }
+    const list = V.games.filter(g => homeFilter === 'Alle' || g.cat === homeFilter), [free, shut] = split(list);
+    if (homeFilter !== 'Alle') return (free.length ? tiles(free) : '') + lockBox(shut);
+    if (guest()) return section('Sofort spielbar', free) + lockBox(shut);
+    const fav = favs().map(id => V.byId[id]);
+    const recent = W ? S.get('recents', []).map(id => V.byId[id]).filter(g => g && !locked(g)).slice(0, 3) : [];
+    return section(`${IC.star}Favoriten`, fav) + section('Zuletzt gespielt', recent) + V.CATS.map(c => section(c, list.filter(g => g.cat === c))).join('');
+  }
+  let homeQuery = '';
+  function refreshList() {
+    const tl = app.querySelector('#glist'); if (!tl || view !== 'home' || homeTab !== 'games') return;
+    tl.innerHTML = gameList();
+    wireList(tl);
+  }
+  function wireList(tl) {
+    wireTiles(tl);
+    tl.querySelectorAll('[data-tab]').forEach(x => x.onclick = () => { V.sfx.ui(); home(x.dataset.tab); });
+    const c = tl.querySelector('[data-clear]'); if (c) c.onclick = () => { homeQuery = ''; const q = app.querySelector('#gq'); if (q) { q.value = ''; q.focus(); } refreshList(); };
+    if (selected) app.querySelectorAll('.tile, .lkg').forEach(t => t.classList.toggle('sel', wide() && t.dataset.id === selected.id));
   }
   function lockBox(games) {
     if (!games.length) return '';
@@ -173,15 +226,25 @@
       <button class="btn primary sm" data-tab="profile"><span>${IC.user}Konto erstellen</span></button></div>`;
   }
   function wireGames(v) {
-    wireTiles(v.querySelector('#glist'));
+    wireList(v.querySelector('#glist'));
+    const q = v.querySelector('#gq');
     v.querySelectorAll('.chips button').forEach(b => b.onclick = () => {
-      homeFilter = b.dataset.f; V.sfx.ui();
+      homeFilter = b.dataset.f; homeQuery = ''; q.value = ''; V.sfx.ui();
       v.querySelectorAll('.chips button').forEach(x => x.classList.toggle('on', x === b));
-      const tl = v.querySelector('#glist');
-      tl.innerHTML = gameList();
-      wireTiles(tl);
-      tl.querySelectorAll('[data-tab]').forEach(x => x.onclick = () => { V.sfx.ui(); home(x.dataset.tab); });
+      refreshList();
     });
+    // a search looks through all categories; Enter picks the first hit, Esc clears
+    q.oninput = () => {
+      homeQuery = q.value;
+      v.querySelectorAll('.chips button').forEach(x => x.classList.toggle('on', !homeQuery.trim() && x.dataset.f === homeFilter));
+      refreshList();
+    };
+    q.onkeydown = e => {
+      const first = v.querySelector('#glist .tile, #glist .lkg');
+      if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); if (q.value) { q.value = ''; q.oninput(); } else q.blur(); }
+      else if (e.key === 'Enter' && first) { e.preventDefault(); q.blur(); if (wide()) { first.focus(); first.click(); } else first.click(); }
+      else if (e.key === 'ArrowDown' && first) { e.preventDefault(); first.focus(); }
+    };
     const c = v.querySelector('#cont');
     if (c) c.onclick = () => { const g = V.byId[S.get('recent')]; V.sfx.ui(); play(g, loadCfg(g)); };
     if (wide()) renderPanel(v.querySelector('#panel'), selected, false);
@@ -257,7 +320,7 @@
       panelApi = { g, go() { home('profile'); }, tut() { tutorial(g, rer); }, level() { }, step() { }, mode() { } };
       return;
     }
-    gp.querySelector('.gp-body').innerHTML = `
+    gp.querySelector('.gp-body').innerHTML = `<button class="iconbtn fav${isFav(g) ? ' on' : ''}" id="fav" aria-pressed="${isFav(g)}" aria-label="Favorit" title="${isFav(g) ? 'Aus Favoriten entfernen' : 'Zu Favoriten (F)'}">${IC.star}</button>
       <div class="gp-mode${g.online && V.cloud && V.cloud.available() ? ' four' : g.table && V.cloud && V.cloud.available() ? ' three' : ''}" id="mode">
         ${g.noAI ? '' : `<button data-v="ai" class="${cfg.mode === 'ai' ? 'on' : ''}">${IC.robot}<span>Gegen KI</span></button>`}
         <button data-v="local" class="${cfg.mode === 'local' ? 'on' : ''}">${IC.users}<span>${g.party ? 'Am Gerät' : 'Zu zweit'}</span></button>
@@ -277,6 +340,7 @@
       <div class="gp-go">${cfg.mode === 'online' || cfg.mode === 'open' || cfg.mode === 'table' ? '' : `<button class="btn primary big" id="go"><span>${IC.play}Spielen</span><kbd class="only-fine">Enter</kbd></button>`}
         <button class="btn ghost" id="tut"><span>${IC.book}Regeln${P.seen[g.id] ? '' : '<i class="dot"></i>'}</span></button></div>`;
     const rer = () => renderPanel(root, g, full);
+    root.querySelector('#fav').onclick = () => { toggleFav(g); rer(); };
     const on = (id, fn) => { const e = root.querySelector('#' + id); if (e) e.querySelectorAll('button').forEach(b => b.onclick = () => { fn(b.dataset.v); saveCfg(g, cfg); V.sfx.ui(); rer(); }); };
     on('mode', x => cfg.mode = x);
     on('level', x => cfg.level = +x);
@@ -293,7 +357,8 @@
       tut() { tutorial(g, rer); },
       level(i) { if (cfg.mode !== 'ai' && cfg.mode !== 'table') return; cfg.level = Math.max(0, Math.min(3, i)); saveCfg(g, cfg); V.sfx.tick(); rer(); },
       step(d) { this.level(cfg.level + d); },
-      mode() { if (g.noAI) return; cfg.mode = cfg.mode === 'ai' ? 'local' : 'ai'; saveCfg(g, cfg); V.sfx.tick(); rer(); }
+      mode() { if (g.noAI) return; cfg.mode = cfg.mode === 'ai' ? 'local' : 'ai'; saveCfg(g, cfg); V.sfx.tick(); rer(); },
+      fav() { toggleFav(g); rer(); }
     };
   }
 
@@ -622,7 +687,7 @@
     const row = (k, d) => `<div class="krow"><span>${k.split(' ').map(x => `<kbd>${x}</kbd>`).join(' ')}</span><p>${d}</p></div>`;
     const m = openModal(`<div class="keys"><h3>Tastenkürzel</h3>
       <h4>Überall</h4>${row('?', 'Diese Übersicht')}${row('M', 'Ton an oder aus')}${row('Esc', 'Zurück oder schließen')}
-      <h4>Spielauswahl</h4>${row('← → ↑ ↓', 'Spiel wählen')}${row('Enter', 'Spielen')}${row('1 2 3 4', 'KI-Stärke')}${row('S', 'Gegen KI oder zu zweit')}${row('T', 'Regeln')}
+      <h4>Spielauswahl</h4>${row('← → ↑ ↓', 'Spiel wählen')}${row('Enter', 'Spielen')}${row('1 2 3 4', 'KI-Stärke')}${row('/', 'Spiel suchen')}${row('S', 'Gegen KI oder zu zweit')}${row('F', 'Favorit an oder aus')}${row('T', 'Regeln')}
       <h4>Im Spiel</h4>${row('← → ↑ ↓', 'Cursor über das Brett')}${row('Enter Leertaste', 'Feld wählen oder setzen')}${row('N', 'Neue Partie')}${row('T', 'Regeln')}
       ${lastGame && lastGame.keys ? `<h4>${lastGame.name}</h4>${lastGame.keys.map(k => row(k[0], k[1])).join('')}` : ''}
       <div class="actions"><button class="btn" id="kx"><span>Schließen</span></button></div></div>`, 'keysm');
@@ -659,11 +724,13 @@
       if (!panelApi || !app.querySelector('#panel .gp')) return false;
       if (/^[1-4]$/.test(k)) { panelApi.level(+k - 1); return true; }
       if (k === 's' || k === 'S') { panelApi.mode(); return true; }
+      if ((k === 'f' || k === 'F') && panelApi.fav) { panelApi.fav(); return true; }
       if (k === 't' || k === 'T') { panelApi.tut(); return true; }
       return false;
     };
     if (view === 'home') {
       if (homeTab !== 'games') return;
+      if (k === '/') { const q = app.querySelector('#gq'); if (q) { e.preventDefault(); q.focus(); q.select(); } return; }
       if (DIRS[k]) { e.preventDefault(); spatial([...app.querySelectorAll('.tile, .lkg')], ...DIRS[k]); return; }
       if (wide() && panelKeys()) { e.preventDefault(); return; }
       if (k === 'Enter' && wide() && panelApi) {

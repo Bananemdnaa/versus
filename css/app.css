@@ -1116,3 +1116,40 @@ html,body{-webkit-tap-highlight-color:transparent}
   .lowfx .facing .stage{transition:none}
 }
 .ko .eshare{margin:0 auto 12px;display:flex}
+
+/* ---------- game list: search, compact tiles (laptop), favourites ---------- */
+.gfind{display:flex;flex-direction:column;gap:10px}
+.gsearch{display:flex;align-items:center;gap:10px;height:44px;padding:0 12px;background:var(--panel);border:1px solid var(--line);border-radius:8px;cursor:text;transition:border-color .15s,box-shadow .15s}
+.gsearch:focus-within{border-color:var(--cyan);box-shadow:0 0 0 3px rgba(98,240,255,.15)}
+.gsearch>svg{width:18px;height:18px;color:var(--muted);flex:none}
+.gsearch input{flex:1;min-width:0;height:100%;background:none;border:0;outline:none;color:var(--fg);font:500 16px/1 var(--f-b)}
+.gsearch input::placeholder{color:var(--dim)}
+.gsearch input::-webkit-search-cancel-button{filter:invert(1) opacity(.55)}
+.gsearch:focus-within kbd{display:none!important}
+@media (min-width:960px){
+  .gfind{flex-direction:row;align-items:center;gap:12px}
+  .gsearch{width:210px;flex:none;height:40px}
+  /* on the laptop the chips wrap to a second line instead of being cut off */
+  .gfind .chips{flex:1;min-width:0;flex-wrap:wrap;overflow:visible;row-gap:8px;padding-left:6px}
+}
+.gh svg{width:17px;height:17px;color:var(--yellow);fill:var(--yellow);align-self:center}
+.tiles.cmp{grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:10px}
+.tiles.cmp .tile{flex-direction:row;align-items:stretch;min-height:70px}
+.tiles.cmp .tile .art{height:auto;width:70px;flex:none;border-bottom:0;border-right:1px solid var(--line)}
+.tiles.cmp .tile .art .ic{width:40px;height:40px}
+.tiles.cmp .tile .art .lk{transform:scale(.75);transform-origin:top right}
+.tiles.cmp .tile .tx{padding:10px 12px;flex:1;min-width:0;justify-content:center}
+.tiles.cmp .tile:has(.meta em.new) .tx{padding-right:38px}
+.tiles.cmp .tile b{font-size:18px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tiles.cmp .tile small{font-size:12.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tiles.cmp .tile .meta{position:absolute;right:6px;bottom:6px;padding:0}
+.tiles.cmp .tile .meta em:not(.new){display:none}
+.tiles.cmp .tile .meta em.new{font-size:9px;padding:2px 5px}
+.tiles.cmp .tile.sel::after{border-width:9px}
+.gp{position:relative}
+.gp .fav{position:absolute;top:12px;right:12px;z-index:2;background:rgba(10,11,19,.7)}
+.fav.on{color:var(--yellow);border-color:color-mix(in srgb,var(--yellow) 50%,transparent)}
+.fav.on svg{fill:var(--yellow)}
+.gnone svg{color:var(--muted)}
+/* screens where you type (Galgenmännchen, Stadt Land Fluss) stay at the top: the phone keyboard would cover a low input and scroll the page */
+@media (max-width:959px){.play .stage:has(input.inp){margin-top:0;margin-bottom:0}}

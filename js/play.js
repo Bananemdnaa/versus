@@ -61,7 +61,7 @@
     let thost = table ? T.host : 0;
     // test.html: the AI plays every seat, nothing is saved
     const auto = !!cfg.auto;
-    if (!watch && !auto) S.set('recent', g.id);
+    if (!watch && !auto) { S.set('recent', g.id); S.set('recents', [g.id, ...S.get('recents', []).filter(id => id !== g.id)].slice(0, 6)); }
     if (V.cloud && !auto) V.cloud.touch(g.id);
     // an online rematch keeps the score between the same two players (sides may have swapped)
     if (online && !series && rematchCarry && rematchCarry.opp === M.opp) { series = { [M.side]: rematchCarry.me, [3 - M.side]: rematchCarry.them, d: rematchCarry.d }; rematch = true; }

@@ -77,7 +77,7 @@ Beim allerersten Öffnen erklären drei kurze Folien, was Versus ist und wie man
 - **App:** installieren, nach Updates suchen. **Daten:** Tutorials zurücksetzen, Einstellungen zurücksetzen, Bilanz löschen.
 
 
-Startseite: Am Handy stehen die Spiele in Reihen pro Kategorie, die man seitlich wischt; ein Chip zeigt eine Kategorie als Raster. Die Zahl am Chip ist die Anzahl der Spiele (als Gast: frei spielbar / insgesamt). Gäste sehen die freien Spiele zuerst, alle anderen in einem Kasten „Mit Konto“. Nach jeder Partie macht „Ergebnis teilen“ ein Bild mit Spiel, Namen und Spielstand (am Handy direkt teilen, sonst als PNG speichern).
+Startseite: Am Handy stehen die Spiele in Reihen pro Kategorie, die man seitlich wischt; am Laptop als kompakte Kacheln in Abschnitten (Favoriten, Zuletzt gespielt, dann jede Kategorie). Ein Chip zeigt eine Kategorie als Raster. Die Suche (Taste `/`) findet Spiele über alle Kategorien, auch unter anderen Namen (Kniffel, Mensch ärgere dich nicht, Vier gewinnt, Karten …); Enter nimmt den ersten Treffer, Esc leert sie. Der Stern im Spiel-Panel (Taste `F`) macht ein Spiel zum Favoriten. Die Zahl am Chip ist die Anzahl der Spiele (als Gast: frei spielbar / insgesamt). Gäste sehen die freien Spiele zuerst, alle anderen in einem Kasten „Mit Konto“. Nach jeder Partie macht „Ergebnis teilen“ ein Bild mit Spiel, Namen und Spielstand (am Handy direkt teilen, sonst als PNG speichern).
 
 Statistik, Einstellungen und gesehene Tutorials liegen im `localStorage` des Browsers und werden mit Konto zusätzlich gespeichert. Keine Werbung.
 

@@ -9,7 +9,7 @@
   // Supabase needs an e-mail address internally; this domain is ours (GitHub Pages), no mails are sent.
   const MAIL = 'bananemdnaa.github.io';
   const NAME_RE = /^[a-z0-9_-]{3,16}$/;
-  const KEYS = ['stats', 'seen', 'settings', 'setup', 'recent'];
+  const KEYS = ['stats', 'seen', 'settings', 'setup', 'recent', 'recents', 'favs'];
 
   let sb = null, user = null, info = null, timer = null, beat = null, busy = false, again = false;
   const state = { status: 'off', last: 0, error: '' };
@@ -93,6 +93,8 @@
     merged.settings = Object.assign({}, local.settings || {}, cloud.settings || {});
     merged.setup = Object.assign({}, cloud.setup || {}, mine ? local.setup || {} : {});
     merged.recent = (mine && local.recent) || cloud.recent || local.recent || null;
+    merged.recents = (mine && local.recents) || cloud.recents || local.recents || [];
+    merged.favs = (mine && local.favs) || cloud.favs || local.favs || [];
     writeLocal(merged);
     setMeta({ uid: user.id, rev: row.rev, sync: Date.now() });
     state.status = 'ok'; state.last = Date.now(); emit();
@@ -201,7 +203,7 @@
       try { await sb.auth.signOut(); } catch (e) { }
       user = null; info = null; state.status = 'guest';
       // the account keeps its data; this browser goes back to a fresh guest
-      ['stats', 'seen', 'setup', 'recent', 'cloudmeta'].forEach(k => { try { localStorage.removeItem('versus.' + k); } catch (e) { } });
+      ['stats', 'seen', 'setup', 'recent', 'recents', 'favs', 'cloudmeta'].forEach(k => { try { localStorage.removeItem('versus.' + k); } catch (e) { } });
       if (V.reloadLocal) V.reloadLocal();
       emit();
     },
@@ -218,7 +220,7 @@
       check(await sb.rpc('delete_account'));
       try { await sb.auth.signOut(); } catch (e) { }
       user = null; info = null; state.status = 'guest';
-      ['stats', 'seen', 'setup', 'recent', 'cloudmeta'].forEach(k => { try { localStorage.removeItem('versus.' + k); } catch (e) { } });
+      ['stats', 'seen', 'setup', 'recent', 'recents', 'favs', 'cloudmeta'].forEach(k => { try { localStorage.removeItem('versus.' + k); } catch (e) { } });
       if (V.reloadLocal) V.reloadLocal();
       emit();
     },
