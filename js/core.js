@@ -145,8 +145,11 @@
     slide(el, from, ms = 220) {
       if (!el || !from || !V.fxOn()) return;
       const to = el.getBoundingClientRect();
-      const dx = from.left + from.width / 2 - (to.left + to.width / 2), dy = from.top + from.height / 2 - (to.top + to.height / 2);
+      let dx = from.left + from.width / 2 - (to.left + to.width / 2), dy = from.top + from.height / 2 - (to.top + to.height / 2);
       if (!dx && !dy) return;
+      // on a board turned around for the other player ("Gegenüber sitzen") screen directions are mirrored
+      const st = el.closest('.stage');
+      if (st && getComputedStyle(st).rotate === '180deg') { dx = -dx; dy = -dy; }
       el.animate([{ transform: `translate(${dx}px,${dy}px)` }, { transform: 'none' }], { duration: ms, easing: 'cubic-bezier(.25,.8,.3,1)' });
     },
     confetti(colors) {

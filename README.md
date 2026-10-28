@@ -72,7 +72,7 @@ Beim allerersten Öffnen erklären drei kurze Folien, was Versus ist und wie man
 
 - **Ton und Vibration:** Ton an/aus (Effekte und Musik zusammen), Lautstärke Effekte, Musik an/aus mit eigener Lautstärke, Vibration Aus / Leicht / Stark mit Test-Knopf. Spürt man beim Test nichts, steht das Handy meist auf Lautlos oder Nicht stören, dann unterdrückt Android Vibrationen von Webseiten. Android und die meisten Browser nutzen die Vibrations-Schnittstelle; iPhones (ab iOS 18) bekommen stattdessen ein kurzes haptisches Tippen.
 - **Anzeige:** Effekte (aus spart Akku; bei „Bewegung reduzieren“ im System automatisch aus), Intros (Start-Animation und VS-Einblendung), Koordinaten am Schachbrett, Zughilfen (mögliche Züge in Schach, Dame, Reversi und Mühle), Spielbrett für Schach, Dame und Reversi: Standard (Schach Neon, Dame Holz, Reversi grün), alles Neon oder alles Holz.
-- **Spiel:** Schnelle KI zieht ohne Nachdenk-Pause und ohne Zielen. „Gegenüber sitzen“: Zu zweit am Handy steht die Karte von Spieler 2 oben auf dem Kopf, der Hinweis dreht sich, wenn Spieler 2 dran ist. âGegenÃ¼ber sitzenâ: Zu zweit am Handy steht die Karte von Spieler 2 oben auf dem Kopf, der Hinweis dreht sich, wenn Spieler 2 dran ist.
+- **Spiel:** Schnelle KI zieht ohne Nachdenk-Pause und ohne Zielen. „Gegenüber sitzen“: Zu zweit am Handy steht die Karte von Spieler 2 oben auf dem Kopf, das Brett liegt genau in der Mitte und dreht sich samt Hinweis immer zu dem, der dran ist (bei 4 Gewinnt sieht so jeder das Brett von vorne).
 - **Online:** offene Herausforderungen einblenden; Online-Status vor Freunden verbergen.
 - **App:** installieren, nach Updates suchen. **Daten:** Tutorials zurücksetzen, Einstellungen zurücksetzen, Bilanz löschen.
 
