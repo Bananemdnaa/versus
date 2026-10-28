@@ -849,6 +849,12 @@
     'Mit Konto: # weitere Spiele': 'With an account: # more games', 'Kostenlos. Dazu Online-Partien, Freunde und die Rangliste.': 'Free. Plus online matches, friends and the ranking.',
     'Deine Herausforderung erscheint bei allen eingeloggten Spielern. Wer zuerst beitritt, spielt gegen dich.': 'Your challenge shows up for all signed-in players. Whoever joins first plays you.'
   });
+  A({
+    'Spiel suchen': 'Search games', 'Favoriten': 'Favourites', 'Zuletzt gespielt': 'Recently played', 'Treffer': 'Results',
+    'Kein Spiel gefunden': 'No game found', 'Versuch einen anderen Namen oder schau unter Alle.': 'Try another name or look under All.', 'Suche löschen': 'Clear search',
+    'Favorit': 'Favourite', 'Zu Favoriten (F)': 'Add to favourites (F)', 'Aus Favoriten entfernen': 'Remove from favourites',
+    'Favorit an oder aus': 'Favourite on or off'
+  });
   // ---------- words that differ by game ----------
   A({ 'Remis': 'Draw', 'Ziehen': 'Moving' });
   V.i18n.ctx('[data-g=go], [data-g=reversi]', { 'Passen': 'Pass', 'Gepasst': 'Passed' });
