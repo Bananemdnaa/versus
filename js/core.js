@@ -284,6 +284,37 @@
     return best ? { move: best.m, rate: best.w / best.n } : { move: V.pick(g.moves(root)), rate: 0.5 };
   };
 
+  // ---------- touch pads for action games with 2-4 players at one device ----------
+  // Player 1 (and 3) sit at the bottom edge, players 2 (and 4) at the top edge, so their pads are turned around.
+  // o: { players, human(s) -> bool, buttons: [[id, html]], down(s, id), up(s, id) }. Returns { top, bottom, el(s), dead(s, on) }.
+  V.pads = function (ctx, o) {
+    const hum = o.players.filter(o.human);
+    const mk = list => {
+      const row = V.el('div', 'pads kb-hide' + (list.length === 1 ? ' one' : ''));
+      list.forEach(s => {
+        const pad = V.el('div', 'pad p' + s + (s ? '' : ' empty'), s ? `<span class="pk">${ctx.name(s)}</span>` + o.buttons.map(([id, h]) => `<button data-b="${id}" aria-label="${id}">${h}</button>`).join('') : '');
+        if (s) pad.dataset.s = s;
+        row.appendChild(pad);
+      });
+      return row;
+    };
+    const bottom = hum.filter(s => s % 2), top = hum.filter(s => !(s % 2));
+    if (bottom.length && top.length && bottom.length !== top.length) (bottom.length < top.length ? bottom : top).push(0);
+    const res = { top: top.length ? mk(top) : null, bottom: bottom.length ? mk(bottom) : null };
+    if (res.top) res.top.classList.add('far');
+    const held = new Map();
+    [res.top, res.bottom].forEach(row => row && row.querySelectorAll('.pad button').forEach(b => {
+      const s = +b.closest('.pad').dataset.s, id = b.dataset.b;
+      b.addEventListener('pointerdown', e => { e.preventDefault(); try { b.setPointerCapture(e.pointerId); } catch (x) { } held.set(e.pointerId, b); b.classList.add('dn'); o.down(s, id); });
+      const up = e => { if (held.get(e.pointerId) !== b) return; held.delete(e.pointerId); b.classList.remove('dn'); if (o.up) o.up(s, id); };
+      b.addEventListener('pointerup', up); b.addEventListener('pointercancel', up);
+      b.addEventListener('contextmenu', e => e.preventDefault());
+    }));
+    res.el = s => document.querySelector(`.pad[data-s="${s}"]`);
+    res.dead = (s, on) => { const p = res.el(s); if (p) p.classList.toggle('dead', on); };
+    return res;
+  };
+
   // ---------- mini boards for tutorials ----------
   const MINI_BASE = {
     '.': { c: '' }, ' ': { c: 'nb' }, a: { c: 'd1' }, b: { c: 'd2' }, A: { c: 'd1 rg' }, B: { c: 'd2 rg' },
@@ -340,6 +371,8 @@
     phone: svg('<rect x="7" y="2.5" width="10" height="19" rx="2"/><path d="M11 18.5h2"/>'),
     music: svg('<path d="M9 18V5l11-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="17" cy="16" r="3"/>'),
     smile: svg('<circle cx="12" cy="12" r="9"/><path d="M8.5 14.5a4.5 4.5 0 0 0 7 0"/><path d="M9 9.5h.01M15 9.5h.01"/>'),
+    plus: svg('<path d="M12 5v14M5 12h14"/>'),
+    qr: svg('<rect x="3.5" y="3.5" width="7" height="7" rx="1"/><rect x="13.5" y="3.5" width="7" height="7" rx="1"/><rect x="3.5" y="13.5" width="7" height="7" rx="1"/><path d="M14 14h2.5v2.5H14zM18 18h2.5v2.5H18zM14 18.5h1.5M18.5 14H20"/>'),
     wifioff: svg('<path d="M2 8.8a15 15 0 0 1 4.2-2.6M10.7 5.1A15 15 0 0 1 22 8.8M5 12.5a10 10 0 0 1 5.2-2.7M16.3 10.4A10 10 0 0 1 19 12.5M8.5 16.1a5 5 0 0 1 7 0"/><path d="M3 3l18 18"/><circle cx="12" cy="19.5" r=".8"/>'),
   };
 
@@ -348,8 +381,9 @@
   // Games paint "side 1" with --p1; when the AI plays side 1 the two colours are swapped on the root element.
   let swapped = false;
   function setSwap(on) { swapped = !!on; document.documentElement.classList.toggle('swap', swapped); }
-  V.hex = s => ((s === 1) !== swapped) ? '#ff4fd8' : '#ffd84f';
-  V.colorName = s => ((s === 1) !== swapped) ? 'Pink' : 'Gelb';
+  // party games (up to 4 players) add cyan and green as sides 3 and 4
+  V.hex = s => s === 3 ? '#62f0ff' : s === 4 ? '#5dff9d' : ((s === 1) !== swapped) ? '#ff4fd8' : '#ffd84f';
+  V.colorName = s => s === 3 ? 'Cyan' : s === 4 ? 'Grün' : ((s === 1) !== swapped) ? 'Pink' : 'Gelb';
 
   // ---------- app shell ----------
   const app = document.getElementById('app');
@@ -483,7 +517,7 @@
       <section class="sel-main">
         <div class="sel-head">
           <h1 class="title"><span>Wähl dein</span> Duell</h1>
-          <p class="tagline">${V.games.length} Spiele für zwei an einem Gerät. Oder du gegen die KI in vier Stufen.</p>
+          <p class="tagline">${V.games.length} Spiele für zwei bis vier an einem Gerät. Oder du gegen die KI in vier Stufen.</p>
         </div>
         ${installCard()}
         ${rg && !locked(rg) ? `<button class="cont" id="cont" style="--acc:${rg.accent || 'var(--pink)'}"><div class="ic">${rg.icon}</div><div class="ct"><small>Weiterspielen</small><b>${rg.name}</b><span>${rc.mode === 'local' ? 'Zu zweit' : 'Gegen KI · ' + V.LEVELS[rc.level]}</span></div><span class="go">${IC.play}</span></button>` : ''}
@@ -587,7 +621,7 @@
       ${cfg.mode === 'ai' ? `<div class="gp-lvl">
         <div class="lv-top"><span>Stärke</span><b class="l${lvl}">${V.LEVELS[lvl]}</b><em>Bilanz ${s.ai[lvl].w}:${s.ai[lvl].l}</em></div>
         <div class="lv-bar" id="level">${V.LEVELS.map((l, i) => `<button data-v="${i}" class="${i <= lvl ? 'fill' : ''} ${i === lvl ? 'on' : ''}" aria-label="${l}" title="${l}"></button>`).join('')}</div>
-        <p class="hint">${(g.levelInfo || LEVEL_INFO)[lvl]}</p></div>` : cfg.mode === 'online' || cfg.mode === 'open' ? '<div class="gp-online" id="ofr"></div>' :`<p class="hint local">Ihr spielt abwechselnd am selben Gerät${g.cat === 'Action' ? ', jeder auf seiner Hälfte' : ''}.</p>`}
+        <p class="hint">${(g.levelInfo || LEVEL_INFO)[lvl]}</p></div>` : cfg.mode === 'online' || cfg.mode === 'open' ? '<div class="gp-online" id="ofr"></div>' :`<p class="hint local">${g.localHint || `Ihr spielt abwechselnd am selben Gerät${g.cat === 'Action' ? ', jeder auf seiner Hälfte' : ''}.`}</p>`}
       ${(cfg.mode === 'ai' && !g.noFirst) || optsHere.length ? `<div class="gp-more">
         ${cfg.mode === 'ai' && !g.noFirst ? chipRow('first', g.firstTitle || 'Beginn', [['me', firstLabel[0]], ['ai', firstLabel[1]], ['rand', firstLabel[2]]], cfg.first) : ''}
         ${optsHere.map(o => chipRow('o_' + o.id, o.label, o.choices, cfg.opts[o.id])).join('')}
@@ -856,6 +890,7 @@
   }
 
   // first start: three short slides about what Versus is (shown once, like a tutorial)
+  V.welcomeDue = () => !seen._welcome;
   function welcome() {
     if (seen._welcome) return;
     const icons = ['c4', 'chess', 'ships', 'ttt', 'pong', 'reversi'].map(id => V.byId[id] ? `<i style="--k:${'c4,chess,ships,ttt,pong,reversi'.split(',').indexOf(id)}">${V.byId[id].icon}</i>` : '').join('');
@@ -984,37 +1019,45 @@
     rematchCarry = null;
     series = series || { 1: 0, 2: 0, d: 0 };
     const ai = cfg.mode === 'ai';
-    const aiSide = ai ? (cfg.first === 'me' ? 2 : cfg.first === 'ai' ? 1 : (Math.random() < 0.5 ? 1 : 2)) : 0;
+    // Party games (g.party): 2-4 players (option "n"). You are always player 1; every other seat is
+    // a computer player against the AI, or a person at the same device.
+    const party = !!g.party, N = party ? Math.max(2, Math.min(4, +(cfg.opts && cfg.opts.n) || 2)) : 2, SIDES = [1, 2, 3, 4].slice(0, N);
+    if (party) SIDES.forEach(s => { if (series[s] == null) series[s] = 0; });
+    const aiSide = party ? 0 : ai ? (cfg.first === 'me' ? 2 : cfg.first === 'ai' ? 1 : (Math.random() < 0.5 ? 1 : 2)) : 0;
     const mySide = online ? M.side : 0;
     const oppSide = ai ? aiSide : online ? 3 - mySide : 0;
     setSwap(oppSide === 1);
     const L = oppSide ? 3 - oppSide : 1, R = 3 - L;
     const sideLabel = s => g.sides ? g.sides[s] : V.colorName(s);
-    const names = { 1: 'Spieler 1', 2: 'Spieler 2' };
-    if (ai) { names[aiSide] = 'KI'; names[3 - aiSide] = 'Du'; }
+    const names = { 1: 'Spieler 1', 2: 'Spieler 2', 3: 'Spieler 3', 4: 'Spieler 4' };
+    if (ai && party) SIDES.forEach(s => { names[s] = s === 1 ? 'Du' : N > 2 ? 'KI ' + (s - 1) : 'KI'; });
+    else if (ai) { names[aiSide] = 'KI'; names[3 - aiSide] = 'Du'; }
+    const me = ai ? (party ? 1 : 3 - aiSide) : online ? mySide : 0;
+    const botSide = s => ai && (party ? s !== 1 : s === aiSide);
     if (online) { names[mySide] = 'Du'; names[oppSide] = M.opp; }
     if (watch) { names[M.aSide] = M.aName; names[3 - M.aSide] = M.bName; }
     const esc = t => String(t).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
     const sub = s => sideLabel(s) + (s === 1 && g.cat !== 'Action' ? ' · beginnt' : '');
-    const av = s => ai ? (s === aiSide ? IC.robot : '<span>DU</span>') : online ? (s === mySide ? '<span>DU</span>' : `<span>${esc(names[s].slice(0, 2).toUpperCase())}</span>`) : watch ? `<span>${esc(names[s].slice(0, 2).toUpperCase())}</span>` : `<span>P${s}</span>`;
-    const thinker = s => (ai && s === aiSide) || (online && s === oppSide) || watch;
-    const card = (s, pos) => `<div class="pcard pcard-${pos}" id="pl${s}"><span class="av">${av(s)}</span>
-      <span class="nm"><b>${esc(names[s])}</b><small>${sub(s)}${ai && s === aiSide ? ' · ' + V.LEVELS[cfg.level] : ''}</small></span>
+    const av = s => ai ? (botSide(s) ? IC.robot : '<span>DU</span>') : online ? (s === mySide ? '<span>DU</span>' : `<span>${esc(names[s].slice(0, 2).toUpperCase())}</span>`) : watch ? `<span>${esc(names[s].slice(0, 2).toUpperCase())}</span>` : `<span>P${s}</span>`;
+    const thinker = s => botSide(s) || (online && s === oppSide) || watch;
+    const card = (s, pos) => `<div class="pcard pcard-${pos} ps${s}" id="pl${s}"><span class="av">${av(s)}</span>
+      <span class="nm"><b>${esc(names[s])}</b><small>${sub(s)}${botSide(s) ? ' · ' + V.LEVELS[cfg.level] : ''}</small></span>
       ${clockMin ? `<span class="clk" id="ck${s}"></span>` : ''}<span class="wins"><b>${series[s]}</b><small>Siege</small></span><em class="tag">am Zug</em>
       ${thinker(s) ? '<span class="tdots" aria-hidden="true"><i></i><i></i><i></i></span>' : ''}${ai && s === aiSide ? '<div class="bubble" aria-live="polite"></div>' : ''}</div>`;
-    const sublabel = ai ? 'Gegen KI · ' + V.LEVELS[cfg.level] : online ? 'Online gegen ' + esc(M.opp) : watch ? 'Zuschauen · ' + esc(M.aName) + ' gegen ' + esc(M.bName) : 'Zu zweit';
+    const sublabel = party ? (ai ? `Gegen ${N > 2 ? N - 1 + ' KIs' : 'KI'} · ` + V.LEVELS[cfg.level] : N + ' Spieler') : ai ? 'Gegen KI · ' + V.LEVELS[cfg.level] : online ? 'Online gegen ' + esc(M.opp) : watch ? 'Zuschauen · ' + esc(M.aName) + ' gegen ' + esc(M.bName) : 'Zu zweit';
     const v = mount(`<div class="view play${online ? ' net' : ''}${watch ? ' watch' : ''}" style="--acc:${g.accent || 'var(--pink)'}">
       <div class="pbar"><button class="iconbtn" id="pb" aria-label="Zurück">${IC.back}</button><div class="ttl"><b>${g.name}</b><small>${sublabel}</small></div>
         <button class="iconbtn" id="ph" aria-label="Regeln" title="Regeln (T)">${IC.help}</button>
         ${online ? `<button class="iconbtn" id="pe" aria-label="Reaktion senden" title="Reaktion">${IC.smile}</button>` : ''}
         ${online ? `<button class="iconbtn" id="pr" aria-label="Aufgeben" title="Aufgeben">${IC.flag}</button>` : watch ? '' : `<button class="iconbtn" id="pr" aria-label="Neu starten" title="Neue Partie (N)">${IC.redo}</button>`}</div>
-      <div class="duel">
-        ${card(L, 'l')}
+      <div class="duel${party ? ' party n' + N : ''}">
+        ${party ? `<div class="pcol pcol-l">${SIDES.filter(s => s % 2).map(s => card(s, 'l')).join('')}</div><div class="pcol pcol-r">${SIDES.filter(s => !(s % 2)).map(s => card(s, 'r')).join('')}</div>` : `${card(L, 'l')}
         <div class="score" id="sc"><b class="sl">${series[L]}</b><i>:</i><b class="sr">${series[R]}</b></div>
-        ${card(R, 'r')}
+        ${card(R, 'r')}`}
         <div class="center"><div class="status" id="st" aria-live="polite"></div><div class="stage" id="stage"></div></div>
       </div></div>`);
-    const stEl = v.querySelector('#st'), pls = { 1: v.querySelector('#pl1'), 2: v.querySelector('#pl2') };
+    const stEl = v.querySelector('#st'), pls = {};
+    SIDES.forEach(s => { pls[s] = v.querySelector('#pl' + s); });
     const timers = new Set(), cleanups = [];
     let alive = true, ended = false, keyFn = null, lastTurn = 0, lastNote = '', moodBand = 0, bubbleT = null;
     const LINES = {
@@ -1025,7 +1068,7 @@
       '-3': ['Oh nein.', 'Das sieht übel aus.', 'Respekt.']
     };
     function speak(note, mood) {
-      const b = ai && pls[aiSide].querySelector('.bubble'); if (!b) return;
+      const b = ai && pls[aiSide] && pls[aiSide].querySelector('.bubble'); if (!b) return;
       let line = '';
       if (typeof mood === 'number') {
         const band = mood >= 0.97 ? 3 : mood > 0.45 ? 2 : mood <= -0.97 ? -3 : mood < -0.45 ? -2 : 0;
@@ -1046,9 +1089,9 @@
     let clock = null;
     const remote = s => watch || (online && (s === oppSide || (net && net.queue.length > 0)));
     const ctx = {
-      stage: v.querySelector('#stage'), mode: cfg.mode, level: cfg.level, aiSide, opts: cfg.opts, sides: g.sides,
+      stage: v.querySelector('#stage'), mode: cfg.mode, level: cfg.level, aiSide, opts: cfg.opts, sides: g.sides, n: N, players: SIDES,
       mySide, watchSides: watch ? { a: M.aSide } : null,
-      isAI: s => (ai && s === aiSide) || remote(s),
+      isAI: s => botSide(s) || remote(s),
       name: s => names[s],
       who(s) { return `<span class="c${s}">${esc(names[s])}</span>`; },
       alive: () => alive,
@@ -1057,7 +1100,7 @@
       status: setStatus,
       turn(s, html) {
         if (clock) clock.turn(s);
-        pls[1].classList.toggle('on', s === 1); pls[2].classList.toggle('on', s === 2);
+        SIDES.forEach(k => pls[k].classList.toggle('on', s === k));
         if (s && s !== lastTurn && V.fxOn()) V.fx.pop(pls[s], 'pcard-in');
         lastTurn = s;
         const note = s && oppSide && s !== oppSide && lastNote ? `${ctx.who(oppSide)}: ${lastNote} · ` : '';
@@ -1073,14 +1116,14 @@
       // o.decode(raw) -> legal move or null (online: turns the received move back into the game's own form)
       aiTurn(o) {
         if (net) return net.take(o);
-        const s = aiSide, card = pls[s];
+        const s = o.side || aiSide, card = pls[s];
         card.classList.add('thinking');
-        setStatus(`<span class="c${s}">KI</span> <span class="thinking">${o.quick ? 'macht weiter' : 'denkt'}</span>`);
+        setStatus(`<span class="c${s}">${esc(names[s])}</span> <span class="thinking">${o.quick ? 'macht weiter' : 'denkt'}</span>`);
         const minT = settings.aiFast ? 160 : o.quick ? 380 : [650, 850, 1050, 1250][cfg.level] + Math.random() * 450;
         const t0 = performance.now();
         ctx.later(() => {
           const res = o.think();
-          ctx.later(() => aimAt(o, res, card, true), Math.max(0, minT - (performance.now() - t0)));
+          ctx.later(() => aimAt(o, res, card, true, false, party ? s : 0), Math.max(0, minT - (performance.now() - t0)));
         }, 70);
       },
       think(fn, ms = 380) { setStatus(`<span class="c${aiSide}">KI</span> <span class="thinking">denkt</span>`); ctx.later(fn, ms); },
@@ -1088,36 +1131,37 @@
       keys(fn) { keyFn = fn; },
       end(winner, note, fromServer) {
         if (ended || !alive) return; ended = true;
-        pls[1].classList.remove('on'); pls[2].classList.remove('on');
+        SIDES.forEach(k => pls[k].classList.remove('on'));
         nav.hide();
         if (net && online && !fromServer) net.finish(winner);
         if (net) { if (online) net.after = true; else net.stop(); }
         if (!watch) {
           const s = stat(g.id);
-          if (ai) { const r = s.ai[cfg.level]; if (winner === 0) r.d++; else if (winner === aiSide) r.l++; else r.w++; }
+          if (ai) { const r = s.ai[cfg.level]; if (winner === 0) r.d++; else if (winner === me) r.w++; else r.l++; }
           else if (online) { s.on = s.on || { w: 0, l: 0, d: 0 }; if (winner === 0) s.on.d++; else if (winner === mySide) s.on.w++; else s.on.l++; }
           else { if (winner === 0) s.local.d++; else if (winner === 1) s.local.a++; else s.local.b++; }
           S.set('stats', stats);
         }
         if (winner === 0) series.d++; else series[winner]++;
-        const sc = v.querySelector('#sc'); sc.innerHTML = `<b class="sl">${series[L]}</b><i>:</i><b class="sr">${series[R]}</b>`; V.fx.pop(sc, 'fx-pop');
-        [1, 2].forEach(k => { const b = pls[k].querySelector('.wins b'); if (b.textContent !== String(series[k])) { b.textContent = series[k]; V.fx.pop(b, 'fx-pop'); } });
-        const meWon = oppSide && winner && winner !== oppSide;
-        const good = winner && (!oppSide || meWon);
+        const sc = v.querySelector('#sc'); if (sc) { sc.innerHTML = `<b class="sl">${series[L]}</b><i>:</i><b class="sr">${series[R]}</b>`; V.fx.pop(sc, 'fx-pop'); }
+        SIDES.forEach(k => { const b = pls[k].querySelector('.wins b'); if (b.textContent !== String(series[k])) { b.textContent = series[k]; V.fx.pop(b, 'fx-pop'); } });
+        const meWon = me && winner === me;
+        const good = winner && (!me || meWon);
         if (good) { V.sfx.win(); setTimeout(() => V.fx.confetti(), 250); }
         else if (winner) { V.sfx.lose(); V.fx.shake(ctx.stage); }
-        const big = winner === 0 ? 'Remis' : oppSide ? (meWon ? 'Sieg!' : 'Niederlage') : `${names[winner]} gewinnt`;
-        setStatus(winner === 0 ? 'Unentschieden' : oppSide ? (meWon ? '<span class="c' + winner + '">Du hast gewonnen</span>' : `${ctx.who(winner)} hat gewonnen`) : `${ctx.who(winner)} gewinnt`);
-        const tone = winner === 0 ? 'draw' : oppSide ? (meWon ? 'win' : 'lose') : (winner === L ? 'left' : 'right');
+        const big = winner === 0 ? 'Remis' : me ? (meWon ? 'Sieg!' : 'Niederlage') : `${names[winner]} gewinnt`;
+        setStatus(winner === 0 ? 'Unentschieden' : me ? (meWon ? '<span class="c' + winner + '">Du hast gewonnen</span>' : `${ctx.who(winner)} hat gewonnen`) : `${ctx.who(winner)} gewinnt`);
+        const tone = winner === 0 ? 'draw' : me ? (meWon ? 'win' : 'lose') : party ? 'w' + winner : (winner === L ? 'left' : 'right');
         const again = () => online ? net.rematch(series) : play(g, cfg, series);
         const menu = () => watch ? V.account.admin('matches') : setup(g);
         ctx.later(() => {
           const m = openModal(`<div class="ko ${tone}">
             <div class="band"><div class="band-in"><span class="kicker">${esc(note || sublabel)}${online && net && net.last && net.last.ranked === false ? ' · zählt nicht für die Rangliste' : ''}</span>
               <h2 aria-label="${esc(big)}">${[...big].map((ch, k) => `<span aria-hidden="true" style="--k:${k}">${ch === ' ' ? '&nbsp;' : esc(ch)}</span>`).join('')}</h2></div></div>
-            <div class="eseries"><span class="nl">${esc(names[L])}</span><b class="sl">${series[L]}</b><i>:</i><b class="sr">${series[R]}</b><span class="nr">${esc(names[R])}</span></div>
+            ${party ? `<div class="eparty">${SIDES.map(k => `<span class="ep c${k}"><b>${series[k]}</b><small>${esc(names[k])}</small></span>`).join('')}</div>` : `<div class="eseries"><span class="nl">${esc(names[L])}</span><b class="sl">${series[L]}</b><i>:</i><b class="sr">${series[R]}</b><span class="nr">${esc(names[R])}</span></div>`}
             ${series.d ? `<p class="small">${series.d}× unentschieden</p>` : ''}
             ${online ? `<div class="kemo" id="kemo"></div><div class="kquick">${['gg', 'clap', 'haha', 'sweat'].map(e => `<button data-emo="${e}">${EMO[e]}</button>`).join('')}</div>` : ''}
+            ${online && V.online.friendOf(M.opp) === false ? `<button class="btn ghost sm efr" id="efr"><span>${IC.plus}${esc(M.opp)} als Freund hinzufügen</span></button>` : ''}
             <div class="actions">${watch ? '' : `<button class="btn primary" id="er"><span>${IC.redo}${online ? 'Revanche anfragen' : 'Revanche'}</span><kbd class="only-fine">Enter</kbd></button>`}<button class="btn" id="eb"><span>Brett ansehen</span></button><button class="btn ghost" id="em"><span>${watch ? 'Zurück' : 'Menü'}</span></button></div></div>`, 'endm', null, false, e => {
             if ((e.key === 'Enter' || e.key === 'n' || e.key === 'N') && !watch) { again(); return true; }
             if (e.key === 'Escape') { closeModal(); return true; }
@@ -1126,6 +1170,8 @@
           });
           const er = m.querySelector('#er'); if (er) er.onclick = again;
           m.querySelectorAll('[data-emo]').forEach(b => b.onclick = () => sendEmote(b.dataset.emo));
+          const efr = m.querySelector('#efr');
+          if (efr) efr.onclick = () => V.online.request(M.opp).then(r => { efr.disabled = true; efr.querySelector('span').textContent = r === 'accepted' || r === 'friends' ? 'Ihr seid jetzt Freunde' : 'Anfrage gesendet'; }, e => toast(e.message));
           if (online && net) net.rematchUI();
           m.querySelector('#eb').onclick = closeModal;
           m.querySelector('#em').onclick = menu;
@@ -1377,7 +1423,8 @@
       restart() { if (!online && !watch) leave(() => play(g, cfg, series)); },
       tut
     };
-    vsIntro({ name: names[L], sub: sideLabel(L) }, { name: names[R], sub: ai ? 'KI · ' + V.LEVELS[cfg.level] : online ? 'online' : sideLabel(R) }, rematch || watch);
+    if (party && N > 2) vsIntro({ name: names[1], sub: sideLabel(1) }, { name: ai ? N - 1 + ' KIs' : 'Alle', sub: ai ? V.LEVELS[cfg.level] : N + ' Spieler' }, rematch);
+    else vsIntro({ name: names[L], sub: sideLabel(L) }, { name: names[R], sub: ai ? 'KI · ' + V.LEVELS[cfg.level] : online ? 'online' : sideLabel(R) }, rematch || watch);
     inst = g.start(ctx) || {};
   }
 
@@ -1601,8 +1648,10 @@
     applyFxClass();
     document.documentElement.classList.toggle('standalone', standalone());
     const q = new URLSearchParams(location.search), qt = q.get('tab');
+    // friend link from a QR code or a message: handled by js/online.js once the login is known
+    if (q.get('add')) try { sessionStorage.setItem('versus.add', q.get('add').slice(0, 12)); } catch (e) { }
     if (qt && TABS.some(t => t[0] === qt)) homeTab = qt;
-    if (q.has('tab') || q.has('app')) try { history.replaceState(null, '', location.pathname); } catch (e) { }
+    if (q.has('tab') || q.has('app') || q.has('add')) try { history.replaceState(null, '', location.pathname); } catch (e) { }
     registerSW();
     netState();
     if (!document.getElementById('fx')) { const f = V.el('div'); f.id = 'fx'; document.body.appendChild(f); }

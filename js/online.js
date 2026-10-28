@@ -19,6 +19,7 @@
 
   // ---------- starting a match ----------
   function start(st) {
+    if (!fstate) fetchFriends().catch(() => { });   // the result screen offers "add as friend" for strangers
     const g = V.byId[st.game]; if (!g) return V.ui.toast('Unbekanntes Spiel');
     const side = st.role === 'a' ? st.a_side : 3 - st.a_side;
     const opp = st.role === 'a' ? st.b_name : st.a_name;
@@ -72,7 +73,8 @@
   }
 
   // ---------- incoming invitations (polled while logged in) ----------
-  let pendT = null, pending = null, card = null, cardId = null;
+  let pendT = null, pending = null, card = null, cardId = null, lastFriendN = -1;
+  const toldReq = new Set();
   function startPolling() { if (pendT) return; pendT = setInterval(check, 5000); check(); }
   function stopPolling() { clearInterval(pendT); pendT = null; hideInvite(); pending = null; }
   async function check() {
@@ -83,7 +85,13 @@
       const before = JSON.stringify(pending);
       pending = p;
       const openList = (p.open || []).filter(o => !dismissed.has(o.id));
-      if (p.invites && p.invites.length) showInvite(p.invites[0]); else if (openList.length && !p.active && V.settings.openCards !== false) showInvite(Object.assign({ open: true }, openList[0])); else hideInvite();
+      // one card at a time: challenge first, then a new friend request, then open challenges
+      const frName = p.req_from && (cardId === 'fr:' + p.req_from || !toldReq.has(p.req_from)) ? p.req_from : null;
+      if (p.invites && p.invites.length) showInvite(p.invites[0]);
+      else if (frName) { toldReq.add(frName); showFriendCard(frName); }
+      else if (openList.length && !p.active && V.settings.openCards !== false) showInvite(Object.assign({ open: true }, openList[0]));
+      else hideInvite();
+      if (typeof p.friend_n === 'number') { if (lastFriendN >= 0 && p.friend_n > lastFriendN) newFriends(); lastFriendN = p.friend_n; }
       if (JSON.stringify(p) !== before && V.ui.view() === 'home' && V.ui.tab() === 'online') refreshTab();
       badge();
     } catch (e) { }
@@ -120,7 +128,10 @@
   function hideInvite() { if (card) { card.classList.add('out'); const c = card; setTimeout(() => c.remove(), 250); } card = null; cardId = null; }
 
   // ---------- Online tab ----------
-  let friendsData = null, board = null, boardGame = '', boardPeriod = 'week', searchRes = null, searchQ = '', sureRemove = null;
+  let friendsData = null, board = null, boardGame = '', boardPeriod = 'week';
+  // who is a friend: name -> 'friend' | 'outgoing' | 'incoming' (null until loaded once)
+  let fstate = null;
+  const initials = n => esc(String(n).slice(0, 2).toUpperCase());
   function tab() {
     if (!C() || !C().available()) return `<section class="page"><h1 class="title"><span>Online</span> spielen</h1><div class="acard"><p class="lead">Online-Spiele sind gleich da.</p></div></section>`;
     const loginCard = !C().user() ? `<div class="acard"><p class="lead">Mit einem Konto kannst du Freunde hinzufügen, sie zu Partien herausfordern und in die Rangliste kommen.</p>
@@ -131,9 +142,7 @@
       <div class="ogrid${C().user() ? '' : ' solo'}">
         ${C().user() ? `<div class="ocol">
           <div id="oactive"></div>
-          <div class="apanel"><h3>Freunde</h3>
-            <form class="asearch" id="ofind"><input class="inp" id="oq" placeholder="Spieler suchen und hinzufügen" autocapitalize="none" spellcheck="false" value="${esc(searchQ)}"><button class="btn sm" type="submit"><span>Suchen</span></button></form>
-            <div id="ores"></div>
+          <div class="apanel fpanel"><div class="fhead"><h3>Freunde <small id="fcount"></small></h3><button class="btn primary sm" id="fadd"><span>${IC().plus}Hinzufügen</span></button></div>
             <div id="ofriends">${V.skel()}</div>
           </div></div>` : ''}
         <div class="ocol"><div class="apanel"><div class="rtop"><h3>Rangliste</h3><div class="oseg rper" id="oper">${[['week', 'Diese Woche'], ['all', 'Für immer']].map(([k, l]) => `<button data-p="${k}" class="${boardPeriod === k ? 'on' : ''}">${l}</button>`).join('')}</div></div>
@@ -141,7 +150,8 @@
           <div id="oboard">${V.skel()}</div></div></div>
       </div></section>`;
   }
-  function refreshTab() { const b = document.querySelector('.hbody'); if (b && V.ui.tab() === 'online' && !(document.activeElement && document.activeElement.id === 'oq')) { fillFriends(b); fillActive(b); } }
+  const onlineBody = () => { const b = document.querySelector('.hbody'); return b && V.ui.view() === 'home' && V.ui.tab() === 'online' ? b : null; };
+  function refreshTab() { const b = onlineBody(); if (b) { loadFriends(b); fillActive(b); } }
   function wire(b) {
     if (!C() || !C().available()) return;
     b.querySelectorAll('#obg button').forEach(x => x.onclick = () => {
@@ -157,18 +167,28 @@
     });
     loadBoard(b);
     if (!C().user()) return;
-    const f = b.querySelector('#ofind');
-    f.onsubmit = async e => {
-      e.preventDefault(); searchQ = b.querySelector('#oq').value.trim();
-      if (searchQ.length < 2) { searchRes = []; return fillSearch(b, 'Mindestens 2 Zeichen.'); }
-      try { searchRes = await C().rpc('player_search', { q: searchQ }); fillSearch(b); } catch (x) { fillSearch(b, x.message); }
-    };
+    b.querySelector('#fadd').onclick = () => { V.sfx.ui(); addFriends(); };
+    if (friendsData) fillFriends(b);
     loadFriends(b); fillActive(b);
   }
-  async function loadFriends(b) {
-    try { friendsData = await C().rpc('friends'); } catch (e) { friendsData = { error: e.message }; }
-    fillFriends(b);
+  function remember(d) {
+    if (!d || d.error) return;
+    fstate = new Map();
+    (d.friends || []).forEach(f => fstate.set(f.username, 'friend'));
+    (d.outgoing || []).forEach(n => fstate.set(n, 'outgoing'));
+    (d.incoming || []).forEach(n => fstate.set(n, 'incoming'));
   }
+  async function fetchFriends() {
+    const d = await C().rpc('friends');
+    friendsData = d; remember(d);
+    return d;
+  }
+  async function loadFriends(b) {
+    try { await fetchFriends(); } catch (e) { friendsData = { error: e.message }; }
+    if (b && b.isConnected) fillFriends(b);
+  }
+  // after any change: friends list in the Online tab and the badge
+  function changed() { const b = onlineBody(); if (b) loadFriends(b); else fetchFriends().catch(() => { }); check(); }
   function fillActive(b) {
     const el = b.querySelector('#oactive'); if (!el) return;
     const p = pending || {};
@@ -181,36 +201,229 @@
     el.querySelectorAll('[data-acc]').forEach(x => x.onclick = async () => { try { start(await C().rpc('match_respond', { mid: x.dataset.acc, ok: true })); } catch (e) { V.ui.toast(e.message); check(); } });
     el.querySelectorAll('[data-dec]').forEach(x => x.onclick = () => { C().rpc('match_respond', { mid: x.dataset.dec, ok: false }).then(check, check); });
   }
-  function fillSearch(b, msg) {
-    const el = b.querySelector('#ores'); if (!el) return;
-    if (msg) { el.innerHTML = `<p class="aerr">${esc(msg)}</p>`; return; }
-    if (!searchRes || !searchRes.length) { el.innerHTML = searchRes ? '<p class="muted">Niemand gefunden.</p>' : ''; return; }
-    el.innerHTML = searchRes.map(r => `<div class="fline"><span class="adot"></span><b class="plink" data-prof="${esc(r.username)}">${esc(r.username)}</b>
-      ${r.state === 'friend' ? '<em class="rtag">Freund</em>' : r.state === 'outgoing' ? '<em class="rtag">angefragt</em>' : `<button class="btn sm${r.state === 'incoming' ? ' primary' : ''}" data-req="${esc(r.username)}"><span>${r.state === 'incoming' ? 'Annehmen' : 'Anfrage senden'}</span></button>`}</div>`).join('');
-    el.querySelectorAll('[data-req]').forEach(x => x.onclick = async () => {
-      try {
-        const r = await C().rpc('friend_request', { name: x.dataset.req });
-        V.ui.toast({ sent: 'Anfrage gesendet', accepted: 'Ihr seid jetzt Freunde', friends: 'Ihr seid schon Freunde', pending: 'Schon angefragt' }[r] || r);
-        searchRes = await C().rpc('player_search', { q: searchQ }); fillSearch(b); loadFriends(b);
-      } catch (e) { V.ui.toast(e.message); }
-    });
-  }
+  const fstatus = f => f.busy ? 'spielt gerade online' : f.online ? 'online' + (f.game && V.byId[f.game] ? ' · ' + esc(gname(f.game)) : '') : f.seen ? 'zuletzt ' + ago(f.seen) : 'offline';
   function fillFriends(b) {
     const el = b.querySelector('#ofriends'); if (!el || !friendsData) return;
     if (friendsData.error) { el.innerHTML = `<p class="aerr">${esc(friendsData.error)}</p>`; return; }
-    const d = friendsData;
-    const inc = (d.incoming || []).map(n => `<div class="fline req"><span class="adot"></span><b>${esc(n)}</b><small>möchte dein Freund sein</small>
-      <button class="btn primary sm" data-yes="${esc(n)}"><span>Annehmen</span></button><button class="btn ghost sm" data-no="${esc(n)}"><span>Nein</span></button></div>`).join('');
-    const out = (d.outgoing || []).map(n => `<div class="fline"><span class="adot"></span><b>${esc(n)}</b><small>Anfrage gesendet</small><button class="btn ghost sm" data-rm="${esc(n)}"><span>Zurückziehen</span></button></div>`).join('');
-    const fr = (d.friends || []).map(f => `<div class="fline${f.online ? ' on' : ''}"><span class="adot"></span><b class="plink" data-prof="${esc(f.username)}">${esc(f.username)}</b>
-      <small>${f.busy ? 'spielt gerade online' : f.online ? 'online' + (f.game && V.byId[f.game] ? ' · ' + esc(gname(f.game)) : '') : 'zuletzt ' + ago(f.seen)}</small>
-      ${sureRemove === f.username ? `<button class="btn ghost sm danger" data-rm="${esc(f.username)}"><span>Wirklich?</span></button>` : `<button class="iconbtn sm" data-sure="${esc(f.username)}" aria-label="Freund entfernen">${IC().x}</button>`}</div>`).join('');
-    el.innerHTML = (inc ? `<h4>Anfragen</h4>${inc}` : '') + (fr ? `<h4>Deine Freunde</h4>${fr}` : '<p class="muted">Noch keine Freunde. Such oben nach einem Namen und schick eine Anfrage.</p>') + (out ? `<h4>Gesendet</h4>${out}` : '');
-    el.querySelectorAll('[data-yes]').forEach(x => x.onclick = () => C().rpc('friend_respond', { name: x.dataset.yes, ok: true }).then(() => { V.ui.toast('Ihr seid jetzt Freunde'); V.sfx.goal(); loadFriends(b); check(); }, e => V.ui.toast(e.message)));
-    el.querySelectorAll('[data-no]').forEach(x => x.onclick = () => C().rpc('friend_respond', { name: x.dataset.no, ok: false }).then(() => { loadFriends(b); check(); }));
-    el.querySelectorAll('[data-rm]').forEach(x => x.onclick = () => C().rpc('friend_remove', { name: x.dataset.rm }).then(() => { sureRemove = null; loadFriends(b); }));
-    el.querySelectorAll('[data-sure]').forEach(x => x.onclick = () => { sureRemove = x.dataset.sure; fillFriends(b); });
+    const d = friendsData, fr = d.friends || [];
+    const cnt = b.querySelector('#fcount'); if (cnt) cnt.textContent = fr.length ? `${fr.length} · ${fr.filter(f => f.online).length} online` : '';
+    const inc = (d.incoming || []).map(n => `<div class="frow req" data-prof="${esc(n)}"><span class="fav">${initials(n)}</span>
+      <div class="ft"><b>${esc(n)}</b><small>möchte dein Freund sein</small></div>
+      <button class="btn primary sm" data-yes="${esc(n)}"><span>Annehmen</span></button><button class="iconbtn sm" data-no="${esc(n)}" aria-label="Anfrage von ${esc(n)} ablehnen" title="Ablehnen">${IC().x}</button></div>`).join('');
+    const rows = fr.map(f => `<div class="frow${f.online ? ' on' : ''}" data-prof="${esc(f.username)}"><span class="fav">${initials(f.username)}<i></i></span>
+      <div class="ft"><b>${esc(f.username)}</b><small>${fstatus(f)}</small></div>
+      <button class="btn sm${f.online && !f.busy ? ' primary' : ''}" data-play="${esc(f.username)}"><span>${IC().play}Spielen</span></button></div>`).join('');
+    const out = (d.outgoing || []).length ? `<div class="fout"><small>Angefragt</small>${d.outgoing.map(n => `<span class="fchip">${esc(n)}<button data-rm="${esc(n)}" aria-label="Anfrage an ${esc(n)} zurückziehen" title="Zurückziehen">${IC().x}</button></span>`).join('')}</div>` : '';
+    const empty = `<div class="fempty">${IC().users}<b>Noch keine Freunde</b><p>Zeig deinen QR-Code, schick deinen Link oder such nach einem Namen. Danach könnt ihr euch mit einem Tipp herausfordern.</p>
+      <div class="arow"><button class="btn primary sm" data-addt="code"><span>${IC().qr}Mein Code</span></button><button class="btn sm" data-addt="search"><span>Name suchen</span></button></div></div>`;
+    el.innerHTML = (inc ? `<div class="freqs"><h4>Anfragen</h4>${inc}</div>` : '') + (rows ? `<div class="flist">${rows}</div>` : empty) + out;
+    el.querySelectorAll('[data-yes]').forEach(x => x.onclick = e => { e.stopPropagation(); respond(x.dataset.yes, true); });
+    el.querySelectorAll('[data-no]').forEach(x => x.onclick = e => { e.stopPropagation(); respond(x.dataset.no, false); });
+    el.querySelectorAll('[data-play]').forEach(x => x.onclick = e => { e.stopPropagation(); V.sfx.ui(); challenge(x.dataset.play); });
+    el.querySelectorAll('[data-rm]').forEach(x => x.onclick = e => { e.stopPropagation(); C().rpc('friend_remove', { name: x.dataset.rm }).then(() => { V.ui.toast('Anfrage zurückgezogen'); changed(); }, er => V.ui.toast(er.message)); });
+    el.querySelectorAll('[data-addt]').forEach(x => x.onclick = () => { V.sfx.ui(); addFriends(x.dataset.addt); });
   }
+  function respond(name, ok) {
+    return C().rpc('friend_respond', { name, ok }).then(() => {
+      if (ok) { V.ui.toast('Du und ' + name + ' seid jetzt Freunde'); V.sfx.goal(); }
+      changed();
+    }, e => V.ui.toast(e.message));
+  }
+  async function request(name) {
+    const r = await C().rpc('friend_request', { name });
+    V.ui.toast({ sent: 'Anfrage an ' + name + ' gesendet', accepted: 'Du und ' + name + ' seid jetzt Freunde', friends: 'Ihr seid schon Freunde', pending: 'Schon angefragt' }[r] || r);
+    if (r === 'accepted') V.sfx.goal(); else V.sfx.ui();
+    changed();
+    return r;
+  }
+
+  // ---------- adding friends: search by name, own code (QR and link), enter a code ----------
+  let addTab = 'search', myCode = null, renewSure = false;
+  const addLink = c => location.origin + location.pathname + '?add=' + c;
+  const fmtCode = c => c.slice(0, 3) + ' ' + c.slice(3);
+  function addFriends(t) {
+    if (t) addTab = t;
+    renewSure = false;
+    const m = V.ui.openModal(`<div class="fadd">
+      <div class="fadd-h"><h3>Freund hinzufügen</h3><button class="iconbtn" id="fclose" aria-label="Schließen">${IC().x}</button></div>
+      <div class="oseg fseg" id="fseg">${[['search', 'Name suchen'], ['code', 'Mein Code'], ['enter', 'Code eingeben']].map(([k, l]) => `<button data-t="${k}" class="${addTab === k ? 'on' : ''}">${l}</button>`).join('')}</div>
+      <div id="fbody"></div></div>`, 'faddm');
+    m.querySelector('#fclose').onclick = V.ui.closeModal;
+    m.querySelectorAll('#fseg button').forEach(x => x.onclick = () => {
+      if (addTab === x.dataset.t) return;
+      addTab = x.dataset.t; V.sfx.ui();
+      m.querySelectorAll('#fseg button').forEach(y => y.classList.toggle('on', y === x));
+      draw();
+    });
+    function draw() {
+      const body = m.querySelector('#fbody'); if (!body) return;
+      if (addTab === 'search') return drawSearch(body);
+      if (addTab === 'code') return drawCode(body);
+      drawEnter(body);
+    }
+    draw();
+  }
+  function drawSearch(body) {
+    body.innerHTML = `<input class="inp big" id="fq" placeholder="Name, z. B. blitzfuchs" autocapitalize="none" autocomplete="off" spellcheck="false" maxlength="16">
+      <div id="fres" class="fres"><p class="fhint">Tipp die ersten Buchstaben. Die Liste erscheint beim Tippen.</p></div>`;
+    const q = body.querySelector('#fq'), res = body.querySelector('#fres');
+    let t = null, seq = 0;
+    const run = async () => {
+      const s = q.value.trim(), my = ++seq;
+      if (s.length < 2) { res.innerHTML = `<p class="fhint">${s ? 'Noch ein Buchstabe …' : 'Tipp die ersten Buchstaben. Die Liste erscheint beim Tippen.'}</p>`; return; }
+      let list;
+      try { list = await C().rpc('player_search', { q: s }); } catch (e) { res.innerHTML = `<p class="aerr">${esc(e.message)}</p>`; return; }
+      if (my !== seq) return;
+      if (!list.length) { res.innerHTML = `<p class="fhint">Niemand mit „${esc(s)}“ gefunden. Frag nach dem genauen Namen oder lass dir den Code geben.</p>`; return; }
+      res.innerHTML = list.map(r => `<div class="frow" data-prof="${esc(r.username)}"><span class="fav">${initials(r.username)}</span><div class="ft"><b>${esc(r.username)}</b></div>
+        ${r.state === 'friend' ? '<em class="rtag good">Freund</em>' : r.state === 'outgoing' ? '<em class="rtag">angefragt</em>'
+          : `<button class="btn sm primary" data-req="${esc(r.username)}" data-st="${r.state || ''}"><span>${r.state === 'incoming' ? 'Annehmen' : IC().plus + 'Hinzufügen'}</span></button>`}</div>`).join('');
+      res.querySelectorAll('[data-req]').forEach(x => x.onclick = async e => {
+        e.stopPropagation();
+        try { const r = await request(x.dataset.req); x.outerHTML = r === 'accepted' || r === 'friends' ? '<em class="rtag good">Freund</em>' : '<em class="rtag">angefragt</em>'; }
+        catch (er) { V.ui.toast(er.message); }
+      });
+    };
+    q.oninput = () => { clearTimeout(t); t = setTimeout(run, 250); };
+    q.onkeydown = e => { if (e.key === 'Enter') { clearTimeout(t); run(); } };
+    if (!V.coarse) setTimeout(() => q.focus(), 60);
+  }
+  async function drawCode(body) {
+    body.innerHTML = `<div class="fcode">${V.skel(2)}</div>`;
+    let code;
+    try { code = myCode || (myCode = await C().rpc('my_friend_code', { renew: false })); }
+    catch (e) { body.innerHTML = `<p class="aerr">${esc(/my_friend_code|function/i.test(e.message) ? 'Freundescodes kommen nach dem nächsten Server-Update.' : e.message)}</p>`; return; }
+    if (!body.isConnected) return;
+    const link = addLink(code);
+    body.innerHTML = `<div class="fcode">
+      <div class="fqr" id="fqr"><span class="fqr-load">${V.skel(1)}</span></div>
+      <div class="fcode-t"><small>Dein Freundescode</small><b>${fmtCode(code)}</b>
+        <p>Lass deinen Freund den QR-Code mit der Handykamera scannen oder den Code eingeben. Dann seid ihr sofort befreundet.</p>
+        <div class="arow"><button class="btn primary sm" id="fshare"><span>${IC().share}Link teilen</span></button><button class="btn sm" id="fcopy"><span>Link kopieren</span></button></div>
+        <button class="link fnew" id="fnew">Neuen Code erstellen</button></div></div>`;
+    loadQR().then(() => { const q = body.querySelector('#fqr'); if (q) q.innerHTML = qrSvg(link); }, () => { const q = body.querySelector('#fqr'); if (q) q.innerHTML = '<p class="fhint">QR-Code geht gerade nicht. Teil den Link oder den Code.</p>'; });
+    body.querySelector('#fshare').onclick = () => {
+      V.sfx.ui();
+      const text = 'Spiel mit mir Versus! Mit diesem Link sind wir sofort Freunde (Code ' + fmtCode(code) + '):';
+      if (navigator.share) navigator.share({ title: 'Versus', text, url: link }).catch(() => { });
+      else copy(link);
+    };
+    body.querySelector('#fcopy').onclick = () => { V.sfx.ui(); copy(link); };
+    const nb = body.querySelector('#fnew');
+    nb.onclick = async () => {
+      if (!renewSure) { renewSure = true; nb.textContent = 'Alte Links und QR-Codes gelten dann nicht mehr. Nochmal tippen'; return; }
+      renewSure = false;
+      try { myCode = await C().rpc('my_friend_code', { renew: true }); V.ui.toast('Neuer Code: ' + fmtCode(myCode)); drawCode(body); }
+      catch (e) { V.ui.toast(e.message); }
+    };
+  }
+  function drawEnter(body) {
+    body.innerHTML = `<form class="fenter" id="fen"><p class="fhint">Gib den Code deines Freundes ein. Er steht bei ihm unter „Mein Code“.</p>
+      <input class="inp code" id="fci" placeholder="ABC 123" maxlength="7" autocapitalize="characters" autocomplete="off" spellcheck="false" inputmode="text">
+      <p class="aerr" id="fce"></p>
+      <button class="btn primary big" type="submit"><span>Freund hinzufügen</span></button></form>`;
+    const f = body.querySelector('#fen'), i = body.querySelector('#fci'), er = body.querySelector('#fce');
+    i.oninput = () => { const v = i.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 6); i.value = v.length > 3 ? v.slice(0, 3) + ' ' + v.slice(3) : v; er.textContent = ''; };
+    f.onsubmit = async e => {
+      e.preventDefault();
+      const c = i.value.replace(/\s/g, '');
+      if (c.length !== 6) { er.textContent = 'Der Code hat 6 Zeichen.'; return; }
+      f.classList.add('busy');
+      try { const r = await C().rpc('friend_add_code', { code: c }); V.ui.closeModal(); welcomeFriend(r); }
+      catch (x) { er.textContent = /friend_add_code|function/i.test(x.message) ? 'Freundescodes kommen nach dem nächsten Server-Update.' : x.message; V.sfx.bad(); }
+      f.classList.remove('busy');
+    };
+    if (!V.coarse) setTimeout(() => i.focus(), 60);
+  }
+  // new friend via code or link: a small celebration with the obvious next step
+  function welcomeFriend(r) {
+    changed();
+    if (r.status === 'friends') return V.ui.toast('Du und ' + r.username + ' seid schon Freunde');
+    V.sfx.win(); V.fx.confetti();
+    const m = V.ui.openModal(`<div class="confirm fnewf"><span class="abig">${initials(r.username)}</span>
+      <h3>Ihr seid jetzt Freunde</h3><p>Du und <b>${esc(r.username)}</b> könnt euch jetzt direkt herausfordern.</p>
+      <div class="actions"><button class="btn primary" id="fgo"><span>${IC().play}Gleich herausfordern</span></button><button class="btn ghost" id="fok"><span>Später</span></button></div></div>`);
+    m.querySelector('#fok').onclick = V.ui.closeModal;
+    m.querySelector('#fgo').onclick = () => challenge(r.username);
+  }
+  function copy(t) {
+    const done = () => V.ui.toast('Link kopiert');
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(t).then(done, () => V.ui.toast(t));
+    else V.ui.toast(t);
+  }
+  // QR code: small library, loaded only when needed (and then cached for offline)
+  let qrLib = null;
+  function loadQR() {
+    if (window.qrcode) return Promise.resolve();
+    return qrLib || (qrLib = new Promise((res, rej) => {
+      const s = document.createElement('script');
+      s.src = 'https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js';
+      s.onload = () => res(); s.onerror = () => { qrLib = null; s.remove(); rej(new Error('qr')); };
+      document.head.appendChild(s);
+    }));
+  }
+  function qrSvg(text) {
+    const q = window.qrcode(0, 'M'); q.addData(text); q.make();
+    const n = q.getModuleCount(); let d = '';
+    for (let r = 0; r < n; r++) for (let c = 0; c < n; c++) if (q.isDark(r, c)) d += `M${c} ${r}h1v1h-1z`;
+    return `<svg viewBox="-3 -3 ${n + 6} ${n + 6}" shape-rendering="crispEdges" role="img" aria-label="QR-Code mit deinem Freundes-Link"><rect x="-3" y="-3" width="${n + 6}" height="${n + 6}" fill="#fff"/><path d="${d}" fill="#08090f"/></svg>`;
+  }
+
+  // challenge a friend: pick the game
+  function challenge(name) {
+    const m = V.ui.openModal(`<div class="fadd">
+      <div class="fadd-h"><h3>${esc(name)} herausfordern</h3><button class="iconbtn" id="fclose" aria-label="Schließen">${IC().x}</button></div>
+      <p class="fhint">Welches Spiel? ${esc(name)} bekommt eine Einladung.</p>
+      <div class="pchoose">${ONLINE.filter(id => V.byId[id]).map(id => `<button data-g="${id}"><span class="ic">${V.byId[id].icon}</span><small>${esc(gname(id))}</small></button>`).join('')}</div></div>`, 'faddm');
+    m.querySelector('#fclose').onclick = V.ui.closeModal;
+    m.querySelectorAll('[data-g]').forEach(x => x.onclick = () => { const g = V.byId[x.dataset.g]; V.ui.closeModal(); invite(name, g, optsFor(g)); });
+  }
+
+  // friend link (?add=CODE): after logging in you are friends right away
+  let askedLogin = false;
+  // wait while a dialog is open or the first-start slides are still to come
+  const busyScreen = () => !!document.querySelector('.modal-back') || (V.welcomeDue && V.welcomeDue());
+  function pendingCode() { try { return sessionStorage.getItem('versus.add'); } catch (e) { return null; } }
+  async function consumeAdd() {
+    const code = pendingCode(); if (!code) return;
+    if (!ready()) return askLogin();
+    if (busyScreen()) return setTimeout(consumeAdd, 1200);
+    try { sessionStorage.removeItem('versus.add'); } catch (e) { }
+    try { welcomeFriend(await C().rpc('friend_add_code', { code })); }
+    catch (e) { V.ui.toast(/eigener/.test(e.message) ? 'Das ist dein eigener Freundes-Link' : e.message); }
+  }
+  function askLogin() {
+    if (askedLogin || !pendingCode() || !C() || !C().available()) return;
+    if (busyScreen()) return setTimeout(askLogin, 1200);
+    askedLogin = true;
+    const m = V.ui.openModal(`<div class="confirm"><h3>Freundes-Link</h3><p>Melde dich an oder erstell ein Konto. Danach seid ihr automatisch befreundet.</p>
+      <div class="actions"><button class="btn primary" id="fl"><span>${IC().user}Zum Konto</span></button><button class="btn ghost" id="fn"><span>Später</span></button></div></div>`);
+    m.querySelector('#fl').onclick = () => { V.ui.closeModal(); V.ui.home('profile'); };
+    m.querySelector('#fn').onclick = V.ui.closeModal;
+  }
+
+  // a new friend request while using the app: a card like for challenges
+  function showFriendCard(name) {
+    if (cardId === 'fr:' + name) return;
+    hideInvite(); cardId = 'fr:' + name;
+    card = V.el('div', 'icard fcard', `<div class="ic-ico"><span class="fav">${initials(name)}</span></div>
+      <div class="ic-tx"><small>Freundschaftsanfrage</small><b>${esc(name)}</b><span>möchte dein Freund sein</span></div>
+      <div class="ic-act"><button class="btn primary sm" data-a="ok"><span>Annehmen</span></button><button class="btn ghost sm" data-a="no"><span>Später</span></button></div>`);
+    document.body.appendChild(card);
+    V.sfx.goal(); V.buzz([30, 50, 30]);
+    card.querySelector('[data-a=ok]').onclick = () => { hideInvite(); respond(name, true); };
+    card.querySelector('[data-a=no]').onclick = () => hideInvite();
+  }
+  // someone used my code: tell me who
+  async function newFriends() {
+    const before = fstate;
+    try { await fetchFriends(); } catch (e) { return; }
+    if (!before) return;
+    (friendsData.friends || []).forEach(f => { if (before.get(f.username) !== 'friend') { V.ui.toast(f.username + ' ist jetzt dein Freund'); V.sfx.goal(); } });
+    const b = onlineBody(); if (b) fillFriends(b);
+  }
+  const friendOf = name => (fstate ? fstate.get(name) || false : null);
+
   // "2 Tage 5 Std" until the weekly ranking starts over
   function untilText(iso) {
     const ms = new Date(iso) - Date.now(); if (!(ms > 0)) return '';
@@ -260,7 +473,7 @@
     let d;
     try { d = await C().rpc('friends'); } catch (e) { el.innerHTML = `<p class="aerr">${esc(e.message)}</p>`; return; }
     const fr = d.friends || [];
-    if (!fr.length) { el.innerHTML = `<p class="hint">Noch keine Freunde. Im Reiter Online findest du Spieler und schickst Anfragen.</p><button class="btn sm" id="pgo"><span>${IC().globe}Zum Reiter Online</span></button>`; el.querySelector('#pgo').onclick = () => V.ui.home('online'); return; }
+    if (!fr.length) { el.innerHTML = `<p class="hint">Noch keine Freunde. Zeig deinen QR-Code oder such nach einem Namen.</p><button class="btn sm primary" id="pgo"><span>${IC().plus}Freund hinzufügen</span></button>`; el.querySelector('#pgo').onclick = () => { V.sfx.ui(); addFriends(); }; return; }
     el.innerHTML = `<p class="hint">Wen willst du herausfordern? Am besten jemanden, der gerade online ist.</p>` + fr.map(f => `<div class="fline${f.online ? ' on' : ''}"><span class="adot"></span><b>${esc(f.username)}</b><small>${f.busy ? 'spielt gerade' : f.online ? 'online' : ago(f.seen)}</small><button class="btn sm${f.online ? ' primary' : ''}" data-inv="${esc(f.username)}"><span>Einladen</span></button></div>`).join('');
     el.querySelectorAll('[data-inv]').forEach(x => x.onclick = () => invite(x.dataset.inv, g, opts));
   }
@@ -295,9 +508,11 @@
       <span class="ic">${V.byId[r.game] ? V.byId[r.game].icon : ''}</span><span class="pr-t"><b>${esc(gname(r.game))}</b><small>gegen ${r.opp ? `<button class="link" data-prof="${esc(r.opp)}">${esc(r.opp)}</button>` : '?'}${r.result === 'resign' ? ' · aufgegeben' : r.result === 'abandon' ? ' · verlassen' : r.result === 'time' ? ' · Zeit' : ''}${r.ranked ? '' : ' · nicht gewertet'}</small></span>
       <span class="pr-d">${ago(r.at)}</span></div>`).join('');
     const vs = p.vs && p.vs.played ? `<div class="pvs"><small>Ihr beide</small><b><span class="me">${p.vs.wins}</span><i>:</i><span>${p.vs.losses}</span></b><small>${p.vs.played} Partien${p.vs.draws ? ' · ' + p.vs.draws + ' remis' : ''}</small></div>` : '';
-    const act = p.me ? '' : p.friend === 'friend' ? `<button class="btn primary" id="pch"><span>${IC().globe}Herausfordern</span></button>`
-      : p.friend === 'outgoing' ? '<button class="btn" disabled><span>Anfrage gesendet</span></button>'
-      : `<button class="btn primary" id="padd"><span>${IC().user}${p.friend === 'incoming' ? 'Anfrage annehmen' : 'Als Freund hinzufügen'}</span></button>`;
+    const act = p.me ? `<button class="btn" id="pcode"><span>${IC().qr}Mein Freundescode</span></button>`
+      : p.friend === 'friend' ? `<button class="btn primary" id="pch"><span>${IC().play}Herausfordern</span></button><button class="btn ghost" id="prm"><span>Freund entfernen</span></button>`
+      : p.friend === 'outgoing' ? `<button class="btn" disabled><span>Anfrage gesendet</span></button><button class="btn ghost" id="pwd"><span>Zurückziehen</span></button>`
+      : p.friend === 'incoming' ? `<button class="btn primary" id="pyes"><span>Anfrage annehmen</span></button><button class="btn ghost" id="pno"><span>Ablehnen</span></button>`
+      : `<button class="btn primary" id="padd"><span>${IC().plus}Als Freund hinzufügen</span></button>`;
     m.innerHTML = `<div class="prof">
       <div class="phead"><span class="abig">${esc(p.username.slice(0, 2).toUpperCase())}</span>
         <div><b>${esc(p.username)}</b>${p.dev ? '<em class="rtag dev">Dev</em>' : ''}<small>${status} · dabei seit ${new Date(p.since).toLocaleDateString('de-DE', { month: 'long', year: 'numeric' })}</small></div>
@@ -314,24 +529,32 @@
       <h4>Letzte Partien</h4>
       <div class="precs">${recent || '<p class="muted">Noch keine Online-Partien.</p>'}</div>
       ${act ? `<div class="actions">${act}</div>` : ''}
-      <div class="pchoose" id="pgs" hidden>${ONLINE.filter(id => V.byId[id]).map(id => `<button data-g="${id}"><span class="ic">${V.byId[id].icon}</span><small>${esc(gname(id))}</small></button>`).join('')}</div>
     </div>`;
     m.querySelector('#pc').onclick = V.ui.closeModal;
     m.querySelectorAll('[data-prof]').forEach(x => x.onclick = () => { V.sfx.ui(); profile(x.dataset.prof); });
-    const add = m.querySelector('#padd');
-    if (add) add.onclick = () => C().rpc('friend_request', { name: p.username }).then(r => { V.ui.toast(r === 'accepted' || r === 'friends' ? 'Ihr seid jetzt Freunde' : 'Anfrage gesendet'); V.sfx.goal(); profile(p.username); }, e => V.ui.toast(e.message));
-    const ch = m.querySelector('#pch');
-    if (ch) ch.onclick = () => { V.sfx.ui(); const g = m.querySelector('#pgs'); g.hidden = !g.hidden; if (!g.hidden) g.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); };
-    m.querySelectorAll('#pgs [data-g]').forEach(x => x.onclick = () => { const g = V.byId[x.dataset.g]; V.ui.closeModal(); invite(p.username, g, optsFor(g)); });
+    const on = (id, fn) => { const x = m.querySelector('#' + id); if (x) x.onclick = () => fn(x); };
+    const again = () => { if (document.body.contains(m)) profile(p.username); };
+    on('padd', () => request(p.username).then(again, e => V.ui.toast(e.message)));
+    on('pyes', () => respond(p.username, true).then(again));
+    on('pno', () => respond(p.username, false).then(again));
+    on('pwd', () => C().rpc('friend_remove', { name: p.username }).then(() => { V.ui.toast('Anfrage zurückgezogen'); changed(); again(); }, e => V.ui.toast(e.message)));
+    on('pch', () => { V.sfx.ui(); challenge(p.username); });
+    on('pcode', () => { V.sfx.ui(); addFriends('code'); });
+    // removing a friend needs a second tap
+    on('prm', x => {
+      if (!x.classList.contains('danger')) { x.classList.add('danger'); x.querySelector('span').textContent = 'Wirklich entfernen?'; return; }
+      C().rpc('friend_remove', { name: p.username }).then(() => { V.ui.toast(p.username + ' ist nicht mehr dein Freund'); changed(); again(); }, e => V.ui.toast(e.message));
+    });
   }
 
   // any player name with data-prof opens that profile (friends, search, ranking)
   document.addEventListener('click', e => {
     const x = e.target.closest && e.target.closest('[data-prof]');
     if (!x || x.closest('.prof') || !ready()) return;
+    const btn = e.target.closest('button, input'); if (btn && btn !== x && x.contains(btn)) return;
     e.stopPropagation(); V.sfx.ui(); profile(x.dataset.prof);
   });
 
-  V.online = { tab, wire, picker, openPanel, seek, invite, resume, watch, start, check, profile };
-  if (C()) C().on(() => { if (ready()) startPolling(); else stopPolling(); });
+  V.online = { tab, wire, picker, openPanel, seek, invite, resume, watch, start, check, profile, addFriends, challenge, friendOf, request };
+  if (C()) C().on(() => { if (ready()) { startPolling(); consumeAdd(); } else { stopPolling(); fstate = null; lastFriendN = -1; askLogin(); } });
 })();

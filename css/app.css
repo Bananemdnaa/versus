@@ -876,3 +876,112 @@ html,body{-webkit-tap-highlight-color:transparent}
 .pchoose .ic{width:36px;height:36px} .pchoose .ic svg{width:100%;height:100%}
 .pchoose small{font-size:11px;color:var(--muted);text-align:center;line-height:1.2}
 .phead small b{font:inherit;text-transform:none}
+
+/* ---------- party games: 2-4 players (cards 1+3 left, 2+4 right; colours pink, yellow, cyan, green) ---------- */
+:root{--p3:var(--cyan);--p4:var(--good);--p3hi:#c4f9ff;--p4hi:#c6ffdb}
+.c3{color:var(--p3);font-weight:600} .c4{color:var(--p4);font-weight:600}
+.duel.party{grid-template-columns:minmax(0,1fr) minmax(0,1fr);grid-template-areas:"l r" "c c"}
+.pcol{display:flex;flex-direction:column;gap:6px;min-width:0}
+.pcol-l{grid-area:l} .pcol-r{grid-area:r}
+.pcol .pcard{grid-area:auto}
+.pcard.ps1{--sc:var(--pink)} .pcard.ps2{--sc:var(--yellow)} .pcard.ps3{--sc:var(--p3)} .pcard.ps4{--sc:var(--p4)}
+.duel.party .pcard{padding:5px 8px;gap:8px}
+.duel.party .pcard .av{width:28px;height:28px;font-size:12px}
+.duel.party .pcard .av svg{width:16px;height:16px}
+.duel.party .pcard .nm b{font-size:15px}
+.duel.party .pcard .nm small{font-size:11px}
+.duel.party .pcard .wins{display:flex;align-items:baseline;gap:3px;margin-left:auto}
+.duel.party .pcard-r .wins{margin-left:0;margin-right:auto}
+.duel.party .pcard .wins b{font:800 italic 20px/1 var(--f-d);color:var(--sc);font-variant-numeric:tabular-nums}
+.duel.party .pcard .wins small{display:none}
+.duel.party .pcard .tdots{display:none!important}
+@media (min-width:960px){
+  .duel.party{grid-template-columns:210px minmax(0,1fr) 210px;grid-template-areas:"l c r"}
+  .pcol{gap:14px;margin-top:44px}
+  .duel.party .pcard{margin-top:0;padding:14px 16px;gap:8px}
+  .duel.party .pcard .av{width:44px;height:44px;font-size:16px}
+  .duel.party .pcard .av svg{width:24px;height:24px}
+  .duel.party .pcard .nm b{font-size:22px}
+  .duel.party .pcard .wins{margin:0;width:100%;padding-top:8px}
+  .duel.party .pcard-r .wins{margin:0}
+  .duel.party .pcard .wins b{font-size:30px}
+  .duel.party .pcard .wins small{display:inline}
+}
+.ko.w1{--bc:var(--pink)} .ko.w2{--bc:var(--yellow)} .ko.w3{--bc:var(--cyan)} .ko.w4{--bc:var(--good)}
+.eparty{display:flex;gap:18px;justify-content:center;flex-wrap:wrap;margin-top:6px}
+.eparty .ep{display:flex;flex-direction:column;align-items:center;gap:4px}
+.eparty .ep b{font:800 italic 34px/1 var(--f-d);font-variant-numeric:tabular-nums}
+.eparty .ep small{font:700 italic 13px/1 var(--f-d);letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+
+/* corner touch pads for action games with up to 4 players at one device (rotated for players on the far side) */
+.pads{display:grid;grid-template-columns:1fr 1fr;gap:6px;width:100%;user-select:none;-webkit-user-select:none;touch-action:none}
+.pads.one{grid-template-columns:1fr}
+.pads.far{transform:rotate(180deg)}
+.pad{--pc:var(--pink);display:flex;gap:6px;min-height:58px;padding:5px;border-radius:12px;border:2px solid color-mix(in srgb,var(--pc) 55%,transparent);background:color-mix(in srgb,var(--pc) 10%,var(--panel));position:relative}
+.pad.dead{opacity:.35}
+.pad button{flex:1;display:grid;place-items:center;border-radius:8px;background:color-mix(in srgb,var(--pc) 18%,var(--panel2));color:var(--pc);touch-action:none;transition:transform .06s,background .06s}
+.pad button svg{width:26px;height:26px}
+.pad button.dn{transform:scale(.94);background:color-mix(in srgb,var(--pc) 45%,var(--panel2));color:var(--ink)}
+.pad .pk{position:absolute;top:-8px;left:10px;font:800 italic 11px/1 var(--f-d);letter-spacing:.1em;text-transform:uppercase;padding:2px 6px;background:var(--pc);color:var(--ink);transform:skewX(var(--sk))}
+.pad.p1{--pc:var(--pink)} .pad.p2{--pc:var(--yellow)} .pad.p3{--pc:var(--cyan)} .pad.p4{--pc:var(--good)}
+.pad.empty{visibility:hidden}
+@media (hover:hover) and (pointer:fine){.pads.kb-hide{display:none}}
+
+/* ---------- friends ---------- */
+.rtag.good{background:color-mix(in srgb,var(--good) 18%,transparent);color:var(--good)}
+.fhead{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:6px}
+.fhead h3{margin:0}
+.fhead h3 small{color:var(--muted);font-size:12px;letter-spacing:.06em}
+.fav{position:relative;width:38px;height:38px;flex:none;display:grid;place-items:center;background:var(--panel3);color:var(--fg);font:800 italic 14px/1 var(--f-d);transform:skewX(var(--sk))}
+.fav i{position:absolute;right:-4px;bottom:-4px;width:11px;height:11px;border-radius:50%;background:var(--dim);border:2px solid var(--panel);transform:skewX(10deg)}
+.frow.on .fav{background:color-mix(in srgb,var(--good) 22%,var(--panel3))}
+.frow.on .fav i{background:var(--good);box-shadow:0 0 8px var(--good)}
+.frow{display:flex;align-items:center;gap:12px;padding:9px 8px;margin:0 -8px;border-radius:8px;cursor:pointer;transition:background .15s;min-width:0}
+.frow:hover{background:var(--panel2)}
+.frow .ft{flex:1;min-width:0;display:flex;flex-direction:column;line-height:1.2}
+.frow .ft b{font:700 italic 17px/1.1 var(--f-d);text-transform:uppercase;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.frow .ft small{color:var(--muted);font-size:12.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.frow.on .ft small{color:var(--good)}
+.frow .btn,.frow .iconbtn,.frow .rtag{flex:none}
+.flist{display:flex;flex-direction:column}
+.freqs{margin:0 -8px 8px;padding:4px 8px 6px;border-radius:10px;background:color-mix(in srgb,var(--yellow) 8%,transparent);border:1px solid color-mix(in srgb,var(--yellow) 30%,transparent)}
+.freqs h4{color:var(--yellow);margin:6px 0 2px}
+.frow.req .fav{background:color-mix(in srgb,var(--yellow) 25%,var(--panel3))}
+.fout{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin-top:10px;padding-top:10px;border-top:1px solid var(--line)}
+.fout small{font:700 italic 11px/1 var(--f-d);letter-spacing:.14em;text-transform:uppercase;color:var(--dim);margin-right:4px}
+.fchip{display:inline-flex;align-items:center;gap:4px;padding:3px 4px 3px 10px;border-radius:999px;background:var(--panel2);border:1px solid var(--line);font-size:13px;font-weight:600}
+.fchip button{width:22px;height:22px;display:grid;place-items:center;border-radius:50%;color:var(--muted)} .fchip button:hover{background:var(--panel3);color:var(--fg)}
+.fchip svg{width:12px;height:12px}
+.fempty{display:flex;flex-direction:column;align-items:center;text-align:center;gap:6px;padding:16px 8px 8px}
+.fempty>svg{width:40px;height:40px;color:var(--pink)}
+.fempty b{font:800 italic 20px/1.1 var(--f-d);text-transform:uppercase}
+.fempty p{margin:0 0 6px;color:var(--muted);font-size:13.5px;max-width:34ch}
+.fhint{margin:0;color:var(--muted);font-size:13.5px;line-height:1.45}
+/* add-friend dialog */
+.modal.faddm{width:min(100%,520px)}
+.fadd{display:flex;flex-direction:column;gap:12px}
+.fadd-h{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.fadd-h h3{margin:0;font:800 italic 24px/1.1 var(--f-d);text-transform:uppercase}
+.fseg{width:100%} .fseg button{flex:1;padding:9px 6px}
+.inp.big{font-size:17px;padding:13px 14px}
+.fres{display:flex;flex-direction:column;min-height:120px}
+.fres .fhint{padding:14px 2px}
+.fcode{display:flex;gap:18px;align-items:center}
+.fqr{width:184px;flex:none;aspect-ratio:1;border-radius:10px;overflow:hidden;background:#fff;display:grid;place-items:center;box-shadow:5px 5px 0 var(--pink)}
+.fqr svg{width:100%;height:100%;display:block}
+.fqr .fhint{color:#555;padding:12px;text-align:center}
+.fqr-load{width:80%}
+.fcode-t{flex:1;min-width:0;display:flex;flex-direction:column;gap:6px}
+.fcode-t small{font:700 italic 12px/1 var(--f-d);letter-spacing:.16em;text-transform:uppercase;color:var(--muted)}
+.fcode-t>b{font:800 italic 40px/1 var(--f-d);letter-spacing:.08em;color:var(--yellow);font-variant-numeric:tabular-nums}
+.fcode-t p{margin:0;color:var(--muted);font-size:13.5px;line-height:1.45}
+.fnew{align-self:flex-start;font-size:12.5px;color:var(--muted);font-weight:500}
+@media (max-width:520px){.fcode{flex-direction:column;text-align:center}.fqr{width:min(70vw,240px)}.fcode-t{align-items:center}.fcode-t .arow{justify-content:center}.fnew{align-self:center}}
+.fenter{display:flex;flex-direction:column;gap:10px}
+.inp.code{font:800 italic 34px/1 var(--f-d);letter-spacing:.2em;text-align:center;text-transform:uppercase;padding:14px}
+.fenter.busy{opacity:.6;pointer-events:none}
+.fnewf{text-align:center;display:flex;flex-direction:column;align-items:center}
+.fnewf .abig{margin-bottom:8px;animation:wpop .5s var(--spring)}
+.icard.fcard{border-color:var(--yellow)}
+.icard.fcard .fav{width:44px;height:44px;font-size:17px;background:color-mix(in srgb,var(--yellow) 25%,var(--panel3))}
+.ko .efr{margin:0 auto 12px;display:flex}
