@@ -51,7 +51,9 @@
   function play(g, cfg, series) {
     let rematch = !!series;
     const clockMin = g.id === 'chess' && cfg.mode !== 'ai' && [3, 5, 10].includes(+(cfg.opts && cfg.opts.clock)) ? +cfg.opts.clock : 0;
-    if (cfg.mode !== 'watch' && (locked(g) || (guest() && ['online', 'open', 'table'].includes(cfg.mode)))) { toast('Dafür brauchst du ein Konto'); return home('profile'); }
+    // guests with a guest session (quick match) may play online duels; tables and friends need an account
+    const session = V.cloud && V.cloud.user();
+    if (cfg.mode !== 'watch' && (locked(g) || (guest() && (cfg.mode === 'table' || (['online', 'open'].includes(cfg.mode) && !session))))) { toast('Dafür brauchst du ein Konto'); return home('profile'); }
     P.enterPlay(g);
     const online = cfg.mode === 'online', watch = cfg.mode === 'watch', M = cfg.match || {};
     // 'table': an online table with 2-4 seats (party games). Seats, names and the dice seed come from the server;
@@ -98,7 +100,7 @@
     const sublabel = table ? `Online-Tisch · ${N} Spieler` : party ? (ai ? `Gegen ${N > 2 ? N - 1 + ' KIs' : 'KI'} · ` + V.LEVELS[cfg.level] : N + ' Spieler') : ai ? 'Gegen KI · ' + V.LEVELS[cfg.level] : online ? 'Online gegen ' + esc(M.opp) : watch ? 'Zuschauen · ' + esc(M.aName) + ' gegen ' + esc(M.bName) : 'Zu zweit';
     // two people at one phone, sitting opposite: player 2's card (and the status on their turn) is turned around
     const facing = cfg.mode === 'local' && settings.face && !party && g.cat !== 'Action';
-    const v = mount(`<div class="view play${online || table ? ' net' : ''}${watch ? ' watch' : ''}${facing ? ' facing' + (g.turnBoard ? ' rotboard' : '') : ''}" style="--acc:${g.accent || 'var(--pink)'}">
+    const v = mount(`<div class="view play${online || table ? ' net' : ''}${watch ? ' watch' : ''}${facing ? ' facing' + (g.turnBoard ? ' rotboard' : '') : ''}" data-g="${g.id}" style="--acc:${g.accent || 'var(--pink)'}">
       <div class="pbar"><button class="iconbtn" id="pb" aria-label="Zurück">${IC.back}</button><div class="ttl"><b>${g.name}</b><small>${sublabel}</small></div>
         <button class="iconbtn" id="ph" aria-label="Regeln" title="Regeln (T)">${IC.help}</button>
         ${online ? `<button class="iconbtn" id="pe" aria-label="Reaktion senden" title="Reaktion">${IC.smile}</button>` : ''}
@@ -253,7 +255,8 @@
         const good = winner && (!me || meWon);
         if (good) { V.sfx.win(); setTimeout(() => V.fx.confetti(), 250); }
         else if (winner) { V.sfx.lose(); V.fx.shake(ctx.stage); }
-        const big = winner === 0 ? 'Remis' : me ? (meWon ? 'Sieg!' : 'Niederlage') : `${names[winner]} gewinnt`;
+        // V.t: the letters are animated one by one, so the translation has to happen before the split
+        const big = V.t(winner === 0 ? 'Remis' : me ? (meWon ? 'Sieg!' : 'Niederlage') : `${names[winner]} gewinnt`);
         setStatus(winner === 0 ? 'Unentschieden' : me ? (meWon ? '<span class="c' + winner + '">Du hast gewonnen</span>' : `${ctx.who(winner)} hat gewonnen`) : `${ctx.who(winner)} gewinnt`);
         const tone = winner === 0 ? 'draw' : me ? (meWon ? 'win' : 'lose') : party ? 'w' + winner : (winner === L ? 'left' : 'right');
         const again = () => online ? net.rematch(series) : table ? (closeModal(), V.online.table(g, cfg.opts, cfg.level)) : play(g, cfg, series);
@@ -265,8 +268,9 @@
             ${party ? `<div class="eparty">${SIDES.map(k => `<span class="ep c${k}"><b>${series[k]}</b><small>${esc(names[k])}</small></span>`).join('')}</div>` : `<div class="eseries"><span class="nl">${esc(names[L])}</span><b class="sl">${series[L]}</b><i>:</i><b class="sr">${series[R]}</b><span class="nr">${esc(names[R])}</span></div>`}
             ${series.d ? `<p class="small">${series.d}× unentschieden</p>` : ''}
             ${online ? `<div class="kemo" id="kemo"></div><div class="kquick">${['gg', 'clap', 'haha', 'sweat'].map(e => `<button data-emo="${e}">${EMO[e]}</button>`).join('')}</div>` : ''}
-            ${online && V.online.friendOf(M.opp) === false ? `<button class="btn ghost sm efr" id="efr"><span>${IC.plus}${esc(M.opp)} als Freund hinzufügen</span></button>` : ''}
+            ${online && V.online.friendOf(M.opp) === false && !(V.cloud.user() && V.cloud.user().anon) ? `<button class="btn ghost sm efr" id="efr"><span>${IC.plus}${esc(M.opp)} als Freund hinzufügen</span></button>` : ''}
             ${watch ? '' : `<button class="btn ghost sm eshare" id="es"><span>${IC.share}Ergebnis teilen</span></button>`}
+            ${online && V.online.report ? `<button class="link erep" id="erep">${esc(M.opp)} melden</button>` : ''}
             <div class="actions">${watch ? '' : `<button class="btn primary" id="er"><span>${IC.redo}${online ? 'Revanche anfragen' : table ? 'Neuer Tisch' : 'Revanche'}</span><kbd class="only-fine">Enter</kbd></button>`}<button class="btn" id="eb"><span>Brett ansehen</span></button><button class="btn ghost" id="em"><span>${watch ? 'Zurück' : 'Menü'}</span></button></div></div>`, 'endm', null, false, e => {
             if ((e.key === 'Enter' || e.key === 'n' || e.key === 'N') && !watch) { again(); return true; }
             if (e.key === 'Escape') { closeModal(); return true; }
@@ -277,6 +281,7 @@
           m.querySelectorAll('[data-emo]').forEach(b => b.onclick = () => sendEmote(b.dataset.emo));
           const efr = m.querySelector('#efr');
           if (efr) efr.onclick = () => V.online.request(M.opp).then(r => { efr.disabled = true; efr.querySelector('span').textContent = r === 'accepted' || r === 'friends' ? 'Ihr seid jetzt Freunde' : 'Anfrage gesendet'; }, e => toast(e.message));
+          const erep = m.querySelector('#erep'); if (erep) erep.onclick = () => V.online.report(M.opp, M.id);
           if (online && net) net.rematchUI();
           const es = m.querySelector('#es'); if (es) es.onclick = () => { V.sfx.ui(); shareCard(); };
           m.querySelector('#eb').onclick = closeModal;
@@ -527,7 +532,7 @@
           const y = 470 + k * 120;
           c.fillStyle = 'rgba(255,255,255,.05)'; c.fillRect(150, y - 80, W - 300, 100);
           c.fillStyle = V.hex(s); c.fillRect(150, y - 80, 10, 100);
-          c.textAlign = 'left'; fit(names[s].toUpperCase(), 60, 560); c.fillText(names[s].toUpperCase(), 196, y - 8);
+          c.textAlign = 'left'; fit(V.t(names[s]).toUpperCase(), 60, 560); c.fillText(V.t(names[s]).toUpperCase(), 196, y - 8);
           c.textAlign = 'right'; font(76); c.fillText(String(series[s]), W - 190, y - 4);
         });
         c.textAlign = 'center';
@@ -536,8 +541,8 @@
         font(300); c.fillStyle = V.hex(L); c.fillText(String(series[L]), W / 2 - 200, 690);
         c.fillStyle = '#5c5f86'; c.fillText(':', W / 2, 670);
         c.fillStyle = V.hex(R); c.fillText(String(series[R]), W / 2 + 200, 690);
-        [[L, W / 2 - 200], [R, W / 2 + 200]].forEach(([s, x]) => { c.fillStyle = '#fff'; fit(names[s].toUpperCase(), 54, 380); c.fillText(names[s].toUpperCase(), x, 790); });
-        if (series.d) { c.fillStyle = '#9a9cc4'; font(32, 700); c.fillText(series.d + '× UNENTSCHIEDEN', W / 2, 860); }
+        [[L, W / 2 - 200], [R, W / 2 + 200]].forEach(([s, x]) => { c.fillStyle = '#fff'; fit(V.t(names[s]).toUpperCase(), 54, 380); c.fillText(V.t(names[s]).toUpperCase(), x, 790); });
+        if (series.d) { c.fillStyle = '#9a9cc4'; font(32, 700); c.fillText(V.t(series.d + '× unentschieden').toUpperCase(), W / 2, 860); }
         text = `${g.name}: ${names[L]} ${series[L]}:${series[R]} ${names[R]}`;
       }
       c.fillStyle = '#6f7299'; font(30, 700);
