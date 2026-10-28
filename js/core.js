@@ -20,7 +20,7 @@
     // silent: written by the cloud sync itself, so it must not trigger another upload
     set(k, v, silent) { try { localStorage.setItem('versus.' + k, JSON.stringify(v)); } catch (e) { } if (!silent && V.cloud) V.cloud.changed(k); }
   };
-  const DEFAULTS = { sound: true, vol: 80, haptic: 'strong', fx: 'full', intro: true, coords: true, hints: true, aiFast: false, openCards: true };
+  const DEFAULTS = { sound: true, vol: 80, music: true, mvol: 45, haptic: 'strong', fx: 'full', intro: true, coords: true, hints: true, aiFast: false, openCards: true };
   const settings = V.settings = Object.assign({}, DEFAULTS, S.get('settings', {}));
   // older saves stored vibration as true/false
   if (settings.haptic === true) settings.haptic = 'strong'; else if (settings.haptic === false) settings.haptic = 'off';
@@ -47,11 +47,16 @@
 
   // ---------- sound and haptics ----------
   let actx = null;
+  // one shared audio context for effects and music (js/music.js)
+  V.audio = () => {
+    if (!actx) { const AC = window.AudioContext || window.webkitAudioContext; if (!AC) return null; try { actx = new AC(); } catch (e) { return null; } }
+    if (actx.state === 'suspended') actx.resume().catch(() => { });
+    return actx;
+  };
   function tone(f, d = 0.08, type = 'square', vol = 0.05, slide = 0) {
     if (!settings.sound) return;
     try {
-      actx = actx || new (window.AudioContext || window.webkitAudioContext)();
-      if (actx.state === 'suspended') actx.resume();
+      if (!V.audio()) return;
       const o = actx.createOscillator(), g = actx.createGain(), t = actx.currentTime;
       o.type = type; o.frequency.setValueAtTime(f, t);
       if (slide) o.frequency.exponentialRampToValueAtTime(Math.max(40, f + slide), t + d);
@@ -62,7 +67,7 @@
     } catch (e) { }
   }
   // Vibration: Android and most browsers use the Vibration API; iPhones (no API) get a short haptic tap
-  // through a hidden iOS 18 switch. "strong" makes every pulse about twice as long.
+  // through a hidden iOS 18 switch. "light" and "strong" stretch every pulse; motors in many phones ignore pulses under ~25 ms.
   const IOS = /iP(hone|ad|od)/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
   let iosSwitch = null;
   function iosTap() {
@@ -75,7 +80,7 @@
   V.isIOS = IOS;
   V.buzz = p => {
     const lvl = settings.haptic; if (!lvl || lvl === 'off') return;
-    const k = lvl === 'light' ? 1 : 2.2;
+    const k = lvl === 'light' ? 1.6 : 3.2;
     if (navigator.vibrate) { try { navigator.vibrate(Array.isArray(p) ? p.map((x, i) => i % 2 ? x : Math.round(x * k)) : Math.round(p * k)); } catch (e) { } }
     else if (IOS) iosTap();
   };
@@ -86,12 +91,12 @@
     hit() { tone(200, 0.22, 'sawtooth', 0.06, -140); V.buzz([35, 45, 45]); },
     miss() { tone(760, 0.08, 'sine', 0.05, -320); },
     bad() { tone(130, 0.22, 'square', 0.04); V.buzz(60); },
-    bounce() { tone(440, 0.04, 'square', 0.04); },
+    bounce() { tone(440, 0.04, 'square', 0.04); V.buzz(10); },
     goal() { tone(660, 0.12, 'triangle', 0.08, 300); V.buzz(40); },
     go() { tone(980, 0.12, 'square', 0.05); V.buzz(30); },
     ui() { tone(700, 0.035, 'triangle', 0.035); V.buzz(8); },
-    win() { [523, 659, 784, 1046].forEach((f, i) => setTimeout(() => tone(f, 0.15, 'triangle', 0.08), i * 110)); V.buzz([45, 70, 45, 70, 120]); },
-    lose() { [392, 330, 262].forEach((f, i) => setTimeout(() => tone(f, 0.22, 'triangle', 0.07), i * 150)); V.buzz(200); }
+    win() { [523, 659, 784, 1046].forEach((f, i) => setTimeout(() => tone(f, 0.15, 'triangle', 0.08), i * 110)); V.buzz([45, 70, 45, 70, 120]); V.music && V.music.duck(3200); },
+    lose() { [392, 330, 262].forEach((f, i) => setTimeout(() => tone(f, 0.22, 'triangle', 0.07), i * 150)); V.buzz(140); V.music && V.music.duck(3200); }
   };
 
   // ---------- effects ----------
@@ -333,6 +338,8 @@
     bulb: svg('<path d="M9 18h6M10 21h4M12 3a6 6 0 0 0-3.5 10.9c.6.5 1 1.2 1 2.1h5c0-.9.4-1.6 1-2.1A6 6 0 0 0 12 3z"/>'),
     share: svg('<path d="M12 3v12M8 7l4-4 4 4"/><path d="M5 11v9h14v-9"/>'),
     phone: svg('<rect x="7" y="2.5" width="10" height="19" rx="2"/><path d="M11 18.5h2"/>'),
+    music: svg('<path d="M9 18V5l11-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="17" cy="16" r="3"/>'),
+    wifioff: svg('<path d="M2 8.8a15 15 0 0 1 4.2-2.6M10.7 5.1A15 15 0 0 1 22 8.8M5 12.5a10 10 0 0 1 5.2-2.7M16.3 10.4A10 10 0 0 1 19 12.5M8.5 16.1a5 5 0 0 1 7 0"/><path d="M3 3l18 18"/><circle cx="12" cy="19.5" r=".8"/>'),
   };
 
   // ---------- player colours ----------
@@ -349,12 +356,14 @@
   const wide = () => wideMQ.matches;
   let current = null, view = 'home', homeTab = 'games', homeFilter = 'Alle', selected = null;
   function destroyCurrent() { if (current) { current.destroy(); current = null; } nav.reset(); closeModal(); setSwap(false); }
+  const musicFor = g => g.cat === 'Action' ? 'action' : g.cat === 'Strategie' ? 'think' : 'play';
   function mount(html) {
     app.innerHTML = html;
     const v = app.firstElementChild;
     if (v && V.fxOn()) { v.classList.add('enter'); setTimeout(() => v.classList.remove('enter'), 900); }
     window.scrollTo(0, 0);
     queueGuard();
+    if (V.music) V.music.play(view === 'play' && lastGame ? musicFor(lastGame) : 'menu');
     return v;
   }
   function totals() {
@@ -399,6 +408,7 @@
   }
   function toggleSound() {
     settings.sound = !settings.sound; saveSettings(); V.sfx.ui();
+    if (V.music) V.music.apply();
     const s = document.getElementById('snd'); if (s) s.innerHTML = settings.sound ? IC.sound : IC.mute;
     toast(settings.sound ? 'Ton an' : 'Ton aus');
   }
@@ -421,7 +431,10 @@
     if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => placeInd(v, false));
     wireBody(v.querySelector('.hbody'));
   }
-  function tabBody() { return homeTab === 'stats' ? statsTab() : homeTab === 'opts' ? optsTab() : homeTab === 'profile' ? (V.account ? V.account.tab() : '') : homeTab === 'online' ? (V.online ? V.online.tab() : '') : gamesTab(); }
+  function offlineTab() {
+    return `<section class="page"><div class="empty">${IC.wifioff}<b>Du bist offline</b><p>Freunde, Herausforderungen und Ranglisten brauchen Internet. Gegen die KI oder zu zweit an einem Gerät kannst du trotzdem spielen.</p><button class="btn primary" data-tab="games"><span>Zu den Spielen</span></button></div></section>`;
+  }
+  function tabBody() { return homeTab === 'online' && navigator.onLine === false ? offlineTab() : homeTab === 'stats' ? statsTab() : homeTab === 'opts' ? optsTab() : homeTab === 'profile' ? (V.account ? V.account.tab() : '') : homeTab === 'online' ? (V.online ? V.online.tab() : '') : gamesTab(); }
   function wireBody(b) {
     wireInstall(b);
     if (homeTab === 'games') wireGames(b);
@@ -638,6 +651,7 @@
 
   function optsTab() {
     const sw = (id, on, label, sub, ic) => `<button class="opt" id="${id}" role="switch" aria-checked="${on}">${ic}<span><b>${label}</b><small>${sub}</small></span><i class="sw ${on ? 'on' : ''}"></i></button>`;
+    const slider = (k, label, val, off) => `<div class="opt ovol${off ? ' off' : ''}" data-vol="${k}"><i class="ospc"></i><span><b>Lautstärke ${label}</b><input type="range" min="0" max="100" step="5" value="${val}" style="--p:${val}%" aria-label="Lautstärke ${label}"></span><em>${val} %</em></div>`;
     const seg = (key, cur, list) => `<div class="oseg" data-k="${key}" role="radiogroup">${list.map(([v, l]) => `<button role="radio" data-v="${v}" aria-checked="${cur === v}" class="${cur === v ? 'on' : ''}">${l}</button>`).join('')}</div>`;
     const vibSub = !V.canVibrate ? 'Dieser Browser kann nicht vibrieren' : IOS ? 'iPhone ab iOS 18: kurzes Tippen statt Ruckeln' : 'Bei Zügen, Treffern und am Ende';
     const showVib = V.canVibrate || V.coarse;
@@ -650,9 +664,12 @@
       <div class="ogroups">
       <div class="ogroup"><h2 class="oh">Ton und Vibration</h2>
       <div class="optlist">
-        ${sw('o_snd', settings.sound, 'Ton', 'Klicks, Treffer und Jubel', IC.sound)}
-        <div class="opt ovol${settings.sound ? '' : ' off'}">${IC.sound}<span><b>Lautstärke</b><input type="range" id="o_vol" min="0" max="100" step="5" value="${settings.vol}" style="--p:${settings.vol}%" aria-label="Lautstärke"></span><em id="o_volv">${settings.vol} %</em></div>
-        ${showVib ? `<div class="opt orow${V.canVibrate ? '' : ' off'}">${IC.vib}<span><b>Vibration</b><small>${vibSub}</small></span>${V.canVibrate ? seg('haptic', settings.haptic, [['off', 'Aus'], ['light', 'Leicht'], ['strong', 'Stark']]) : ''}</div>` : ''}
+        ${sw('o_snd', settings.sound, 'Ton', 'Schaltet Effekte und Musik zusammen an und aus', IC.sound)}
+        ${slider('vol', 'Effekte', settings.vol, !settings.sound)}
+        ${sw('o_mus', settings.music !== false, 'Musik', 'Eigene Stücke für Menü, Klassiker, Strategie und Action', IC.music)}
+        ${slider('mvol', 'Musik', settings.mvol, !settings.sound || settings.music === false)}
+        ${showVib ? `<div class="opt orow${V.canVibrate ? '' : ' off'}">${IC.vib}<span><b>Vibration</b><small>${vibSub}</small></span>${V.canVibrate ? `<div class="ovib">${seg('haptic', settings.haptic, [['off', 'Aus'], ['light', 'Leicht'], ['strong', 'Stark']])}<button class="btn ghost sm" id="o_vtest"><span>Testen</span></button></div>` : ''}</div>
+        <p class="ohint" id="o_vhint" hidden></p>` : ''}
       </div></div>
       <div class="ogroup"><h2 class="oh">Anzeige</h2>
       <div class="optlist">
@@ -687,20 +704,37 @@
   }
   function wireOpts(v) {
     const flip = (id, fn) => { const b = v.querySelector('#' + id); if (b) b.onclick = () => { const on = fn(); b.setAttribute('aria-checked', on); b.querySelector('.sw').classList.toggle('on', on); saveSettings(); V.sfx.ui(); }; };
+    const dimSliders = () => {
+      v.querySelector('[data-vol=vol]').classList.toggle('off', !settings.sound);
+      v.querySelector('[data-vol=mvol]').classList.toggle('off', !settings.sound || settings.music === false);
+    };
     flip('o_snd', () => {
       settings.sound = !settings.sound; const s = document.getElementById('snd'); if (s) s.innerHTML = settings.sound ? IC.sound : IC.mute;
-      const r = v.querySelector('.ovol'); if (r) r.classList.toggle('off', !settings.sound);
+      dimSliders(); V.music.apply();
       return settings.sound;
     });
-    const vol = v.querySelector('#o_vol');
-    vol.oninput = () => { settings.vol = +vol.value; vol.style.setProperty('--p', settings.vol + '%'); v.querySelector('#o_volv').textContent = settings.vol + ' %'; };
-    vol.onchange = () => { saveSettings(); V.sfx.place(); };
+    flip('o_mus', () => { settings.music = settings.music === false; dimSliders(); setTimeout(() => V.music.apply(), 0); return settings.music; });
+    v.querySelectorAll('[data-vol]').forEach(row => {
+      const k = row.dataset.vol, r = row.querySelector('input'), out = row.querySelector('em');
+      r.oninput = () => { settings[k] = +r.value; r.style.setProperty('--p', r.value + '%'); out.textContent = r.value + ' %'; if (k === 'mvol') V.music.apply(); };
+      r.onchange = () => { saveSettings(); if (k === 'vol') V.sfx.place(); };
+    });
     v.querySelectorAll('.oseg').forEach(g => g.querySelectorAll('button').forEach(b => b.onclick = () => {
       settings[g.dataset.k] = b.dataset.v; saveSettings();
       g.querySelectorAll('button').forEach(x => { x.classList.toggle('on', x === b); x.setAttribute('aria-checked', x === b); });
       V.sfx.ui();
       if (g.dataset.k === 'haptic') V.buzz([40, 60, 40]);
     }));
+    // a long test pulse; if nothing is felt, the phone itself is muting web vibration (silent mode, do not disturb, intensity 0)
+    const vt = v.querySelector('#o_vtest');
+    if (vt) vt.onclick = () => {
+      let ok = true;
+      if (navigator.vibrate) { try { ok = navigator.vibrate([350, 120, 350]); } catch (e) { ok = false; } } else V.buzz(20);
+      const h = v.querySelector('#o_vhint'); h.hidden = false;
+      h.innerHTML = !ok ? 'Der Browser hat die Vibration blockiert. Tipp einmal irgendwo auf die Seite und versuch es nochmal.'
+        : IOS ? 'Nichts gespürt? Auf dem iPhone geht das erst ab iOS 18 und nur, wenn unter Einstellungen → Töne & Haptik die <b>Systemhaptik</b> an ist.'
+        : 'Nichts gespürt? Android schluckt Vibrationen von Webseiten, wenn das Handy auf <b>Lautlos</b> oder <b>Nicht stören</b> steht. Stell auf Ton oder Vibrieren und schau unter Einstellungen → Töne und Vibration → <b>Vibrationsintensität</b>, dass <b>Berührung</b> und <b>Benachrichtigungen</b> nicht auf 0 stehen.';
+    };
     flip('o_fx', () => { settings.fx = settings.fx === 'low' ? 'full' : 'low'; applyFxClass(); return settings.fx !== 'low'; });
     flip('o_intro', () => (settings.intro = settings.intro === false));
     flip('o_coords', () => { settings.coords = settings.coords === false; applyFxClass(); return settings.coords; });
@@ -725,7 +759,7 @@
     };
     sure(v.querySelector('#o_def'), () => {
       const keep = settings.stealth;
-      Object.keys(settings).forEach(k => delete settings[k]); Object.assign(settings, DEFAULTS, { stealth: keep }); saveSettings(); applyFxClass();
+      Object.keys(settings).forEach(k => delete settings[k]); Object.assign(settings, DEFAULTS, { stealth: keep }); saveSettings(); applyFxClass(); V.music.apply();
       const s = document.getElementById('snd'); if (s) s.innerHTML = IC.sound;
       toast('Einstellungen zurückgesetzt'); home('opts');
     });
@@ -766,6 +800,21 @@
     setTimeout(() => t.classList.add('out'), 1500); setTimeout(() => t.remove(), 1900);
   }
   V.toast = toast;
+  // grey placeholder bars while something loads from the server
+  V.skel = (n = 3) => `<div class="skel" aria-label="Lädt">${'<i></i>'.repeat(n)}</div>`;
+
+  // offline: a small note at the top; AI and two-player games keep working, online parts wait
+  function netState(fromEvent) {
+    const off = navigator.onLine === false;
+    document.documentElement.classList.toggle('offline', off);
+    let p = document.getElementById('offpill');
+    if (off && !p) { p = V.el('div', 'offpill', `${IC.wifioff}<span><b>Offline</b> · KI und Spiele zu zweit gehen weiter</span>`); p.id = 'offpill'; document.body.appendChild(p); }
+    if (!off && p) { p.classList.add('out'); setTimeout(() => p.remove(), 250); }
+    if (fromEvent && view === 'home' && homeTab === 'online') home('online');
+    if (fromEvent && !off) toast('Wieder online');
+  }
+  addEventListener('offline', () => netState(true));
+  addEventListener('online', () => netState(true));
 
   function tutorial(g, onDone) {
     let i = 0;
@@ -1419,6 +1468,7 @@
     if (qt && TABS.some(t => t[0] === qt)) homeTab = qt;
     if (q.has('tab') || q.has('app')) try { history.replaceState(null, '', location.pathname); } catch (e) { }
     registerSW();
+    netState();
     if (!document.getElementById('fx')) { const f = V.el('div'); f.id = 'fx'; document.body.appendChild(f); }
     if (V.cloud && V.cloud.available()) { V.cloud.on(onCloud); V.cloud.init(); }
     const b = document.getElementById('boot');

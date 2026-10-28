@@ -119,7 +119,7 @@
   function hideInvite() { if (card) { card.classList.add('out'); const c = card; setTimeout(() => c.remove(), 250); } card = null; cardId = null; }
 
   // ---------- Online tab ----------
-  let friendsData = null, board = null, boardGame = '', searchRes = null, searchQ = '', sureRemove = null;
+  let friendsData = null, board = null, boardGame = '', boardPeriod = 'week', searchRes = null, searchQ = '', sureRemove = null;
   function tab() {
     if (!C() || !C().available()) return `<section class="page"><h1 class="title"><span>Online</span> spielen</h1><div class="acard"><p class="lead">Online-Spiele sind gleich da.</p></div></section>`;
     const loginCard = !C().user() ? `<div class="acard"><p class="lead">Mit einem Konto kannst du Freunde hinzufügen, sie zu Partien herausfordern und in die Rangliste kommen.</p>
@@ -133,11 +133,11 @@
           <div class="apanel"><h3>Freunde</h3>
             <form class="asearch" id="ofind"><input class="inp" id="oq" placeholder="Spieler suchen und hinzufügen" autocapitalize="none" spellcheck="false" value="${esc(searchQ)}"><button class="btn sm" type="submit"><span>Suchen</span></button></form>
             <div id="ores"></div>
-            <div id="ofriends"><p class="muted">Lädt …</p></div>
+            <div id="ofriends">${V.skel()}</div>
           </div></div>` : ''}
-        <div class="ocol"><div class="apanel"><h3>Rangliste</h3>
+        <div class="ocol"><div class="apanel"><div class="rtop"><h3>Rangliste</h3><div class="oseg rper" id="oper">${[['week', 'Diese Woche'], ['all', 'Für immer']].map(([k, l]) => `<button data-p="${k}" class="${boardPeriod === k ? 'on' : ''}">${l}</button>`).join('')}</div></div>
           <div class="rgames" id="obg">${[['', 'Alle Spiele'], ...ONLINE.map(id => [id, gname(id)])].map(([id, l]) => `<button data-g="${id}" class="${boardGame === id ? 'on' : ''}" title="${esc(l)}">${id && V.byId[id] ? `<span class="ic">${V.byId[id].icon}</span>` : `<span class="ic all">${IC().trophy}</span>`}<small>${esc(id ? l : 'Alle')}</small></button>`).join('')}</div>
-          <div id="oboard"><p class="muted">Lädt …</p></div></div></div>
+          <div id="oboard">${V.skel()}</div></div></div>
       </div></section>`;
   }
   function refreshTab() { const b = document.querySelector('.hbody'); if (b && V.ui.tab() === 'online' && !(document.activeElement && document.activeElement.id === 'oq')) { fillFriends(b); fillActive(b); } }
@@ -146,6 +146,12 @@
     b.querySelectorAll('#obg button').forEach(x => x.onclick = () => {
       boardGame = x.dataset.g; V.sfx.ui();
       b.querySelectorAll('#obg button').forEach(y => y.classList.toggle('on', y === x));
+      loadBoard(b);
+    });
+    b.querySelectorAll('#oper button').forEach(x => x.onclick = () => {
+      if (boardPeriod === x.dataset.p) return;
+      boardPeriod = x.dataset.p; V.sfx.ui();
+      b.querySelectorAll('#oper button').forEach(y => y.classList.toggle('on', y === x));
       loadBoard(b);
     });
     loadBoard(b);
@@ -204,18 +210,33 @@
     el.querySelectorAll('[data-rm]').forEach(x => x.onclick = () => C().rpc('friend_remove', { name: x.dataset.rm }).then(() => { sureRemove = null; loadFriends(b); }));
     el.querySelectorAll('[data-sure]').forEach(x => x.onclick = () => { sureRemove = x.dataset.sure; fillFriends(b); });
   }
+  // "2 Tage 5 Std" until the weekly ranking starts over
+  function untilText(iso) {
+    const ms = new Date(iso) - Date.now(); if (!(ms > 0)) return '';
+    const h = Math.floor(ms / 3600000), d = Math.floor(h / 24);
+    return d ? `${d} ${d === 1 ? 'Tag' : 'Tage'} ${h % 24} Std` : h ? `${h} Std` : `${Math.max(1, Math.round(ms / 60000))} Min`;
+  }
   async function loadBoard(b) {
     const el = b.querySelector('#oboard'); if (!el) return;
     el.classList.add('loading');
-    try { board = await C().rpc('leaderboard', { gm: boardGame || null, lim: 50 }); } catch (e) { el.classList.remove('loading'); el.innerHTML = `<p class="aerr">${esc(e.message)}</p>`; return; }
+    try { board = await C().rpc('leaderboard', { gm: boardGame || null, lim: 50, period: boardPeriod }); }
+    catch (e) {
+      // server without the weekly ranking yet: fall back to the all-time list
+      try { board = await C().rpc('leaderboard', { gm: boardGame || null, lim: 50 }); board.period = 'all'; board.legacy = true; }
+      catch (e2) { el.classList.remove('loading'); el.innerHTML = `<p class="aerr">${esc(e.message)}</p>`; return; }
+    }
     el.classList.remove('loading');
     const top = board.top || [], me = board.me, myName = C().user() && C().user().username;
     const scope = boardGame ? gname(boardGame) : 'allen Spielen';
+    const week = board.period === 'week';
+    const left = week && board.until ? untilText(board.until) : '';
+    const lastW = week && (board.last || []).length ? `<div class="rlast">${IC().trophy}<span><small>Sieger letzte Woche</small>${board.last.map(r => `<b class="l${r.pos}">${r.pos}. ${esc(r.username)}</b>`).join('')}</span></div>` : '';
+    const head = (week ? `<p class="rweek"><b>Wochenwertung</b> · startet jeden Montag neu${left ? ` · noch <em>${left}</em>` : ''}</p>` : board.legacy ? '<p class="rweek">Wochenwertung kommt nach dem nächsten Server-Update.</p>' : '<p class="rweek"><b>Ewige Wertung</b> · alle Partien seit Beginn</p>') + lastW;
     const pct = r => (r.played ? Math.round(r.wins / r.played * 100) : 0);
     const mine = !C().user() ? '' : me
-      ? `<div class="rmine"><span class="rp">#${me.pos}</span><div><small>Dein Platz in ${esc(scope)}</small><b>${me.wins} ${me.wins === 1 ? 'Sieg' : 'Siege'}</b><span>${me.played} Partien · ${me.losses || 0} verloren · ${me.draws || 0} remis · ${pct(me)} %</span></div></div>`
-      : `<div class="rmine none"><div><small>Dein Platz in ${esc(scope)}</small><b>Noch keine Partie</b><span>Spiel online gegen einen Freund oder über „Online“ im Spiel-Panel, dann stehst du hier.</span></div></div>`;
-    if (!top.length) { el.innerHTML = mine + `<div class="empty small">${IC().trophy}<b>Noch leer</b><p>Hier hat noch niemand eine Online-Partie in ${esc(scope)} gewonnen.</p></div>`; return; }
+      ? `<div class="rmine"><span class="rp">#${me.pos}</span><div><small>Dein Platz in ${esc(scope)}${week ? ' diese Woche' : ''}</small><b>${me.wins} ${me.wins === 1 ? 'Sieg' : 'Siege'}</b><span>${me.played} Partien · ${me.losses || 0} verloren · ${me.draws || 0} remis · ${pct(me)} %</span></div></div>`
+      : `<div class="rmine none"><div><small>Dein Platz in ${esc(scope)}</small><b>${week ? 'Diese Woche noch keine Partie' : 'Noch keine Partie'}</b><span>Spiel online gegen einen Freund oder über „Online“ im Spiel-Panel, dann stehst du hier.</span></div></div>`;
+    if (!top.length) { el.innerHTML = head + mine + `<div class="empty small">${IC().trophy}<b>Noch leer</b><p>${week ? 'Diese Woche hat noch niemand' : 'Hier hat noch niemand'} eine Online-Partie in ${esc(scope)} gewonnen.${week ? ' Deine Chance auf Platz 1!' : ''}</p></div>`; return; }
     const pod = top.slice(0, 3);
     const order = [pod[1], pod[0], pod[2]].filter(Boolean);
     const podium = `<div class="podium">${order.map(r => `<div class="pod p${Math.min(r.pos, 3)}${r.username === myName ? ' me' : ''}">
@@ -224,7 +245,7 @@
         <span class="who"><b>${esc(r.username)}</b>${r.username === myName ? '<em class="rtag">Du</em>' : ''}<small>${r.played} Partien</small></span>
         <span class="rate"><i style="--w:${pct(r)}%"></i><small>${pct(r)} %</small></span><span class="w">${r.wins}</span></div>`;
     const rest = top.slice(3);
-    el.innerHTML = mine + podium +
+    el.innerHTML = head + mine + podium +
       (rest.length ? `<div class="rhead"><span>#</span><span>Spieler</span><span>Siegquote</span><span>Siege</span></div>${rest.map(r => row(r, r.username === myName ? 'me' : '')).join('')}` : '') +
       (me && me.pos > top[top.length - 1].pos ? '<div class="rgap">…</div>' + row(me, 'me') : '') +
       `<p class="fine">${board.players || top.length} Spieler in ${esc(scope)}. Gezählt werden gewonnene Online-Partien gegen andere Spieler, gleiche Siege sortiert nach weniger Partien.</p>`;
@@ -234,7 +255,7 @@
   async function picker(el, g, opts) {
     if (!el) return;
     if (!ready()) { el.innerHTML = `<p class="hint">Für Online-Partien brauchst du ein Konto.</p><button class="btn sm" data-tab-go="profile"><span>${IC().user}Anmelden</span></button>`; el.querySelector('[data-tab-go]').onclick = () => V.ui.home('profile'); return; }
-    el.innerHTML = '<p class="hint">Freunde werden geladen …</p>';
+    el.innerHTML = V.skel(3);
     let d;
     try { d = await C().rpc('friends'); } catch (e) { el.innerHTML = `<p class="aerr">${esc(e.message)}</p>`; return; }
     const fr = d.friends || [];

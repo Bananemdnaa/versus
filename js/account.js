@@ -173,7 +173,7 @@
     wireAdmin(host);
   }
   function overview() {
-    if (!stats) return '<p class="muted">Lädt …</p>';
+    if (!stats) return V.skel();
     const S = stats;
     const tile = (l, v, s) => `<div class="kpi"><b>${v}</b><span>${l}</span>${s ? `<small>${s}</small>` : ''}</div>`;
     const games = Object.entries(S.games || {}).sort((a, b) => b[1] - a[1]);
@@ -225,7 +225,7 @@
       </div>`;
     }).join('');
     return `<div class="asearch"><input class="inp" id="aq" placeholder="Spieler suchen (Namensanfang)" value="${esc(query)}" autocapitalize="none" spellcheck="false"><button class="btn ghost sm" id="reload"><span>${IC().redo}</span></button></div>
-      ${players ? cards || '<p class="muted">Niemand gefunden.</p>' : '<p class="muted">Lädt …</p>'}`;
+      ${players ? cards || '<p class="muted">Niemand gefunden.</p>' : V.skel()}`;
   }
   // match log: running and finished online matches; each one can be watched live or replayed move by move
   function matchList() {
@@ -248,11 +248,11 @@
     return `<div class="asearch"><div class="chips mini" id="mf">${[['live', 'Laufend'], ['done', 'Beendet'], ['all', 'Alle']].map(([k, l]) => `<button data-mf="${k}" class="${mFilter === k ? 'on' : ''}">${l}</button>`).join('')}</div>
         <input class="inp" id="mq" placeholder="Spieler" value="${esc(mQuery)}" autocapitalize="none" spellcheck="false"><button class="btn ghost sm" id="reload"><span>${IC().redo}</span></button></div>
       ${mFilter === 'live' ? '<p class="fine">Laufende Partien aktualisieren sich alle 20 Sekunden. „Zuschauen“ zeigt das Brett live, „Abspielen“ spielt eine beendete Partie Zug für Zug nach.</p>' : ''}
-      ${matches ? rows || '<p class="muted">Keine Partien.</p>' : '<p class="muted">Lädt …</p>'}`;
+      ${matches ? rows || '<p class="muted">Keine Partien.</p>' : V.skel()}`;
   }
   function logList() {
     const L = { hide: 'ausgeblendet', show: 'eingeblendet', ban: 'gesperrt', unban: 'entsperrt', note: 'Notiz', rename: 'umbenannt', reset_stats: 'Bilanz zurückgesetzt', admin_on: 'zum Admin gemacht', admin_off: 'Admin entzogen', dev_on: 'Dev-Konto an', dev_off: 'Dev-Konto aus', void_match: 'Partie annulliert' };
-    if (!logs) return '<p class="muted">Lädt …</p>';
+    if (!logs) return V.skel();
     if (!logs.length) return '<p class="muted">Noch keine Admin-Aktionen.</p>';
     return `<div class="apanel">${logs.map(l => `<div class="aline log"><small>${when(l.created_at)}</small><b>${esc(l.admin_name || '?')}</b><span>${esc(L[l.action] || l.action)} <button class="link" data-p="${esc(l.target || '')}">${esc(l.target || '')}</button>${l.detail ? ' · ' + esc(l.detail) : ''}</span></div>`).join('')}</div>`;
   }

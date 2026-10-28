@@ -41,7 +41,7 @@ Ohne Konto spielt man als Gast: 4 Gewinnt, Tic Tac Toe, Schiffe versenken, Käse
 
 ## Optionen
 
-- **Ton und Vibration:** Ton an/aus, Lautstärke, Vibration Aus / Leicht / Stark. Android und die meisten Browser nutzen die Vibrations-Schnittstelle; iPhones (ab iOS 18) bekommen stattdessen ein kurzes haptisches Tippen.
+- **Ton und Vibration:** Ton an/aus (Effekte und Musik zusammen), Lautstärke Effekte, Musik an/aus mit eigener Lautstärke, Vibration Aus / Leicht / Stark mit Test-Knopf. Spürt man beim Test nichts, steht das Handy meist auf Lautlos oder Nicht stören, dann unterdrückt Android Vibrationen von Webseiten. Android und die meisten Browser nutzen die Vibrations-Schnittstelle; iPhones (ab iOS 18) bekommen stattdessen ein kurzes haptisches Tippen.
 - **Anzeige:** Effekte (aus spart Akku; bei „Bewegung reduzieren“ im System automatisch aus), Intros (Start-Animation und VS-Einblendung), Koordinaten am Schachbrett, Zughilfen (mögliche Züge in Schach, Dame, Reversi und Mühle).
 - **Spiel:** Schnelle KI zieht ohne Nachdenk-Pause und ohne Zielen.
 - **Online:** offene Herausforderungen einblenden; Online-Status vor Freunden verbergen.
@@ -49,11 +49,15 @@ Ohne Konto spielt man als Gast: 4 Gewinnt, Tic Tac Toe, Schiffe versenken, Käse
 
 Statistik, Einstellungen und gesehene Tutorials liegen im `localStorage` des Browsers und werden mit Konto zusätzlich gespeichert. Keine Werbung.
 
+## Musik
+
+Die Musik wird live im Browser erzeugt (`js/music.js`, Web Audio), es gibt keine Audiodateien und keine Lizenzfragen. Vier Stimmungen: Menü, Klassiker, Strategie (ruhig) und Action (schnell). Alle 8 Takte ändert sich das Arrangement, das Arpeggio wechselt sein Muster. Bei Sieg und Niederlage wird sie kurz leiser, im Hintergrund pausiert sie.
+
 ## Als App
 
 Versus ist eine installierbare Web-App (`manifest.webmanifest`, `sw.js`, Symbole in `icons/`). Android/Chrome zeigt auf der Startseite „Als App holen“, iPhones bekommen eine Anleitung (Teilen → Zum Home-Bildschirm). Installiert läuft Versus ohne Browserleiste, startet sofort und funktioniert für KI-Partien und Spiele zu zweit auch offline. Online-Funktionen brauchen weiter Internet.
 
-Der Service Worker lädt Seiten zuerst aus dem Netz und Dateien mit `?v=` aus dem Cache. Kommt eine neue Version, erscheint oben „Neue Version da · Neu laden“. Die Zurück-Taste bzw. -Geste schließt Dialoge, fragt im Spiel vor dem Verlassen nach und geht sonst eine Ebene zurück. Kurzbefehle auf dem App-Symbol: `?tab=online` und `?tab=stats`.
+Der Service Worker lädt Seiten zuerst aus dem Netz und Dateien mit `?v=` aus dem Cache. Kommt eine neue Version, erscheint oben „Neue Version da · Neu laden“. Die Zurück-Taste bzw. -Geste schließt Dialoge, fragt im Spiel vor dem Verlassen nach und geht sonst eine Ebene zurück. Kurzbefehle auf dem App-Symbol: `?tab=online` und `?tab=stats`. Ohne Internet zeigt die App oben „Offline“, der Reiter Online erklärt, was gerade nicht geht.
 
 
 ## Aufbau
@@ -101,9 +105,9 @@ Im Reiter „Online“ sucht man Spieler nach Namen, schickt Freundschaftsanfrag
 - Schiffe versenken online: Die Flotten liegen nur auf dem Server, der sie auf die Regeln prüft (5 Schiffe, gerade, ohne Berührung), jeden Schuss auswertet und entscheidet, wer dran ist. Der Gegner sieht ein Schiff erst, wenn es versenkt ist.
 - Beide Browser prüfen jeden Zug nach den Spielregeln; ein ungültiger Zug annulliert die Partie. Am Ende melden beide das Ergebnis, stimmen die Meldungen nicht überein, wird die Partie annulliert.
 - Aufgeben über die Flagge oben rechts. Wer 75 Sekunden nicht erreichbar ist, verliert. Nach einem Neuladen geht es über „Weiterspielen“ im Reiter Online weiter.
-- **Rangliste:** gewonnene Online-Partien gegen andere Spieler, gesamt und pro Spiel (Partien gegen die KI zählen nicht). Oben steht dein eigener Platz, darunter ein Podest für die Top 3 und die Liste mit Siegquote. Ausgeblendete Spieler und Dev-Konten erscheinen nicht; Partien gegen ein Dev-Konto zählen für beide Spieler nicht.
+- **Rangliste:** gewonnene Online-Partien gegen andere Spieler, gesamt und pro Spiel (Partien gegen die KI zählen nicht). Standard ist die Wochenwertung, die jeden Montag um 0:00 Uhr neu startet (mit Countdown und den besten drei der Vorwoche); „Für immer“ zeigt die ewige Wertung. Oben steht dein eigener Platz, darunter ein Podest für die Top 3 und die Liste mit Siegquote. Ausgeblendete Spieler und Dev-Konten erscheinen nicht; Partien gegen ein Dev-Konto zählen für beide Spieler nicht.
 - **Admin-Panel → Partien:** laufende und beendete Partien mit Spielern, Zügen und Ergebnis. „Zuschauen“ zeigt eine laufende Partie live, „Abspielen“ spielt eine beendete Zug für Zug nach. Admins können Partien annullieren (steht im Protokoll).
 
-Dafür einmal `supabase/migrations/20261029000000_friends_matches.sql` und danach `supabase/migrations/20261030000000_open_matches.sql`, für Schiffe versenken online zusätzlich `supabase/migrations/20261031000000_ships_online.sql` und `supabase/migrations/20261101000000_dev_rankings.sql` und für „Online-Status verbergen“ `supabase/migrations/20261102000000_hide_online.sql` im SQL-Editor ausführen.
+Dafür einmal `supabase/migrations/20261029000000_friends_matches.sql` und danach `supabase/migrations/20261030000000_open_matches.sql`, für Schiffe versenken online zusätzlich `supabase/migrations/20261031000000_ships_online.sql` und `supabase/migrations/20261101000000_dev_rankings.sql` und für „Online-Status verbergen“ `supabase/migrations/20261102000000_hide_online.sql`, für die Wochen-Rangliste `supabase/migrations/20261103000000_weekly_rankings.sql` im SQL-Editor ausführen.
 
 Neue Migrationen kommen als weitere Datei in `supabase/migrations/` und werden in Reihenfolge einmal im SQL-Editor ausgeführt.
