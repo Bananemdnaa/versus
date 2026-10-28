@@ -136,8 +136,6 @@
 
   V.register({
     id: 'backgammon', name: 'Backgammon', cat: 'Strategie', order: 7, accent: '#8f2d4f',
-    // "Gegenüber sitzen": the board turns to player 2 on their turn (it has an up and down)
-    turnBoard: true,
     short: 'Würfeln, ziehen, schlagen, abtragen.',
     desc: 'Einer der ältesten Klassiker der Welt: Würfle und zieh deine 15 Steine einmal ums Brett nach Hause, dann trag sie ab. Einzelne Steine kann der Gegner schlagen. Wer zuerst alle abgetragen hat, gewinnt.',
     sides: { 1: 'Pink', 2: 'Gelb' },

@@ -99,8 +99,6 @@
 
   V.register({
     id: 'checkers', name: 'Dame', cat: 'Brettspiele', order: 3, accent: 'var(--pink)',
-    // "Gegenüber sitzen": the board turns to player 2 on their turn (it has an up and down)
-    turnBoard: true,
     short: 'Diagonal ziehen, Steine überspringen.',
     desc: 'Zieh diagonal, spring über gegnerische Steine und mach aus deinen Steinen Damen. Mit Schlagzwang.',
     levelInfo: ['Anfänger: schaut nur auf den eigenen Zug und lässt oft Steine stehen.', 'Denkt drei Halbzüge voraus und lässt sich gern in Fallen locken.', 'Rechnet sechs Halbzüge tief.', 'Rechnet bis zu 14 Halbzüge tief. Opfer werden durchschaut.'],

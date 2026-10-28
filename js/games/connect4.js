@@ -62,7 +62,7 @@
 
   V.register({
     id: 'c4', name: '4 Gewinnt', cat: 'Klassiker', order: 1, accent: 'var(--pink)',
-    // "Gegenüber sitzen": the board turns to player 2 on their turn (it has an up and down)
+    // "Gegenüber sitzen": the board turns to player 2 on their turn (stones fall down, so it has an up and down)
     turnBoard: true,
     short: 'Steine fallen lassen, vier verbinden.',
     desc: 'Lass deine Steine in die Spalten fallen. Wer zuerst vier in einer Reihe hat, gewinnt.',

@@ -224,8 +224,6 @@
 
   V.register({
     id: 'chess', name: 'Schach', cat: 'Strategie', order: 1, accent: 'var(--cyan)',
-    // "Gegenüber sitzen": the board turns to player 2 on their turn (it has an up and down)
-    turnBoard: true,
     short: 'Der König aller Brettspiele.',
     desc: 'Setz den gegnerischen König schachmatt. Mit allen Regeln: Rochade, en passant, Umwandlung und Remis.',
     sides: { 1: 'Weiß', 2: 'Schwarz' },
