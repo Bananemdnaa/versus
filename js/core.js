@@ -628,7 +628,7 @@
   // ---------- game panel (desktop side panel and phone setup screen) ----------
   function loadCfg(g) {
     const saved = S.get('setup', {})[g.id] || {};
-    const cfg = { mode: g.noAI ? 'local' : ((saved.mode === 'online' || saved.mode === 'open') && !g.online) || (saved.mode === 'table' && !g.table) ? 'ai' : (saved.mode || 'ai'), level: saved.level ?? 1, first: saved.first || 'me', opts: {} };
+    const cfg = { mode: g.noAI ? (saved.mode === 'table' && g.table ? 'table' : 'local') : ((saved.mode === 'online' || saved.mode === 'open') && !g.online) || (saved.mode === 'table' && !g.table) ? 'ai' : (saved.mode || 'ai'), level: saved.level ?? 1, first: saved.first || 'me', opts: {} };
     (g.options || []).forEach(o => { cfg.opts[o.id] = saved.opts && saved.opts[o.id] !== undefined ? saved.opts[o.id] : o.def; });
     return cfg;
   }
@@ -1183,6 +1183,8 @@
       },
       handReset() { handSeen = 0; },
       isAI: s => botSide(s) || remote(s),
+      // a seat played by the computer (against the AI, or at a table for someone who left)
+      isBot: s => botSide(s),
       name: s => names[s],
       who(s) { return `<span class="c${s}">${esc(names[s])}</span>`; },
       alive: () => alive,

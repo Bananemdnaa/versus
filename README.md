@@ -1,12 +1,12 @@
 # Versus
 
-22 Spiele für zwei bis vier Spieler an einem Gerät, online oder allein gegen die KI in vier Stufen. Jedes Spiel hat ein eigenes Tutorial.
+24 Spiele für zwei bis vier Spieler an einem Gerät, online oder allein gegen die KI in vier Stufen. Jedes Spiel hat ein eigenes Tutorial.
 
 **Spielen:** https://bananemdnaa.github.io/versus/
 
 ## Spiele
 
-- **Klassiker:** 4 Gewinnt, Schiffe versenken, Tic Tac Toe, Fünf in einer Reihe, Ultimate Tic Tac Toe, Käsekästchen
+- **Klassiker:** 4 Gewinnt, Schiffe versenken, Tic Tac Toe, Fünf in einer Reihe, Ultimate Tic Tac Toe, Käsekästchen, Galgenmännchen (2–4), Stadt Land Fluss (2–4)
 - **Brettspiele:** Ludo (wie Mensch ärgere dich nicht, 2–4), Leiterspiel (2–4), Dame, Mühle, Würfelblock (wie Kniffel, 2–4), Mau-Mau (2–4), Memory (2–4), Poker (Texas Hold'em, 2–4); mit Holzbrett-Look, Spielfiguren, 3D-Würfeln und Karten
 - **Strategie:** Schach, Reversi, Kalaha
 - **Action:** Reaktionsduell, Pong, Air Hockey (beide spielen gleichzeitig am selben Handy, jeder auf seiner Hälfte), Lichtrenner (2–4), Sumo-Arena (2–4)
@@ -21,6 +21,8 @@ Ludo, Leiterspiel, Lichtrenner und Sumo-Arena gehen mit 2, 3 oder 4 Spielern (Ei
 - **Mau-Mau:** 32 Karten, 5 auf die Hand; 7 = zwei ziehen (stapelbar), 8 = aussetzen, Bube passt immer und wünscht eine Farbe. Am selben Gerät kommt vor jedem Zug „Gib das Gerät an …“, damit niemand fremde Karten sieht.
 - **Memory:** 8, 12 oder 18 Paare mit den Symbolen der Versus-Spiele; Paar gefunden = nochmal. Die KI merkt sich je nach Stärke mehr oder weniger.
 - **Poker:** Texas Hold'em mit 1000 Spielchips pro Person (kein Geld), Blinds steigen alle drei Hände, Nebentöpfe bei All-in. Nach 6 oder 12 Händen (oder wenn nur einer übrig ist) gewinnt, wer die meisten Chips hat.
+- **Galgenmännchen:** Reihum gibt jeder 1–3 Wörter vor (die KI aus einer Liste mit rund 300 Wörtern), die anderen raten: 1 Punkt pro Treffer und weiter, falsch = nächster. Lösen bringt 3 plus fehlende Buchstaben, nach 10 Fehlern bekommt der Wortgeber 5.
+- **Stadt Land Fluss:** ohne KI. Online schreiben alle gleichzeitig, wer fertig ist ruft Stopp (noch 10 Sekunden, höchstens 90). Am selben Gerät schreibt jeder 60 Sekunden für sich. Danach streicht man ungültige Antworten (online zählt es, wenn mindestens die Hälfte der anderen streicht): 20 allein, 10 eindeutig, 5 doppelt.
 - **Lichtrenner:** jeder lenkt mit zwei Knöpfen (links/rechts aus Sicht des Rads), es wird mit der Zeit schneller. Letzter Fahrer holt den Punkt.
 - **Sumo-Arena:** ein Knopf pro Spieler. Der Pfeil dreht sich, Halten schiebt in Pfeilrichtung. Nach ein paar Sekunden schrumpft der Ring.
 - Am Handy liegt das Gerät flach in der Mitte: Spieler 1 und 3 sitzen unten, 2 und 4 oben, deren Knöpfe stehen gedreht. Am PC hat jeder eigene Tasten (siehe unten), die Knöpfe sind dort ausgeblendet.
@@ -129,7 +131,7 @@ Im Reiter „Online“ sucht man Spieler nach Namen, schickt Freundschaftsanfrag
 - **Freunde hinzufügen:** „Hinzufügen“ im Reiter Online bietet drei Wege: Name suchen (Ergebnisse erscheinen beim Tippen), „Mein Code“ mit QR-Code, Link zum Teilen und kurzem Freundescode, oder „Code eingeben“. Wer den Code eingibt oder den QR-Code bzw. Link öffnet, ist sofort befreundet, ohne Bestätigung. Ein neuer Code macht alte Links ungültig. Wer den Link ohne Konto öffnet, wird zum Anmelden geschickt und danach automatisch befreundet.
 - **Freunde verwalten:** Jeder Freund hat einen „Spielen“-Knopf (Spiel wählen, Einladung geht raus); ein Tipp auf die Zeile öffnet das Profil mit Herausfordern und Entfernen. Neue Anfragen erscheinen als Karte, egal wo man in der App ist, und lassen sich direkt annehmen. Nach einer offenen Herausforderung gegen Unbekannte kann man den Gegner im Ergebnis-Fenster als Freund hinzufügen.
 - Online spielbar: 4 Gewinnt, Schiffe versenken, Tic Tac Toe, Fünf in einer Reihe, Ultimate Tic Tac Toe, Schach, Dame, Reversi, Mühle, Kalaha, Käsekästchen
-- **Online-Tische (2–4 Spieler):** Ludo, Leiterspiel, Würfelblock, Mau-Mau, Memory und Poker. Karten werden aus dem gemeinsamen Startwert gemischt, angezeigt werden nur die eigenen. Im Spiel-Panel unter „Online“ eröffnet man einen Tisch (man ist Gastgeber auf Platz 1), lädt Freunde ein, teilt den Tischcode oder Link (`?table=CODE`) oder stellt den Tisch „für alle sichtbar“. Eingeladene bekommen eine Karte, offene Tische stehen im Reiter Online. Der Gastgeber startet, sobald mindestens ein Mitspieler sitzt; leere Plätze spielt die KI (gerechnet im Browser des Gastgebers). Würfel kommen aus einem gemeinsamen Startwert, alle sehen dieselben Augen. Wer 45 Sekunden weg ist oder den Tisch verlässt, wird von der KI ersetzt, geht der Gastgeber, übernimmt der nächste. Tische zählen in der eigenen Bilanz, aber (noch) nicht in der Rangliste.
+- **Online-Tische (2–4 Spieler):** Ludo, Leiterspiel, Würfelblock, Mau-Mau, Memory, Poker, Galgenmännchen und Stadt Land Fluss. Karten werden aus dem gemeinsamen Startwert gemischt, angezeigt werden nur die eigenen. Im Spiel-Panel unter „Online“ eröffnet man einen Tisch (man ist Gastgeber auf Platz 1), lädt Freunde ein, teilt den Tischcode oder Link (`?table=CODE`) oder stellt den Tisch „für alle sichtbar“. Eingeladene bekommen eine Karte, offene Tische stehen im Reiter Online. Der Gastgeber startet, sobald mindestens ein Mitspieler sitzt; leere Plätze spielt die KI (gerechnet im Browser des Gastgebers). Würfel kommen aus einem gemeinsamen Startwert, alle sehen dieselben Augen. Wer 45 Sekunden weg ist oder den Tisch verlässt, wird von der KI ersetzt, geht der Gastgeber, übernimmt der nächste. Tische zählen in der eigenen Bilanz, aber (noch) nicht in der Rangliste.
 - Schiffe versenken online: Die Flotten liegen nur auf dem Server, der sie auf die Regeln prüft (5 Schiffe, gerade, ohne Berührung), jeden Schuss auswertet und entscheidet, wer dran ist. Der Gegner sieht ein Schiff erst, wenn es versenkt ist.
 - Beide Browser prüfen jeden Zug nach den Spielregeln; ein ungültiger Zug annulliert die Partie. Am Ende melden beide das Ergebnis, stimmen die Meldungen nicht überein, wird die Partie annulliert.
 - Aufgeben über die Flagge oben rechts. Wer 75 Sekunden nicht erreichbar ist, verliert. Nach einem Neuladen geht es über „Weiterspielen“ im Reiter Online weiter.
