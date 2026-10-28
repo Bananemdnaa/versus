@@ -6,6 +6,9 @@
   // Project URL and publishable key from Supabase (Settings → API). Both are public by design;
   // the database protects itself with row level security and server-side checks.
   const CFG = { url: 'https://ygnngmtvncmdunsdnwtk.supabase.co', key: 'sb_publishable_DWz8MXxA0PM-rQOqnVMJGQ_FqadTjHg' };
+  // Cloudflare Turnstile site key (public). Empty = no captcha. Set it together with Supabase → Attack Protection → Captcha,
+  // because once the captcha is on there, every sign-up, login and guest login needs a token.
+  const TURNSTILE = '';
   // Supabase needs an e-mail address internally; this domain is ours (GitHub Pages), no mails are sent.
   const MAIL = 'bananemdnaa.github.io';
   const NAME_RE = /^[a-z0-9_-]{3,16}$/;
@@ -44,6 +47,9 @@
     if (/email not confirmed/i.test(m)) return 'Auf dem Server ist „Confirm email“ noch an.';
     if (/database error saving new user/i.test(m)) return 'Dieser Benutzername ist nicht erlaubt.';
     if (/banned/i.test(m)) return 'Dieses Konto ist gesperrt.';
+    if (/anonymous sign-ins are disabled/i.test(m)) return 'Der Gast-Zugang ist auf dem Server noch aus.';
+    if (/captcha/i.test(m)) return 'Die Sicherheitsprüfung hat nicht geklappt. Versuch es nochmal.';
+    if (/rate limit|too many requests/i.test(m)) return 'Zu viele Versuche. Warte kurz und versuch es dann nochmal.';
     if (/failed to fetch|network|load failed/i.test(m)) return 'Keine Verbindung zum Server.';
     if (/could not find the (function|table)|schema cache|does not exist/i.test(m)) return 'Der Server ist noch nicht fertig eingerichtet.';
     return m;
@@ -139,6 +145,29 @@
 
   async function need() { if (!(await lib)) throw new Error('Keine Verbindung zum Server.'); }
 
+  // ---------- captcha (Cloudflare Turnstile) ----------
+  // Only shows something when Cloudflare wants an interaction; most of the time the token comes back silently.
+  let tsLib = null;
+  function captcha() {
+    if (!TURNSTILE) return Promise.resolve(undefined);
+    tsLib = tsLib || new Promise((res, rej) => {
+      const s = document.createElement('script'); s.src = 'https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit'; s.async = true;
+      s.onload = () => res(); s.onerror = () => { tsLib = null; rej(new Error('Die Sicherheitsprüfung lädt gerade nicht.')); };
+      document.head.appendChild(s);
+    });
+    return tsLib.then(() => new Promise((res, rej) => {
+      const box = V.el('div', 'tsbox'); document.body.appendChild(box);
+      let id = null;
+      const done = (f, v) => { try { window.turnstile.remove(id); } catch (e) { } box.remove(); f(v); };
+      id = window.turnstile.render(box, {
+        sitekey: TURNSTILE, appearance: 'interaction-only', language: V.lang || 'auto',
+        callback: t => done(res, t),
+        'error-callback': () => done(rej, new Error('Die Sicherheitsprüfung hat nicht geklappt. Versuch es nochmal.')),
+        'timeout-callback': () => done(rej, new Error('Die Sicherheitsprüfung hat zu lange gedauert.'))
+      });
+    }));
+  }
+
   // ---------- realtime pokes ----------
   // After a move the other browsers get a short signal on a shared channel and fetch the new state at once,
   // instead of waiting for their next poll. No game data goes over the channel; the server stays the only source.
@@ -166,7 +195,8 @@
     available: () => !failed,
     // true until the first answer about the login (the menus treat that time as "not a guest")
     starting: () => starting,
-    user: () => (user ? { id: user.id, username: (info && info.username) || (user.user_metadata && user.user_metadata.username) || '' } : null),
+    // anon: a guest without name and password (anonymous Supabase account), see signInGuest
+    user: () => (user ? { id: user.id, username: (info && info.username) || (user.user_metadata && user.user_metadata.username) || '', anon: !!(user.is_anonymous || (info && info.guest)) } : null),
     info: () => info,
     role: () => (info && info.role) || null,
     state: () => state,
@@ -185,15 +215,44 @@
       const u = clean(name);
       if (!NAME_RE.test(u)) throw new Error('Benutzername: 3 bis 16 Zeichen, nur a–z, 0–9, _ und -.');
       if (String(pw).length < 6) throw new Error('Das Passwort ist zu kurz (mindestens 6 Zeichen).');
-      const d = check(await sb.auth.signUp({ email: u + '@' + MAIL, password: pw, options: { data: { username: u } } }));
+      const d = check(await sb.auth.signUp({ email: u + '@' + MAIL, password: pw, options: { data: { username: u }, captchaToken: await captcha() } }));
       if (!d.session) throw new Error('Konto angelegt, aber auf dem Server ist „Confirm email“ noch an.');
       user = d.user; await afterLogin();
     },
     async signIn(name, pw) {
       await need();
-      const d = check(await sb.auth.signInWithPassword({ email: clean(name) + '@' + MAIL, password: pw }));
+      const d = check(await sb.auth.signInWithPassword({ email: clean(name) + '@' + MAIL, password: pw, options: { captchaToken: await captcha() } }));
       user = d.user; await afterLogin();
     },
+    // guest: an anonymous account with a name like gast_48213, enough for quick online matches
+    async signInGuest() {
+      await need();
+      if (user) return;
+      const d = check(await sb.auth.signInAnonymously({ options: { captchaToken: await captcha() } }));
+      user = d.user; await afterLogin();
+    },
+    // a guest keeps the account: own name and password, then it is a normal account
+    async claimGuest(name, pw) {
+      await need();
+      const u = clean(name);
+      if (!NAME_RE.test(u)) throw new Error('Benutzername: 3 bis 16 Zeichen, nur a–z, 0–9, _ und -.');
+      if (String(pw).length < 6) throw new Error('Das Passwort ist zu kurz (mindestens 6 Zeichen).');
+      check(await sb.rpc('guest_claim', { new_name: u, pw }));
+      // a fresh login, so the session no longer says "anonymous"
+      const d = check(await sb.auth.signInWithPassword({ email: u + '@' + MAIL, password: pw, options: { captchaToken: await captcha() } }));
+      user = d.user; await loadInfo();
+      return u;
+    },
+    // forgotten password: name + recovery code (shown once when it was made) sets a new password
+    async recover(name, code, pw) {
+      await need();
+      if (String(pw).length < 6) throw new Error('Das Passwort ist zu kurz (mindestens 6 Zeichen).');
+      const r = check(await sb.rpc('recovery_reset', { name: clean(name), code, pw }));
+      if (r === 'locked') throw new Error('Zu viele Versuche. Versuch es in einer Stunde nochmal.');
+      if (r !== 'ok') throw new Error('Name oder Code stimmt nicht.');
+      await C.signIn(name, pw);
+    },
+    async newRecovery() { const c = check(await sb.rpc('recovery_new')); await loadInfo(); return c; },
     async signOut() {
       clearTimeout(timer);
       if (user) { try { await push(true); } catch (e) { } }
@@ -213,7 +272,8 @@
     },
     async deleteAccount(pw) {
       const u = C.user(); if (!u) throw new Error('Nicht eingeloggt.');
-      check(await sb.auth.signInWithPassword({ email: u.username + '@' + MAIL, password: pw }));
+      // guests have no password
+      if (!u.anon) check(await sb.auth.signInWithPassword({ email: u.username + '@' + MAIL, password: pw, options: { captchaToken: await captcha() } }));
       clearTimeout(timer); clearInterval(beat);
       check(await sb.rpc('delete_account'));
       try { await sb.auth.signOut(); } catch (e) { }

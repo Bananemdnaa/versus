@@ -149,6 +149,20 @@ Dafür einmal `supabase/migrations/20261029000000_friends_matches.sql` und danac
 
 Neue Migrationen kommen als weitere Datei in `supabase/migrations/` und werden in Reihenfolge einmal im SQL-Editor ausgeführt.
 
+## Mit Fremden spielen
+
+- **Schnelles Spiel** (Online-Tab oben, und „Online“ im Spiel-Panel): ein Tipp, der Server sucht eine wartende Herausforderung (gleiches Spiel oder „Egal“) und tritt bei, sonst wartet man selbst. Nach 25 Sekunden ohne Gegner kann man gegen die KI spielen, die Suche läuft weiter. Ein Lock auf dem Server sorgt dafür, dass zwei gleichzeitige Suchen sich finden.
+- **Gast-Zugang:** Ohne Konto startet „Als Gast spielen“ ein anonymes Supabase-Konto mit einem Namen wie `gast_48213`. Gäste spielen online nur die Gast-Spiele (4 Gewinnt, Tic Tac Toe, Schiffe versenken, Käsekästchen), haben keine Freunde, stehen nicht in Ranglisten und ihre Partien zählen nicht. Unter Konto wird aus dem Gast mit Name und Passwort ein richtiges Konto. Alte Gäste (30 Tage weg) räumt der Server selbst auf.
+- **Blockieren und Melden:** im Profil eines Spielers und nach einer Online-Partie. Blockieren beendet die Freundschaft, blockierte Spieler können nicht einladen, anfragen und werden nie zugelost. Meldungen (Grund, Notiz, Partie) landen im Admin-Panel unter „Meldungen“.
+- **Wiederherstellungscode:** Es gibt keine E-Mails. Nach dem Registrieren zeigt Versus einmal einen Code (`ABCD-EFGH-JKLM`), damit setzt man unter „Passwort vergessen?“ ein neues Passwort. Neu erstellen unter Konto. Der Server speichert nur einen Hash, nach 5 falschen Versuchen ist eine Stunde Pause.
+- **Namensfilter:** längere Wortliste, dazu sind Namen gesperrt, die nach Team aussehen (admin…, support…, versus…).
+- **Captcha (optional):** Cloudflare Turnstile. Site Key in `js/cloud.js` bei `TURNSTILE` eintragen und gleichzeitig in Supabase unter Authentication → Attack Protection das Captcha mit dem Secret Key einschalten. Leer = kein Captcha.
+- **Englisch:** Optionen → Sprache. Ohne Einstellung richtet sich Versus nach der Browsersprache. Alles ist auf Deutsch geschrieben, `js/i18n.js` übersetzt die Seite beim Anzeigen mit dem Wörterbuch `js/lang/en.js` (ganze Texte, `#` für Zahlen, `{0}` für fett oder farbig markierte Teile, Muster für Texte mit Namen). Fehlende Texte findet man mit `localStorage.setItem('versus.i18nlog', '1')`, Neuladen, dann `V.i18n.harvest()` und `V.i18n.missing()` in der Konsole. Galgenmännchen hat auf Englisch eine eigene Wortliste.
+- **Link-Vorschau:** `icons/og.png` (1200×630) mit Open-Graph- und Twitter-Tags in `index.html`.
+- **Keep-alive:** Kostenlose Supabase-Projekte pausieren nach einer Woche ohne Anfragen. `.github/workflows/keepalive.yml` ruft alle drei Tage `ping()` auf. GitHub schaltet geplante Workflows nach 60 Tagen ohne Commit ab; dann im Actions-Tab wieder aktivieren.
+
+Server: `supabase/migrations/20261110000000_open_play.sql` im SQL-Editor ausführen und unter Authentication → Sign In / Providers „Allow anonymous sign-ins“ einschalten.
+
 ## Entwicklung
 
 - **Code:** `js/core.js` (Speicher, Einstellungen, Ton, Effekte, Icons), `js/ai.js` (KI-Suche), `js/kit.js` (Würfel, Figuren, Karten, Touch-Knöpfe), `js/app.js` (Menüs, Optionen, Dialoge, Tastatur, Installation), `js/play.js` (Partie, Online-Sync, Schachuhr), `js/cloud.js` (Konto und Supabase, lädt die Bibliothek im Hintergrund), `js/online.js` (Freunde, Einladungen, Tische, Rangliste), dazu eine Datei pro Spiel in `js/games/`.

@@ -50,14 +50,15 @@
   // Guests (accounts exist, but nobody is logged in) can play these games against the AI and on one device.
   // Everything else, plus online matches and the rankings, needs a free account.
   const GUEST_GAMES = ['c4', 'ttt', 'ships', 'dots', 'reaction', 'pong'];
-  const guest = () => !!(V.cloud && V.cloud.available() && !V.cloud.starting() && !V.cloud.user());
+  // a guest session (quick match without an account) still counts as guest here
+  const guest = () => !!(V.cloud && V.cloud.available() && !V.cloud.starting() && (!V.cloud.user() || V.cloud.user().anon));
   const locked = g => !!g && guest() && !GUEST_GAMES.includes(g.id);
   V.guest = guest; V.locked = locked;
   // account button in the header: name when logged in, otherwise "Gast · Anmelden"
   function acctChip() {
     if (!V.cloud || !V.cloud.available()) return '';
     const u = V.cloud.user();
-    return `<button class="acct${u ? ' in' : ' guest'}" id="acct" title="Konto">${IC.user}<span>${u ? u.username : 'Gast'}</span>${u ? '' : '<em>Anmelden</em>'}</button>`;
+    return `<button class="acct${u && !u.anon ? ' in' : ' guest'}" id="acct" title="Konto">${IC.user}<span>${u ? u.username : 'Gast'}</span>${u && !u.anon ? '' : `<em>${u ? 'Konto behalten' : 'Anmelden'}</em>`}</button>`;
   }
   function refreshAcct() {
     const a = document.getElementById('acct'); if (!a) return;
@@ -237,7 +238,7 @@
         ${g.noAI ? '' : `<button data-v="ai" class="${cfg.mode === 'ai' ? 'on' : ''}">${IC.robot}<span>Gegen KI</span></button>`}
         <button data-v="local" class="${cfg.mode === 'local' ? 'on' : ''}">${IC.users}<span>${g.party ? 'Am Gerät' : 'Zu zweit'}</span></button>
         ${g.online && V.cloud && V.cloud.available() ? `<button data-v="online" class="${cfg.mode === 'online' ? 'on' : ''}${guest() ? ' lockd' : ''}">${guest() ? IC.lock : IC.user}<span>Freund</span></button>
-        <button data-v="open" class="${cfg.mode === 'open' ? 'on' : ''}${guest() ? ' lockd' : ''}">${guest() ? IC.lock : IC.globe}<span>Online</span></button>` : ''}
+        <button data-v="open" class="${cfg.mode === 'open' ? 'on' : ''}">${IC.globe}<span>Online</span></button>` : ''}
         ${g.table && V.cloud && V.cloud.available() ? `<button data-v="table" class="${cfg.mode === 'table' ? 'on' : ''}${guest() ? ' lockd' : ''}">${guest() ? IC.lock : IC.globe}<span>Online</span></button>` : ''}
       </div>
       ${cfg.mode === 'ai' || cfg.mode === 'table' ? `<div class="gp-lvl">
@@ -341,6 +342,7 @@
         ${sw('o_intro', settings.intro !== false, 'Intros', 'Start-Animation und VS-Einblendung vor jeder Partie', IC.film)}
         ${sw('o_coords', settings.coords !== false, 'Koordinaten', 'Buchstaben und Zahlen am Schachbrett', IC.hash)}
         ${sw('o_hints', settings.hints !== false, 'Zughilfen', 'Zeigt, wohin du ziehen kannst (Schach, Dame, Reversi, Mühle)', IC.bulb)}
+        <div class="opt orow">${IC.globe}<span><b>Sprache</b><small>Language · Deutsch oder Englisch</small></span>${seg('lang', V.lang, [['de', 'Deutsch'], ['en', 'English']])}</div>
       </div></div>
       <div class="ogroup"><h2 class="oh">Spiel</h2>
       <div class="optlist">
@@ -388,6 +390,8 @@
       g.querySelectorAll('button').forEach(x => { x.classList.toggle('on', x === b); x.setAttribute('aria-checked', x === b); });
       V.sfx.ui();
       if (g.dataset.k === 'haptic') V.buzz([40, 60, 40]);
+      // every screen is drawn in German and translated on the way (js/i18n.js), so a reload switches everything at once
+      if (g.dataset.k === 'lang' && b.dataset.v !== V.lang) setTimeout(() => location.reload(), 150);
     }));
     // a long test pulse; if nothing is felt, the phone itself is muting web vibration (silent mode, do not disturb, intensity 0)
     const vt = v.querySelector('#o_vtest');
@@ -490,7 +494,7 @@
     }
     function render(dir) {
       const st = steps[i];
-      const m = openModal(`<div class="tut ${dir ? 'go' + dir : ''}">
+      const m = openModal(`<div class="tut ${dir ? 'go' + dir : ''}" data-g="${g.id}">
         <div class="tk"><span>${g.name}</span><b>${i + 1}/${steps.length}</b></div>
         <h3>${st.t}</h3>
         ${st.demo ? `<div class="demo">${st.demo}</div>` : ''}

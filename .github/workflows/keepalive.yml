@@ -1,0 +1,19 @@
+# Keeps the free Supabase project awake: Supabase pauses free projects after a week without requests.
+# Calls the tiny public ping() function (supabase/migrations/20261110000000_open_play.sql) every three days.
+# The key is the public "publishable" key that is in js/cloud.js anyway.
+name: Supabase keep-alive
+
+on:
+  schedule:
+    - cron: '17 6 */3 * *'
+  workflow_dispatch:
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping Supabase
+        run: |
+          curl -fsS -X POST 'https://ygnngmtvncmdunsdnwtk.supabase.co/rest/v1/rpc/ping' \
+            -H 'apikey: sb_publishable_DWz8MXxA0PM-rQOqnVMJGQ_FqadTjHg' \
+            -H 'Content-Type: application/json' -d '{}'

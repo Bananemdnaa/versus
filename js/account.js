@@ -23,6 +23,23 @@
     if (!c || !c.available()) return `<section class="page acctp"><h1 class="title"><span>Dein</span> Konto</h1>
       <div class="acard"><p class="lead">Online-Konten sind gleich da. Der Server wird gerade eingerichtet.</p></div></section>`;
     const u = c.user();
+    if (u && u.anon) return guestTab(u);
+    if (!u && mode === 'recover') return `<section class="page acctp"><h1 class="title"><span>Passwort</span> vergessen</h1>
+      <div class="acard">
+        <p class="lead">Mit deinem Wiederherstellungscode setzt du ein neues Passwort. Den Code hast du beim Erstellen des Kontos bekommen (oder später unter Konto).</p>
+        <form class="aform" id="rform" autocomplete="on">
+          <label for="r_n">Benutzername</label>
+          <input class="inp" id="r_n" name="username" autocomplete="username" maxlength="16" autocapitalize="none" spellcheck="false">
+          <label for="r_c">Wiederherstellungscode</label>
+          <input class="inp code" id="r_c" maxlength="14" placeholder="ABCD-EFGH-JKLM" autocapitalize="characters" autocomplete="off" spellcheck="false">
+          <label for="r_p">Neues Passwort</label>
+          <input class="inp" id="r_p" type="password" autocomplete="new-password" placeholder="mindestens 6 Zeichen">
+          <p class="aerr" id="rerr" role="alert"></p>
+          <button class="btn primary big" type="submit"><span>Passwort neu setzen</span></button>
+        </form>
+        <p class="fine">Kein Code? Dann lässt sich das Konto leider nicht zurückholen, weil Versus keine E-Mail-Adressen speichert. Erstell einfach ein neues.</p>
+        <button class="btn ghost sm" id="r_back"><span>${IC().back}Zurück zum Login</span></button>
+      </div></section>`;
     if (!u) return `<section class="page acctp"><h1 class="title"><span>Dein</span> Konto</h1>
       <div class="acard">
         <p class="lead">Mit einem Konto liegt deine Bilanz sicher auf dem Server und ist auf jedem Gerät dabei. Freunde und Online-Duelle bauen darauf auf.</p>
@@ -35,7 +52,7 @@
           ${mode === 'new' ? '<label for="a_pw2">Passwort wiederholen</label><input class="inp" id="a_pw2" type="password" autocomplete="new-password">' : ''}
           <p class="aerr" id="aerr" role="alert">${esc(err)}</p>
           <button class="btn primary big" type="submit"><span>${mode === 'new' ? 'Konto erstellen' : 'Einloggen'}</span></button>
-          ${mode === 'new' ? '<p class="fine">Benutzername: 3 bis 16 Zeichen, nur a–z, 0–9, _ und -. Es gibt keine E-Mail, merk dir dein Passwort gut.</p>' : ''}
+          ${mode === 'new' ? '<p class="fine">Benutzername: 3 bis 16 Zeichen, nur a–z, 0–9, _ und -. Es gibt keine E-Mail. Nach dem Erstellen bekommst du einen Wiederherstellungscode für ein vergessenes Passwort.</p>' : '<button class="link aforgot" type="button" id="a_forgot">Passwort vergessen?</button>'}
         </form>
         ${guestNote()}
       </div></section>`;
@@ -57,6 +74,9 @@
       <div class="optlist small">
         <button class="opt" data-box="rename">${IC().user}<span><b>Benutzernamen ändern</b><small>${next ? 'Wieder möglich ab ' + day(next) : 'Einmal pro Woche möglich'}</small></span></button>
         ${openBox === 'rename' ? `<form class="abox" id="f_rename"><input class="inp" id="r_name" maxlength="16" placeholder="Neuer Name" autocapitalize="none" spellcheck="false" value="${esc(u.username)}"><button class="btn sm" type="submit"><span>Ändern</span></button><p class="aerr" id="r_err"></p></form>` : ''}
+        <button class="opt" id="a_rec">${IC().shield}<span><b>Wiederherstellungscode</b><small>${info.recovery ? 'Du hast einen. Neu erstellen macht den alten ungültig.' : '<b class="bad">Noch keiner.</b> Ohne Code ist ein vergessenes Passwort weg.'}</small></span></button>
+        <button class="opt" data-box="blocks">${IC().eye}<span><b>Blockierte Spieler</b><small>${blockSub()}</small></span></button>
+        ${openBox === 'blocks' ? `<div class="abox" id="blist">${blockList()}</div>` : ''}
         <button class="opt danger" data-box="delete">${IC().x}<span><b>Konto löschen</b><small>Löscht dein Konto und alle Daten auf dem Server</small></span></button>
         ${openBox === 'delete' ? `<form class="abox" id="f_delete"><input class="inp" id="d_pw" type="password" autocomplete="current-password" placeholder="Passwort zur Bestätigung"><button class="btn sm danger" type="submit"><span>Endgültig löschen</span></button><p class="aerr" id="d_err"></p></form>` : ''}
       </div>
@@ -66,6 +86,52 @@
     const s = V.store.get('stats', {});
     const n = Object.values(s).reduce((a, g) => a + (g.ai || []).reduce((x, r) => x + (r.w || 0) + (r.l || 0) + (r.d || 0), 0) + ((g.local || {}).a || 0) + ((g.local || {}).b || 0) + ((g.local || {}).d || 0), 0);
     return n ? `<p class="fine">Deine ${n} Partien aus diesem Browser wandern beim Einloggen mit ins Konto.</p>` : '';
+  }
+  // a guest session (from a quick match): keep it as a real account, or leave it
+  function guestTab(u) {
+    return `<section class="page acctp">
+      <h1 class="title"><span>Dein</span> Konto</h1>
+      <div class="acard me">
+        <div class="ahead"><span class="abig">${IC().user}</span>
+          <div><b>${esc(u.username)}</b><em class="rtag muted">Gast</em><small>Gilt nur in diesem Browser</small></div></div>
+        <p class="lead">Du spielst als Gast. Wähl einen Namen und ein Passwort, dann wird daraus ein richtiges Konto: alle ${V.games.length} Spiele, Freunde, Rangliste und deine Bilanz auf jedem Gerät.</p>
+        <form class="aform" id="gform" autocomplete="on">
+          <label for="g_name">Benutzername</label>
+          <input class="inp" id="g_name" name="username" autocomplete="username" maxlength="16" placeholder="z. B. blitzfuchs" autocapitalize="none" spellcheck="false">
+          <label for="g_pw">Passwort</label>
+          <input class="inp" id="g_pw" type="password" autocomplete="new-password" placeholder="mindestens 6 Zeichen">
+          <label for="g_pw2">Passwort wiederholen</label>
+          <input class="inp" id="g_pw2" type="password" autocomplete="new-password">
+          <p class="aerr" id="gerr" role="alert"></p>
+          <button class="btn primary big" type="submit"><span>${IC().spark}Konto behalten</span></button>
+        </form>
+      </div>
+      <div class="optlist small">
+        <button class="opt" id="g_login">${IC().user}<span><b>Ich habe schon ein Konto</b><small>Beendet die Gast-Sitzung und öffnet den Login</small></span></button>
+        <button class="opt danger" id="g_out">${IC().x}<span><b>${sureOut ? 'Sicher? Der Gast ist dann weg. Nochmal tippen' : 'Gast-Sitzung beenden'}</b><small>Name und Online-Partien des Gasts sind danach weg</small></span></button>
+      </div></section>`;
+  }
+  let sureOut = false;
+  const blockSub = () => { const b = V.online && V.online.blocks(); return b && b.size ? `${b.size} blockiert` : 'Niemand blockiert. Geht im Profil eines Spielers.'; };
+  function blockList() {
+    const b = V.online && V.online.blocks();
+    if (!b) return V.skel(2);
+    if (!b.size) return '<p class="fhint">Niemand blockiert. Blockierte Spieler können dich nicht einladen, nicht anfragen und landen nie im Schnellen Spiel bei dir.</p>';
+    return [...b].map(n => `<div class="fline"><b>${esc(n)}</b><button class="btn ghost sm" data-unb="${esc(n)}"><span>Freigeben</span></button></div>`).join('');
+  }
+  // the recovery code is shown exactly once; afterwards only its hash is on the server
+  async function showRecovery(first) {
+    let code;
+    try { code = await C().newRecovery(); }
+    catch (e) { if (!first) V.ui.toast(/recovery_new|function/i.test(e.message) ? 'Wiederherstellungscodes kommen nach dem nächsten Server-Update.' : e.message); return; }
+    const m = V.ui.openModal(`<div class="confirm recm"><h3>Dein Wiederherstellungscode</h3>
+      <p>Damit setzt du ein neues Passwort, falls du es vergisst. Er wird nur dieses eine Mal angezeigt. Mach am besten einen Screenshot oder schreib ihn auf.</p>
+      <div class="rcode">${esc(code)}</div>
+      <div class="actions"><button class="btn primary" id="rcopy"><span>Kopieren</span></button><button class="btn ghost" id="rok"><span>Hab ich gespeichert</span></button></div></div>`, 'recmb');
+    m.querySelector('#rok').onclick = () => { V.ui.closeModal(); V.ui.home('profile'); };
+    m.querySelector('#rcopy').onclick = () => {
+      if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(code).then(() => V.ui.toast('Code kopiert'), () => { });
+    };
   }
   function wire(b) {
     const c = C(); if (!c || !c.available()) return;
@@ -83,15 +149,51 @@
         if (mode === 'new' && pw.value !== b.querySelector('#a_pw2').value) { errEl.textContent = 'Die Passwörter sind nicht gleich.'; return; }
         busyForm = true; f.classList.add('busy'); errEl.textContent = '';
         try {
-          if (mode === 'new') await c.signUp(name.value, pw.value); else await c.signIn(name.value, pw.value);
-          err = ''; V.sfx.goal(); V.ui.toast(mode === 'new' ? 'Konto erstellt' : 'Eingeloggt');
+          const made = mode === 'new';
+          if (made) await c.signUp(name.value, pw.value); else await c.signIn(name.value, pw.value);
+          err = ''; V.sfx.goal(); V.ui.toast(made ? 'Konto erstellt' : 'Eingeloggt');
           V.ui.home('profile');
+          if (made) showRecovery(true);
         } catch (x) { errEl.textContent = x.message; V.sfx.bad(); V.fx.shake(f, true); }
         busyForm = false; f.classList.remove('busy');
       };
       if (!V.coarse) setTimeout(() => name.focus(), 50);
     }
     const q = s => b.querySelector(s);
+    if (q('#a_forgot')) q('#a_forgot').onclick = () => { mode = 'recover'; V.sfx.ui(); V.ui.home('profile'); };
+    if (q('#r_back')) q('#r_back').onclick = () => { mode = 'login'; V.sfx.ui(); V.ui.home('profile'); };
+    const rf = q('#rform');
+    if (rf) {
+      const keep = sessionStorage.getItem('versus.aname'); if (keep) q('#r_n').value = keep;
+      rf.onsubmit = async e => {
+        e.preventDefault(); if (busyForm) return;
+        busyForm = true; rf.classList.add('busy'); q('#rerr').textContent = '';
+        try { await c.recover(q('#r_n').value, q('#r_c').value, q('#r_p').value); mode = 'login'; V.sfx.goal(); V.ui.toast('Neues Passwort gesetzt'); V.ui.home('profile'); showRecovery(true); }
+        catch (x) { q('#rerr').textContent = /recovery_reset|function/i.test(x.message) ? 'Das kommt nach dem nächsten Server-Update.' : x.message; V.sfx.bad(); V.fx.shake(rf, true); }
+        busyForm = false; rf.classList.remove('busy');
+      };
+    }
+    // guest: keep the account, switch to an existing one, or leave
+    const gf = q('#gform');
+    if (gf) gf.onsubmit = async e => {
+      e.preventDefault(); if (busyForm) return;
+      const er = q('#gerr');
+      if (q('#g_pw').value !== q('#g_pw2').value) { er.textContent = 'Die Passwörter sind nicht gleich.'; return; }
+      busyForm = true; gf.classList.add('busy'); er.textContent = '';
+      try { const nn = await c.claimGuest(q('#g_name').value, q('#g_pw').value); V.sfx.win(); V.fx.confetti(); V.ui.toast('Willkommen, ' + nn); V.ui.home('profile'); showRecovery(true); }
+      catch (x) { er.textContent = /guest_claim|function/i.test(x.message) ? 'Das kommt nach dem nächsten Server-Update.' : x.message; V.sfx.bad(); V.fx.shake(gf, true); }
+      busyForm = false; gf.classList.remove('busy');
+    };
+    if (q('#g_login')) q('#g_login').onclick = async () => { V.sfx.ui(); mode = 'login'; await c.signOut(); V.ui.home('profile'); };
+    if (q('#g_out')) q('#g_out').onclick = async () => {
+      if (!sureOut) { sureOut = true; return V.ui.home('profile'); }
+      sureOut = false; V.sfx.ui();
+      try { await c.deleteAccount(''); } catch (x) { await c.signOut(); }
+      V.ui.toast('Gast-Sitzung beendet'); V.ui.home('profile');
+    };
+    if (q('#a_rec')) q('#a_rec').onclick = () => { V.sfx.ui(); showRecovery(false); };
+    b.querySelectorAll('[data-unb]').forEach(x => x.onclick = async () => { if (await V.online.block(x.dataset.unb, false)) V.ui.home('profile'); });
+    if (openBox === 'blocks' && V.online && !V.online.blocks()) V.online.loadBlocks().then(() => { const l = document.getElementById('blist'); if (l) { l.innerHTML = blockList(); l.querySelectorAll('[data-unb]').forEach(x => x.onclick = async () => { if (await V.online.block(x.dataset.unb, false)) V.ui.home('profile'); }); } });
     if (q('#a_sync')) q('#a_sync').onclick = () => { V.sfx.ui(); c.syncNow(); };
     if (q('#a_out')) q('#a_out').onclick = async () => { V.sfx.ui(); await c.signOut(); V.ui.toast('Abgemeldet'); V.ui.home('profile'); };
     if (q('#a_admin')) q('#a_admin').onclick = () => { V.sfx.ui(); admin(); };
@@ -132,17 +234,22 @@
   }
 
   // ---------- admin panel ----------
-  let aTab = 'overview', mFilter = 'live', mQuery = '', matches = null, stats = null, online = null, players = null, logs = null, query = '', aErr = '', box = null, sure = null, liveT = null, busy = false;
+  let aTab = 'overview', mFilter = 'live', mQuery = '', matches = null, stats = null, online = null, players = null, logs = null, query = '', aErr = '', box = null, sure = null, liveT = null, busy = false, reports = null, rFilter = 'open';
   function admin(t) {
     if (t) aTab = t;
     const v = V.ui.show('admin', `<div class="view admin">
       <div class="sbar"><button class="iconbtn" id="bk" aria-label="Zurück">${IC().back}</button><span class="crumb">Admin-Panel</span>
         ${C().role() ? `<em class="rtag ${C().role()}">${ROLE[C().role()]}</em>` : ''}</div>
-      <div class="chips" id="atabs">${[['overview', 'Übersicht'], ['matches', 'Partien'], ['players', 'Spieler'], ['log', 'Protokoll']].map(([k, l]) => `<button data-t="${k}" class="${aTab === k ? 'on' : ''}">${l}</button>`).join('')}</div>
+      <div class="chips" id="atabs">${[['overview', 'Übersicht'], ['matches', 'Partien'], ['players', 'Spieler'], ['reports', 'Meldungen'], ['log', 'Protokoll']].map(([k, l]) => `<button data-t="${k}" class="${aTab === k ? 'on' : ''}">${l}${k === 'reports' && reports && reports.open ? ` <small class="nb">${reports.open}</small>` : ''}</button>`).join('')}</div>
       <div id="abody" class="abody"></div></div>`);
     v.querySelector('#bk').onclick = () => { stopLive(); V.ui.home('profile'); };
     v.querySelectorAll('#atabs button').forEach(x => x.onclick = () => { aTab = x.dataset.t; aErr = ''; box = null; sure = null; V.sfx.ui(); v.querySelectorAll('#atabs button').forEach(y => y.classList.toggle('on', y === x)); draw(); load(); });
     draw(); load();
+    // number of open reports on the tab, whichever tab is open
+    if (aTab !== 'reports') C().rpc('admin_reports', { st: 'open', lim: 1 }).then(r => {
+      const b = v.querySelector('#atabs [data-t=reports]');
+      if (b && r && r.open && !b.querySelector('.nb')) b.insertAdjacentHTML('beforeend', ` <small class="nb">${r.open}</small>`);
+    }, () => { });
     stopLive();
     liveT = setInterval(() => {
       if (V.ui.view() !== 'admin') return stopLive();
@@ -156,6 +263,7 @@
       if (aTab === 'overview') { const [s, o] = await Promise.all([C().rpc('admin_stats'), C().rpc('admin_online')]); stats = s; online = o || []; }
       if (aTab === 'players') players = await C().rpc('admin_players', { q: query, lim: 40 });
       if (aTab === 'log') logs = await C().rpc('admin_log_list', { lim: 80 });
+      if (aTab === 'reports') reports = await C().rpc('admin_reports', { st: rFilter, lim: 80 });
       if (aTab === 'matches') matches = await C().rpc('admin_matches', { st: mFilter, q: mQuery, lim: 80 });
       aErr = '';
     } catch (e) { aErr = e.message; }
@@ -171,7 +279,7 @@
     const host = document.getElementById('abody'); if (!host) return;
     const keep = document.activeElement && host.contains(document.activeElement) && /INPUT|TEXTAREA/.test(document.activeElement.tagName);
     if (keep && !force) return;
-    host.innerHTML = (aErr ? `<p class="aerr big">${esc(aErr)}</p>` : '') + (aTab === 'overview' ? overview() : aTab === 'matches' ? matchList() : aTab === 'players' ? playerList() : logList());
+    host.innerHTML = (aErr ? `<p class="aerr big">${esc(aErr)}</p>` : '') + (aTab === 'overview' ? overview() : aTab === 'matches' ? matchList() : aTab === 'players' ? playerList() : aTab === 'reports' ? reportList() : logList());
     wireAdmin(host);
   }
   function overview() {
@@ -253,14 +361,29 @@
       ${matches ? rows || '<p class="muted">Keine Partien.</p>' : V.skel()}`;
   }
   function logList() {
-    const L = { hide: 'ausgeblendet', show: 'eingeblendet', ban: 'gesperrt', unban: 'entsperrt', note: 'Notiz', rename: 'umbenannt', reset_stats: 'Bilanz zurückgesetzt', admin_on: 'zum Admin gemacht', admin_off: 'Admin entzogen', dev_on: 'Dev-Konto an', dev_off: 'Dev-Konto aus', void_match: 'Partie annulliert' };
+    const L = { hide: 'ausgeblendet', show: 'eingeblendet', ban: 'gesperrt', unban: 'entsperrt', note: 'Notiz', rename: 'umbenannt', reset_stats: 'Bilanz zurückgesetzt', admin_on: 'zum Admin gemacht', admin_off: 'Admin entzogen', dev_on: 'Dev-Konto an', dev_off: 'Dev-Konto aus', void_match: 'Partie annulliert', report_done: 'Meldung erledigt', report_open: 'Meldung wieder offen' };
     if (!logs) return V.skel();
     if (!logs.length) return '<p class="muted">Noch keine Admin-Aktionen.</p>';
     return `<div class="apanel">${logs.map(l => `<div class="aline log"><small>${when(l.created_at)}</small><b>${esc(l.admin_name || '?')}</b><span>${esc(L[l.action] || l.action)} <button class="link" data-p="${esc(l.target || '')}">${esc(l.target || '')}</button>${l.detail ? ' · ' + esc(l.detail) : ''}</span></div>`).join('')}</div>`;
   }
+  // reports from players: who, why, the match if there was one; the name opens the player card (ban, hide, rename)
+  function reportList() {
+    const WHY = { name: 'Beleidigender Name', abuse: 'Beleidigung oder Spam', cheat: 'Schummeln oder Abbrechen', other: 'Etwas anderes' };
+    const rows = ((reports && reports.list) || []).map(r => `<div class="mrow rep${r.status === 'open' ? ' live' : ''}">
+        <div class="m-t"><b><button class="link" data-p="${esc(r.target)}">${esc(r.target)}</button> <em class="rtag${r.status === 'open' ? ' bad' : ''}">${esc(WHY[r.reason] || r.reason)}</em>${r.count > 1 ? ` <em class="rtag">${r.count}× gemeldet</em>` : ''}${r.banned ? ' <em class="rtag bad">gesperrt</em>' : ''}</b>
+          <small>von ${r.reporter ? `<button class="link" data-p="${esc(r.reporter)}">${esc(r.reporter)}</button>` : '?'} · ${when(r.at)}${r.game ? ' · ' + esc(gameName(r.game)) : ''}${r.status === 'done' ? ' · erledigt' + (r.by ? ' von ' + esc(r.by) : '') : ''}</small>
+          ${r.note ? `<span class="m-r">„${esc(r.note)}“</span>` : ''}</div>
+        <div class="m-a">${r.match ? `<button class="btn sm" data-watch="${r.match}"><span>Partie</span></button>` : ''}
+          <button class="btn ghost sm" data-rdone="${r.id}" data-v="${r.status === 'open' ? 1 : 0}"><span>${r.status === 'open' ? 'Erledigt' : 'Wieder öffnen'}</span></button></div></div>`).join('');
+    return `<div class="asearch"><div class="chips mini" id="rf">${[['open', 'Offen'], ['all', 'Alle']].map(([k, l]) => `<button data-rf="${k}" class="${rFilter === k ? 'on' : ''}">${l}</button>`).join('')}</div><button class="btn ghost sm" id="reload"><span>${IC().redo}</span></button></div>
+      <p class="fine">Tipp auf den Namen, um den Spieler zu sperren, auszublenden oder umzubenennen. Danach die Meldung auf „Erledigt“ setzen.</p>
+      ${reports ? rows || `<p class="muted">${rFilter === 'open' ? 'Keine offenen Meldungen.' : 'Noch keine Meldungen.'}</p>` : V.skel()}`;
+  }
   let qTimer = null;
   function wireAdmin(h) {
     const r = h.querySelector('#reload'); if (r) r.onclick = () => { V.sfx.ui(); load(); };
+    h.querySelectorAll('[data-rf]').forEach(x => x.onclick = () => { rFilter = x.dataset.rf; reports = null; V.sfx.ui(); draw(); load(); });
+    h.querySelectorAll('[data-rdone]').forEach(x => x.onclick = () => act('admin_report_done', { rid: +x.dataset.rdone, done: x.dataset.v === '1' }, x.dataset.v === '1' ? 'Meldung erledigt.' : 'Meldung wieder offen.'));
     h.querySelectorAll('[data-p]').forEach(x => x.onclick = () => { if (!x.dataset.p) return; query = x.dataset.p; players = null; aTab = 'players'; admin(); });
     const q = h.querySelector('#aq');
     if (q) {
