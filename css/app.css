@@ -1110,9 +1110,9 @@ html,body{-webkit-tap-highlight-color:transparent}
   .facing .pcard .wins b{font:800 italic 22px/1 var(--f-d);color:var(--sc);font-variant-numeric:tabular-nums}
   .facing .pcard .wins small{font:700 italic 11px/1 var(--f-d);letter-spacing:.12em;text-transform:uppercase;color:var(--dim)}
   .facing .pcard.on .tag{opacity:1}
-  /* the board sits in the middle, the same distance from both, and turns to whoever is on the move */
+  /* the board sits in the middle, the same distance from both; boards with an up and down (g.turnBoard) turn to whoever is on the move */
   .facing .stage{margin-block:auto;transition:rotate .45s var(--ease)}
-  .facing.turn-r .stage{rotate:180deg}
+  .facing.rotboard.turn-r .stage{rotate:180deg}
   .lowfx .facing .stage{transition:none}
 }
 .ko .eshare{margin:0 auto 12px;display:flex}

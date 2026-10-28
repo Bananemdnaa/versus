@@ -122,6 +122,8 @@
 
   V.register({
     id: 'ships', name: 'Schiffe versenken', cat: 'Klassiker', order: 2, accent: '#4f8bff',
+    // "Gegenüber sitzen": the board turns to player 2 on their turn (it has an up and down)
+    turnBoard: true,
     short: 'Versteckte Flotten, gezielte Schüsse.',
     desc: 'Versteck deine Flotte und finde die Schiffe des Gegners zuerst. Treffer heißt: nochmal schießen.',
     keys: [['Pfeile', 'Feld wählen'], ['Enter', 'Schiff legen oder drehen, schießen'], ['R', 'Nächstes Schiff drehen'], ['Z', 'Flotte zufällig verteilen'], ['F', 'Fertig']],

@@ -98,7 +98,7 @@
     const sublabel = table ? `Online-Tisch · ${N} Spieler` : party ? (ai ? `Gegen ${N > 2 ? N - 1 + ' KIs' : 'KI'} · ` + V.LEVELS[cfg.level] : N + ' Spieler') : ai ? 'Gegen KI · ' + V.LEVELS[cfg.level] : online ? 'Online gegen ' + esc(M.opp) : watch ? 'Zuschauen · ' + esc(M.aName) + ' gegen ' + esc(M.bName) : 'Zu zweit';
     // two people at one phone, sitting opposite: player 2's card (and the status on their turn) is turned around
     const facing = cfg.mode === 'local' && settings.face && !party && g.cat !== 'Action';
-    const v = mount(`<div class="view play${online || table ? ' net' : ''}${watch ? ' watch' : ''}${facing ? ' facing' : ''}" style="--acc:${g.accent || 'var(--pink)'}">
+    const v = mount(`<div class="view play${online || table ? ' net' : ''}${watch ? ' watch' : ''}${facing ? ' facing' + (g.turnBoard ? ' rotboard' : '') : ''}" style="--acc:${g.accent || 'var(--pink)'}">
       <div class="pbar"><button class="iconbtn" id="pb" aria-label="Zurück">${IC.back}</button><div class="ttl"><b>${g.name}</b><small>${sublabel}</small></div>
         <button class="iconbtn" id="ph" aria-label="Regeln" title="Regeln (T)">${IC.help}</button>
         ${online ? `<button class="iconbtn" id="pe" aria-label="Reaktion senden" title="Reaktion">${IC.smile}</button>` : ''}

@@ -71,6 +71,8 @@
 
   V.register({
     id: 'kalaha', name: 'Kalaha', cat: 'Strategie', order: 5, accent: '#ff9f43',
+    // "Gegenüber sitzen": the board turns to player 2 on their turn (it has an up and down)
+    turnBoard: true,
     short: 'Steine säen, Gegner leer räumen.',
     desc: 'Nimm alle Steine aus einer Mulde und verteile sie einzeln weiter. Wer am Ende mehr Steine in seinem Speicher hat, gewinnt.',
     levelInfo: ['Anfänger: zieht fast zufällig.', 'Nimmt Extrazüge mit, übersieht aber Fänge.', 'Rechnet sechs Züge voraus.', 'Rechnet so tief wie möglich. Fast unschlagbar.'],
