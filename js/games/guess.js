@@ -1,8 +1,8 @@
 (function () {
-  // Schätzfragen for 2-4: everybody types a number at the same time, whoever is closest gets 3 points
-  // (with 3+ players the second closest 1), a direct hit 2 more. The AI guesses with an error that shrinks per level.
+  // Schätzfragen for 2-4 (no AI): everybody types a number at the same time, whoever is closest gets 3 points
+  // (with 3+ players the second closest 1), a direct hit 2 more. Seats taken over by the computer at a table give no answer.
   // Uses ctx.listen/ctx.submit: { g: number or null, r } one answer per round.
-  // Questions: [German, English, answer, unit de, unit en, 'y' for years (exact hits, the AI is off by years)]
+  // Questions: [German, English, answer, unit de, unit en, 'y' for years (only the exact year is a direct hit)]
   const Q = [
     ['Wie hoch ist der Großglockner?', 'How high is the Grossglockner, Austria\'s highest mountain?', 3798, 'm', 'm'],
     ['Wie hoch ist der Mount Everest?', 'How high is Mount Everest?', 8849, 'm', 'm'],
@@ -113,17 +113,6 @@
     return isFinite(n) && n >= 0 && n < 1e12 ? n : null;
   }
   const fmt = n => n == null ? '–' : Number(n).toLocaleString(V.locale(), { maximumFractionDigits: 3 });
-  const gauss = () => { let u = 0; while (!u) u = Math.random(); return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * Math.random()); };
-  // AI guesses: years a few years off, other numbers off by a factor; rounded the way people guess
-  function botGuess(q, L) {
-    const a = q[2];
-    if (q[5] === 'y') return Math.round(a + gauss() * [40, 18, 7, 2.5][L]);
-    let g = a * Math.exp(gauss() * [0.7, 0.4, 0.2, 0.08][L]);
-    if (a < 30 && Number.isInteger(a)) return Math.max(0, Math.round(g));
-    if (!Number.isInteger(a)) return Math.round(g * (a < 10 ? 100 : 10)) / (a < 10 ? 100 : 10);
-    const p = Math.pow(10, Math.max(0, Math.floor(Math.log10(g)) - 1));
-    return Math.round(g / p) * p;
-  }
   // a direct hit: the exact year, else within 1 %
   const hit = (q, g) => g != null && (q[5] === 'y' ? g === q[2] : Math.abs(g - q[2]) <= Math.abs(q[2]) * 0.01);
 
@@ -159,11 +148,10 @@
   .gq-row .bull{color:var(--yellow);font-weight:800}`);
 
   V.register({
-    id: 'guess', name: 'Schätzfragen', cat: 'Klassiker', order: 10, accent: '#4fe3ff', party: true, noFirst: true,
+    id: 'guess', name: 'Schätzfragen', cat: 'Klassiker', order: 10, accent: '#4fe3ff', party: true, noAI: true, noFirst: true,
     short: 'Wer schätzt am nächsten dran? Bis zu 4.',
-    desc: 'Wie hoch ist der Großglockner, wann sank die Titanic? Alle tippen gleichzeitig eine Zahl. Wer am nächsten dran ist, holt die Punkte, ein Volltreffer gibt extra. Für 2 bis 4, gegen die KI, am selben Gerät oder online.',
+    desc: 'Wie hoch ist der Großglockner, wann sank die Titanic? Alle tippen gleichzeitig eine Zahl. Wer am nächsten dran ist, holt die Punkte, ein Volltreffer gibt extra. Für 2 bis 4, am selben Gerät oder online.',
     sides: { 1: 'Pink', 2: 'Gelb', 3: 'Cyan', 4: 'Grün' },
-    levelInfo: ['Rät meistens ins Blaue.', 'Liegt oft in der Nähe.', 'Weiß ziemlich viel.', 'Liegt fast immer knapp daneben oder genau richtig.'],
     keys: [['Ziffern', 'Zahl eintippen'], ['Enter', 'Abgeben']],
     options: [{ id: 'n', label: 'Spieler', def: 2, choices: [[2, '2'], [3, '3'], [4, '4']] }, { id: 'rounds', label: 'Fragen', def: 7, choices: [[7, '7'], [12, '12']] }],
     localHint: 'Am selben Gerät tippt jeder für sich, das Handy wird nach jedem weitergegeben.',
@@ -198,14 +186,13 @@
         if (local) { writer = 0; ctx.handReset(); return nextWriter(); }
         deadline = Date.now() + TIME * 1000;
         askUI();
-        // the computer seats answer after a short think (the host sends them at a table)
-        if (ctx.amHost()) P.filter(p => ctx.isBot(p)).forEach(p => ctx.later(() => { if (phase === 'ask' && !ans[p]) ctx.submit({ g: botGuess(q, ctx.level), r: round }, p); }, ctx.auto ? 0 : 1800 + Math.random() * 6000));
+        // seats played by the computer (someone left) hand in no answer, sent by the host
+        if (ctx.amHost()) P.filter(p => ctx.isBot(p)).forEach(p => ctx.submit({ g: null, r: round, bot: 1 }, p));
       }
       // one device: everybody types in turn, the others look away
       function nextWriter() {
         const p = P.find(x => !ans[x]);
         if (!p) return;
-        if (ctx.isBot(p)) return ctx.submit({ g: botGuess(q, ctx.level), r: round }, p);
         ctx.handoff(p, `Frage ${round} von ${rounds}. Du hast ${TIME} Sekunden.`, () => { writer = p; sent = false; deadline = Date.now() + TIME * 1000; askUI(); });
       }
       function askUI() {
@@ -225,8 +212,8 @@
         const left = Math.max(0, Math.ceil((deadline - Date.now()) / 1000));
         const t = wrap.querySelector('#gqt'); if (t) { t.textContent = left; t.classList.toggle('low', left <= 5); }
         if (left <= 0 && !sent) send(true);
-        // a seat that went to the computer in the middle of a question gets its answer from the host
-        if (!local && ctx.amHost() && Date.now() > deadline + 3000) P.filter(p => ctx.isBot(p) && !ans[p]).forEach(p => ctx.submit({ g: botGuess(q, ctx.level), r: round }, p));
+        // a seat that went to the computer in the middle of a question gets an empty answer from the host
+        if (!local && ctx.amHost() && Date.now() > deadline + 3000) P.filter(p => ctx.isBot(p) && !ans[p]).forEach(p => ctx.submit({ g: null, r: round, bot: 1 }, p));
       }
       function send(late) {
         if (sent || phase !== 'ask') return;
@@ -269,9 +256,8 @@
           <div class="gq-res">${ranked.map((p, i) => `<div class="gq-row${pts[p] >= 3 ? ' top' : ''}" style="animation-delay:${300 + i * 120}ms"><b class="c${p}">${ctx.name(p)}</b><span>${ans[p].g == null ? 'keine Antwort' : fmt(ans[p].g) + (hit(q, ans[p].g) ? ' <span class="bull">Volltreffer!</span>' : '')}</span><em>+${pts[p]}</em></div>`).join('')}</div>`;
         // the guesses slide from the middle to their place on the line
         requestAnimationFrame(() => requestAnimationFrame(() => wrap.querySelectorAll('.gq-mk[data-p]').forEach(el => { el.style.left = pos(ans[+el.dataset.p].g) + '%'; })));
-        const best = ranked.find(p => pts[p] >= 3);
         if (P.some(p => hit(q, ans[p].g))) V.sfx.found(); else V.sfx.goal();
-        if (best && ctx.mode === 'ai' && best === 1) V.fx.pop(wrap.querySelector('.gq-ans'), 'fx-pop');
+        V.fx.pop(wrap.querySelector('.gq-ans'), 'fx-pop');
         scoreLine();
         ctx.later(next, ctx.fast() ? 30 : ctx.auto ? 300 : 5200);
       }
