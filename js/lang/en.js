@@ -815,7 +815,7 @@
     [/^Willkommen, (\S+)$/, 'Welcome, $1'], [/^Du heißt jetzt (\S+)$/, 'Your name is now $1'], [/^Neuer Code: (.+)$/, 'New code: $1'],
     [/^Niemand mit „(.+)“ gefunden\. Frag nach dem genauen Namen oder lass dir den Code geben\.$/, 'Nobody called "$1" found. Ask for the exact name or for their code.'],
     [/^Du und \{(\d)\} könnt euch jetzt direkt herausfordern\.$/, 'You and {$1} can now challenge each other directly.'],
-    [/^(.+) gegen ([a-z0-9_-]{3,16})$/, (m, g, n) => t(g) + ' vs. ' + n], [/^gegen ([a-z0-9_-]{3,16})(.*)$/, (m, n, r) => 'vs. ' + n + t(r)],
+    [/^(?!spielt )(.+) gegen ([a-z0-9_-]{3,16})$/, (m, g, n) => t(g) + ' vs. ' + n], [/^gegen ([a-z0-9_-]{3,16})(.*)$/, (m, n, r) => 'vs. ' + n + t(r)],
     [/^Dein Platz in (.+?)( diese Woche)?$/, (m, g, w) => 'Your place in ' + (g === 'allen Spielen' ? 'all games' : g) + (w ? ' this week' : '')],
     [/^(Diese Woche hat noch niemand|Hier hat noch niemand) eine Online-Partie in (.+) gewonnen\.(.*)$/, (m, a, g, r) => 'Nobody has won an online game in ' + (g === 'allen Spielen' ? 'all games' : g) + (a.startsWith('Diese') ? ' this week' : '') + ' yet.' + (r ? ' Your chance for first place!' : '')],
     [/^(\d+) Spieler in (.+)\. Gezählt werden (.*)$/, (m, n, g) => n + ' players in ' + (g === 'allen Spielen' ? 'all games' : g) + '. Online games won against other players count; equal wins are sorted by fewer games.'],
