@@ -172,6 +172,10 @@ Server: `supabase/migrations/20261110000000_open_play.sql` im SQL-Editor ausfüh
 
 Server dafür: `supabase/migrations/20261111000000_offline_watch.sql` und `supabase/migrations/20261112000000_invites.sql`.
 
+## Rechtliches
+
+`rechtliches.html` (Deutsch/Englisch): Offenlegung nach § 25 MediengesetzG und Datenschutzerklärung, verlinkt unter Optionen, auf der Konto-Seite und beim Konto-Erstellen. Neue Funktionen, die Daten speichern oder fremde Dienste einbinden (z. B. das Turnstile-Captcha), müssen dort ergänzt werden. Schriften (`fonts/`, SIL OFL) und Bibliotheken (`js/vendor/`: supabase-js 2.49.4, qrcode-generator 1.4.4) liegen im Projekt, damit keine IP-Adressen an Google Fonts oder CDNs gehen.
+
 ## Entwicklung
 
 - **Code:** `js/core.js` (Speicher, Einstellungen, Ton, Effekte, Icons), `js/ai.js` (KI-Suche), `js/kit.js` (Würfel, Figuren, Karten, Touch-Knöpfe), `js/app.js` (Menüs, Optionen, Dialoge, Tastatur, Installation), `js/play.js` (Partie, Online-Sync, Schachuhr), `js/cloud.js` (Konto und Supabase, lädt die Bibliothek im Hintergrund), `js/online.js` (Freunde, Einladungen, Tische, Rangliste), dazu eine Datei pro Spiel in `js/games/`.
