@@ -33,6 +33,20 @@
     return res;
   };
 
+  // ---------- feedback when a piece lands, the hand-over screen ----------
+  V.kit = {
+    // ring pulse around the piece, a sound and a short buzz (own move 12 ms, the other side's move 6 ms)
+    placed(el, color, them) {
+      if (!el) return;
+      if (V.fxOn()) { const r = V.el('i', 'kring'); r.style.setProperty('--c', color); el.appendChild(r); setTimeout(() => r.remove(), 600); }
+      if (them) V.sfx.them(); else V.sfx.place();
+    },
+    // full screen in the colour of the player who gets the device; the whole screen is the button
+    pass(s, name, text, extra = '') {
+      return `<div class="pass" style="--hc:${V.hex(s)}" data-enter role="button" tabindex="0"><small class="ps-k">Gib das Gerät an</small><h3>${name}</h3>${text ? `<p>${text}</p>` : ''}${extra}<span class="ps-tap">Tippen zum Weiter</span></div>`;
+    }
+  };
+
   // ---------- board game pieces: a 3D die and a pawn (Ludo, Leiterspiel) ----------
   const PIP = { 1: [4], 2: [0, 8], 3: [0, 4, 8], 4: [0, 2, 6, 8], 5: [0, 2, 4, 6, 8], 6: [0, 2, 3, 5, 6, 8] };
   // rotation that brings face n to the front

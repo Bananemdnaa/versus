@@ -1407,3 +1407,85 @@ button{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
 .modal.gpm .gp-go .btn.ghost{flex:1 1 100%;height:42px}
 .modal.gpm .gp-go kbd{display:none}
 .lowfx .modal.gpm .gp-art .ic,.lowfx .modal.gpm .gp-txt>*{animation:none}
+
+/* ---------- match view ---------- */
+/* a piece lands: a ring runs out of it */
+.kring{position:absolute;inset:0;border-radius:inherit;border:3px solid var(--c);pointer-events:none;animation:ringOut .55s ease-out forwards}
+.c4b .kring{border-radius:50%}
+/* turn banner over the board */
+.tbanner{position:absolute;left:50%;top:50%;z-index:12;pointer-events:none;white-space:nowrap;padding:10px 22px;background:var(--c);color:var(--ink);font:800 italic 34px/1 var(--f-d);text-transform:uppercase;letter-spacing:.02em;
+  box-shadow:6px 6px 0 var(--ink),0 0 40px var(--c);animation:turnBanner 1.15s var(--ease) forwards}
+.lowfx .tbanner{animation:none;transform:translate(-50%,-50%) skewX(-10deg)}
+/* the status line only carries rule hints and the last move of the other side */
+.status{background:none;border:0;padding:4px 12px;font-size:14px;min-height:28px;color:var(--muted)}
+.status b,.status .c1,.status .c2{color:inherit}
+.status .c1{color:var(--p1)} .status .c2{color:var(--p2)}
+/* the board springs in at the start */
+.view.play.enter .stage{animation:boardIn .5s .08s cubic-bezier(.2,1.4,.4,1) backwards}
+@keyframes boardIn{from{transform:scale(.7);opacity:0}}
+.lowfx .view.play .stage{animation:none}
+/* glow behind the side on the move */
+.sglow{display:none}
+/* pass screen (hidden fleets and cards): full screen in the colour of the next player */
+.pass{position:absolute;inset:0;z-index:20;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;padding:24px;text-align:center;cursor:pointer;
+  background:color-mix(in srgb,var(--hc) 92%,transparent);color:var(--ink);border:0;border-radius:var(--r-l);animation:fadeIn .25s}
+.pass .ps-k{font:700 italic 14px/1 var(--f-d);letter-spacing:.2em;text-transform:uppercase;opacity:.7}
+.pass h3{margin:0;font:800 italic 40px/1 var(--f-d);text-transform:uppercase;color:var(--ink)}
+.pass p{margin:0;color:rgba(8,9,15,.75);max-width:34ch;font-weight:600}
+.pass .ps-tap{margin-top:14px;font:800 italic 15px/1 var(--f-d);letter-spacing:.16em;text-transform:uppercase;animation:tapPulse 1.6s ease-in-out infinite}
+@keyframes tapPulse{50%{opacity:.4}}
+.lowfx .pass .ps-tap{animation:none}
+.handoff{position:absolute;inset:-6px;z-index:20;display:block;background:none;backdrop-filter:none;border-radius:var(--r-l)}
+.passcard{position:relative;min-height:340px;width:min(100%,520px)}
+/* KO: the new score pulses, wins burst out of the middle, bigger buttons */
+.eseries b.bump{animation:popIn .45s var(--spring)}
+.fx-w{position:absolute;margin:-5px;animation:burst2 1s cubic-bezier(.15,.7,.3,1) both}
+.ko .actions .btn{height:56px}
+.vsi{animation:vsShake .35s .3s}
+.vsi.quick{animation-delay:.14s}
+.bubble b{font-size:17px}
+.bubble.on{animation:bubIn .3s var(--spring)}
+@keyframes bubIn{from{opacity:0;transform:scale(.5) translateY(-8px)}}
+.pbar .iconbtn#pr:active svg{transform:rotate(-120deg);transition:transform .3s var(--spring)}
+
+@media (max-width:959px){
+  /* column: bar, opponent, board, you; the score sits in the cards */
+  .play{gap:12px;padding-inline:0}
+  .play .duel{display:grid;grid-template-columns:minmax(0,1fr);grid-template-areas:"r" "c" "l";grid-template-rows:auto 1fr auto;gap:12px}
+  .play .duel .score{display:none}
+  .play .center{grid-area:c;justify-content:center}
+  .play .stage{margin:auto 0}
+  .pcard{height:74px;padding:12px 16px 12px 14px;gap:12px;border-radius:20px;background:rgba(19,22,37,.9);border:1px solid var(--line);box-shadow:0 6px 20px rgba(0,0,0,.35)}
+  .pcard-r{flex-direction:row;text-align:left}
+  .pcard .av{width:50px;height:50px;font-size:24px;background:color-mix(in srgb,var(--sc) 14%,var(--panel2));border-color:color-mix(in srgb,var(--sc) 50%,transparent)}
+  .pcard .av svg{width:26px;height:26px}
+  .pcard.me .av{background:var(--sc);color:var(--ink);border-color:var(--sc)}
+  .pcard .nm{flex:1}
+  .pcard .nm b{font-size:22px}
+  .pcard .nm small{font-size:12px}
+  .pcard .wins{display:flex;align-items:center;margin-left:0}
+  .pcard .wins b{font:800 italic 40px/1 var(--f-d);color:var(--sc);font-variant-numeric:tabular-nums}
+  .pcard .wins small{display:none}
+  .pcard .tdots{margin:0}
+  .pcard .clk{margin-left:0}
+  .pcard .tag{top:-9px;left:14px;right:auto}
+  .pcard.on,.pcard-r.on{border-color:var(--sc);box-shadow:0 0 0 1px var(--sc),0 12px 36px -8px color-mix(in srgb,var(--sc) 60%,transparent)}
+  .pcard.on .tag{transition:opacity .2s,transform .35s var(--spring)}
+  .bubble{top:calc(100% + 8px);right:12px}
+  /* party: four small cards with a colour bar on top, the active one lifts */
+  .play .duel.party{grid-template-columns:minmax(0,1fr) minmax(0,1fr);grid-template-areas:"l r" "c c";grid-template-rows:auto 1fr}
+  .duel.party .pcard{height:auto;min-height:58px;padding:9px 10px 8px;gap:8px;overflow:visible;border-top:3px solid var(--sc)}
+  .duel.party .pcard .av{width:34px;height:34px;font-size:15px}
+  .duel.party .pcard .av svg{width:18px;height:18px}
+  .duel.party .pcard .nm b{font-size:16px}
+  .duel.party .pcard .wins b{font-size:22px}
+  .duel.party .pcard.on{transform:scale(1.04)}
+  /* stage glow: the side on the move lights up (opponent at the top, you at the bottom) */
+  .sglow{display:block;position:fixed;left:-20%;right:-20%;height:560px;z-index:0;pointer-events:none;opacity:.2;transition:opacity .6s var(--ease)}
+  .sglow.t{top:-300px;background:radial-gradient(closest-side,rgba(255,216,79,.32),transparent)}
+  .sglow.b{bottom:-300px;background:radial-gradient(closest-side,rgba(255,79,216,.36),transparent)}
+  .turn-r .sglow.t,.turn-l .sglow.b{opacity:1}
+  .play .duel{position:relative;z-index:1}
+  .play.party-v .sglow,.duel.party~.sglow{display:none}
+  .facing .pcard-r{rotate:180deg}
+}

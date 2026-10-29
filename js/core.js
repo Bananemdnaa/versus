@@ -160,6 +160,17 @@
       if (st && getComputedStyle(st).rotate === '180deg') { dx = -dx; dy = -dy; }
       el.animate([{ transform: `translate(${dx}px,${dy}px)` }, { transform: 'none' }], { duration: ms, easing: 'cubic-bezier(.25,.8,.3,1)' });
     },
+    // a win: 46 pieces fly out of the middle of the screen (round or square, pink, yellow, cyan, white)
+    win() {
+      if (!V.fxOn()) return;
+      const L = fxLayer(), W = window.innerWidth, H = window.innerHeight, C = ['#ff4fd8', '#ffd84f', '#62f0ff', '#ffffff'];
+      for (let i = 0; i < 46; i++) {
+        const s = document.createElement('i'), a = Math.random() * Math.PI * 2, d = 120 + Math.random() * Math.min(W, H) * 0.45, z = 6 + Math.random() * 7;
+        s.className = 'fx-w';
+        s.style.cssText = `left:${W / 2}px;top:${H / 2}px;width:${z.toFixed(1)}px;height:${z.toFixed(1)}px;background:${C[i % 4]};border-radius:${i % 3 ? '2px' : '50%'};--dx:${(Math.cos(a) * d).toFixed(0)}px;--dy:${(Math.sin(a) * d).toFixed(0)}px;animation-duration:${(0.8 + Math.random() * 0.7).toFixed(2)}s;animation-delay:${(0.15 + Math.random() * 0.2).toFixed(2)}s`;
+        L.appendChild(s); setTimeout(() => s.remove(), 1900);
+      }
+    },
     confetti(colors) {
       if (!V.fxOn()) return;
       const cv = document.createElement('canvas'); cv.className = 'fx-confetti';

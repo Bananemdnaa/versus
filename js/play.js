@@ -35,7 +35,8 @@
     document.body.appendChild(el);
     const kill = () => { el.classList.add('out'); setTimeout(() => el.remove(), 260); };
     el.addEventListener('pointerdown', kill);
-    setTimeout(() => V.sfx.place(), quick ? 120 : 260);
+    // the slam: a deep tone and the whole picture shakes
+    setTimeout(() => V.sfx.vs(), quick ? 140 : 280);
     setTimeout(kill, quick ? 650 : 1150);
   }
 
@@ -90,13 +91,17 @@
     if (online) { names[mySide] = 'Du'; names[oppSide] = M.opp; }
     if (watch) { names[M.aSide] = M.aName; names[3 - M.aSide] = M.bName; }
     const esc = t => String(t).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
-    const sub = s => sideLabel(s) + (s === 1 && g.cat !== 'Action' ? ' · beginnt' : '');
-    const av = s => ai || table ? (botSide(s) ? IC.robot : s === me ? '<span>DU</span>' : `<span>${esc(names[s].slice(0, 2).toUpperCase())}</span>`) : online ? (s === mySide ? '<span>DU</span>' : `<span>${esc(names[s].slice(0, 2).toUpperCase())}</span>`) : watch ? `<span>${esc(names[s].slice(0, 2).toUpperCase())}</span>` : `<span>P${s}</span>`;
+    // your own card shows your account name (the logic keeps calling you "Du")
+    const acct = V.cloud && V.cloud.user() && !V.cloud.user().anon ? V.cloud.user().username : '';
+    const shown = s => s === me && acct ? acct : names[s];
+    const remoteSide = s => (online && s === oppSide) || (table && s !== mySide && !botSide(s));
+    const sub = s => botSide(s) ? V.LEVELS[cfg.level] + ' · ' + sideLabel(s) : remoteSide(s) ? 'Online · ' + sideLabel(s) : s === me && acct ? 'Du · ' + sideLabel(s) : sideLabel(s);
+    const av = s => botSide(s) ? IC.robot : s === me ? `<span>${esc(acct ? acct.slice(0, 1).toUpperCase() : 'DU')}</span>` : remoteSide(s) ? IC.user : watch ? `<span>${esc(names[s].slice(0, 2).toUpperCase())}</span>` : `<span>P${s}</span>`;
     const thinker = s => botSide(s) || (online && s === oppSide) || (table && s !== mySide) || watch;
-    const card = (s, pos) => `<div class="pcard pcard-${pos} ps${s}" id="pl${s}"><span class="av">${av(s)}</span>
-      <span class="nm"><b>${esc(names[s])}</b><small>${sub(s)}${botSide(s) ? ' · ' + V.LEVELS[cfg.level] : ''}</small></span>
-      ${clockMin ? `<span class="clk" id="ck${s}"></span>` : ''}<span class="wins"><b>${series[s]}</b><small>Siege</small></span><em class="tag">am Zug</em>
-      ${thinker(s) ? '<span class="tdots" aria-hidden="true"><i></i><i></i><i></i></span>' : ''}${ai && s === aiSide ? '<div class="bubble" aria-live="polite"></div>' : ''}</div>`;
+    const card = (s, pos) => `<div class="pcard pcard-${pos} ps${s}${s === me ? ' me' : ''}" id="pl${s}"><span class="av">${av(s)}</span>
+      <span class="nm"><b>${esc(shown(s))}</b><small>${sub(s)}</small></span>
+      ${clockMin ? `<span class="clk" id="ck${s}"></span>` : ''}${thinker(s) ? '<span class="tdots" aria-hidden="true"><i></i><i></i><i></i></span>' : ''}<span class="wins"><b>${series[s]}</b><small>Siege</small></span><em class="tag">am Zug</em>
+      ${ai && s === aiSide ? '<div class="bubble" aria-live="polite"></div>' : ''}</div>`;
     const sublabel = table ? `Online-Tisch · ${N} Spieler` : party ? (ai ? `Gegen ${N > 2 ? N - 1 + ' KIs' : 'KI'} · ` + V.LEVELS[cfg.level] : N + ' Spieler') : ai ? 'Gegen KI · ' + V.LEVELS[cfg.level] : online ? 'Online gegen ' + esc(M.opp) : watch ? 'Zuschauen · ' + esc(M.aName) + ' gegen ' + esc(M.bName) : 'Zu zweit';
     // two people at one phone, sitting opposite: player 2's card (and the status on their turn) is turned around
     const facing = cfg.mode === 'local' && settings.face && !party && g.cat !== 'Action';
@@ -111,7 +116,7 @@
         <div class="score" id="sc"><b class="sl">${series[L]}</b><i>:</i><b class="sr">${series[R]}</b></div>
         ${card(R, 'r')}`}
         <div class="center"><div class="status" id="st" aria-live="polite"></div><div class="stage" id="stage"></div></div>
-      </div></div>`);
+      </div><i class="sglow t" aria-hidden="true"></i><i class="sglow b" aria-hidden="true"></i></div>`);
     const stEl = v.querySelector('#st'), pls = {};
     SIDES.forEach(s => { pls[s] = v.querySelector('#pl' + s); });
     const timers = new Set(), cleanups = [];
@@ -134,13 +139,26 @@
       if (!note && !line) { b.classList.remove('on'); return; }
       b.innerHTML = (note ? `<b>${note}</b>` : '') + (line ? `<span>${line}</span>` : '');
       b.classList.remove('on'); void b.offsetWidth; b.classList.add('on');
-      clearTimeout(bubbleT); bubbleT = setTimeout(() => b.classList.remove('on'), 3000);
+      clearTimeout(bubbleT); bubbleT = setTimeout(() => b.classList.remove('on'), 1800);
     }
     cleanups.push(() => { clearTimeout(bubbleT); aim.hide(); });
     const setStatus = html => {
       if (stEl.innerHTML === html) return;
       stEl.innerHTML = html; if (V.fxOn()) V.fx.pop(stEl, 'st-in');
     };
+    // "Du bist dran" / "Gelb ist dran" in the player's colour over the board; the first one waits for the VS intro
+    const t0 = performance.now(), introMs = V.fxOn() && settings.intro !== false ? (rematch || watch ? 650 : 1150) : 0;
+    function turnBanner(s) {
+      const show = () => {
+        if (!alive || ended || lastTurn !== s) return;
+        v.querySelectorAll('.tbanner').forEach(b => b.remove());
+        const b = V.el('div', 'tbanner', esc(s === me ? 'Du bist dran' : sideLabel(s) + ' ist dran'));
+        b.style.setProperty('--c', V.hex(s));
+        ctx.stage.appendChild(b); setTimeout(() => b.remove(), 1200);
+      };
+      const wait = introMs - (performance.now() - t0);
+      if (wait > 0) ctx.later(show, wait); else show();
+    }
     let net = null, tnet = null;
     // realtime channel of this match or table: every change we make pokes the others, a poke makes us fetch at once
     let chan = null;
@@ -186,9 +204,9 @@
         const people = SIDES.filter(k => !ctx.isAI(k));
         if (cfg.mode !== 'local' || people.length < 2 || handSeen === s) return cb();
         handSeen = s;
-        const el = V.el('div', 'handoff', `<div class="ho-in"><span class="ho-av c${s}">${esc(names[s].slice(0, 2).toUpperCase())}</span><h3>Gib das Gerät an <span class="c${s}">${esc(names[s])}</span></h3><p>${text || 'Die anderen schauen kurz weg.'}</p><button class="btn primary big" data-enter><span>Ich bin ${esc(names[s])}</span></button></div>`);
+        const el = V.el('div', 'handoff', V.kit.pass(s, esc(names[s]), text || 'Die anderen schauen kurz weg.'));
         ctx.stage.appendChild(el);
-        el.querySelector('button').onclick = () => { el.remove(); V.sfx.ui(); cb(); };
+        el.querySelector('.pass').onclick = () => { el.remove(); V.sfx.ui(); cb(); };
       },
       handReset() { handSeen = 0; },
       isAI: s => botSide(s) || remote(s),
@@ -203,11 +221,15 @@
       turn(s, html) {
         if (clock) clock.turn(s);
         SIDES.forEach(k => pls[k].classList.toggle('on', s === k));
-        v.classList.toggle('turn-r', s === R);
-        if (s && s !== lastTurn && V.fxOn()) V.fx.pop(pls[s], 'pcard-in');
+        v.classList.toggle('turn-r', s === R); v.classList.toggle('turn-l', !!s && s === L);
+        const fresh = s && s !== lastTurn;
+        if (fresh && V.fxOn()) V.fx.pop(pls[s], 'pcard-in');
         lastTurn = s;
-        const note = s && oppSide && s !== oppSide && lastNote ? `${ctx.who(oppSide)}: ${lastNote} · ` : '';
-        if (html !== false) setStatus(note + (html || (names[s] === 'Du' ? '<span class="c' + s + '">Du</span> bist dran' : `${ctx.who(s)} ist dran`)));
+        // a person's turn: a short banner over the board (not for the AI or remote players, not in action games)
+        if (fresh && !ctx.isAI(s) && g.cat !== 'Action' && !auto && !ctx.fast()) turnBanner(s);
+        // the status line is left for rule hints and the opponent's last move; whose turn it is shows the banner and the cards
+        const note = s && oppSide && s !== oppSide && lastNote ? `${ctx.who(oppSide)}: ${lastNote}` : '';
+        if (html !== false) setStatus(html ? (note ? note + ' · ' : '') + html : note);
         nav.refresh();
       },
       // Every move goes through here (all modes). Online, your own moves are sent to the server.
@@ -256,7 +278,7 @@
         SIDES.forEach(k => { const b = pls[k].querySelector('.wins b'); if (b.textContent !== String(series[k])) { b.textContent = series[k]; V.fx.pop(b, 'fx-pop'); } });
         const meWon = me && winner === me;
         const good = winner && (!me || meWon);
-        if (good) { V.sfx.win(); setTimeout(() => V.fx.confetti(), 250); }
+        if (good) { V.sfx.win(); setTimeout(() => V.fx.confetti(), 250); setTimeout(() => V.fx.win(), g.endDelay ?? 1150); }
         else if (winner) { V.sfx.lose(); V.fx.shake(ctx.stage); }
         // V.t: the letters are animated one by one, so the translation has to happen before the split
         const big = V.t(off ? 'Abgebrochen' : winner === 0 ? 'Remis' : me ? (meWon ? 'Sieg!' : 'Niederlage') : `${names[winner]} gewinnt`);
@@ -268,7 +290,7 @@
           const m = openModal(`<div class="ko ${tone}">
             <div class="band"><div class="band-in"><span class="kicker">${esc(note || sublabel)}${online && net && net.last && net.last.ranked === false ? ' · zählt nicht für die Rangliste' : ''}</span>
               <h2 aria-label="${esc(big)}">${[...big].map((ch, k) => `<span aria-hidden="true" style="--k:${k}">${ch === ' ' ? '&nbsp;' : esc(ch)}</span>`).join('')}</h2></div></div>
-            ${party ? `<div class="eparty">${SIDES.map(k => `<span class="ep c${k}"><b>${series[k]}</b><small>${esc(names[k])}</small></span>`).join('')}</div>` : `<div class="eseries"><span class="nl">${esc(names[L])}</span><b class="sl">${series[L]}</b><i>:</i><b class="sr">${series[R]}</b><span class="nr">${esc(names[R])}</span></div>`}
+            ${party ? `<div class="eparty">${SIDES.map(k => `<span class="ep c${k}"><b>${series[k]}</b><small>${esc(names[k])}</small></span>`).join('')}</div>` : `<div class="eseries"><span class="nl">${esc(names[L])}</span><b class="sl${winner === L && !off ? ' up' : ''}" data-n="${series[L]}">${winner === L && !off ? series[L] - 1 : series[L]}</b><i>:</i><b class="sr${winner === R && !off ? ' up' : ''}" data-n="${series[R]}">${winner === R && !off ? series[R] - 1 : series[R]}</b><span class="nr">${esc(names[R])}</span></div>`}
             ${series.d ? `<p class="small">${series.d}× unentschieden</p>` : ''}
             ${online ? `<div class="kemo" id="kemo"></div><div class="kquick">${['gg', 'clap', 'haha', 'sweat'].map(e => `<button data-emo="${e}">${EMO[e]}</button>`).join('')}</div>` : ''}
             ${online && V.online.friendOf(M.opp) === false && !(V.cloud.user() && V.cloud.user().anon) ? `<button class="btn ghost sm efr" id="efr"><span>${IC.plus}${esc(M.opp)} als Freund hinzufügen</span></button>` : ''}
@@ -280,6 +302,8 @@
             if (e.key === 'm' || e.key === 'M') { menu(); return true; }
             return false;
           });
+          // the winner's number counts up and pulses once the band is in
+          m.querySelectorAll('.eseries b.up').forEach(b => ctx.later(() => { b.textContent = b.dataset.n; V.fx.pop(b, 'bump'); }, 450));
           const er = m.querySelector('#er'); if (er) er.onclick = again;
           m.querySelectorAll('[data-emo]').forEach(b => b.onclick = () => sendEmote(b.dataset.emo));
           const efr = m.querySelector('#efr');

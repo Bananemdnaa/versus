@@ -25,18 +25,20 @@
 
   V.css(`
   .ttt{position:relative;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));grid-template-rows:repeat(3,minmax(0,1fr));gap:10px;width:min(var(--bw),560px);aspect-ratio:1}
-  .ttt button{min-width:0;min-height:0;background:var(--panel);border:1px solid var(--line);border-radius:8px;display:grid;place-items:center;transition:background .15s,border-color .15s,transform .12s}
+  .ttt button{position:relative;min-width:0;min-height:0;background:var(--panel);border:1px solid var(--line);border-radius:14px;display:grid;place-items:center;transition:background .15s,border-color .15s,transform .12s}
   .ttt button:not(:disabled):hover{border-color:var(--line2);background:var(--panel2)}
   .ttt button:not(:disabled):active{transform:scale(.94)}
   .ttt button.w{border-color:var(--cy);background:#13303a;animation:tttw .6s var(--spring)}
   @keyframes tttw{40%{transform:scale(1.08)}}
   .ttt.dim button:not(.w){opacity:.45;transition:opacity .4s}
   .ttt svg{width:62%;height:62%;overflow:visible}
-  .ttt .mx path{stroke:var(--p1);stroke-width:11;stroke-linecap:round;fill:none;stroke-dasharray:80;stroke-dashoffset:80;animation:drawx .26s ease-out forwards;filter:drop-shadow(0 0 6px color-mix(in srgb,var(--p1) 60%,transparent))}
-  .ttt .mx path+path{animation-delay:.11s}
-  .ttt .mo circle{stroke:var(--p2);stroke-width:11;fill:none;stroke-dasharray:170;stroke-dashoffset:170;animation:drawx .34s ease-out forwards;filter:drop-shadow(0 0 6px color-mix(in srgb,var(--p2) 55%,transparent))}
+  .ttt .mx path{stroke:var(--p1);stroke-width:11;stroke-linecap:round;fill:none;stroke-dasharray:80;stroke-dashoffset:80;animation:drawx .16s ease-out forwards;filter:drop-shadow(0 0 6px color-mix(in srgb,var(--p1) 60%,transparent))}
+  .ttt .mx path+path{animation-delay:.16s}
+  .ttt svg.mx,.ttt svg.mo{animation:popIn .4s var(--spring)}
+  .ttt .mo circle{stroke:var(--p2);stroke-width:11;fill:none;stroke-dasharray:170;stroke-dashoffset:170;animation:drawx .3s ease-out forwards;filter:drop-shadow(0 0 6px color-mix(in srgb,var(--p2) 55%,transparent))}
   .ttt .strike{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
-  .ttt .strike line{stroke:#fff;stroke-width:.09;stroke-linecap:round;stroke-dasharray:5;stroke-dashoffset:5;animation:drawx .45s .1s ease-out forwards;filter:drop-shadow(0 0 .08px var(--cy))}
+  .ttt .strike{filter:drop-shadow(0 0 10px #fff)}
+  .ttt .strike line{stroke:#fff;stroke-width:.09;stroke-linecap:round;stroke-dasharray:5;stroke-dashoffset:5;animation:drawx .35s .1s ease-out forwards}
   @keyframes drawx{to{stroke-dashoffset:0}}`);
 
   const X = '<svg class="mx" viewBox="0 0 60 60"><path d="M8 8L52 52"/><path d="M52 8L8 52"/></svg>';
@@ -72,7 +74,7 @@
         ctx.moved(turn, i);
         b[i] = turn;
         cells[i].innerHTML = turn === 1 ? X : O; cells[i].disabled = true;
-        V.sfx.move(); V.fx.burstAt(cells[i], V.hex(turn), 6, 40);
+        V.kit.placed(cells[i], V.hex(turn), ctx.isAI(turn)); V.fx.burstAt(cells[i], V.hex(turn), 6, 40);
         const r = winner(b);
         if (r) {
           over = true;

@@ -314,8 +314,8 @@
         st.innerHTML = '';
         ctx.turn(side, 'Gerät weitergeben');
         const card = V.el('div', 'passcard');
-        card.innerHTML = `<div class="pass"><div class="eye">${V.IC.users}</div><h3>Gib das Gerät an ${ctx.who(side)}</h3><p>${text}</p><button class="btn primary" data-enter>Ich bin ${ctx.name(side)}, weiter</button></div>`;
-        card.querySelector('button').onclick = cb;
+        card.innerHTML = V.kit.pass(side, ctx.name(side), text);
+        card.querySelector('.pass').onclick = () => { V.sfx.ui(); cb(); };
         st.appendChild(card);
       }
 

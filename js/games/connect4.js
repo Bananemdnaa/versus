@@ -45,7 +45,7 @@
   .c4ghost{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;padding:0 11px}
   .c4ghost div{aspect-ratio:1;border-radius:50%;transform:scale(.88);opacity:0;transition:opacity .12s}
   .c4ghost div.on{opacity:.45}
-  .c4b{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;padding:10px;background:#1a1f5c;border-radius:10px;border:1px solid #3b4aa8;box-shadow:0 0 50px -16px #4f6bff;cursor:pointer;touch-action:manipulation}
+  .c4b{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;padding:10px;background:#1a1f5c;border-radius:26px;border:1px solid #3b4aa8;box-shadow:0 30px 60px -20px rgba(0,0,0,.8),inset 0 1px 0 rgba(255,255,255,.06),0 0 50px -16px #4f6bff;cursor:pointer;touch-action:manipulation}
   .c4b .cell{aspect-ratio:1;border-radius:50%;background:var(--bg);position:relative;box-shadow:inset 0 3px 6px rgba(0,0,0,.7)}
   .c4b .disc,.c4ghost div{position:relative}
   .c4b .disc{position:absolute;inset:5%;border-radius:50%}
@@ -53,8 +53,7 @@
   .c4b .p2,.c4ghost .p2{background:radial-gradient(circle at 35% 30%,var(--p2hi),var(--p2) 62%);box-shadow:0 0 12px color-mix(in srgb,var(--p2) 50%,transparent)}
   .c4b .drop{animation:c4drop calc(.18s + var(--f)*.05s) cubic-bezier(.55,0,1,.45) both}
   @keyframes c4drop{from{transform:translateY(calc(var(--f) * -120%))}75%{transform:translateY(0)}88%{transform:translateY(-7%)}to{transform:none}}
-  .c4b .w .disc{box-shadow:0 0 0 3px var(--cy),0 0 22px var(--cy);animation:c4win 1s ease-in-out infinite}
-  @keyframes c4win{50%{transform:scale(.86)}}
+  .c4b .w .disc{box-shadow:0 0 0 3px #fff,0 0 14px rgba(255,255,255,.6);animation:winPulse .9s ease-in-out infinite}
   .c4b.done .cell:not(.w) .disc{opacity:.4;transition:opacity .5s}
   .c4b .cell{transition:background .15s}
   .c4b.hov .cell.col{background:#141733}
@@ -109,8 +108,8 @@
         const d = V.el('div', 'disc drop p' + who); d.style.setProperty('--f', r + 1); cell.appendChild(d);
         showGhost(-1); busy = true;
         ctx.later(() => {
-          V.sfx.place(); busy = false;
-          V.fx.ringAt(d, V.hex(who));
+          busy = false;
+          V.kit.placed(cell, V.hex(who), ctx.isAI(who));
           if (r === R - 1 || V.fxOn()) V.fx.shake(board, true);
           after();
         }, 180 + (r + 1) * 50);
@@ -119,7 +118,7 @@
         const line = lineAt(s.b, s.last);
         if (line) {
           over = true; board.classList.add('lock', 'done');
-          line.forEach((i, n) => ctx.later(() => { board.children[i].classList.add('w'); V.fx.burstAt(board.children[i], '#6ff3ff', 8, 55); }, n * 90));
+          line.forEach((i, n) => ctx.later(() => { board.children[i].classList.add('w'); V.fx.burstAt(board.children[i], '#ffffff', 8, 55); }, n * 90));
           ctx.end(3 - s.turn); return;
         }
         if (s.n >= R * C) { over = true; ctx.end(0); return; }
