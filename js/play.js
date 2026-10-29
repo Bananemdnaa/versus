@@ -726,6 +726,41 @@
     if (party && N > 2) vsIntro({ name: names[1], sub: sideLabel(1) }, { name: ai ? N - 1 + ' KIs' : 'Alle', sub: ai ? V.LEVELS[cfg.level] : N + ' Spieler' }, rematch);
     else vsIntro({ name: names[L], sub: sideLabel(L) }, { name: names[R], sub: ai ? 'KI · ' + V.LEVELS[cfg.level] : online ? 'online' : sideLabel(R) }, rematch || watch);
     inst = g.start(ctx) || {};
+    // When the match does not fit on the screen: on the phone the player cards get smaller first (up to three steps),
+    // then (phone and laptop) boards that size themselves with --bw shrink by what is still missing, so the board and
+    // your own card stay visible without scrolling. Checked again whenever the stage changes size.
+    let fitF = 0;
+    const fit = () => {
+      fitF = 0;
+      if (!alive) return;
+      const de = document.documentElement, over = () => de.scrollHeight - innerHeight > 2;
+      // the entrance animation moves everything down a little; measure once it is over
+      if (v.classList.contains('enter')) { fitF = setTimeout(fit, 120); return; }
+      v.classList.remove('tight', 'tight2', 'tight3');
+      ctx.stage.style.removeProperty('--bw');
+      if (!V.ui.wide()) {
+        if (over()) v.classList.add('tight');
+        if (over()) v.classList.add('tight2');
+        // party games show every player on the board itself (Poker seats, Würfelblock table), so the cards may go
+        if (party && over()) v.classList.add('tight3');
+      }
+      const b = ctx.stage.firstElementChild; if (!b) return;
+      b.style.zoom = '';
+      let miss = de.scrollHeight - innerHeight;
+      if (miss > 2 && b.offsetWidth > 280) ctx.stage.style.setProperty('--bw', Math.max(260, b.offsetWidth - miss - 4) + 'px');
+      // boards that do not follow --bw (Poker table, Würfelblock sheet) are scaled down, at most to 72 %;
+      // not Schiffe versenken, whose own fleet sits below the sea on purpose and whose ships are dragged
+      miss = de.scrollHeight - innerHeight;
+      for (let k = 0; k < 2 && miss > 2 && g.id !== 'ships' && b.offsetHeight > 200; k++) {
+        const z = +b.style.zoom || 1, h = b.getBoundingClientRect().height;
+        b.style.zoom = Math.max(0.72, z * (h - miss - 4) / h).toFixed(3);
+        miss = de.scrollHeight - innerHeight;
+      }
+    };
+    const askFit = () => { if (!fitF) fitF = setTimeout(fit, 40); };
+    if (window.ResizeObserver) { const ro = new ResizeObserver(askFit); ro.observe(ctx.stage); cleanups.push(() => ro.disconnect()); }
+    addEventListener('resize', askFit); cleanups.push(() => { removeEventListener('resize', askFit); clearTimeout(fitF); });
+    askFit();
   }
   P.play = play;
 })();

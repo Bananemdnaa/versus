@@ -1603,3 +1603,33 @@ textarea.inp{height:auto}
 .lowfx .tabs .nb{animation:none}
 .tut .dots i{width:12px;height:6px} .tut .dots i.on{width:28px}
 .tut .demo{border-radius:var(--r-m)}
+
+/* ---------- phone: matches that do not fit get smaller player cards ---------- */
+@media (max-width:959px){
+  .play.tight,.play.tight .duel{gap:8px}
+  .tight .pcard{height:56px;padding:7px 12px 7px 10px;gap:10px;border-radius:16px}
+  .tight .pcard .av{width:38px;height:38px;font-size:18px}
+  .tight .pcard .av svg{width:20px;height:20px}
+  .tight .pcard .nm b{font-size:18px}
+  .tight .pcard .wins b{font-size:30px}
+  .tight .status{min-height:22px;padding-block:2px}
+  .tight2 .pcard{height:46px;padding-block:4px}
+  .tight2 .pcard .av{width:32px;height:32px}
+  .tight2 .pcard .nm small{display:none}
+  .tight2 .pbar .iconbtn{width:40px;height:40px}
+  .tight .duel.party .pcard{height:auto;min-height:0;padding:5px 8px}
+  .tight .duel.party .pcard .av{width:28px;height:28px}
+  /* the reaction duel fills the room between the cards */
+  .stage .rx{height:max(320px,calc(100dvh - 290px));min-height:0}
+}
+/* hand-over screen: over the whole screen, so nothing of the hidden cards or fleet shows */
+.pass{position:fixed;inset:0;z-index:45;border-radius:0;padding:max(24px,env(safe-area-inset-top,0px)) 24px max(24px,env(safe-area-inset-bottom,0px))}
+.handoff{position:static}
+.passcard{min-height:0}
+@media (max-width:959px){
+  .tight2 .stage .pkt{margin:20px 0 2px}
+  .tight2 .stage .pk{gap:5px}
+  .tight2 .stage .bsside{gap:6px}
+  .tight2 .stage .bs{gap:10px}
+}
+@media (max-width:959px){.tight3 .duel.party .pcol{display:none}}
