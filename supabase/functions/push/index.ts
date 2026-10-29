@@ -24,6 +24,7 @@ async function send({ uid, kind, from, game, match }: { uid?: string, kind?: str
     invite: { title: `${from} fordert dich heraus`, body: `${g} · öffne Versus, um anzunehmen`, url: '?tab=online' },
     invite_async: { title: `${from} will eine Partie über Tage`, body: `${g} · jeder zieht, wann er Zeit hat`, url: '?tab=online' },
     accepted: { title: `${from} spielt mit`, body: `${g} über Tage hat begonnen`, url: match ? `?match=${match}` : '?tab=online' },
+    joined: { title: `${from} ist beigetreten`, body: `${g} · komm zurück, die Partie läuft`, url: match ? `?match=${match}` : '?tab=online' },
     turn: { title: 'Du bist dran', body: `${g} gegen ${from}`, url: match ? `?match=${match}` : '?tab=online' },
     friend: { title: `${from} möchte dein Freund sein`, body: 'In Versus annehmen oder ablehnen', url: '?tab=online' }
   }[kind as string];

@@ -921,7 +921,7 @@
     '7: Der Nächste zieht zwei, außer er legt selbst eine 7': '7: the next player draws two, unless they play a 7 too',
     '8: Der Nächste setzt aus': '8: the next player skips a turn', 'Bube passt immer und wünscht eine Farbe': 'A jack always fits and calls a suit',
     'Farbenblind-Modus': 'Colour-blind mode', 'Muster auf den Steinen, Nummern auf den Figuren': 'Patterns on the pieces, numbers on the pawns',
-    'Spiel mit mir': 'Play with me', 'Link teilen': 'Share link', 'Kopieren': 'Copy', 'Warte, bis jemand beitritt …': 'Waiting for someone to join …',
+    'Spiel mit mir': 'Play with me', 'Du kannst den Link in Ruhe verschicken, er gilt 15 Minuten.': 'Take your time sending the link, it stays valid for 15 minutes.', '{0} ist beigetreten': '{0} joined', 'Link teilen': 'Share link', 'Kopieren': 'Copy', 'Warte, bis jemand beitritt …': 'Waiting for someone to join …',
     '{0} · schick den Link oder lass den Code scannen. Wer ihn öffnet, spielt sofort gegen dich, auch ohne Freundschaft und ohne Konto (bei den Gast-Spielen).': '{0} · send the link or let them scan the code. Whoever opens it plays you right away, no friendship needed and, for the guest games, no account.',
     'Per Link einladen': 'Invite with a link', 'Freund per Link einladen': 'Invite a friend with a link', 'Der Link ist abgelaufen': 'The link has expired',
     'Dieser Spiel-Link gilt nicht mehr': 'This game link is no longer valid', '{0} lädt dich ein': '{0} invites you',
