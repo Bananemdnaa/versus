@@ -122,8 +122,8 @@ begin
   if player and not (m.status = 'live' or (m.status in ('done', 'void') and m.finished_at > now() - interval '3 minutes')) then return null; end if;
   if not player and not (m.status = 'live' or (m.status in ('done', 'void') and m.finished_at > now() - interval '1 minute')) then return null; end if;
   if exists (select 1 from public.match_reactions r where r.match_id = mid and r.uid = u
-      and r.at > now() - case when player then interval '1 second' else interval '2 seconds' end) then return null; end if;
-  if (select count(*) from public.match_reactions r where r.match_id = mid and r.uid = u) >= case when player then 80 else 30 end then return null; end if;
+      and r.at > now() - (case when player then interval '1 second' else interval '2 seconds' end)) then return null; end if;
+  if (select count(*) from public.match_reactions r where r.match_id = mid and r.uid = u) >= (case when player then 80 else 30 end) then return null; end if;
   insert into public.match_reactions (match_id, uid, e) values (mid, u, e) returning id into rid;
   return rid;
 end;
