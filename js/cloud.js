@@ -21,7 +21,8 @@
 
   // The Supabase library loads in the background, so the menus do not wait for it. Until init() has asked the
   // server who is logged in, nobody counts as a guest (no locked games flashing up for logged-in players).
-  const LIB = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.4/dist/umd/supabase.js';
+  // supabase-js 2.49.4, stored in the project so no third-party CDN sees the players' IP addresses
+  const LIB = 'js/vendor/supabase.js';
   let failed = !(CFG.url && CFG.key), starting = !failed;
   const lib = failed ? Promise.resolve(null) : new Promise(done => {
     const s = document.createElement('script'); s.src = LIB; s.async = true;

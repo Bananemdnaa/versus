@@ -52,7 +52,7 @@
           ${mode === 'new' ? '<label for="a_pw2">Passwort wiederholen</label><input class="inp" id="a_pw2" type="password" autocomplete="new-password">' : ''}
           <p class="aerr" id="aerr" role="alert">${esc(err)}</p>
           <button class="btn primary big" type="submit"><span>${mode === 'new' ? 'Konto erstellen' : 'Einloggen'}</span></button>
-          ${mode === 'new' ? '<p class="fine">Benutzername: 3 bis 16 Zeichen, nur a–z, 0–9, _ und -. Es gibt keine E-Mail. Nach dem Erstellen bekommst du einen Wiederherstellungscode für ein vergessenes Passwort.</p>' : '<button class="link aforgot" type="button" id="a_forgot">Passwort vergessen?</button>'}
+          ${mode === 'new' ? '<p class="fine">Benutzername: 3 bis 16 Zeichen, nur a–z, 0–9, _ und -. Es gibt keine E-Mail. Nach dem Erstellen bekommst du einen Wiederherstellungscode für ein vergessenes Passwort.</p><p class="fine">Konten ab 14 Jahren, jünger nur mit Erlaubnis der Eltern. Was gespeichert wird: <a href="rechtliches.html" target="_blank">Datenschutz</a>.</p>' : '<button class="link aforgot" type="button" id="a_forgot">Passwort vergessen?</button>'}
         </form>
         ${guestNote()}
       </div></section>`;
@@ -78,6 +78,7 @@
         <button class="opt" id="a_inv">${IC().share}<span><b>Freunde einladen</b><small id="a_invs">Wer über deinen Link ein Konto erstellt, ist sofort dein Freund</small></span></button>
         <button class="opt" data-box="blocks">${IC().eye}<span><b>Blockierte Spieler</b><small>${blockSub()}</small></span></button>
         ${openBox === 'blocks' ? `<div class="abox" id="blist">${blockList()}</div>` : ''}
+        <a class="opt" href="rechtliches.html">${IC().shield}<span><b>Datenschutz und Impressum</b><small>Welche Daten Versus speichert und wer dahintersteht</small></span></a>
         <button class="opt danger" data-box="delete">${IC().x}<span><b>Konto löschen</b><small>Löscht dein Konto und alle Daten auf dem Server</small></span></button>
         ${openBox === 'delete' ? `<form class="abox" id="f_delete"><input class="inp" id="d_pw" type="password" autocomplete="current-password" placeholder="Passwort zur Bestätigung"><button class="btn sm danger" type="submit"><span>Endgültig löschen</span></button><p class="aerr" id="d_err"></p></form>` : ''}
       </div>

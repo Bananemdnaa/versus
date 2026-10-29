@@ -877,6 +877,13 @@
     'Zu viele falsche Codes. Versuch es in einer Stunde nochmal.': 'Too many wrong codes. Try again in an hour.', 'Diesen Code gibt es nicht. Vertippt?': "This code doesn't exist. Typo?", 'Das ist dein eigener Code.': 'That is your own code.'
   });
 
+  // ---------- legal ----------
+  A({
+    'Impressum und Datenschutz': 'Legal notice and privacy', 'Versus # · ohne Werbung. KI und Spiele zu zweit laufen auch offline.{0}{1}{2}': 'Versus # · no ads. AI and two-player games also work offline.{0}{1}{2}', 'Datenschutz und Impressum': 'Privacy and legal notice',
+    'Welche Daten Versus speichert und wer dahintersteht': 'What data Versus stores and who runs it',
+    'Konten ab 14 Jahren, jünger nur mit Erlaubnis der Eltern. Was gespeichert wird: {0}.': 'Accounts from age 14, younger only with your parents\' permission. What is stored: {0}.', 'Datenschutz': 'Privacy'
+  });
+
   // ---------- words that differ by game ----------
   A({ 'Remis': 'Draw', 'Ziehen': 'Moving' });
   V.i18n.ctx('[data-g=go], [data-g=reversi]', { 'Passen': 'Pass', 'Gepasst': 'Passed' });

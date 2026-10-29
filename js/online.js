@@ -401,7 +401,7 @@
     if (window.qrcode) return Promise.resolve();
     return qrLib || (qrLib = new Promise((res, rej) => {
       const s = document.createElement('script');
-      s.src = 'https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js';
+      s.src = 'js/vendor/qrcode.js';   // qrcode-generator 1.4.4, stored in the project
       s.onload = () => res(); s.onerror = () => { qrLib = null; s.remove(); rej(new Error('qr')); };
       document.head.appendChild(s);
     }));

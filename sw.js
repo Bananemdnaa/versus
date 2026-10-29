@@ -10,7 +10,7 @@ self.addEventListener('install', e => {
     const html = await res.clone().text();
     await c.put('./', res.clone());
     await c.put('./index.html', res);
-    const urls = new Set(['./manifest.webmanifest', './favicon.svg', './icons/icon-192.png', './icons/icon-512.png', './icons/apple-touch-icon.png']);
+    const urls = new Set(['./manifest.webmanifest', './favicon.svg', './fonts/saira.woff2', './fonts/saira-condensed-600.woff2', './fonts/saira-condensed-700.woff2', './fonts/saira-condensed-800.woff2', './js/vendor/supabase.js', './js/vendor/qrcode.js', './rechtliches.html', './icons/icon-192.png', './icons/icon-512.png', './icons/apple-touch-icon.png']);
     for (const m of html.matchAll(/(?:src|href)="([^"]+)"/g)) {
       const u = m[1];
       if (/^https:\/\/(cdn\.jsdelivr\.net|fonts\.googleapis\.com)/.test(u) || !/^(https?:|data:|#)/.test(u)) urls.add(u);
