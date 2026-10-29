@@ -894,6 +894,22 @@
 
   A({ 'Language · Deutsch oder Englisch': 'Sprache · German or English' });
   V.i18n.ctx('[data-k=haptic]', { 'Leicht': 'Light' });
+  // ---------- app feel: carousel, quick buttons, game sheet, turn banner, pass screen, online search ----------
+  A({
+    'Beliebt online': 'Popular online', 'Gegen echte Gegner': 'Against real opponents', 'Bis zu vier': 'Up to four', 'Ein Handy, vier Spieler': 'One phone, four players',
+    'Jeder auf seiner Hälfte': 'Each on their own half', 'App': 'App', 'Woche ##': 'Week ##', 'Serie #': 'Streak #',
+    'Kostenloses Konto: # Spiele mehr': 'Free account: # more games', 'Dazu Online-Partien, Freunde und die Rangliste': 'Plus online matches, friends and the ranking',
+    '#–# Spieler': '#–# players', '# Spieler': '# players', 'Ohne KI': 'No AI', 'KI · # Stufen': 'AI · # levels', 'KI': 'AI', 'KI-Stärke': 'AI strength', 'Wer fängt an?': 'Who starts?',
+    'Nur zu zweit': 'Two players only', 'Nicht online spielbar': 'Not playable online', 'Online kommt gleich': 'Online is coming soon',
+    'Gib das Gerät an': 'Hand the device to', 'Tippen zum Weiter': 'Tap to continue',
+    'Live spielen': 'Play live', 'Ein Tipp, ein Gegner': 'One tap, one opponent', 'Suchen': 'Search', 'Als Gast suchen': 'Search as guest',
+    'Welches Spiel? Bei „Egal“ nimmt Versus das, wofür gerade jemand wartet.': 'Which game? With “Any”, Versus picks whatever someone is waiting for.',
+    'Gegner gefunden': 'Opponent found', 'Noch niemand da': 'Nobody here yet', '# s': '# s',
+    'noch # Tage # Std': '# days # h left', 'noch # Tag # Std': '# day # h left', 'noch # Std': '# h left', 'noch # Min': '# min left',
+    '# Sieg · # %': '# win · # %', '# Siege · # %': '# wins · # %',
+    'Jetzt: Schlachtschiff (# Felder)': 'Now: Battleship (# cells)', 'Leeren': 'Clear'
+  });
+  V.i18n.pat([[/^(.+) ist dran$/, (m, n) => t(n) + ' to move'], [/^spielt (.+)$/, (m, n) => 'playing ' + t(n)]]);
   // last resort for "A · B · C" lines (colour · level, game · level …): every part on its own
   V.i18n.pat([[/^(?=.* · ).+$/, m => m.split(' · ').map(p => t(p)).join(' · ')]]);
   V.i18n.start();
