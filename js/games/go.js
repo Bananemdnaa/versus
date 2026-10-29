@@ -197,7 +197,7 @@
         showGhost(-1);
         const gone = before.filter(i => !b[i]);
         render(gone);
-        V.sfx.place();
+        V.kit.placed(pts[m], V.hex(turn), ctx.isAI(turn));
         if (cap) { V.sfx.hit(); V.fx.burstAt(pts[m], turn === 1 ? '#888' : '#fff', 8 + cap * 2, 50); ctx.status(`${ctx.who(turn)} fängt ${cap} ${cap === 1 ? 'Stein' : 'Steine'}`); }
         turn = 3 - turn; next();
       }

@@ -23,7 +23,7 @@
     const held = new Map();
     [res.top, res.bottom].forEach(row => row && row.querySelectorAll('.pad button').forEach(b => {
       const s = +b.closest('.pad').dataset.s, id = b.dataset.b;
-      b.addEventListener('pointerdown', e => { e.preventDefault(); try { b.setPointerCapture(e.pointerId); } catch (x) { } held.set(e.pointerId, b); b.classList.add('dn'); o.down(s, id); });
+      b.addEventListener('pointerdown', e => { e.preventDefault(); try { b.setPointerCapture(e.pointerId); } catch (x) { } held.set(e.pointerId, b); b.classList.add('dn'); V.buzz(5); o.down(s, id); });
       const up = e => { if (held.get(e.pointerId) !== b) return; held.delete(e.pointerId); b.classList.remove('dn'); if (o.up) o.up(s, id); };
       b.addEventListener('pointerup', up); b.addEventListener('pointercancel', up);
       b.addEventListener('contextmenu', e => e.preventDefault());
@@ -40,6 +40,15 @@
       if (!el) return;
       if (V.fxOn()) { const r = V.el('i', 'kring'); r.style.setProperty('--c', color); el.appendChild(r); setTimeout(() => r.remove(), 600); }
       if (them) V.sfx.them(); else V.sfx.place();
+    },
+    // a card (or piece) flies from the screen rect `from` to where it is now and keeps its own rotation
+    fly(el, from, ms = 300) {
+      if (!el || !from || !V.fxOn()) return;
+      const to = el.getBoundingClientRect(), end = getComputedStyle(el).transform;
+      const dx = from.left + from.width / 2 - (to.left + to.width / 2), dy = from.top + from.height / 2 - (to.top + to.height / 2);
+      if (!dx && !dy) return;
+      const base = end === 'none' ? '' : end;
+      el.animate([{ transform: `translate(${dx}px,${dy}px) ${base} scale(.85)` }, { transform: base || 'none' }], { duration: ms, easing: 'cubic-bezier(.2,.8,.2,1)' });
     },
     // full screen in the colour of the player who gets the device; the whole screen is the button
     pass(s, name, text, extra = '') {

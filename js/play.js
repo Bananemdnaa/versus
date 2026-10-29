@@ -648,7 +648,7 @@
     // Local: counted here (paused while a dialog is open). Online and watching: computed from the server's move times.
     if (clockMin) {
       const left = { 1: clockMin * 60000, 2: clockMin * 60000 }, els = { 1: v.querySelector('#ck1'), 2: v.querySelector('#ck2') };
-      let run = 0, lastT = performance.now(), flagT = 0;
+      let run = 0, lastT = performance.now(), flagT = 0, tickSec = 0;
       const fmt = ms => { ms = Math.max(0, ms); if (ms < 10000) return (Math.floor(ms / 100) / 10).toFixed(1); const s = Math.ceil(ms / 1000); return Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0'); };
       clock = {
         turn(s) {
@@ -674,6 +674,10 @@
           if (run && left[run] <= 0) { left[run] = 0; const s = run; run = 0; ctx.end(3 - s, names[s] + ': Zeit abgelaufen'); }
         } else on = 0;
         [1, 2].forEach(s => { const e = els[s]; if (!e) return; e.textContent = fmt(show[s]); e.classList.toggle('run', s === on); e.classList.toggle('low', show[s] < 20000); });
+        // under 10 seconds a quiet tick every second
+        const sec = on && show[on] > 0 && show[on] < 10000 ? Math.ceil(show[on] / 1000) : 0;
+        if (sec && sec !== tickSec) V.sfx.tick();
+        tickSec = sec;
       };
       const iv = setInterval(tick, 100); cleanups.push(() => clearInterval(iv)); tick();
     }

@@ -49,12 +49,12 @@
   .rv .st{width:82%;height:82%;border-radius:50%;transition:transform .35s;transform-style:preserve-3d}
   .rv .st.s1{background:radial-gradient(circle at 35% 30%,var(--p1hi),var(--p1) 62%);box-shadow:0 0 10px color-mix(in srgb,var(--p1) 50%,transparent)}
   .rv .st.s2{background:radial-gradient(circle at 35% 30%,var(--p2hi),var(--p2) 62%);box-shadow:0 0 10px color-mix(in srgb,var(--p2) 45%,transparent)}
-  .rv .st.half{animation:rvh1 .14s ease-in forwards}
+  .rv .st.half{animation:rvh1 .17s ease-in forwards}
   .rv .st.half2{animation:rvh2 .18s ease-out}
-  @keyframes rvh1{to{transform:scaleX(0) scaleY(1.1)}}
-  @keyframes rvh2{from{transform:scaleX(0) scaleY(1.1)}}
+  @keyframes rvh1{to{transform:perspective(200px) rotateY(90deg) scale(1.1)}}
+  @keyframes rvh2{from{transform:perspective(200px) rotateY(-90deg) scale(1.1)}}
   .rv .sq.ok::after{animation:miniIn .3s var(--spring)}
-  .rv .st.new{animation:pop .25s}
+  .rv .st.new{animation:popIn .4s var(--spring)}
   .rv .lastm{box-shadow:inset 0 0 0 2px rgba(255,255,255,.55)}
   @keyframes rvflip{0%{transform:rotateY(0)}50%{transform:rotateY(90deg) scale(1.1)}100%{transform:rotateY(0)}}
   /* Neon and wood (Optionen: Spielbrett) */
@@ -108,16 +108,16 @@
         const who = s.turn, f = flips(s.b, i, who);
         s = G.play(s, i); last = i;
         if (V.fxOn()) f.forEach(k => animating.add(k));
-        V.sfx.place(); render();
-        V.fx.ringAt(sqs[i], V.hex(who));
+        render();
+        V.kit.placed(sqs[i], V.hex(who), ctx.isAI(who));
         const r0 = i >> 3, c0 = i & 7;
         f.forEach(k => {
           const st = sqs[k].firstElementChild, dist = Math.max(Math.abs((k >> 3) - r0), Math.abs((k & 7) - c0));
           if (!V.fxOn()) { st.className = 'st s' + who; return; }
           ctx.later(() => {
             st.className = 'st s' + (3 - who) + ' half';
-            ctx.later(() => { animating.delete(k); st.className = 'st s' + s.b[k] + ' half2'; V.sfx.tick(); }, 140);
-          }, dist * 70);
+            ctx.later(() => { animating.delete(k); st.className = 'st s' + s.b[k] + ' half2'; V.sfx.tick(); }, 170);
+          }, dist * 50);
         });
         if (f.length >= 5) ctx.later(() => V.fx.floatAt(sqs[i], '+' + f.length, V.hex(who)), 150);
         next();

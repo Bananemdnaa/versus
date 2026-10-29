@@ -642,7 +642,7 @@
     flip('o_mus', () => { settings.music = settings.music === false; dimSliders(); setTimeout(() => V.music.apply(), 0); return settings.music; });
     v.querySelectorAll('[data-vol]').forEach(row => {
       const k = row.dataset.vol, r = row.querySelector('input'), out = row.querySelector('em');
-      r.oninput = () => { settings[k] = +r.value; r.style.setProperty('--p', r.value + '%'); out.textContent = r.value + ' %'; if (k === 'mvol') V.music.apply(); };
+      r.oninput = () => { if (Math.floor(+r.value / 10) !== Math.floor(settings[k] / 10)) V.sfx.tick(); settings[k] = +r.value; r.style.setProperty('--p', r.value + '%'); out.textContent = r.value + ' %'; if (k === 'mvol') V.music.apply(); };
       r.onchange = () => { saveSettings(); if (k === 'vol') V.sfx.place(); };
     });
     v.querySelectorAll('.oseg').forEach(g => g.querySelectorAll('button').forEach(b => b.onclick = () => {

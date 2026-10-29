@@ -96,7 +96,7 @@
         ctx.moved(s.turn, m);
         const before = s.big.slice();
         s = G.play(s, m);
-        V.sfx.move();
+        if (ctx.isAI(3 - s.turn)) V.sfx.them(); else V.sfx.move();
         render();
         s.big.forEach((v, i) => {
           if (v === before[i]) return;

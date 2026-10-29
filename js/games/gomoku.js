@@ -100,7 +100,7 @@
   .gmk .st.p2{background:radial-gradient(circle at 35% 30%,var(--p2hi),var(--p2) 62%);box-shadow:0 0 8px color-mix(in srgb,var(--p2) 50%,transparent)}
   .gmk .st.gh{opacity:.45;animation:none}
   .gmk .st.last::after{content:'';position:absolute;inset:34%;border-radius:50%;background:rgba(8,9,15,.55)}
-  .gmk .pt.w .st{box-shadow:0 0 0 2px var(--cy),0 0 16px var(--cy);animation:c4win 1s ease-in-out infinite}
+  .gmk .pt.w .st{box-shadow:0 0 0 2px #fff,0 0 12px rgba(255,255,255,.6);animation:winPulse .9s ease-in-out infinite}
   .gmk.done .pt:not(.w) .st{opacity:.45;transition:opacity .5s}
   .gmk.lock{cursor:default}`);
 
@@ -158,11 +158,11 @@
         s = makeG(10).play(s, i);
         board.querySelectorAll('.st.last').forEach(x => x.classList.remove('last'));
         const st = V.el('i', 'st last p' + who); pts[i].appendChild(st);
-        V.sfx.place(); V.fx.ringAt(st, V.hex(who), 40);
+        V.kit.placed(pts[i], V.hex(who), ctx.isAI(who));
         const line = lineAt(s.b, N, i);
         if (line) {
           over = true; board.classList.add('lock', 'done');
-          line.forEach((k, n) => ctx.later(() => { pts[k].classList.add('w'); V.fx.burstAt(pts[k], '#6ff3ff', 6, 40); }, n * 80));
+          line.forEach((k, n) => ctx.later(() => { pts[k].classList.add('w'); V.fx.burstAt(pts[k], '#ffffff', 6, 40); }, n * 80));
           return ctx.end(who);
         }
         if (s.n >= N * N) { over = true; return ctx.end(0); }

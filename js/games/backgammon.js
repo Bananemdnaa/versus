@@ -255,9 +255,18 @@
       function doStep(o) {
         const hit = o.st[1] !== OFF[turn] && opp(s, turn, o.st[1]) === 1;
         s = apply(s, turn, o.st); left.splice(left.indexOf(o.d), 1); done.push(o.st); sel = null;
-        hit ? (V.sfx.hit(), V.fx.shake(host, true)) : V.sfx.place();
+        hit ? (V.sfx.hit(), V.fx.shake(host, true)) : ctx.isAI(turn) ? V.sfx.them() : V.sfx.place();
         if (o.st[1] === OFF[turn]) V.sfx.goal();
+        // the checker glides from its old place to the new one (the board is drawn again as a whole)
+        const key = c => c.getAttribute('cx') + ',' + c.getAttribute('cy'), mine = () => [...host.querySelectorAll('circle.ck.s' + turn)];
+        const before = new Set(mine().map(key));
         svg();
+        if (!V.fxOn() || ctx.fast()) return;
+        const now = mine(), nowK = new Set(now.map(key));
+        const from = [...before].find(k => !nowK.has(k)), moved = now.find(c => !before.has(key(c)));
+        if (!from || !moved) return;
+        const [x0, y0] = from.split(',').map(Number);
+        moved.animate([{ transform: `translate(${x0 - moved.getAttribute('cx')}px,${y0 - moved.getAttribute('cy')}px)` }, { transform: 'none' }], { duration: 250, easing: 'cubic-bezier(.2,.8,.2,1)' });
       }
       // the turn is complete: send it (own turns) and pass on
       function commit() {

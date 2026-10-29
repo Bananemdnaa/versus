@@ -1410,8 +1410,8 @@ button{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
 
 /* ---------- match view ---------- */
 /* a piece lands: a ring runs out of it */
-.kring{position:absolute;inset:0;border-radius:inherit;border:3px solid var(--c);pointer-events:none;animation:ringOut .55s ease-out forwards}
-.c4b .kring{border-radius:50%}
+.kring{position:absolute;inset:0;border-radius:50%;border:3px solid var(--c);pointer-events:none;animation:ringOut .55s ease-out forwards}
+.ttt .kring{border-radius:14px}
 /* turn banner over the board */
 .tbanner{position:absolute;left:50%;top:50%;z-index:12;pointer-events:none;white-space:nowrap;padding:10px 22px;background:var(--c);color:var(--ink);font:800 italic 34px/1 var(--f-d);text-transform:uppercase;letter-spacing:.02em;
   box-shadow:6px 6px 0 var(--ink),0 0 40px var(--c);animation:turnBanner 1.15s var(--ease) forwards}
@@ -1595,3 +1595,11 @@ textarea.inp{height:auto}
   .prof .abig{width:64px;height:64px;font-size:26px}
 }
 @keyframes profIn{from{transform:translateX(100%)}} @keyframes profOut{to{transform:translateX(100%)}}
+
+/* ---------- polish ---------- */
+.upbar{border-radius:var(--r-pill);border-left:1px solid var(--line2);padding:8px 8px 8px 18px}
+.upbar .btn{flex:none}
+.tabs .nb{animation:popIn .4s var(--spring)}
+.lowfx .tabs .nb{animation:none}
+.tut .dots i{width:12px;height:6px} .tut .dots i.on{width:28px}
+.tut .demo{border-radius:var(--r-m)}

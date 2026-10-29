@@ -124,7 +124,7 @@
         last = e;
         const before = s.own.slice();
         const who = s.turn, made = apply(G, s, e);
-        if (made) V.sfx.place(); else V.sfx.move();
+        if (made) V.sfx.place(); else if (ctx.isAI(who)) V.sfx.them(); else V.sfx.move();
         render();
         if (V.fxOn()) lines[e].animate([{ strokeDasharray: '0 200' }, { strokeDasharray: '200 0' }], { duration: 220, easing: 'ease-out' });
         s.own.forEach((o, b) => {

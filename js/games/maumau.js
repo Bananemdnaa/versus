@@ -80,7 +80,7 @@
       const shown = () => ctx.mode === 'local' ? viewer : (ctx.mySide || 1);
       function draw() {
         const me = shown();
-        opp.innerHTML = P.filter(p => p !== me).map(p => `<div class="mm-o${p === turn && !over ? ' on' : ''}" style="--pc:${CLR[p]}"><b>${ctx.name(p)}</b><div class="fan">${hands[p].slice(0, 8).map(() => V.card(null)).join('')}</div><small>${hands[p].length} Karten</small>${hands[p].length === 1 && !over ? '<span class="mau">Mau!</span>' : ''}</div>`).join('');
+        opp.innerHTML = P.filter(p => p !== me).map(p => `<div class="mm-o${p === turn && !over ? ' on' : ''}" data-p="${p}" style="--pc:${CLR[p]}"><b>${ctx.name(p)}</b><div class="fan">${hands[p].slice(0, 8).map(() => V.card(null)).join('')}</div><small>${hands[p].length} Karten</small>${hands[p].length === 1 && !over ? '<span class="mau">Mau!</span>' : ''}</div>`).join('');
         const t = top();
         table.innerHTML = `<div class="mm-pile${myTurn() && !drew ? ' can' : ''}" id="mmp">${pile.length ? V.card(null) + (pile.length > 1 ? V.card(null) : '') : '<div class="card back no"><i></i></div>'}<span class="cnt">${pile.length} Karten</span></div>
           <div class="mm-disc">${disc.slice(-3).map((c, i, a) => V.card(c, i === a.length - 1 ? 'tp' : '').replace('class="card', `style="transform:rotate(${(i - a.length + 1) * 7 + (c.charCodeAt(0) % 5) - 2}deg)" class="card`)).join('')}</div>
@@ -173,8 +173,12 @@
           wish = m.p[0] === 'J' ? m.w : null;
           if (m.p[0] === '7') pen += 2;
           skip = m.p[0] === '8';
-          V.sfx.place(); busy = true; draw();
-          const tc = table.querySelector('.tp'); if (tc) { V.fx.pop(tc, 'deal'); }
+          // the card flies from the hand (or the other player's fan) onto the pile
+          const src = hand.querySelector(`[data-c="${m.p}"]`) || opp.querySelector(`[data-p="${p}"] .fan`);
+          const from = src && !ctx.fast() ? src.getBoundingClientRect() : null;
+          if (ctx.isAI(p)) V.sfx.them(); else V.sfx.place();
+          busy = true; draw();
+          const tc = table.querySelector('.tp'); if (tc) { if (from) V.kit.fly(tc, from, 320); else V.fx.pop(tc, 'deal'); }
           if (!hands[p].length) { shout('Mau-Mau!'); over = true; draw(); return ctx.end(p, `${ctx.name(p)} hat keine Karten mehr`); }
           if (hands[p].length === 1) { shout('Mau!'); V.sfx.goal(); }
           if (m.p[0] === '8') ctx.status(`${ctx.who(p)} legt eine 8, ${ctx.who(P[(P.indexOf(p) + 1) % N])} setzt aus`);
@@ -185,17 +189,20 @@
         if (m.d && !drew) {
           ctx.moved(p, { d: 1 });
           if (pen) {
-            const n = pen; take(p, n); pen = 0; V.sfx.hit();
+            const n = pen, pr = pileRect(), got = take(p, n); pen = 0; V.sfx.hit();
             ctx.status(`${ctx.who(p)} zieht ${n} Karten`);
-            busy = true; draw(); return ctx.later(nextPlayer, ctx.fast() ? 30 : 600);
+            busy = true; draw(); flyIn(got, pr); return ctx.later(nextPlayer, ctx.fast() ? 30 : 600);
           }
-          const got = take(p, 1); V.sfx.move();
+          const pr = pileRect(), got = take(p, 1); V.sfx.move();
           drew = got[0] || null;
-          if (!drew || !ok(p, drew)) { ctx.status(`${ctx.who(p)} zieht und kann nicht legen`); busy = true; draw(); return ctx.later(nextPlayer, ctx.fast() ? 30 : 600); }
-          draw(); return ask();
+          if (!drew || !ok(p, drew)) { ctx.status(`${ctx.who(p)} zieht und kann nicht legen`); busy = true; draw(); flyIn(got, pr); return ctx.later(nextPlayer, ctx.fast() ? 30 : 600); }
+          draw(); flyIn(got, pr); return ask();
         }
         if (m.n && drew) { ctx.moved(p, { n: 1 }); busy = true; draw(); return ctx.later(nextPlayer, ctx.fast() ? 30 : 300); }
       }
+      // drawn cards fly from the pile into the hand that is shown, the hand fans out again
+      const pileRect = () => { const e = table.querySelector('#mmp'); return e && !ctx.fast() ? e.getBoundingClientRect() : null; };
+      const flyIn = (cards, from) => { if (from) cards.forEach(c => V.kit.fly(hand.querySelector(`[data-c="${c}"]`), from, 300)); };
       function askWish(card) {
         const el = V.el('div', 'mm-wish', `<div><p>Welche Farbe wünschst du dir?</p><div>${['S', 'H', 'D', 'C'].map(s => `<button data-w="${s}" class="${'HD'.includes(s) ? 'red' : ''}" aria-label="${V.suitName(s)}">${V.suitSym(s)}</button>`).join('')}</div></div>`);
         table.appendChild(el); V.sfx.ui();
