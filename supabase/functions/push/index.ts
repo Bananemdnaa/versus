@@ -12,7 +12,13 @@ const GAMES: Record<string, string> = {
 
 Deno.serve(async req => {
   if (req.method !== 'POST' || req.headers.get('x-push-secret') !== Deno.env.get('PUSH_SECRET')) return new Response('no', { status: 401 });
-  const { uid, kind, from, game, match } = await req.json();
+  // with the right secret the reason of a failure comes back as text (missing secret, bad key …)
+  try { return await send(await req.json()); }
+  catch (e) { return new Response('error: ' + (e instanceof Error ? e.message : String(e)), { status: 500 }); }
+});
+
+async function send({ uid, kind, from, game, match }: { uid?: string, kind?: string, from?: string, game?: string, match?: string }) {
+  for (const k of ['VAPID_PUBLIC', 'VAPID_PRIVATE', 'SUPABASE_URL', 'SUPABASE_SERVICE_ROLE_KEY']) if (!Deno.env.get(k)) throw new Error('secret missing: ' + k);
   const g = GAMES[game] || game || '';
   const text = {
     invite: { title: `${from} fordert dich heraus`, body: `${g} · öffne Versus, um anzunehmen`, url: '?tab=online' },
@@ -39,4 +45,4 @@ Deno.serve(async req => {
     }
   }
   return new Response(JSON.stringify({ sent }), { headers: { 'Content-Type': 'application/json' } });
-});
+}
