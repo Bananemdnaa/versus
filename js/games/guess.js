@@ -193,6 +193,8 @@
       function nextWriter() {
         const p = P.find(x => !ans[x]);
         if (!p) return;
+        // the answer of the one before disappears before the phone is passed on
+        wrap.innerHTML = '';
         ctx.handoff(p, `Frage ${round} von ${rounds}. Du hast ${TIME} Sekunden.`, () => { writer = p; sent = false; deadline = Date.now() + TIME * 1000; askUI(); });
       }
       function askUI() {

@@ -80,6 +80,8 @@
       function nextWriter() {
         const p = P.find(q => !ans[q]);
         if (!p) return;
+        // the answers of the one before disappear before the phone is passed on
+        wrap.innerHTML = '';
         ctx.handoff(p, `Buchstabe der Runde: gleich siehst du ihn. Du hast 60 Sekunden.`, () => {
           writer = p; sent = false; deadline = Date.now() + 60000; stopAt = 0;
           writeUI();

@@ -1428,7 +1428,9 @@ button{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
 .sglow{display:none}
 /* pass screen (hidden fleets and cards): full screen in the colour of the next player */
 .pass{position:absolute;inset:0;z-index:20;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;padding:24px;text-align:center;cursor:pointer;
-  background:color-mix(in srgb,var(--hc) 92%,transparent);color:var(--ink);border:0;border-radius:var(--r-l);animation:fadeIn .25s}
+  background:var(--hc);color:var(--ink);border:0;border-radius:var(--r-l);animation:none}
+/* fully opaque from the first frame: only the text fades in, so nothing underneath ever shows */
+.pass>*{animation:fadeIn .25s backwards}
 .pass .ps-k{font:700 italic 14px/1 var(--f-d);letter-spacing:.2em;text-transform:uppercase;opacity:.7}
 .pass h3{margin:0;font:800 italic 40px/1 var(--f-d);text-transform:uppercase;color:var(--ink)}
 .pass p{margin:0;color:rgba(8,9,15,.75);max-width:34ch;font-weight:600}
