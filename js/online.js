@@ -815,7 +815,7 @@
   // ---------- tables for 2-4 players (party games) ----------
   // Someone opens a table (seat 1, host), invites friends, shares the code or makes it visible for everybody.
   // The host starts; empty seats are played by the AI. Server: supabase/migrations/20261107000000_party_tables.sql
-  const TABLE = ['ludo', 'ladder', 'yacht', 'maumau', 'memory', 'poker', 'hangman', 'slf'];
+  const TABLE = ['ludo', 'ladder', 'yacht', 'maumau', 'memory', 'poker', 'hangman', 'slf', 'schnapsen', 'guess'];
   TABLE.forEach(id => { if (V.byId[id]) V.byId[id].table = true; });
   let lobbyT = null, lobbyId = null;
   const tableLink = c => location.origin + location.pathname + '?table=' + c;
@@ -835,7 +835,7 @@
   }
   async function table(g, opts, lvl) {
     if (!ready() || isAnon()) { V.ui.toast('Dafür brauchst du ein Konto'); return V.ui.home('profile'); }
-    try { lobby(await C().rpc('party_create', { gm: g.id, op: opts || optsFor(g), n: +(opts && opts.n) || 4, lvl: lvl ?? 1, pub: false })); }
+    try { lobby(await C().rpc('party_create', { gm: g.id, op: opts || optsFor(g), n: g.party ? +(opts && opts.n) || 4 : 2, lvl: lvl ?? 1, pub: false })); }
     catch (e) { V.ui.toast(noServer(e)); V.sfx.bad(); }
   }
   async function joinTable(id, code) {

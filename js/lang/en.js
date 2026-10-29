@@ -191,7 +191,7 @@
   // ---------- games: names by id ----------
   V.i18n.names({
     c4: 'Connect 4', ships: 'Battleship', ttt: 'Tic Tac Toe', gomoku: 'Five in a Row', uttt: 'Ultimate Tic Tac Toe', dots: 'Dots and Boxes',
-    hangman: 'Hangman', slf: 'City Country River', ludo: 'Ludo', ladder: 'Snakes and Ladders', checkers: 'Checkers', mill: "Nine Men's Morris",
+    hangman: 'Hangman', slf: 'City Country River', schnapsen: 'Schnapsen', guess: 'Estimation Quiz', ludo: 'Ludo', ladder: 'Snakes and Ladders', checkers: 'Checkers', mill: "Nine Men's Morris",
     yacht: 'Dice Block', maumau: 'Mau-Mau', memory: 'Memory', poker: 'Poker', chess: 'Chess', reversi: 'Reversi', kalaha: 'Kalah', go: 'Go',
     backgammon: 'Backgammon', reaction: 'Reaction Duel', pong: 'Pong', hockey: 'Air Hockey', tron: 'Light Racer', sumo: 'Sumo Arena'
   });
@@ -883,6 +883,54 @@
     'Welche Daten Versus speichert und wer dahintersteht': 'What data Versus stores and who runs it',
     'Konten ab 14 Jahren, jünger nur mit Erlaubnis der Eltern. Was gespeichert wird: {0}.': 'Accounts from age 14, younger only with your parents\' permission. What is stored: {0}.', 'Datenschutz': 'Privacy'
   });
+
+  // ---------- Schnapsen, Schätzfragen ----------
+  A({
+    '# Karten, # Punkte, Zudrehen.': '# cards, # points, closing.',
+    'Der österreichische Kartenklassiker für zwei: Stiche machen, Zwanziger und Vierziger ansagen und im richtigen Moment zudrehen. Wer zuerst # Punkte hat, gewinnt die Runde. Am Gerät, gegen die KI oder online.': 'The Austrian card classic for two: win tricks, call marriages for 20 and 40 and close the talon at the right moment. First to # points wins the round. On one device, against the AI or online.',
+    'Spielt irgendeine Karte.': 'Plays any card.', 'Sticht hohe Karten und sagt Zwanziger an.': 'Takes high cards and calls marriages.',
+    'Zählt Punkte mit und dreht zu, wenn es reicht.': 'Counts points and closes when it is enough.', 'Merkt sich jede Karte und spielt das Ende perfekt.': 'Remembers every card and plays the end perfectly.',
+    'Wer spielt zuerst aus?': 'Who leads first?', 'Karte spielen': 'Play a card', 'Atout tauschen': 'Swap trump', 'Zudrehen': 'Close', 'Spiel bis': 'Play to', '# (Bummerl)': '# (Bummerl)',
+    'Ihr spielt abwechselnd am selben Gerät. Vor jedem Zug gebt ihr das Handy weiter, damit niemand fremde Karten sieht.': "You take turns on the same device. Pass the phone before every move so nobody sees the other's cards.",
+    'Stiche': 'Tricks', 'Zwanziger und Vierziger': 'Marriages', 'Tauschen und Zudrehen': 'Swapping and closing', 'Atout': 'Trump', 'König und Dame': 'king and queen', 'Atout-Buben': 'trump jack',
+    'Gespielt wird mit {0}: Ass (# Punkte), Zehner (#), König (#), Dame (#) und Bube (#). Wer in einer Runde zuerst {1} aus seinen Stichen hat, gewinnt sie.': 'You play with {0}: ace (# points), ten (#), king (#), queen (#) and jack (#). Whoever first has {1} from their tricks wins the round.',
+    'Jeder hat # Karten. Einer spielt aus, der andere legt dazu. Die höhere Karte der ausgespielten Farbe gewinnt, eine {0}-Karte (Trumpf, offen unter dem Stapel) sticht alles. Nach dem Stich ziehen beide nach, der Gewinner zuerst und spielt wieder aus.': 'Everyone has # cards. One leads, the other plays a card to it. The higher card of the led suit wins, a {0} card (face up under the stock) beats everything. After the trick both draw, the winner first, and the winner leads again.',
+    'Hast du {0} einer Farbe, spiel eine davon aus: Das zählt {1}, in Atout {2}. Die Punkte zählen, sobald du einen Stich hast. Die Krone ♛ in deiner Hand zeigt solche Paare.': 'If you hold {0} of one suit, lead one of them: that counts {1}, in trump {2}. The points count once you have a trick. The crown ♛ in your hand marks such pairs.',
+    'Mit dem {0} darfst du vor dem Ausspielen die offene Atout-Karte holen. Mit {1} schließt du den Stapel: Ab dann wird nichts mehr gezogen und jeder muss {2}. Das gilt auch, wenn der Stapel leer ist.': 'With the {0} you may take the face-up trump card before you lead. With {1} you shut the stock: from then on nobody draws and everyone must {2}. The same applies once the stock is empty.',
+    'Farbe geben, höher spielen wenn möglich, sonst stechen': 'follow suit, play higher if possible, else trump',
+    'Der Sieger einer Runde bekommt {0} Punkte, wenn der andere keinen Stich hat, {1}, wenn er unter # hat, sonst {2}. Wer zudreht und keine # schafft, schenkt dem anderen mindestens #. Ohne # gewinnt sonst der letzte Stich.': 'The winner of a round gets {0} points if the other has no trick, {1} if they have less than #, else {2}. Whoever closes and misses # gives the other at least #. Without #, the last trick wins.',
+    'Angesagt': 'Called', '+# nach dem ersten Stich': '+# after the first trick', 'leer': 'empty', 'Zugedreht': 'Closed', 'Zugedreht!': 'Closed!', 'Zwanziger!': 'Twenty!', 'Vierziger!': 'Forty!', 'bis #': 'to #',
+    'Du gibst zum Stich dazu.': 'You play to the trick.', 'Du spielst aus.': 'You lead.',
+    '{0}: Farbe geben, höher wenn möglich, sonst stechen': '{0}: follow suit, higher if possible, else trump', '{0}: spiel eine Karte aus': '{0}: lead a card',
+    '{0} dreht zu: ab jetzt Farbe geben und stechen': '{0} closes: from now on follow suit and trump', '{0} sticht (+#)': '{0} takes the trick (+#)',
+    '{0} gewinnt die Runde: # zu # Punkte': '{0} wins the round: # to # points', '+# Punkt': '+# point', '+# Punkte': '+# points', 'letzter Stich': 'last trick',
+    'der andere ohne Stich': 'the other without a trick', 'der andere unter #': 'the other below #', 'tauscht den Atout-Buben': 'swaps the trump jack', 'dreht zu': 'closes', '# : # Punkte': '# : # points',
+    'Wer schätzt am nächsten dran? Bis zu #.': 'Who guesses closest? Up to #.',
+    'Wie hoch ist der Großglockner, wann sank die Titanic? Alle tippen gleichzeitig eine Zahl. Wer am nächsten dran ist, holt die Punkte, ein Volltreffer gibt extra. Für # bis #, gegen die KI, am selben Gerät oder online.': 'How high is the Grossglockner, when did the Titanic sink? Everyone types a number at the same time. Whoever is closest takes the points, a bullseye gives extra. For # to #, against the AI, on one device or online.',
+    'Rät meistens ins Blaue.': 'Mostly guesses wildly.', 'Liegt oft in der Nähe.': 'Is often close.', 'Weiß ziemlich viel.': 'Knows quite a lot.', 'Liegt fast immer knapp daneben oder genau richtig.': 'Is nearly always just off or spot on.',
+    'Ziffern': 'Digits', 'Zahl eintippen': 'Type a number', 'Abgeben': 'Submit', 'Fragen': 'Questions', 'Auflösung': 'The reveal', 'Volltreffer': 'Bullseye', 'Volltreffer!': 'Bullseye!',
+    'Am selben Gerät tippt jeder für sich, das Handy wird nach jedem weitergegeben.': 'On one device everyone types on their own, the phone is passed on after each.',
+    'Es kommt eine Frage, deren Antwort eine {0} ist: eine Höhe, ein Jahr, eine Anzahl. Tipp deine Schätzung ein, du hast {1}.': 'A question comes up whose answer is a {0}: a height, a year, a count. Type your guess, you have {1}.',
+    'Zahl': 'number', 'Zahlenstrahl': 'number line', '# Punkt': '# point', '# Punkte extra': '# bonus points',
+    'Danach erscheinen alle Schätzungen und die richtige Antwort auf einem {0}. Wer am nächsten dran ist, bekommt {1}, ab drei Spielern der Zweite {2}.': 'Then all guesses and the right answer appear on a {0}. Whoever is closest gets {1}, with three or more players the second gets {2}.',
+    'Triffst du genau (bei Jahren das richtige Jahr, sonst bis # % daneben), gibt es {0}. Nach allen Fragen gewinnt, wer die meisten Punkte hat.': 'If you hit it exactly (the right year for years, else within # %), you get {0}. After all questions whoever has the most points wins.',
+    'Spielt ihr an einem Gerät, tippt jeder nacheinander für sich, die anderen schauen weg. Aufgelöst wird für alle gemeinsam.': 'If you play on one device, everyone types in turn while the others look away. The reveal is for everyone together.',
+    'Frage # / #': 'Question # / #', 'Frage # von #': 'Question # of #', 'Deine Schätzung': 'Your guess', 'Bitte nur eine Zahl': 'Numbers only, please', 'Tipp zuerst eine Zahl ein': 'Type a number first',
+    'Abgegeben. Warte auf die anderen …': 'Submitted. Waiting for the others …', 'keine Antwort': 'no answer', '{0} hat geschätzt': '{0} has guessed', 'noch #': '# left',
+    'Frage # von #. Du hast # Sekunden.': 'Question # of #. You have # seconds.'
+  });
+  {
+    const SUIT = { Pik: 'Spades', Herz: 'Hearts', Karo: 'Diamonds', Kreuz: 'Clubs' }, RANK = { Ass: 'Ace', König: 'King', Dame: 'Queen', Bube: 'Jack' };
+    const card = (s, r) => (RANK[r] || r) + ' of ' + SUIT[s].toLowerCase();
+    V.i18n.pat([
+      [/^(Pik|Herz|Karo|Kreuz) (Ass|König|Dame|Bube|\d+)(, (Zwanziger|Vierziger)!)?$/, (m, s, r, x, w) => card(s, r) + (w ? (w === 'Zwanziger' ? ', twenty!' : ', forty!') : '')],
+      [/^\{0\} tauscht den Atout-Buben gegen (Pik|Herz|Karo|Kreuz) (Ass|König|Dame|Bube|\d+)$/, (m, s, r) => '{0} swaps the trump jack for the ' + card(s, r).replace(/^\w/, c => c.toLowerCase())],
+      [/^\{0\} sagt (Zwanziger|Vierziger) an \((.)\)(, zählt nach dem ersten Stich)?$/, (m, w, s, late) => '{0} calls ' + (w === 'Zwanziger' ? 'twenty' : 'forty') + ' (' + s + ')' + (late ? ', counts after the first trick' : '')],
+      [/^Atout (.)$/, 'Trump $1'],
+      [/^(.+) gewinnt die Runde$/, (m, n) => who(n) + ' wins the round'],
+      [/^(.+) hat zugedreht und keine (\d+) geschafft$/, (m, n, x) => who(n) + ' closed and missed ' + x]
+    ]);
+  }
 
   // ---------- words that differ by game ----------
   A({ 'Remis': 'Draw', 'Ziehen': 'Moving' });
