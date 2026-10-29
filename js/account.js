@@ -75,6 +75,7 @@
         <button class="opt" data-box="rename">${IC().user}<span><b>Benutzernamen ändern</b><small>${next ? 'Wieder möglich ab ' + day(next) : 'Einmal pro Woche möglich'}</small></span></button>
         ${openBox === 'rename' ? `<form class="abox" id="f_rename"><input class="inp" id="r_name" maxlength="16" placeholder="Neuer Name" autocapitalize="none" spellcheck="false" value="${esc(u.username)}"><button class="btn sm" type="submit"><span>Ändern</span></button><p class="aerr" id="r_err"></p></form>` : ''}
         <button class="opt" id="a_rec">${IC().shield}<span><b>Wiederherstellungscode</b><small>${info.recovery ? 'Du hast einen. Neu erstellen macht den alten ungültig.' : '<b class="bad">Noch keiner.</b> Ohne Code ist ein vergessenes Passwort weg.'}</small></span></button>
+        <button class="opt" id="a_inv">${IC().share}<span><b>Freunde einladen</b><small id="a_invs">Wer über deinen Link ein Konto erstellt, ist sofort dein Freund</small></span></button>
         <button class="opt" data-box="blocks">${IC().eye}<span><b>Blockierte Spieler</b><small>${blockSub()}</small></span></button>
         ${openBox === 'blocks' ? `<div class="abox" id="blist">${blockList()}</div>` : ''}
         <button class="opt danger" data-box="delete">${IC().x}<span><b>Konto löschen</b><small>Löscht dein Konto und alle Daten auf dem Server</small></span></button>
@@ -192,6 +193,14 @@
       V.ui.toast('Gast-Sitzung beendet'); V.ui.home('profile');
     };
     if (q('#a_rec')) q('#a_rec').onclick = () => { V.sfx.ui(); showRecovery(false); };
+    // invite: the friend link (QR, share); the count is the inviter badge in the profile
+    if (q('#a_inv')) {
+      q('#a_inv').onclick = () => { V.sfx.ui(); V.online.addFriends('code'); };
+      c.rpc('player_badges', { name: c.user().username }).then(r => {
+        const s = document.getElementById('a_invs');
+        if (s && r && r.invited) s.textContent = `Du hast schon ${r.invited} Spieler eingeladen · Werber-Abzeichen im Profil`;
+      }, () => { });
+    }
     b.querySelectorAll('[data-unb]').forEach(x => x.onclick = async () => { if (await V.online.block(x.dataset.unb, false)) V.ui.home('profile'); });
     if (openBox === 'blocks' && V.online && !V.online.blocks()) V.online.loadBlocks().then(() => { const l = document.getElementById('blist'); if (l) { l.innerHTML = blockList(); l.querySelectorAll('[data-unb]').forEach(x => x.onclick = async () => { if (await V.online.block(x.dataset.unb, false)) V.ui.home('profile'); }); } });
     if (q('#a_sync')) q('#a_sync').onclick = () => { V.sfx.ui(); c.syncNow(); };

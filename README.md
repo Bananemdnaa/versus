@@ -166,6 +166,12 @@ Neue Migrationen kommen als weitere Datei in `supabase/migrations/` und werden i
 
 Server: `supabase/migrations/20261110000000_open_play.sql` im SQL-Editor ausführen und unter Authentication → Sign In / Providers „Allow anonymous sign-ins“ einschalten.
 
+- **Offline:** Ist ein Spieler einer Online-Partie 75 Sekunden weg, bricht der Server sie ab: kein Sieger, sie zählt nirgends. Vorher sieht der andere einen Countdown. Wer über Zurück oder die Flagge geht, gibt weiter auf und verliert.
+- **Zuschauen:** In der Freundesliste steht bei laufenden Partien „Zuschauen“. Zuschauer sehen das Brett live und schicken Reaktionen (höchstens alle 2 s, 30 pro Partie); die Spieler sehen 👁 mit der Zahl der Zuschauer. Nicht bei Schiffe versenken und nicht, wenn ein Spieler seinen Online-Status verbirgt.
+- **Einladen:** Konto → „Freunde einladen“ öffnet den Freundes-Link (QR, teilen). Wer darüber neu ein Konto erstellt, ist sofort Freund und zählt für das Werber-Abzeichen im Profil („Werber · 3“). Nur ein Abzeichen, keine Vorteile.
+
+Server dafür: `supabase/migrations/20261111000000_offline_watch.sql` und `supabase/migrations/20261112000000_invites.sql`.
+
 ## Entwicklung
 
 - **Code:** `js/core.js` (Speicher, Einstellungen, Ton, Effekte, Icons), `js/ai.js` (KI-Suche), `js/kit.js` (Würfel, Figuren, Karten, Touch-Knöpfe), `js/app.js` (Menüs, Optionen, Dialoge, Tastatur, Installation), `js/play.js` (Partie, Online-Sync, Schachuhr), `js/cloud.js` (Konto und Supabase, lädt die Bibliothek im Hintergrund), `js/online.js` (Freunde, Einladungen, Tische, Rangliste), dazu eine Datei pro Spiel in `js/games/`.

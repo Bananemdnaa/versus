@@ -898,9 +898,11 @@
     // logged in or out (or the first answer about it): locks, modes and the panel change, so the menus are drawn again
     const u = V.cloud.user(), id = u ? u.id : null, known = !V.cloud.starting();
     if (id !== cloudUser || known !== cloudKnown) {
+      const who = id !== cloudUser;
       cloudUser = id; cloudKnown = known;
       if (id && settings.stealth) V.cloud.rpc('set_stealth', { hide: true }).catch(() => { });
-      if (view === 'home' && homeTab !== 'profile') return home();
+      // the account tab is drawn again too when the login changed (a restored session must not leave the login form up)
+      if (view === 'home' && (homeTab !== 'profile' || who)) return home();
       if (view === 'setup' && selected) return setup(selected);
     }
     if (view === 'home' && homeTab === 'profile' && V.account) {

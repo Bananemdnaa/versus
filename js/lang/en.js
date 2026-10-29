@@ -866,6 +866,17 @@
     [/^spielt (.+) gegen ([a-z0-9_-]{3,16})$/, (m, g, n) => 'playing ' + g + ' vs. ' + n]
   ]);
 
+  // ---------- invites ----------
+  A({
+    'Freunde einladen': 'Invite friends', 'Wer über deinen Link ein Konto erstellt, ist sofort dein Freund': 'Whoever creates an account through your link is your friend right away',
+    'Wer über deinen Link neu ein Konto erstellt, zählt für dein Werber-Abzeichen im Profil.': "Whoever creates a new account through your link counts for the recruiter badge in your profile.",
+    'Du wurdest eingeladen': "You've been invited",
+    'Erstell ein kostenloses Konto oder melde dich an. Danach seid ihr automatisch befreundet und könnt gleich gegeneinander spielen.': "Create a free account or sign in. Then you're friends automatically and can play each other right away.",
+    'Werber · #': 'Recruiter · #', 'Hat # Spieler zu Versus eingeladen': 'Invited # players to Versus',
+    'Du hast schon # Spieler eingeladen · Werber-Abzeichen im Profil': "You've invited # players · recruiter badge in your profile",
+    'Zu viele falsche Codes. Versuch es in einer Stunde nochmal.': 'Too many wrong codes. Try again in an hour.', 'Diesen Code gibt es nicht. Vertippt?': "This code doesn't exist. Typo?", 'Das ist dein eigener Code.': 'That is your own code.'
+  });
+
   // ---------- words that differ by game ----------
   A({ 'Remis': 'Draw', 'Ziehen': 'Moving' });
   V.i18n.ctx('[data-g=go], [data-g=reversi]', { 'Passen': 'Pass', 'Gepasst': 'Passed' });

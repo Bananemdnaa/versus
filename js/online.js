@@ -342,6 +342,7 @@
       <div class="fqr" id="fqr"><span class="fqr-load">${V.skel(1)}</span></div>
       <div class="fcode-t"><small>Dein Freundescode</small><b>${fmtCode(code)}</b>
         <p>Lass deinen Freund den QR-Code mit der Handykamera scannen oder den Code eingeben. Dann seid ihr sofort befreundet.</p>
+        <p class="fhint">Wer über deinen Link neu ein Konto erstellt, zählt für dein Werber-Abzeichen im Profil.</p>
         <div class="arow"><button class="btn primary sm" id="fshare"><span>${IC().share}Link teilen</span></button><button class="btn sm" id="fcopy"><span>Link kopieren</span></button></div>
         <button class="link fnew" id="fnew">Neuen Code erstellen</button></div></div>`;
     loadQR().then(() => { const q = body.querySelector('#fqr'); if (q) q.innerHTML = qrSvg(link); }, () => { const q = body.querySelector('#fqr'); if (q) q.innerHTML = '<p class="fhint">QR-Code geht gerade nicht. Teil den Link oder den Code.</p>'; });
@@ -439,7 +440,7 @@
     if (askedLogin || !pendingCode() || !C() || !C().available() || (C().user() && !isAnon())) return;
     if (busyScreen()) return setTimeout(askLogin, 1200);
     askedLogin = true;
-    const m = V.ui.openModal(`<div class="confirm"><h3>Freundes-Link</h3><p>Melde dich an oder erstell ein Konto. Danach seid ihr automatisch befreundet.</p>
+    const m = V.ui.openModal(`<div class="confirm"><h3>Du wurdest eingeladen</h3><p>Erstell ein kostenloses Konto oder melde dich an. Danach seid ihr automatisch befreundet und könnt gleich gegeneinander spielen.</p>
       <div class="actions"><button class="btn primary" id="fl"><span>${IC().user}Zum Konto</span></button><button class="btn ghost" id="fn"><span>Später</span></button></div></div>`);
     m.querySelector('#fl').onclick = () => { V.ui.closeModal(); V.ui.home('profile'); };
     m.querySelector('#fn').onclick = V.ui.closeModal;
@@ -720,6 +721,11 @@
       ${p.me ? '' : `<div class="psafe">${blk ? '' : `<button class="link" id="pblk">Blockieren</button>`}<button class="link" id="prep">Melden</button></div>`}
     </div>`;
     m.querySelector('#pc').onclick = V.ui.closeModal;
+    // inviter badge: how many players joined through this player's link
+    C().rpc('player_badges', { name: p.username }).then(b => {
+      const h = m.querySelector('.phead > div'); if (!h || !b || !b.invited) return;
+      h.querySelector('b').insertAdjacentHTML('afterend', `<em class="rtag badge" title="Hat ${b.invited} Spieler zu Versus eingeladen">${IC().users}Werber · ${b.invited}</em>`);
+    }, () => { });
     m.querySelectorAll('[data-prof]').forEach(x => x.onclick = () => { V.sfx.ui(); profile(x.dataset.prof); });
     const on = (id, fn) => { const x = m.querySelector('#' + id); if (x) x.onclick = () => fn(x); };
     const again = () => { if (document.body.contains(m)) profile(p.username); };

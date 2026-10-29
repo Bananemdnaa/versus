@@ -1198,3 +1198,5 @@ html,body{-webkit-tap-highlight-color:transparent}
 .emo-w b{font-size:34px;line-height:1;filter:drop-shadow(0 4px 8px rgba(0,0,0,.5))}
 .emo-w small{padding:2px 7px;border-radius:99px;background:rgba(8,9,15,.8);color:var(--cy);font:700 italic 12px/1.2 var(--f-d);letter-spacing:.04em}
 @keyframes emoW{0%{opacity:0;transform:translate(-50%,20px) scale(.6)}12%{opacity:1;transform:translate(-50%,0) scale(1.1)}80%{opacity:1}100%{opacity:0;transform:translate(-50%,-90px) scale(1)}}
+.rtag.badge{display:inline-flex;align-items:center;gap:4px;background:color-mix(in srgb,var(--yellow) 20%,transparent);color:var(--yellow)}
+.rtag.badge svg{width:13px;height:13px}
