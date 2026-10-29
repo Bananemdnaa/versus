@@ -84,7 +84,7 @@
       mid.append(dice.el, triesEl); board.appendChild(mid);
       ctx.stage.appendChild(board);
       const pel = {};
-      P.forEach(p => { pel[p] = [0, 1, 2, 3].map(k => { const e = V.el('div', 'pc', V.pawn(CLR[p])); e.dataset.k = k; board.appendChild(e); return e; }); });
+      P.forEach(p => { pel[p] = [0, 1, 2, 3].map(k => { const e = V.el('div', 'pc', V.pawn(CLR[p])); e.dataset.k = k; e.dataset.p = p; board.appendChild(e); return e; }); });
       const xy = (p, k, pos) => pos < 0 ? SEAT[seat[p]].yard[k] : pos >= 40 ? SEAT[seat[p]].home[pos - 40] : TRACK[abs(seat[p], pos)];
       function place(p, k, anim) {
         const [x, y] = xy(p, k, pieces[p][k]), e = pel[p][k];

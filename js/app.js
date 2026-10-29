@@ -179,7 +179,8 @@
         </div>
         ${installCard()}` : heroCarousel() + quickTiles()}
         <div class="gfind">
-          <label class="gsearch">${IC.search}<input id="gq" type="search" placeholder="Spiel suchen" autocomplete="off" spellcheck="false" enterkeyhint="go" aria-label="Spiel suchen" value="${escA(homeQuery)}"><kbd class="only-fine">/</kbd><button class="gclear" id="gqx" aria-label="Suche löschen"${homeQuery ? '' : ' hidden'}>${IC.x}</button></label>
+          <div class="gsrow">
+            <label class="gsearch">${IC.search}<input id="gq" type="search" placeholder="Spiel suchen" autocomplete="off" spellcheck="false" enterkeyhint="go" aria-label="Spiel suchen" value="${escA(homeQuery)}"><kbd class="only-fine">/</kbd><button class="gclear" id="gqx" aria-label="Suche löschen"${homeQuery ? '' : ' hidden'}>${IC.x}</button></label><button class="iconbtn gsurp" id="gsurp" aria-label="Überrasch mich" title="Überrasch mich">${IC.dice}</button></div>
           <div class="chips" role="tablist">${['Alle', ...V.CATS].map(c => `<button role="tab" data-f="${c}" class="${homeFilter === c && !homeQuery ? 'on' : ''}">${c}<small>${count(c)}</small></button>`).join('')}</div>
         </div>
         <div id="glist">${gameList()}</div>
@@ -377,6 +378,7 @@
       refreshList();
     };
     qx.onclick = e => { e.preventDefault(); V.sfx.ui(); q.value = ''; q.oninput(); q.focus(); };
+    v.querySelector('#gsurp').onclick = () => surprise();
     q.onkeydown = e => {
       const first = v.querySelector('#glist .tile, #glist .lkg');
       if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); if (q.value) { q.value = ''; q.oninput(); } else q.blur(); }
@@ -395,13 +397,42 @@
     root.querySelectorAll('.tile, .lkg').forEach(t => {
       const g = V.byId[t.dataset.id];
       // Laptop: a click only selects the game; the round starts with the Spielen button or Enter.
-      t.onclick = () => {
+      t.onclick = e => {
+        if (t._held) { t._held = false; e.preventDefault(); return; }
         if (!wide()) { V.sfx.ui(); return setup(g); }
         if (selected === g && t.classList.contains('sel')) return;
         V.sfx.ui(); selectTile(g);
       };
       t.addEventListener('focus', () => { if (wide() && selected !== g) selectTile(g); });
+      holdToPlay(t, g);
     });
+  }
+  // Holding a tile for half a second starts the game at once with its last settings (against the AI or at one
+  // device); online modes still open the sheet, because there you pick an opponent first.
+  function holdToPlay(t, g) {
+    let timer = null, x0 = 0, y0 = 0;
+    const stop = () => { clearTimeout(timer); timer = null; t.classList.remove('hold'); };
+    t.addEventListener('pointerdown', e => {
+      if (e.button > 0 || locked(g)) return;
+      x0 = e.clientX; y0 = e.clientY; t.classList.add('hold');
+      timer = setTimeout(() => {
+        timer = null; t.classList.remove('hold'); t._held = true;
+        const cfg = loadCfg(g);
+        V.buzz(20);
+        if (cfg.mode === 'ai' || cfg.mode === 'local') { V.sfx.go(); play(g, cfg); } else setup(g);
+      }, 480);
+    });
+    t.addEventListener('pointermove', e => { if (timer && Math.hypot(e.clientX - x0, e.clientY - y0) > 10) stop(); });
+    t.addEventListener('pointerup', stop); t.addEventListener('pointercancel', stop); t.addEventListener('pointerleave', stop);
+    t.addEventListener('contextmenu', e => e.preventDefault());
+  }
+  // "Überrasch mich": a random game that is not the last one played
+  function surprise() {
+    const pool = V.games.filter(g => !locked(g) && g.id !== S.get('recent'));
+    const g = V.pick(pool); if (!g) return;
+    V.sfx.go(); toast('Wie wär’s mit ' + g.name + '?');
+    if (wide()) { selectTile(g); const t = app.querySelector(`.tile[data-id="${g.id}"]`); if (t) t.scrollIntoView({ block: 'nearest', behavior: V.fxOn() ? 'smooth' : 'auto' }); }
+    else setup(g);
   }
   function tile(g, i) {
     const isSel = wide() && selected && selected.id === g.id;
@@ -600,6 +631,7 @@
         ${sw('o_intro', settings.intro !== false, 'Intros', 'Start-Animation und VS-Einblendung vor jeder Partie', IC.film)}
         ${sw('o_coords', settings.coords !== false, 'Koordinaten', 'Buchstaben und Zahlen am Schachbrett', IC.hash)}
         ${sw('o_hints', settings.hints !== false, 'Zughilfen', 'Zeigt, wohin du ziehen kannst (Schach, Dame, Reversi, Mühle)', IC.bulb)}
+        ${sw('o_cb', !!settings.cb, 'Farbenblind-Modus', 'Muster auf den Steinen, Nummern auf den Figuren', IC.eye)}
         <div class="opt orow">${IC.globe}<span><b>Sprache</b><small>Language · Deutsch oder Englisch</small></span>${seg('lang', V.lang, [['de', 'Deutsch'], ['en', 'English']])}</div>
         <div class="opt orow">${IC.grid}<span><b>Spielbrett</b><small>Schach, Dame und Reversi</small></span>${seg('board', settings.board || 'std', [['std', 'Standard'], ['neon', 'Neon'], ['wood', 'Holz']])}</div>
       </div></div>
@@ -611,6 +643,7 @@
       ${V.cloud && V.cloud.available() ? `<div class="ogroup"><h2 class="oh">Online</h2>
       <div class="optlist">
         ${sw('o_open', settings.openCards !== false, 'Offene Herausforderungen', 'Einblenden, wenn jemand einen Gegner sucht', IC.globe)}
+        ${u && !u.anon ? `<button class="opt" id="o_push" role="switch" aria-checked="false">${IC.bell}<span><b>Benachrichtigungen</b><small id="o_pushs">Herausforderungen, Freundschaftsanfragen und wenn du in einer Partie über Tage dran bist</small></span><i class="sw"></i></button>` : ''}
         ${u ? sw('o_stealth', !!settings.stealth, 'Online-Status verbergen', 'Freunde sehen nicht, ob und was du gerade spielst, und können nicht zuschauen', IC.eye) : ''}
       </div></div>` : ''}
       <div class="ogroup"><h2 class="oh">App</h2>
@@ -668,9 +701,24 @@
     flip('o_intro', () => (settings.intro = settings.intro === false));
     flip('o_coords', () => { settings.coords = settings.coords === false; applyFxClass(); return settings.coords; });
     flip('o_hints', () => { settings.hints = settings.hints === false; applyFxClass(); return settings.hints; });
+    flip('o_cb', () => { settings.cb = !settings.cb; applyFxClass(); return settings.cb; });
     flip('o_fast', () => (settings.aiFast = !settings.aiFast));
     flip('o_face', () => (settings.face = !settings.face));
     flip('o_open', () => (settings.openCards = settings.openCards === false));
+    // push notifications: the switch shows the state of this device's subscription
+    const pb = v.querySelector('#o_push');
+    if (pb && V.online) {
+      const show = st => { pb.setAttribute('aria-checked', st === 'on'); pb.querySelector('.sw').classList.toggle('on', st === 'on'); pb.classList.toggle('off', st === 'none' || st === 'denied');
+        if (st === 'denied') v.querySelector('#o_pushs').textContent = 'Im Browser blockiert. Erlaube Benachrichtigungen in den Website-Einstellungen.';
+        if (st === 'none') v.querySelector('#o_pushs').textContent = V.isIOS ? 'Auf dem iPhone erst, wenn Versus als App installiert ist' : 'Dieser Browser kann keine Benachrichtigungen'; };
+      V.online.pushState().then(show, () => show('none'));
+      pb.onclick = async () => {
+        V.sfx.ui();
+        try { const st = await V.online.pushState(); if (st === 'on') await V.online.pushOff(); else { await V.online.pushOn(); toast('Benachrichtigungen an'); } }
+        catch (e) { toast(e.message, 3000); }
+        V.online.pushState().then(show, () => show('none'));
+      };
+    }
     // hiding the online status is stored on the server, so friends see it too
     const st = v.querySelector('#o_stealth');
     if (st) st.onclick = async () => {
@@ -754,10 +802,10 @@
   }
   V.openModal = openModal; V.closeModal = closeModal;
 
-  function toast(text) {
-    const t = V.el('div', 'toast', text);
+  function toast(text, ms = 1500) {
+    const t = V.el('div', 'toast' + (ms > 1500 ? ' long' : ''), text);
     document.body.appendChild(t);
-    setTimeout(() => t.classList.add('out'), 1500); setTimeout(() => t.remove(), 1900);
+    setTimeout(() => t.classList.add('out'), ms); setTimeout(() => t.remove(), ms + 400);
   }
   V.toast = toast;
   // grey placeholder bars while something loads from the server
@@ -1025,6 +1073,15 @@
         w.addEventListener('statechange', () => { if (w.state === 'installed' && navigator.serviceWorker.controller) { swWaiting = w; updateBar(); } });
       });
     }).catch(() => { });
+    // a tapped notification while Versus is open: go to the match or the Online tab
+    navigator.serviceWorker.addEventListener('message', e => {
+      const to = e.data && e.data.open; if (!to) return;
+      try {
+        const u = new URL(to), mid = u.searchParams.get('match');
+        if (mid && V.online && view !== 'play') V.online.resume(mid);
+        else if (u.searchParams.get('tab') && view !== 'play') home(u.searchParams.get('tab'));
+      } catch (x) { }
+    });
     // only reload when the player asked for it (the first install also changes the controller)
     navigator.serviceWorker.addEventListener('controllerchange', () => { if (wantReload) { wantReload = false; location.reload(); } });
     // apps stay open in the background for days; look for a new version whenever it comes back
@@ -1122,8 +1179,10 @@
     // friend link from a QR code or a message: handled by js/online.js once the login is known
     if (q.get('add')) try { sessionStorage.setItem('versus.add', q.get('add').slice(0, 12)); } catch (e) { }
     if (q.get('table')) try { sessionStorage.setItem('versus.table', q.get('table').slice(0, 12)); } catch (e) { }
+    // a game link (?join=) and a tapped notification about a match over days (?match=)
+    for (const k of ['join', 'match']) if (/^[0-9a-f-]{36}$/.test(q.get(k) || '')) try { sessionStorage.setItem('versus.' + k, q.get(k)); } catch (e) { }
     if (qt && TABS.some(t => t[0] === qt)) homeTab = qt;
-    if (q.has('tab') || q.has('app') || q.has('add') || q.has('table')) try { history.replaceState(null, '', location.pathname); } catch (e) { }
+    if (['tab', 'app', 'add', 'table', 'join', 'match'].some(k => q.has(k))) try { history.replaceState(null, '', location.pathname); } catch (e) { }
     registerSW();
     netState();
     if (!document.getElementById('fx')) { const f = V.el('div'); f.id = 'fx'; document.body.appendChild(f); }

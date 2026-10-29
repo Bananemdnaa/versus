@@ -1633,3 +1633,67 @@ textarea.inp{height:auto}
   .tight2 .stage .bs{gap:10px}
 }
 @media (max-width:959px){.tight3 .duel.party .pcol{display:none}}
+
+/* ---------- hold a tile to play, surprise me ---------- */
+.tile.hold{transform:scale(.94);transition:transform .45s var(--ease)}
+.tile.hold .art .ic{transform:scale(1.12);transition:transform .45s var(--ease)}
+.gsrow{display:flex;gap:10px;align-items:center}
+.gsrow .gsearch{flex:1;min-width:0}
+.gsurp{flex:none}
+.gsurp:active svg{transform:rotate(90deg);transition:transform .2s}
+@media (max-width:959px){.gsurp{width:48px;height:48px;border-radius:16px}}
+@media (min-width:960px){.gfind .gsrow .gsearch{width:210px;flex:none}}
+
+/* ---------- coin toss ---------- */
+.coin{position:fixed;inset:0;z-index:88;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;pointer-events:auto;background:rgba(5,6,12,.45);animation:fadeIn .2s;transition:opacity .3s}
+.coin.out{opacity:0}
+.coin-c{position:relative;width:110px;height:110px;transform-style:preserve-3d;animation:coinFlip 1s cubic-bezier(.3,.7,.3,1) forwards}
+.coin-c.ai{animation-name:coinFlipB}
+.coin .cf{position:absolute;inset:0;display:grid;place-items:center;border-radius:50%;font:800 italic 34px/1 var(--f-d);color:var(--ink);backface-visibility:hidden;box-shadow:inset 0 0 0 6px rgba(255,255,255,.4),0 10px 30px rgba(0,0,0,.5)}
+.coin .cf.me{background:var(--pink)} .coin .cf.ki{background:var(--yellow);transform:rotateY(180deg)}
+.coin span{font:800 italic 28px/1 var(--f-d);text-transform:uppercase;opacity:0;animation:fadeIn .3s .95s forwards}
+@keyframes coinFlip{0%{transform:translateY(0) rotateY(0)}45%{transform:translateY(-90px) rotateY(900deg)}100%{transform:translateY(0) rotateY(1800deg)}}
+@keyframes coinFlipB{0%{transform:translateY(0) rotateY(0)}45%{transform:translateY(-90px) rotateY(900deg)}100%{transform:translateY(0) rotateY(1980deg)}}
+
+/* ---------- first match: where to tap ---------- */
+.guide{position:fixed;z-index:46;width:0;height:0;pointer-events:none;animation:fadeIn .3s}
+.guide.out{opacity:0;transition:opacity .25s}
+.guide .gr{position:absolute;left:-30px;top:-30px;width:60px;height:60px;border-radius:50%;border:3px solid var(--cyan);box-shadow:0 0 18px var(--cyan);animation:guidePulse 1.2s ease-out infinite}
+.guide .gh-i{position:absolute;left:4px;top:6px;width:44px;height:44px;color:#fff;filter:drop-shadow(0 4px 6px rgba(0,0,0,.7));animation:guideTap 1.2s ease-in-out infinite}
+.guide .gh-i svg{width:100%;height:100%}
+.guide b{position:absolute;left:-60px;top:48px;width:120px;text-align:center;font:800 italic 15px/1 var(--f-d);letter-spacing:.08em;text-transform:uppercase;color:var(--ink);background:var(--cyan);padding:5px 0;transform:skewX(var(--sk))}
+@keyframes guidePulse{from{transform:scale(.6);opacity:1}to{transform:scale(1.4);opacity:0}}
+@keyframes guideTap{50%{transform:translate(-4px,-6px)}}
+.lowfx .guide .gr,.lowfx .guide .gh-i{animation:none}
+
+/* ---------- KO: a tip after a loss against the AI ---------- */
+.ktip{display:flex;gap:12px;align-items:flex-start;width:min(100%,520px);padding:12px 14px;border-radius:var(--r-m);background:var(--panel);border:1px solid var(--line2);text-align:left}
+.ktip>svg{width:22px;height:22px;flex:none;color:var(--yellow)}
+.ktip b{font:800 italic 15px/1.2 var(--f-d);letter-spacing:.06em;text-transform:uppercase;color:var(--yellow)}
+.ktip p{margin:4px 0 0;font-size:13px;color:var(--muted);line-height:1.4;max-height:5.6em;overflow:auto}
+.toast.long{max-width:calc(100vw - 32px);white-space:normal;text-align:center;line-height:1.25}
+/* buttons that already started something */
+.btn.busy{opacity:.7;pointer-events:none}
+.btn.busy>span::after{content:'';width:14px;height:14px;border-radius:50%;border:2px solid currentColor;border-right-color:transparent;animation:radarSpin .7s linear infinite}
+/* thumb reach: Würfelblock dice and the roll button below the score sheet on the phone */
+@media (max-width:959px){.yz .yz-tray{order:2}}
+
+/* ---------- colour-blind mode: pink pieces striped, yellow dotted (follows the swap against the AI), pawns numbered ---------- */
+:root{--cbpink:repeating-linear-gradient(45deg,rgba(8,9,15,.4) 0 3px,transparent 3px 8px);--cbyel:radial-gradient(circle,rgba(8,9,15,.55) 0 1.8px,transparent 2.4px) 0 0/8px 8px;--pat1:var(--cbpink);--pat2:var(--cbyel)}
+:root.swap{--pat1:var(--cbyel);--pat2:var(--cbpink)}
+.cb .rv .st,.cb .ck .pc{position:relative}
+.cb .c4b .disc.p1::before,.cb .c4ghost .p1::before,.cb .gmk .st.p1::before,.cb .rv .st.s1::before,.cb .ck .pc.s1::before,
+.cb .c4b .disc.p2::before,.cb .c4ghost .p2::before,.cb .gmk .st.p2::before,.cb .rv .st.s2::before,.cb .ck .pc.s2::before{content:'';position:absolute;inset:0;border-radius:50%;pointer-events:none;background:var(--pat1)}
+.cb .c4b .disc.p2::before,.cb .c4ghost .p2::before,.cb .gmk .st.p2::before,.cb .rv .st.s2::before,.cb .ck .pc.s2::before{background:var(--pat2)}
+.cb .ludo .pc::after,.cb .ladb .tok::after{content:attr(data-p);position:absolute;left:50%;top:44%;transform:translate(-50%,-50%);min-width:15px;height:15px;padding:0 3px;border-radius:8px;background:rgba(8,9,15,.85);color:#fff;font:800 11px/15px var(--f-d);text-align:center;pointer-events:none}
+
+/* ---------- game link, matches over days ---------- */
+.linkw{display:flex;flex-direction:column;align-items:center;gap:12px;text-align:center}
+.linkw h3{margin:0;font:800 italic 30px/1 var(--f-d);text-transform:uppercase}
+.linkw .fqr{width:min(64vw,220px)}
+.linkw .arow{justify-content:center}
+.linkw .lb-wait{margin:0;color:var(--muted);font-size:13.5px}
+.linkw .actions{width:100%}
+.plinkr{margin-top:10px;padding-top:10px;border-top:1px solid var(--line)}
+.alist{display:flex;flex-direction:column;gap:8px}
+.mrow .good{color:var(--good);font-weight:600}

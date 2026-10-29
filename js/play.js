@@ -46,6 +46,8 @@
   const EMO = { gg: 'GG', wow: '😮', haha: '😂', oops: '🙈', think: '🤔', fire: '🔥', clap: '👏', sweat: '😅' };
   // duels where the turn always alternates and side 1 begins (same list as match_move on the server)
   const ALTERNATE = ['c4', 'ttt', 'uttt', 'gomoku', 'chess', 'checkers', 'mill', 'go', 'backgammon'];
+  // games without luck where you may take a move back against the AI on Leicht and Mittel
+  const UNDO = ['c4', 'ttt', 'uttt', 'gomoku', 'dots', 'checkers', 'mill', 'chess', 'reversi', 'kalaha', 'go'];
   // Modes: 'ai' (vs. computer), 'local' (two players, one device), 'online' (vs. a friend over the server),
   // 'watch' (admins follow or replay a match). A remote player is handled like the AI: the game calls
   // ctx.aiTurn() and gets the move from the network instead of from a search.
@@ -57,6 +59,8 @@
     if (cfg.mode !== 'watch' && (locked(g) || (guest() && (cfg.mode === 'table' || (['online', 'open'].includes(cfg.mode) && !session))))) { toast('Dafür brauchst du ein Konto'); return home('profile'); }
     P.enterPlay(g);
     const online = cfg.mode === 'online', watch = cfg.mode === 'watch', M = cfg.match || {};
+    // a match over days: no offline countdown, leaving just puts it aside (it waits for your next move)
+    const slow = online && !!(M.init && M.init.async);
     // 'table': an online table with 2-4 seats (party games). Seats, names and the dice seed come from the server;
     // seats run by the AI are computed by the host's browser.
     const table = cfg.mode === 'table', T = table ? M.init : null;
@@ -76,6 +80,11 @@
     const party = !!g.party, N = party ? Math.max(2, Math.min(4, +(table ? T.n : cfg.opts && cfg.opts.n) || 2)) : 2, SIDES = [1, 2, 3, 4].slice(0, N);
     if (party) SIDES.forEach(s => { if (series[s] == null) series[s] = 0; });
     const aiSide = party ? 0 : ai ? (cfg.first === 'me' ? 2 : cfg.first === 'ai' ? 1 : (Math.random() < 0.5 ? 1 : 2)) : 0;
+    // undo: the match is set up again and every move but your last one (and what followed) is replayed at once
+    const replay = cfg.replay && cfg.replay.length ? cfg.replay.slice() : null;
+    if (cfg.replay || cfg.firstWas) cfg = Object.assign({}, cfg, { replay: null, first: cfg.firstWas || cfg.first, firstWas: null });
+    const canUndo = ai && !party && cfg.level <= 1 && UNDO.includes(g.id) && !auto;
+    const hist = [], rep = replay ? { queue: replay } : null;
     const mySide = online ? M.side : table ? M.seat : 0;
     const oppSide = ai ? aiSide : online ? 3 - mySide : 0;
     setSwap(oppSide === 1);
@@ -102,7 +111,7 @@
       <span class="nm"><b>${esc(shown(s))}</b><small>${sub(s)}</small></span>
       ${clockMin ? `<span class="clk" id="ck${s}"></span>` : ''}${thinker(s) ? '<span class="tdots" aria-hidden="true"><i></i><i></i><i></i></span>' : ''}<span class="wins"><b>${series[s]}</b><small>Siege</small></span><em class="tag">am Zug</em>
       ${ai && s === aiSide ? '<div class="bubble" aria-live="polite"></div>' : ''}</div>`;
-    const sublabel = table ? `Online-Tisch · ${N} Spieler` : party ? (ai ? `Gegen ${N > 2 ? N - 1 + ' KIs' : 'KI'} · ` + V.LEVELS[cfg.level] : N + ' Spieler') : ai ? 'Gegen KI · ' + V.LEVELS[cfg.level] : online ? 'Online gegen ' + esc(M.opp) : watch ? 'Zuschauen · ' + esc(M.aName) + ' gegen ' + esc(M.bName) : 'Zu zweit';
+    const sublabel = table ? `Online-Tisch · ${N} Spieler` : party ? (ai ? `Gegen ${N > 2 ? N - 1 + ' KIs' : 'KI'} · ` + V.LEVELS[cfg.level] : N + ' Spieler') : ai ? 'Gegen KI · ' + V.LEVELS[cfg.level] : slow ? 'Über Tage gegen ' + esc(M.opp) : online ? 'Online gegen ' + esc(M.opp) : watch ? 'Zuschauen · ' + esc(M.aName) + ' gegen ' + esc(M.bName) : 'Zu zweit';
     // two people at one phone, sitting opposite: player 2's card (and the status on their turn) is turned around
     const facing = cfg.mode === 'local' && settings.face && !party && g.cat !== 'Action';
     const v = mount(`<div class="view play${online || table ? ' net' : ''}${watch ? ' watch' : ''}${facing ? ' facing' + (g.turnBoard ? ' rotboard' : '') : ''}" data-g="${g.id}" style="--acc:${g.accent || 'var(--pink)'}">
@@ -110,6 +119,7 @@
         <button class="iconbtn" id="ph" aria-label="Regeln" title="Regeln (T)">${IC.help}</button>
         <span class="watchn" id="pw" hidden title="Zuschauer">${IC.eye}<b></b></span>
         ${online || (watch && !M.admin) ? `<button class="iconbtn" id="pe" aria-label="Reaktion senden" title="Reaktion">${IC.smile}</button>` : ''}
+        ${canUndo ? `<button class="iconbtn" id="pu" aria-label="Zug zurück" title="Zug zurück" disabled>${IC.undo}</button>` : ''}
         ${online ? `<button class="iconbtn" id="pr" aria-label="Aufgeben" title="Aufgeben">${IC.flag}</button>` : watch || table ? '' : `<button class="iconbtn" id="pr" aria-label="Neu starten" title="Neue Partie (N)">${IC.redo}</button>`}</div>
       <div class="duel${party ? ' party n' + N : ''}">
         ${party ? `<div class="pcol pcol-l">${SIDES.filter(s => s % 2).map(s => card(s, 'l')).join('')}</div><div class="pcol pcol-r">${SIDES.filter(s => !(s % 2)).map(s => card(s, 'r')).join('')}</div>` : `${card(L, 'l')}
@@ -147,7 +157,7 @@
       stEl.innerHTML = html; if (V.fxOn()) V.fx.pop(stEl, 'st-in');
     };
     // "Du bist dran" / "Gelb ist dran" in the player's colour over the board; the first one waits for the VS intro
-    const t0 = performance.now(), introMs = V.fxOn() && settings.intro !== false ? (rematch || watch ? 650 : 1150) : 0;
+    const t0 = performance.now(), introMs = !replay && V.fxOn() && settings.intro !== false ? (rematch || watch ? 650 : 1150) : 0;
     function turnBanner(s) {
       const show = () => {
         if (!alive || ended || lastTurn !== s) return;
@@ -179,7 +189,7 @@
     // a few seconds of grace, so the poke of a last action (resign, leaving the table) still goes out
     const closeChan = () => { const c = chan; if (c) setTimeout(() => c.close(), 3000); };
     let clock = null, listener = null, handSeen = 0;
-    const remote = s => watch || (online && (s === oppSide || (net && net.queue.length > 0))) || (table && (s !== mySide || (tnet && tnet.queue.length > 0)));
+    const remote = s => (rep && rep.queue.length > 0) || watch || (online && (s === oppSide || (net && net.queue.length > 0))) || (table && (s !== mySide || (tnet && tnet.queue.length > 0)));
     // dice, shuffled cards and other luck: online every browser draws the same numbers from a shared seed
     // (tables get it from the server, duels derive it from the match id)
     const idSeed = id => { let h = 2166136261; for (const ch of String(id)) h = Math.imul(h ^ ch.charCodeAt(0), 16777619); return h >>> 0; };
@@ -189,7 +199,7 @@
       stage: v.querySelector('#stage'), mode: cfg.mode, level: cfg.level, aiSide, opts: cfg.opts, sides: g.sides, n: N, players: SIDES,
       mySide, watchSides: watch ? { a: M.aSide } : null, rng, auto,
       // true while a table catches up on moves that were already played (after joining late or reloading)
-      fast: () => !!(tnet && tnet.queue.length > 1),
+      fast: () => !!(tnet && tnet.queue.length > 1) || !!(rep && rep.queue.length),
       // games where everybody acts at the same time (Stadt Land Fluss): listen(fn) gets every action (s, m) in
       // one order for all browsers; submit(m, s) sends an action (s defaults to your own seat, the host may act for AI seats)
       listen(fn) { listener = fn; if (tnet) tnet.pump(); },
@@ -215,7 +225,7 @@
       name: s => names[s],
       who(s) { return `<span class="c${s}">${esc(names[s])}</span>`; },
       alive: () => alive,
-      later(fn, ms) { const t = setTimeout(() => { timers.delete(t); if (alive) fn(); }, ms); timers.add(t); return t; },
+      later(fn, ms) { const t = setTimeout(() => { timers.delete(t); if (alive) fn(); }, rep && rep.queue.length ? 0 : ms); timers.add(t); return t; },
       onCleanup(fn) { cleanups.push(fn); },
       status: setStatus,
       turn(s, html) {
@@ -227,19 +237,21 @@
         lastTurn = s;
         // a person's turn: a short banner over the board (not for the AI or remote players, not in action games)
         if (fresh && !ctx.isAI(s) && g.cat !== 'Action' && !auto && !ctx.fast()) turnBanner(s);
+        if (fresh && guideDue && !ctx.isAI(s) && !ctx.fast()) { guideDue = false; ctx.later(showGuide, Math.max(0, introMs - (performance.now() - t0)) + 1300); }
         // the status line is left for rule hints and the opponent's last move; whose turn it is shows the banner and the cards
         const note = s && oppSide && s !== oppSide && lastNote ? `${ctx.who(oppSide)}: ${lastNote}` : '';
         if (html !== false) setStatus(html ? (note ? note + ' · ' : '') + html : note);
         nav.refresh();
       },
       // Every move goes through here (all modes). Online, your own moves are sent to the server.
-      moved(s, m) { if (net) net.moved(s, m); if (tnet) tnet.moved(s, m); },
+      moved(s, m) { if (net) net.moved(s, m); if (tnet) tnet.moved(s, m); if (canUndo) { hist.push({ s, m: JSON.parse(JSON.stringify(m ?? null)) }); undoBtn(); } },
       // One AI move with a bit of theatre: think (min. time per level), let the crosshair hover over
       // a couple of alternatives, lock on the real target(s), then move and comment in the bubble.
       // o.think() -> { move, mood? }, o.targets(move) -> [elements], o.decoys(move) -> [elements],
       // o.apply(move), o.say(move) -> short text, o.quick -> follow-up move (e.g. extra turn) with less delay,
       // o.decode(raw) -> legal move or null (online: turns the received move back into the game's own form)
       aiTurn(o) {
+        if (rep && rep.queue.length) return replayStep(o);
         if (net) return net.take(o);
         // at a table only the host plays the AI seats; everything else (and any backlog) comes from the server
         if (tnet && (tnet.queue.length || !(tbots.has(o.side) && amHost()))) return tnet.take(o);
@@ -254,11 +266,12 @@
         }, 70);
       },
       think(fn, ms = 380) { setStatus(`<span class="c${aiSide}">KI</span> <span class="thinking">denkt</span>`); ctx.later(fn, ms); },
-      nav(fn, o) { nav.set(fn, o); },
+      nav(fn, o) { navFn = fn; nav.set(fn, o); },
       keys(fn) { keyFn = fn; },
       // off: the match was called off (opponent offline, voided) – no winner, nothing counts
       end(winner, note, fromServer, off) {
         if (ended || !alive) return; ended = true;
+        undoBtn();
         if (off) winner = 0;
         SIDES.forEach(k => pls[k].classList.remove('on'));
         nav.hide();
@@ -291,6 +304,7 @@
             <div class="band"><div class="band-in"><span class="kicker">${esc(note || sublabel)}${online && net && net.last && net.last.ranked === false ? ' · zählt nicht für die Rangliste' : ''}</span>
               <h2 aria-label="${esc(big)}">${[...big].map((ch, k) => `<span aria-hidden="true" style="--k:${k}">${ch === ' ' ? '&nbsp;' : esc(ch)}</span>`).join('')}</h2></div></div>
             ${party ? `<div class="eparty">${SIDES.map(k => `<span class="ep c${k}"><b>${series[k]}</b><small>${esc(names[k])}</small></span>`).join('')}</div>` : `<div class="eseries"><span class="nl">${esc(names[L])}</span><b class="sl${winner === L && !off ? ' up' : ''}" data-n="${series[L]}">${winner === L && !off ? series[L] - 1 : series[L]}</b><i>:</i><b class="sr${winner === R && !off ? ' up' : ''}" data-n="${series[R]}">${winner === R && !off ? series[R] - 1 : series[R]}</b><span class="nr">${esc(names[R])}</span></div>`}
+            ${ai && winner && winner !== me && !off && tipFor() ? `<div class="ktip">${IC.bulb}<div><b>Tipp für die Revanche</b><p>${tipFor()}</p></div></div>` : ''}
             ${series.d ? `<p class="small">${series.d}× unentschieden</p>` : ''}
             ${online ? `<div class="kemo" id="kemo"></div><div class="kquick">${['gg', 'clap', 'haha', 'sweat'].map(e => `<button data-emo="${e}">${EMO[e]}</button>`).join('')}</div>` : ''}
             ${online && V.online.friendOf(M.opp) === false && !(V.cloud.user() && V.cloud.user().anon) ? `<button class="btn ghost sm efr" id="efr"><span>${IC.plus}${esc(M.opp)} als Freund hinzufügen</span></button>` : ''}
@@ -340,6 +354,62 @@
       step();
     }
 
+    // ---------- undo against the AI ----------
+    // While moves are replayed every side counts as remote, so the game asks aiTurn for each of them (as online)
+    function replayStep(o) {
+      const mv = rep.queue.shift(), m = o.decode ? o.decode(mv.m) : mv.m;
+      if (m == null) { rep.queue.length = 0; toast('Zurücknehmen ging hier nicht'); return ctx.aiTurn(o); }
+      ctx.later(() => aimAt(o, { move: m }, pls[mv.s], false, true, mv.s), 0);
+    }
+    function undoBtn() { const b = v.querySelector('#pu'); if (b) b.disabled = ended || !hist.some(h => h.s === me); }
+    function undo() {
+      const k = hist.map(h => h.s).lastIndexOf(me);
+      if (k < 0 || ended) return;
+      V.sfx.ui();
+      play(g, Object.assign({}, cfg, { replay: hist.slice(0, k), first: aiSide === 2 ? 'me' : 'ai', firstWas: cfg.first }), series);
+    }
+
+    // ---------- first match of a game: a hand shows where to tap ----------
+    let navFn = null, guideDue = !auto && !watch && g.cat !== 'Action' && !(S.get('guided', {})[g.id]);
+    function showGuide() {
+      if (!alive || ended) return;
+      const vis = e => { const r = e.getBoundingClientRect(); return r.width > 4 && r.bottom > 0 && r.top < innerHeight; };
+      let cand = [...ctx.stage.querySelectorAll('.ok, .can, .src, .tg')].filter(vis);
+      if (!cand.length && navFn) cand = navFn().filter(e => e && vis(e));
+      if (!cand.length) cand = [...ctx.stage.querySelectorAll('.cell, button:not(:disabled)')].filter(vis);
+      if (!cand.length) return;
+      // 4 Gewinnt: the middle column at the bottom; otherwise the middle candidate
+      const el = g.id === 'c4' && cand.length >= 42 ? cand[38] : cand[Math.floor(cand.length / 2)];
+      const seen = S.get('guided', {}); seen[g.id] = 1; S.set('guided', seen);
+      const r = el.getBoundingClientRect(), h = V.el('div', 'guide', `<i class="gr"></i><span class="gh-i">${IC.hand}</span><b>Hier tippen</b>`);
+      h.style.cssText = `left:${r.left + r.width / 2}px;top:${r.top + r.height / 2}px`;
+      document.body.appendChild(h);
+      const gone = () => { h.classList.add('out'); setTimeout(() => h.remove(), 250); window.removeEventListener('pointerdown', gone, true); };
+      window.addEventListener('pointerdown', gone, true); setTimeout(gone, 6000); cleanups.push(gone);
+    }
+    // after a loss against the AI: the game's own tip from its tutorial
+    const TIP = [/Tipp/, /Gabel|Doppeldrohung|Keine Geschenke|Profi-Trick|Taktik/, /Mühle!|Fangen|Extrazug|Rauswerfen|Schubsen|Blocken/];
+    const tipFor = () => { for (const re of TIP) { const t = (g.tutorial || []).find(x => re.test(x.t)); if (t) return t.d; } return ''; };
+
+    // ---------- coin toss when "Zufall" decides who begins ----------
+    function coinToss() {
+      const meFirst = aiSide === 2, el = V.el('div', 'coin', `<div class="coin-c${meFirst ? '' : ' ai'}"><b class="cf me">DU</b><b class="cf ki">KI</b></div><span>${meFirst ? 'Du beginnst' : 'Die KI beginnt'}</span>`);
+      document.body.appendChild(el); V.sfx.tick();
+      setTimeout(() => V.sfx.place(), 900);
+      setTimeout(() => { el.classList.add('out'); setTimeout(() => el.remove(), 300); }, 1700);
+      el.addEventListener('pointerdown', () => el.remove());
+    }
+
+    // ---------- first time two people play at one phone: offer the facing seats ----------
+    function offerFacing() {
+      if (!alive || ended || S.get('faceAsked')) return;
+      S.set('faceAsked', 1);
+      const m = openModal(`<div class="confirm"><h3>Sitzt ihr euch gegenüber?</h3><p>Dann stehen Name und Hinweise für Spieler 2 auf dem Kopf, und Bretter mit oben und unten drehen sich zum, der dran ist.</p>
+        <div class="actions"><button class="btn primary" id="fy"><span>Ja, umdrehen</span></button><button class="btn ghost" id="fn"><span>Nein, nebeneinander</span></button></div><p class="fine">Später unter Optionen → Gegenüber sitzen.</p></div>`);
+      m.querySelector('#fn').onclick = closeModal;
+      m.querySelector('#fy').onclick = () => { settings.face = true; P.saveSettings(); P.closeModalQuiet(); V.sfx.ui(); play(g, cfg, series); };
+    }
+
     // ---------- network (online and watch) ----------
     const OFF_AFTER = 75, myName = V.cloud && V.cloud.user() ? V.cloud.user().username : '';
     // a line under the status while the opponent is offline, with the seconds until the match is called off
@@ -365,10 +435,10 @@
           });
           if (online) {
             const oppOn = st.role === 'a' ? st.b_online : st.a_online;
-            pls[oppSide].classList.toggle('off', !oppOn);
+            pls[oppSide].classList.toggle('off', !oppOn && !slow);
             // the server calls the match off after 75 seconds without a sign of life (no winner, it doesn't count)
             const idle = st.role === 'a' ? st.b_idle : st.a_idle;
-            offNote(!oppOn && !ended && st.status === 'live' ? `${esc(names[oppSide])} ist offline · ohne Rückkehr endet die Partie in ${Math.max(0, OFF_AFTER - (idle || 0))} s ohne Sieger` : '');
+            offNote(!slow && !oppOn && !ended && st.status === 'live' ? `${esc(names[oppSide])} ist offline · ohne Rückkehr endet die Partie in ${Math.max(0, OFF_AFTER - (idle || 0))} s ohne Sieger` : '');
           }
           const wn = v.querySelector('#pw');
           if (wn) { wn.hidden = !st.watchers; wn.querySelector('b').textContent = st.watchers || ''; }
@@ -692,6 +762,7 @@
     });
     function leave(to) {
       if (ended || watch) return to();
+      if (slow && to !== null) return V.ui.home('online');
       if (inst && inst.pause) inst.pause();
       const m = openModal(online
         ? `<div class="confirm"><h3>Aufgeben?</h3><p>Wenn du die Partie verlässt, gewinnt ${esc(M.opp)}.</p>
@@ -723,9 +794,13 @@
       restart() { if (!online && !watch) leave(() => play(g, cfg, series)); },
       tut
     };
-    if (party && N > 2) vsIntro({ name: names[1], sub: sideLabel(1) }, { name: ai ? N - 1 + ' KIs' : 'Alle', sub: ai ? V.LEVELS[cfg.level] : N + ' Spieler' }, rematch);
+    const pu = v.querySelector('#pu'); if (pu) pu.onclick = undo;
+    if (rep) { /* replaying after an undo: no intro */ }
+    else if (party && N > 2) vsIntro({ name: names[1], sub: sideLabel(1) }, { name: ai ? N - 1 + ' KIs' : 'Alle', sub: ai ? V.LEVELS[cfg.level] : N + ' Spieler' }, rematch);
     else vsIntro({ name: names[L], sub: sideLabel(L) }, { name: names[R], sub: ai ? 'KI · ' + V.LEVELS[cfg.level] : online ? 'online' : sideLabel(R) }, rematch || watch);
     inst = g.start(ctx) || {};
+    if (ai && !party && cfg.first === 'rand' && !rep && !auto && V.fxOn()) ctx.later(coinToss, introMs);
+    if (cfg.mode === 'local' && !party && g.cat !== 'Action' && V.coarse && !settings.face && !V.ui.wide()) ctx.later(offerFacing, introMs + 500);
     // When the match does not fit on the screen: on the phone the player cards get smaller first (up to three steps),
     // then (phone and laptop) boards that size themselves with --bw shrink by what is still missing, so the board and
     // your own card stay visible without scrolling. Checked again whenever the stage changes size.

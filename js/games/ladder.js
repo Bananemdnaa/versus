@@ -85,7 +85,7 @@
       bar.append(start, dice.el);
       wrap.append(board, bar); ctx.stage.appendChild(wrap);
       const tok = {};
-      P.forEach(p => { tok[p] = V.el('div', 'tok', V.pawn(CLR[p])); board.appendChild(tok[p]); });
+      P.forEach(p => { tok[p] = V.el('div', 'tok', V.pawn(CLR[p])); tok[p].dataset.p = p; board.appendChild(tok[p]); });
       function place(p, slide) {
         const t = tok[p];
         if (!at[p]) { t.style.display = 'none'; return drawStart(); }

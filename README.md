@@ -42,6 +42,9 @@ Du bist immer Pink und links, die KI immer Gelb und rechts, egal wer anfängt. Z
 - **Gegen KI** (alle Brettspiele): Leicht ist ein echter Anfänger, Mittel ein Gelegenheitsspieler, Schwer rechnet sauber ein paar Züge voraus, Profi rechnet so tief, wie die Bedenkzeit erlaubt. Du wählst, wer anfängt (bei Schach deine Farbe). Die KI denkt sichtbar nach, zielt mit einem Fadenkreuz auf ihren Zug, schreibt ihren letzten Zug in die Statuszeile und kommentiert die Lage in einer Sprechblase.
 - **Action-Spiele:** Reaktionsduell, Pong und Air Hockey gibt es nur zu zweit, weil dort eine KI nur über die Reaktionszeit stark oder schwach wäre. Lichtrenner und Sumo-Arena haben eine KI, weil es dort auf Planung und Timing ankommt.
 - **2 Spieler, ein Gerät:** abwechselnd am selben Handy oder PC. Bei Schiffe versenken kommt zwischen den Zügen ein Wechsel-Bildschirm, damit keiner die Flotte des anderen sieht.
+- **Schneller Start:** Eine Kachel lang drücken startet das Spiel sofort mit den letzten Einstellungen (gegen KI oder zu zweit). Der Würfel neben der Suche („Überrasch mich“) schlägt ein zufälliges Spiel vor.
+- **Hilfen:** Beginnt bei „Zufall“ jemand, entscheidet ein Münzwurf sichtbar. Gegen die KI auf Leicht und Mittel nimmt „Zug zurück“ in Spielen ohne Glück (4 Gewinnt, Tic Tac Toe, Ultimate, Fünf in einer Reihe, Käsekästchen, Dame, Mühle, Schach, Reversi, Kalaha, Go) den letzten eigenen Zug und die Antwort der KI zurück; die Partie wird dafür neu aufgebaut und blitzschnell nachgespielt. Beim ersten Mal in einem Spiel zeigt eine Hand, wo man tippen kann. Nach einer Niederlage gegen die KI steht ein Tipp aus dem Tutorial unter dem Ergebnis, bei Mau-Mau erklärt ein Hinweis die Sonderkarten beim ersten Auftauchen. Zu zweit am Handy fragt Versus einmal, ob ihr euch gegenübersitzt.
+- **Farbenblind-Modus** (Optionen → Anzeige): pinke Steine gestreift, gelbe gepunktet (4 Gewinnt, Fünf in einer Reihe, Reversi, Dame), Figuren in Ludo und Leiterspiel mit Nummer.
 
 Regeln im Detail:
 - **Schach:** alle Regeln, also Rochade, en passant, Umwandlung mit Auswahl, Patt, dreifache Wiederholung, 50-Züge-Regel und zu wenig Material.
@@ -171,6 +174,20 @@ Server: `supabase/migrations/20261110000000_open_play.sql` im SQL-Editor ausfüh
 - **Einladen:** Konto → „Freunde einladen“ öffnet den Freundes-Link (QR, teilen). Wer darüber neu ein Konto erstellt, ist sofort Freund und zählt für das Werber-Abzeichen im Profil („Werber · 3“). Nur ein Abzeichen, keine Vorteile.
 
 Server dafür: `supabase/migrations/20261111000000_offline_watch.sql` und `supabase/migrations/20261112000000_invites.sql`.
+
+## Spiel-Links, Partien über Tage, Benachrichtigungen
+
+- **Spiel-Link:** Im Spiel-Panel unter „Freund“ oder „Online“: „Per Link einladen“ erzeugt einen Link mit QR-Code (`?join=<id>`). Wer ihn öffnet, spielt sofort gegen dich, ohne Freundschaft. Bei den Gast-Spielen geht das auch ohne Konto, bei den anderen fragt Versus nach dem Anmelden. Der Link taucht nicht beim schnellen Spiel auf und gilt, solange du wartest (höchstens 10 Minuten).
+- **Über Tage:** Unter „Freund“ bei Spielen mit festem Wechsel (4 Gewinnt, Tic Tac Toe, Ultimate, Fünf in einer Reihe, Schach, Dame, Mühle, Go, Backgammon) „Über Tage“ wählen. Jeder zieht, wann er Zeit hat; kein Offline-Abbruch, keine Schachuhr. Die Partien stehen im Online-Tab unter „Über Tage“ mit „Du bist dran“, der Tab zeigt die Zahl. Sieben Tage ohne Zug beenden eine Partie ohne Sieger, Einladungen gelten drei Tage, höchstens 10 Partien gleichzeitig. Sie blockieren keine normalen Partien.
+- **Benachrichtigungen:** Optionen → Online → Benachrichtigungen (mit Konto). Bei Herausforderungen, Freundschaftsanfragen und wenn du in einer Partie über Tage dran bist; ein Tipp öffnet die Partie. Auf dem iPhone nur in der installierten App (iOS 16.4+).
+
+Server dafür:
+1. `supabase/migrations/20261113000000_links_async_push.sql` im SQL-Editor ausführen.
+2. Edge Function anlegen: Dashboard → Edge Functions → neue Funktion `push`, Inhalt aus `supabase/functions/push/index.ts`. Bei der Funktion „Enforce JWT verification“ ausschalten (die Datenbank schickt stattdessen ein Geheimnis mit).
+3. Secrets der Edge Functions: `VAPID_PUBLIC`, `VAPID_PRIVATE`, `PUSH_SECRET` (die Werte bekommst du getrennt, der private Schlüssel gehört nie ins Repo). Der öffentliche Schlüssel steht auch in `js/online.js` (`PUSH_KEY`).
+4. Im SQL-Editor zwei Vault-Einträge: `select vault.create_secret('https://<projekt>.supabase.co/functions/v1/push', 'push_url');` und `select vault.create_secret('<PUSH_SECRET>', 'push_secret');`.
+
+Ohne Schritt 2 bis 4 läuft alles andere normal, es kommen nur keine Benachrichtigungen.
 
 ## Rechtliches
 

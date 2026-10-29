@@ -22,7 +22,7 @@
     // silent: written by the cloud sync itself, so it must not trigger another upload
     set(k, v, silent) { try { localStorage.setItem('versus.' + k, JSON.stringify(v)); } catch (e) { } if (!silent && V.cloud) V.cloud.changed(k); }
   };
-  const DEFAULTS = { sound: true, vol: 80, music: true, mvol: 45, haptic: 'strong', fx: 'full', intro: true, coords: true, hints: true, aiFast: false, openCards: true, board: 'std', face: false };
+  const DEFAULTS = { sound: true, vol: 80, music: true, mvol: 45, haptic: 'strong', fx: 'full', intro: true, coords: true, hints: true, aiFast: false, openCards: true, board: 'std', face: false, cb: false };
   const settings = V.settings = Object.assign({}, DEFAULTS, S.get('settings', {}));
   // older saves stored vibration as true/false
   if (settings.haptic === true) settings.haptic = 'strong'; else if (settings.haptic === false) settings.haptic = 'off';
@@ -47,6 +47,8 @@
     r.toggle('lowfx', !V.fxOn()); r.toggle('nocoords', settings.coords === false); r.toggle('nohints', settings.hints === false);
     // board style for Schach, Dame and Reversi: standard (each its own), all neon or all wood
     r.toggle('bd-neon', settings.board === 'neon'); r.toggle('bd-wood', settings.board === 'wood');
+    // colour-blind mode: patterns on the pieces, numbers on the pawns
+    r.toggle('cb', !!settings.cb);
   }
 
   // ---------- sound and haptics ----------
@@ -230,6 +232,12 @@
     sync: svg('<path d="M20 12a8 8 0 0 1-14 5.3M4 12a8 8 0 0 1 14-5.3"/><path d="M18 3v4h-4M6 21v-4h4"/>'),
     bolt: svg('<path d="M13 2L4 14h7l-1 8 9-12h-7z"/>'),
     boltf: svg('<path d="M13 2L4 14h7l-1 8 9-12h-7z"/>', true),
+    dice: svg('<rect x="3.5" y="3.5" width="17" height="17" rx="3.5"/><path d="M8.5 8.5h.01M15.5 8.5h.01M12 12h.01M8.5 15.5h.01M15.5 15.5h.01" stroke-width="2.6"/>'),
+    undo: svg('<path d="M9 14L4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/>'),
+    hand: svg('<path d="M9 11V5.5a1.5 1.5 0 0 1 3 0V11m0-1.5a1.5 1.5 0 0 1 3 0V11m0-.5a1.5 1.5 0 0 1 3 0v4.5a6 6 0 0 1-6 6h-.5a6 6 0 0 1-5-2.7L4.2 15a1.5 1.5 0 0 1 2.4-1.8L9 15.5"/>'),
+    bell: svg('<path d="M6 16V11a6 6 0 0 1 12 0v5l1.5 2h-15z"/><path d="M10 20a2 2 0 0 0 4 0"/>'),
+    link: svg('<path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1"/><path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/>'),
+    clock: svg('<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>'),
     hash: svg('<path d="M5 9h15M4 15h15M10 3L8 21M16 3l-2 18"/>'),
     eye: svg('<path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/>'),
     film: svg('<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M7 4v16M17 4v16M3 9h4M3 15h4M17 9h4M17 15h4"/>'),

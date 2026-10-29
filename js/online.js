@@ -26,9 +26,16 @@
     hideInvite();
     V.ui.play(g, { mode: 'online', opts: st.opts || {}, match: { id: st.id, side, opp, init: st } });
   }
+  // a running match shown in the Online tab is fetched ahead, so "Weiterspielen" opens the board at once
+  const pre = new Map();
+  function prefetch(id) {
+    const c = pre.get(id); if (!id || (c && Date.now() - c.at < 8000)) return;
+    const p = C().rpc('match_state', { mid: id, since: 0 }); p.catch(() => { }); pre.set(id, { at: Date.now(), p });
+  }
   async function resume(id) {
     try {
-      const st = await C().rpc('match_state', { mid: id, since: 0 });
+      const c = pre.get(id); pre.delete(id);
+      const st = c && Date.now() - c.at < 8000 ? await c.p : await C().rpc('match_state', { mid: id, since: 0 });
       if (st.status === 'live') return start(st);
       V.ui.toast('Diese Partie ist schon vorbei.'); V.ui.home('online');
     } catch (e) { V.ui.toast(e.message); V.ui.home('online'); }
@@ -45,10 +52,12 @@
   }
 
   // invite a friend and wait for the answer
-  async function invite(name, g, opts) {
+  async function invite(name, g, opts, asy) {
     let mid;
-    try { mid = await C().rpc('match_invite', { opp: name, gm: g.id, op: opts || optsFor(g) }); }
-    catch (e) { V.ui.toast(e.message); V.sfx.bad(); return; }
+    try { mid = await C().rpc('match_invite', asy ? { opp: name, gm: g.id, op: opts || optsFor(g), asy: true } : { opp: name, gm: g.id, op: opts || optsFor(g) }); }
+    catch (e) { V.ui.toast(/asy|function/i.test(e.message) && asy ? 'Partien über Tage kommen nach dem nächsten Server-Update.' : e.message); V.sfx.bad(); return; }
+    // a match over days does not wait here: the friend accepts whenever, and both get a note when it is their turn
+    if (asy) { C().poke('u:' + name); V.sfx.goal(); V.ui.toast('Einladung an ' + name + ' verschickt', 2600); check(); return; }
     let done = false, t = null, ch = null;
     const stop = () => { done = true; clearTimeout(t); if (ch) ch.close(); };
     const m = V.ui.openModal(`<div class="confirm wait"><div class="spin"><i></i><i></i></div>
@@ -119,7 +128,7 @@
     } catch (e) { }
   }
   function badge() {
-    const n = (pending ? (pending.requests || 0) + (pending.invites || []).length : 0) + (tpending ? (tpending.invites || []).length : 0);
+    const n = (pending ? (pending.requests || 0) + (pending.invites || []).length + (pending.async || []).filter(a => a.my_turn).length : 0) + (tpending ? (tpending.invites || []).length : 0);
     document.querySelectorAll('.tabs [data-tab="online"]').forEach(b => {
       let i = b.querySelector('.nb'); if (!n) { if (i) i.remove(); return; }
       if (!i) { i = document.createElement('i'); i.className = 'nb'; b.appendChild(i); }
@@ -135,7 +144,7 @@
     if (cardId === inv.id) return;
     hideInvite(); cardId = inv.id;
     card = V.el('div', 'icard', `<div class="ic-ico">${V.byId[inv.game] ? V.byId[inv.game].icon : ''}</div>
-      <div class="ic-tx"><small>${inv.table ? (inv.open ? `Offener Tisch · ${inv.players}/${inv.n}` : 'Einladung an den Tisch') : inv.open ? 'Sucht einen Gegner' : 'Herausforderung'}</small><b>${esc(inv.from)}</b><span>${esc(gname(inv.game))}${inv.table && !inv.open ? ` · ${inv.players}/${inv.n} Plätze` : ''}</span></div>
+      <div class="ic-tx"><small>${inv.table ? (inv.open ? `Offener Tisch · ${inv.players}/${inv.n}` : 'Einladung an den Tisch') : inv.open ? 'Sucht einen Gegner' : inv.async ? 'Partie über Tage' : 'Herausforderung'}</small><b>${esc(inv.from)}</b><span>${esc(gname(inv.game))}${inv.table && !inv.open ? ` · ${inv.players}/${inv.n} Plätze` : ''}</span></div>
       <div class="ic-act"><button class="btn primary sm" data-a="ok"><span>${inv.table ? 'Hinsetzen' : inv.open ? 'Mitspielen' : 'Annehmen'}</span></button><button class="btn ghost sm" data-a="no"><span>${inv.open ? 'Nein danke' : 'Ablehnen'}</span></button></div>`);
     if (inv.open) card.classList.add('open');
     document.body.appendChild(card);
@@ -171,7 +180,7 @@
       ${loginCard}
       <div class="ogrid${full ? '' : ' solo'}">
         ${full ? `<div class="ocol">
-          <div id="oactive"></div>
+          <div id="oactive"></div><div id="oasync"></div>
           <div class="apanel osec fpanel"><div class="fhead"><h3>Freunde <small id="fcount"></small></h3><button class="btn primary sm" id="fadd"><span>${IC().plus}Hinzufügen</span></button></div>
             <div id="ofriends">${V.skel()}</div>
           </div></div>` : ''}
@@ -225,7 +234,7 @@
     const el = b.querySelector('#oactive'); if (!el) return;
     const p = pending || {};
     el.innerHTML = (p.active ? `<div class="obanner"><div><small>Laufende Partie</small><b>${esc(gname(p.active.game))} gegen ${esc(p.active.opponent)}</b></div><button class="btn primary sm" id="ores_go"><span>${IC().play}Weiterspielen</span></button></div>` : '') +
-      (p.invites || []).map(i => `<div class="obanner inv"><div><small>Herausforderung</small><b>${esc(i.from)} · ${esc(gname(i.game))}</b></div>
+      (p.invites || []).map(i => `<div class="obanner inv"><div><small>${i.async ? 'Partie über Tage' : 'Herausforderung'}</small><b>${esc(i.from)} · ${esc(gname(i.game))}</b></div>
         <div class="arow"><button class="btn primary sm" data-acc="${i.id}"><span>Annehmen</span></button><button class="btn ghost sm" data-dec="${i.id}"><span>Ablehnen</span></button></div></div>`).join('');
     el.innerHTML += (p.open || []).map(o => `<div class="obanner open"><div><small>Sucht einen Gegner</small><b>${esc(o.from)} · ${esc(gname(o.game))}</b></div><button class="btn primary sm" data-join="${o.id}"><span>Mitspielen</span></button></div>`).join('');
     const tp = tpending || {};
@@ -236,9 +245,19 @@
     el.querySelectorAll('[data-tres]').forEach(x => x.onclick = () => resumeTable(x.dataset.tres));
     el.querySelectorAll('[data-tjoin]').forEach(x => x.onclick = () => joinTable(x.dataset.tjoin));
     el.querySelectorAll('[data-tdec]').forEach(x => x.onclick = () => { C().rpc('party_decline', { tid: x.dataset.tdec }).then(check, check); });
-    el.querySelectorAll('[data-join]').forEach(x => x.onclick = () => join(x.dataset.join));
-    const go = el.querySelector('#ores_go'); if (go) go.onclick = () => resume(p.active.id);
-    el.querySelectorAll('[data-acc]').forEach(x => x.onclick = async () => { try { start(await C().rpc('match_respond', { mid: x.dataset.acc, ok: true })); } catch (e) { V.ui.toast(e.message); check(); } });
+    el.querySelectorAll('[data-join]').forEach(x => x.onclick = () => { x.classList.add('busy'); join(x.dataset.join); });
+    if (p.active) prefetch(p.active.id);
+    const go = el.querySelector('#ores_go'); if (go) go.onclick = () => { go.classList.add('busy'); resume(p.active.id); };
+    // matches over days: whose turn it is, open with one tap
+    const ae = b.querySelector('#oasync'), as = p.async || [];
+    if (ae) {
+      ae.innerHTML = as.length ? `<div class="apanel osec"><div class="fhead"><h3>Über Tage <small>${as.filter(a => a.my_turn).length ? as.filter(a => a.my_turn).length + ' dran' : ''}</small></h3></div><div class="alist">${as.map(a => `<div class="mrow${a.my_turn ? ' live' : ''}"><span class="m-g">${V.byId[a.game] ? V.byId[a.game].icon : ''}</span>
+        <div class="m-t"><b>${esc(gname(a.game))} <i>gegen ${esc(a.opponent)}</i></b><small>${a.my_turn ? '<span class="good">Du bist dran</span>' : 'Wartet auf ' + esc(a.opponent)} · ${a.moves} Züge · ${ago(a.at)}</small></div>
+        <button class="btn sm${a.my_turn ? ' primary' : ''}" data-ares="${a.id}"><span>${a.my_turn ? 'Ziehen' : 'Ansehen'}</span></button></div>`).join('')}</div></div>` : '';
+      ae.querySelectorAll('[data-ares]').forEach(x => x.onclick = () => { x.classList.add('busy'); resume(x.dataset.ares); });
+      as.filter(a => a.my_turn).slice(0, 2).forEach(a => prefetch(a.id));
+    }
+    el.querySelectorAll('[data-acc]').forEach(x => x.onclick = async () => { x.classList.add('busy'); try { start(await C().rpc('match_respond', { mid: x.dataset.acc, ok: true })); } catch (e) { V.ui.toast(e.message); check(); } });
     el.querySelectorAll('[data-dec]').forEach(x => x.onclick = () => { C().rpc('match_respond', { mid: x.dataset.dec, ok: false }).then(check, check); });
   }
   const fstatus = f => f.busy && f.match_opp ? `spielt ${esc(gname(f.match_game))} gegen ${esc(f.match_opp)}` : f.busy ? 'spielt gerade online' :f.online ? 'online' + (f.game && V.byId[f.game] ? ' · ' + esc(gname(f.game)) : '') : f.seen ? 'zuletzt ' + ago(f.seen) : 'offline';
@@ -515,16 +534,25 @@
   }
 
   // ---------- game panel: pick a friend to invite ----------
+  // games where a match can go over days (the turn always alternates, so the server knows who is to move)
+  const ASYNC = ['c4', 'ttt', 'uttt', 'gomoku', 'chess', 'checkers', 'mill', 'go', 'backgammon'];
+  let pickAsync = V.store.get('async', false);
   async function picker(el, g, opts) {
     if (!el) return;
-    if (!ready() || isAnon()) { el.innerHTML = `<p class="hint">Für Partien gegen Freunde brauchst du ein Konto.</p><button class="btn sm" data-tab-go="profile"><span>${IC().user}Anmelden</span></button>`; el.querySelector('[data-tab-go]').onclick = () => V.ui.home('profile'); return; }
+    const linkBtn = `<button class="btn sm" id="plink"><span>${IC().link}Per Link einladen</span></button>`;
+    const wireLink = () => { const b = el.querySelector('#plink'); if (b) b.onclick = () => { V.sfx.ui(); linkInvite(g, opts); }; };
+    if (!ready() || isAnon()) { el.innerHTML = `<p class="hint">Für Partien gegen Freunde brauchst du ein Konto. Per Link geht es auch ohne${guestOk(g.id) ? '' : ' Freundschaft, aber mit Konto'}.</p><div class="arow"><button class="btn sm" data-tab-go="profile"><span>${IC().user}Anmelden</span></button>${guestOk(g.id) || ready() ? linkBtn : ''}</div>`; el.querySelector('[data-tab-go]').onclick = () => V.ui.home('profile'); wireLink(); return; }
     el.innerHTML = V.skel(3);
     let d;
     try { d = await C().rpc('friends'); } catch (e) { el.innerHTML = `<p class="aerr">${esc(e.message)}</p>`; return; }
-    const fr = d.friends || [];
-    if (!fr.length) { el.innerHTML = `<p class="hint">Noch keine Freunde. Zeig deinen QR-Code oder such nach einem Namen.</p><button class="btn sm primary" id="pgo"><span>${IC().plus}Freund hinzufügen</span></button>`; el.querySelector('#pgo').onclick = () => { V.sfx.ui(); addFriends(); }; return; }
-    el.innerHTML = `<p class="hint">Wen willst du herausfordern? Am besten jemanden, der gerade online ist.</p>` + fr.map(f => `<div class="fline${f.online ? ' on' : ''}"><span class="adot"></span><b>${esc(f.username)}</b><small>${f.busy ? 'spielt gerade' : f.online ? 'online' : ago(f.seen)}</small><button class="btn sm${f.online ? ' primary' : ''}" data-inv="${esc(f.username)}"><span>Einladen</span></button></div>`).join('');
-    el.querySelectorAll('[data-inv]').forEach(x => x.onclick = () => invite(x.dataset.inv, g, opts));
+    const fr = d.friends || [], canAsync = ASYNC.includes(g.id);
+    const asy = canAsync && pickAsync;
+    const seg = canAsync ? `<div class="crow"><span>Wann spielt ihr?</span><div class="mini-seg" id="pasy"><button data-v="0" class="${asy ? '' : 'on'}">Jetzt</button><button data-v="1" class="${asy ? 'on' : ''}">Über Tage</button></div></div>` : '';
+    if (!fr.length) { el.innerHTML = `<p class="hint">Noch keine Freunde. Zeig deinen QR-Code, such nach einem Namen oder lade per Link ein.</p><div class="arow"><button class="btn sm primary" id="pgo"><span>${IC().plus}Freund hinzufügen</span></button>${linkBtn}</div>`; el.querySelector('#pgo').onclick = () => { V.sfx.ui(); addFriends(); }; wireLink(); return; }
+    el.innerHTML = seg + `<p class="hint">${asy ? 'Jeder zieht, wann er Zeit hat. Du bekommst Bescheid, wenn du dran bist.' : 'Wen willst du herausfordern? Am besten jemanden, der gerade online ist.'}</p>` + fr.map(f => `<div class="fline${f.online ? ' on' : ''}"><span class="adot"></span><b>${esc(f.username)}</b><small>${f.busy ? 'spielt gerade' : f.online ? 'online' : ago(f.seen)}</small><button class="btn sm${f.online || asy ? ' primary' : ''}" data-inv="${esc(f.username)}"><span>Einladen</span></button></div>`).join('') + `<div class="arow plinkr">${linkBtn}</div>`;
+    el.querySelectorAll('[data-inv]').forEach(x => x.onclick = () => invite(x.dataset.inv, g, opts, asy));
+    el.querySelectorAll('#pasy button').forEach(x => x.onclick = () => { pickAsync = x.dataset.v === '1'; V.store.set('async', pickAsync); V.sfx.ui(); picker(el, g, opts); });
+    wireLink();
   }
 
   // game panel, mode "Online": open challenge for everybody, plus open challenges of others for this game
@@ -533,17 +561,17 @@
     if (!ready()) {
       if (!guestOk(g.id)) { el.innerHTML = `<p class="hint">Für Online-Partien in ${esc(g.name)} brauchst du ein Konto.</p><button class="btn sm" id="plog"><span>${IC().user}Anmelden</span></button>`; el.querySelector('#plog').onclick = () => V.ui.home('profile'); return; }
       el.innerHTML = `<p class="hint">Versus sucht dir einen Gegner. Ohne Konto spielst du als Gast.</p>
-        <button class="btn primary big" id="seek"><span>${IC().globe}Als Gast spielen</span></button><button class="btn ghost sm" id="plog"><span>${IC().user}Anmelden</span></button>`;
-      el.querySelector('#seek').onclick = () => seek(g, opts);
+        <button class="btn primary big" id="seek"><span>${IC().globe}Als Gast spielen</span></button><button class="btn ghost sm" id="plog"><span>${IC().user}Anmelden</span></button><button class="btn ghost sm" id="plink"><span>${IC().link}Freund per Link einladen</span></button>`;
+      el.querySelector('#seek').onclick = () => seek(g, opts); el.querySelector('#plink').onclick = () => { V.sfx.ui(); linkInvite(g, opts); };
       el.querySelector('#plog').onclick = () => V.ui.home('profile');
       return;
     }
     const others = ((pending && pending.open) || []).filter(o => o.game === g.id);
     el.innerHTML = `<p class="hint">Versus sucht dir einen Gegner: Wer gerade wartet, spielt gegen dich, sonst wartest du auf den Nächsten. Ist niemand frei, geht es gegen die KI.</p>
       ${others.map(o => `<div class="fline on"><span class="adot"></span><b>${esc(o.from)}</b><small>sucht gerade einen Gegner</small><button class="btn sm primary" data-join="${o.id}"><span>Mitspielen</span></button></div>`).join('')}
-      <button class="btn primary big" id="seek"><span>${IC().globe}Gegner suchen</span></button>`;
-    el.querySelector('#seek').onclick = () => seek(g, opts);
-    el.querySelectorAll('[data-join]').forEach(x => x.onclick = () => join(x.dataset.join));
+      <button class="btn primary big" id="seek"><span>${IC().globe}Gegner suchen</span></button><button class="btn ghost sm" id="plink"><span>${IC().link}Freund per Link einladen</span></button>`;
+    el.querySelector('#seek').onclick = () => seek(g, opts); el.querySelector('#plink').onclick = () => { V.sfx.ui(); linkInvite(g, opts); };
+    el.querySelectorAll('[data-join]').forEach(x => x.onclick = () => { x.classList.add('busy'); join(x.dataset.join); });
   }
   const seek = g => quick(g);
 
@@ -926,6 +954,103 @@
     joinTable(null, code);
   }
 
+  // ---------- game link: a match for one friend, without being friends (server: match_link, match_peek) ----------
+  const joinLink = id => location.origin + location.pathname + '?join=' + id;
+  async function linkInvite(g, opts) {
+    if (!C() || !C().available()) return;
+    let mid;
+    try {
+      if (!C().user()) { if (!guestOk(g.id)) { V.ui.toast('Dafür brauchst du ein Konto'); return V.ui.home('profile'); } await C().signInGuest(); }
+      mid = await C().rpc('match_link', { gm: g.id, op: opts || optsFor(g) });
+    } catch (e) { V.sfx.bad(); return V.ui.toast(/match_link|function/i.test(e.message) ? 'Spiel-Links kommen nach dem nächsten Server-Update.' : e.message); }
+    const url = joinLink(mid);
+    let done = false, t = null, ch = null;
+    const stop = () => { done = true; clearTimeout(t); if (ch) ch.close(); };
+    const m = V.ui.openModal(`<div class="linkw"><h3>Spiel mit mir</h3><p class="fhint">${esc(g.name)} · schick den Link oder lass den Code scannen. Wer ihn öffnet, spielt sofort gegen dich, auch ohne Freundschaft und ohne Konto (bei den Gast-Spielen).</p>
+      <div class="fqr" id="lqr">${V.skel(1)}</div>
+      <div class="arow"><button class="btn primary" id="lsh"><span>${IC().share}Link teilen</span></button><button class="btn" id="lcp"><span>${IC().link}Kopieren</span></button></div>
+      <p class="lb-wait"><span class="spin"><i></i><i></i></span>Warte, bis jemand beitritt …</p>
+      <div class="actions"><button class="btn ghost" id="lx"><span>Abbrechen</span></button></div></div>`, 'linkm', () => { if (!done) { stop(); C().rpc('match_cancel', { mid }).catch(() => { }); } });
+    loadQR().then(() => { const q = m.querySelector('#lqr'); if (q) q.innerHTML = qrSvg(url); }, () => { const q = m.querySelector('#lqr'); if (q) q.innerHTML = `<p class="fhint">${esc(url)}</p>`; });
+    m.querySelector('#lx').onclick = () => V.ui.closeModal();
+    m.querySelector('#lcp').onclick = () => copy(url);
+    m.querySelector('#lsh').onclick = async () => {
+      try { if (navigator.share) return await navigator.share({ title: 'Versus', text: `Spiel ${g.name} mit mir`, url }); } catch (e) { if (e && e.name === 'AbortError') return; }
+      copy(url);
+    };
+    const poll = async () => {
+      if (done) return;
+      try {
+        const st = await C().rpc('match_state', { mid, since: 0 });
+        if (done) return;
+        if (st.status === 'live') { stop(); V.ui.closeModal(); V.sfx.found(); return start(st); }
+        if (st.status !== 'invited') { stop(); V.ui.closeModal(); return V.ui.toast('Der Link ist abgelaufen'); }
+      } catch (e) { }
+      t = setTimeout(poll, 1500);
+    };
+    t = setTimeout(poll, 1200);
+    ch = C().channel('m:' + mid, () => { if (!done) poll(); });
+  }
+  // somebody opened a game link: see what it is, then join (as a guest if the game allows it)
+  async function consumeJoin() {
+    let id = null; try { id = sessionStorage.getItem('versus.join'); } catch (e) { }
+    if (!id || !C() || !C().available() || C().starting()) return;
+    if (busyScreen()) return setTimeout(consumeJoin, 1200);
+    let p = null;
+    try { p = await C().rpc('match_peek', { mid: id }); } catch (e) { }
+    const drop = () => { try { sessionStorage.removeItem('versus.join'); } catch (e) { } };
+    if (!p || !p.open) { drop(); return V.ui.toast('Dieser Spiel-Link gilt nicht mehr'); }
+    const g = V.byId[p.game];
+    if (!C().user() && !guestOk(p.game)) {
+      const m = V.ui.openModal(`<div class="confirm"><h3>${esc(p.from)} lädt dich ein</h3><p>${esc(g ? g.name : p.game)} braucht ein kostenloses Konto. Melde dich an, dann geht es direkt los.</p>
+        <div class="actions"><button class="btn primary" id="jl"><span>${IC().user}Zum Konto</span></button><button class="btn ghost" id="jn"><span>Später</span></button></div></div>`);
+      m.querySelector('#jl').onclick = () => { V.ui.closeModal(); V.ui.home('profile'); };
+      m.querySelector('#jn').onclick = () => { drop(); V.ui.closeModal(); };
+      return;
+    }
+    drop();
+    try {
+      if (!C().user()) { V.ui.toast('Du spielst als Gast'); await C().signInGuest(); }
+      const st = await C().rpc('match_join', { mid: id });
+      V.sfx.found(); start(st);
+    } catch (e) { V.ui.toast(e.message); }
+  }
+  // a notification about a match over days was tapped
+  function consumeMatch() {
+    let id = null; try { id = sessionStorage.getItem('versus.match'); } catch (e) { }
+    if (!id || !ready()) return;
+    if (busyScreen()) return setTimeout(consumeMatch, 1200);
+    try { sessionStorage.removeItem('versus.match'); } catch (e) { }
+    resume(id);
+  }
+
+  // ---------- push notifications ----------
+  const PUSH_KEY = 'BI91bCDLWF_XqePjImRog1IEmr80m6ssBOq6vw9n_Z_sBKwiNKt9IVknChF7sZBx0nErbQ37Ft6w-m2d1eDByUk';
+  const pushable = () => 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window;
+  const b64 = s => { s = s.replace(/-/g, '+').replace(/_/g, '/'); const r = atob(s + '='.repeat((4 - s.length % 4) % 4)); return Uint8Array.from(r, c => c.charCodeAt(0)); };
+  async function pushState() {
+    if (!pushable()) return 'none';
+    if (Notification.permission === 'denied') return 'denied';
+    const reg = await navigator.serviceWorker.getRegistration(); if (!reg) return 'none';
+    return (await reg.pushManager.getSubscription()) ? 'on' : 'off';
+  }
+  async function pushOn() {
+    if (!pushable()) throw new Error(V.isIOS ? 'Auf dem iPhone geht das erst, wenn Versus als App installiert ist.' : 'Dieser Browser kann keine Benachrichtigungen.');
+    if (!ready() || isAnon()) throw new Error('Dafür brauchst du ein Konto');
+    if (await Notification.requestPermission() !== 'granted') throw new Error('Benachrichtigungen sind im Browser blockiert');
+    const reg = await navigator.serviceWorker.ready;
+    const sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: b64(PUSH_KEY) });
+    const j = sub.toJSON();
+    try { await C().rpc('push_save', { ep: j.endpoint, key: j.keys.p256dh, au: j.keys.auth }); }
+    catch (e) { await sub.unsubscribe().catch(() => { }); throw new Error(/push_save|function/i.test(e.message) ? 'Benachrichtigungen kommen nach dem nächsten Server-Update.' : e.message); }
+  }
+  async function pushOff() {
+    const reg = await navigator.serviceWorker.getRegistration(); if (!reg) return;
+    const sub = await reg.pushManager.getSubscription(); if (!sub) return;
+    C().rpc('push_remove', { ep: sub.endpoint }).catch(() => { });
+    await sub.unsubscribe();
+  }
+
   // own weekly place and win streak for the profile head (one request every two minutes at most)
   let meCache = null, meAt = 0, meWho = null;
   function meStats() {
@@ -937,12 +1062,12 @@
     return meCache;
   }
   const quickGo = () => quick(qGame ? V.byId[qGame] : null);
-  V.online = { tab, wire, picker, openPanel, seek, quick, quickGo, meStats, invite, resume, watch, start, check, profile, addFriends, challenge, friendOf, request, table, tablePanel, resumeTable, report, block, isBlocked, loadBlocks, blocks: () => blocked };
+  V.online = { tab, wire, picker, openPanel, seek, quick, quickGo, meStats, invite, linkInvite, pushState, pushOn, pushOff, consumeJoin, consumeMatch, resume, watch, start, check, profile, addFriends, challenge, friendOf, request, table, tablePanel, resumeTable, report, block, isBlocked, loadBlocks, blocks: () => blocked };
   let blocksFor = null;
   if (C()) C().on(() => {
     if (ready()) {
       const id = C().user().id; if (blocksFor !== id) { blocksFor = id; loadBlocks(); }
-      startPolling(); consumeAdd(); consumeTable();
-    } else { stopPolling(); fstate = null; lastFriendN = -1; blocked = null; blocksFor = null; askLogin(); }
+      startPolling(); consumeAdd(); consumeTable(); consumeJoin(); consumeMatch();
+    } else { stopPolling(); fstate = null; lastFriendN = -1; blocked = null; blocksFor = null; askLogin(); consumeJoin(); }
   });
 })();

@@ -909,6 +909,36 @@
     '# Sieg · # %': '# win · # %', '# Siege · # %': '# wins · # %',
     'Jetzt: Schlachtschiff (# Felder)': 'Now: Battleship (# cells)', 'Leeren': 'Clear'
   });
+  // ---------- quick start, undo, coin toss, guided first move, colour-blind mode, links, matches over days, push ----------
+  A({
+    'Überrasch mich': 'Surprise me', 'Wie wär’s mit {0}?': 'How about {0}?',
+    'Zug zurück': 'Take back', 'Zurücknehmen ging hier nicht': 'Could not take that back',
+    'Du beginnst': 'You start', 'Die KI beginnt': 'The AI starts', 'DU': 'YOU', 'Hier tippen': 'Tap here',
+    'Sitzt ihr euch gegenüber?': 'Sitting opposite each other?',
+    'Dann stehen Name und Hinweise für Spieler 2 auf dem Kopf, und Bretter mit oben und unten drehen sich zum, der dran ist.': 'Then name and hints for player 2 are upside down, and boards with a top and bottom turn to whoever is on the move.',
+    'Ja, umdrehen': 'Yes, turn it', 'Nein, nebeneinander': 'No, side by side', 'Später unter Optionen → Gegenüber sitzen.': 'Later under Settings → Sitting opposite.',
+    'Tipp für die Revanche': 'Tip for the rematch',
+    '7: Der Nächste zieht zwei, außer er legt selbst eine 7': '7: the next player draws two, unless they play a 7 too',
+    '8: Der Nächste setzt aus': '8: the next player skips a turn', 'Bube passt immer und wünscht eine Farbe': 'A jack always fits and calls a suit',
+    'Farbenblind-Modus': 'Colour-blind mode', 'Muster auf den Steinen, Nummern auf den Figuren': 'Patterns on the pieces, numbers on the pawns',
+    'Spiel mit mir': 'Play with me', 'Link teilen': 'Share link', 'Kopieren': 'Copy', 'Warte, bis jemand beitritt …': 'Waiting for someone to join …',
+    '{0} · schick den Link oder lass den Code scannen. Wer ihn öffnet, spielt sofort gegen dich, auch ohne Freundschaft und ohne Konto (bei den Gast-Spielen).': '{0} · send the link or let them scan the code. Whoever opens it plays you right away, no friendship needed and, for the guest games, no account.',
+    'Per Link einladen': 'Invite with a link', 'Freund per Link einladen': 'Invite a friend with a link', 'Der Link ist abgelaufen': 'The link has expired',
+    'Dieser Spiel-Link gilt nicht mehr': 'This game link is no longer valid', '{0} lädt dich ein': '{0} invites you',
+    'Spiel-Links kommen nach dem nächsten Server-Update.': 'Game links arrive with the next server update.',
+    'Wann spielt ihr?': 'When do you play?', 'Jetzt': 'Now', 'Über Tage': 'Over days', 'Partie über Tage': 'Match over days',
+    'Jeder zieht, wann er Zeit hat. Du bekommst Bescheid, wenn du dran bist.': 'Everyone moves when they have time. You get a note when it is your turn.',
+    'Einladung an {0} verschickt': 'Invitation sent to {0}', 'Partien über Tage kommen nach dem nächsten Server-Update.': 'Matches over days arrive with the next server update.',
+    'Über Tage gegen {0}': 'Over days vs. {0}', 'Ziehen': 'Move', 'Ansehen': 'View', '# dran': '# your turn', 'Wartet auf {0}': 'Waiting for {0}', '# Züge': '# moves',
+    'Benachrichtigungen': 'Notifications', 'Benachrichtigungen an': 'Notifications on',
+    'Herausforderungen, Freundschaftsanfragen und wenn du in einer Partie über Tage dran bist': 'Challenges, friend requests and when it is your turn in a match over days',
+    'Im Browser blockiert. Erlaube Benachrichtigungen in den Website-Einstellungen.': 'Blocked in the browser. Allow notifications in the site settings.',
+    'Auf dem iPhone erst, wenn Versus als App installiert ist': 'On the iPhone only once Versus is installed as an app',
+    'Auf dem iPhone geht das erst, wenn Versus als App installiert ist.': 'On the iPhone this only works once Versus is installed as an app.',
+    'Dieser Browser kann keine Benachrichtigungen': 'This browser cannot show notifications', 'Dieser Browser kann keine Benachrichtigungen.': 'This browser cannot show notifications.',
+    'Benachrichtigungen sind im Browser blockiert': 'Notifications are blocked in the browser', 'Benachrichtigungen kommen nach dem nächsten Server-Update.': 'Notifications arrive with the next server update.'
+  });
+  V.i18n.pat([[/^Wie wär’s mit (.+)\?$/, (m, n) => 'How about ' + t(n) + '?'], [/^Einladung an (.+) verschickt$/, (m, n) => 'Invitation sent to ' + n], [/^Über Tage gegen (.+)$/, (m, n) => 'Over days vs. ' + n], [/^Wartet auf (.+)$/, (m, n) => 'Waiting for ' + n], [/^(.+) lädt dich ein$/, (m, n) => n + ' invites you']]);
   V.i18n.pat([[/^(.+) ist dran$/, (m, n) => t(n) + ' to move'], [/^spielt (.+)$/, (m, n) => 'playing ' + t(n)]]);
   // last resort for "A · B · C" lines (colour · level, game · level …): every part on its own
   V.i18n.pat([[/^(?=.* · ).+$/, m => m.split(' · ').map(p => t(p)).join(' · ')]]);

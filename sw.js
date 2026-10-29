@@ -1,6 +1,6 @@
 // Versus service worker: makes the app installable and playable offline (AI and two-player games).
 // Online features (accounts, friends, matches) talk to Supabase directly and are never cached.
-const CACHE = 'versus-v44';
+const CACHE = 'versus-v45';
 
 // On install, everything index.html loads is cached, so the very first visit already works offline later.
 self.addEventListener('install', e => {
@@ -49,4 +49,23 @@ self.addEventListener('fetch', e => {
     if (r && (r.ok || r.type === 'opaque')) { const copy = r.clone(); caches.open(CACHE).then(c => c.put(req, copy)); }
     return r;
   })));
+});
+
+// push notifications (challenges, your turn in a match over days, friend requests); sent by supabase/functions/push
+self.addEventListener('push', e => {
+  let d = {};
+  try { d = e.data ? e.data.json() : {}; } catch (x) { d = { title: 'Versus', body: e.data ? e.data.text() : '' }; }
+  e.waitUntil(self.registration.showNotification(d.title || 'Versus', {
+    body: d.body || '', tag: d.tag || 'versus', renotify: true, icon: './icons/icon-192.png', badge: './icons/icon-192.png', data: { url: d.url || '' }
+  }));
+});
+// a tap opens Versus (or brings it to the front) at the match or the Online tab
+self.addEventListener('notificationclick', e => {
+  e.notification.close();
+  const url = new URL(e.notification.data && e.notification.data.url ? e.notification.data.url : './', self.registration.scope).href;
+  e.waitUntil((async () => {
+    const all = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
+    for (const c of all) if (c.url.startsWith(self.registration.scope)) { await c.focus(); c.postMessage({ open: url }); return; }
+    await self.clients.openWindow(url);
+  })());
 });

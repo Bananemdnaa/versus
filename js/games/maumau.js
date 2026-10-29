@@ -178,6 +178,9 @@
           const from = src && !ctx.fast() ? src.getBoundingClientRect() : null;
           if (ctx.isAI(p)) V.sfx.them(); else V.sfx.place();
           busy = true; draw();
+          // the first time a special card shows up, a short note says what it does
+          const rule = { 7: '7: Der Nächste zieht zwei, außer er legt selbst eine 7', 8: '8: Der Nächste setzt aus', J: 'Bube passt immer und wünscht eine Farbe' }[m.p[0]];
+          if (rule && !ctx.fast() && !ctx.auto) { const seen = V.store.get('mmRules', {}); if (!seen[m.p[0]]) { seen[m.p[0]] = 1; V.store.set('mmRules', seen); V.toast(rule, 3200); } }
           const tc = table.querySelector('.tp'); if (tc) { if (from) V.kit.fly(tc, from, 320); else V.fx.pop(tc, 'deal'); }
           if (!hands[p].length) { shout('Mau-Mau!'); over = true; draw(); return ctx.end(p, `${ctx.name(p)} hat keine Karten mehr`); }
           if (hands[p].length === 1) { shout('Mau!'); V.sfx.goal(); }
