@@ -4,6 +4,8 @@
   const V = window.V = { games: [], byId: {} };
   V.LEVELS = ['Leicht', 'Mittel', 'Schwer', 'Profi'];
   V.CATS = ['Klassiker', 'Brettspiele', 'Strategie', 'Action'];
+  // games that came with the last update; only these get the "Neu" badge on their tile
+  V.NEW_GAMES = ['yacht', 'maumau', 'memory', 'poker', 'hangman', 'slf', 'go', 'backgammon'];
   const LEVEL_INFO = [
     'Macht oft Fehler. Gut zum Lernen.',
     'Spielt solide, übersieht aber einiges.',
@@ -86,19 +88,25 @@
     if (navigator.vibrate) { try { navigator.vibrate(Array.isArray(p) ? p.map((x, i) => i % 2 ? x : Math.round(x * k)) : Math.round(p * k)); } catch (e) { } }
     else if (IOS) iosTap();
   };
+  // fixed pulses (stretched by the strength setting): tap 5, own move 10-12, opponent's move 6, win 40, loss 30-40-30
   V.sfx = {
     tick() { tone(1200, 0.025, 'square', 0.02); },
-    move() { tone(520, 0.06, 'triangle', 0.07); V.buzz(14); },
-    place() { tone(320, 0.1, 'triangle', 0.09, -140); V.buzz(22); },
+    move() { tone(520, 0.06, 'triangle', 0.07); V.buzz(10); },
+    place() { tone(320, 0.1, 'triangle', 0.09, -140); V.buzz(12); },
+    // a piece of the other side (AI or remote) lands
+    them() { tone(280, 0.09, 'triangle', 0.07, -110); V.buzz(6); },
+    found() { tone(660, 0.1, 'triangle', 0.08, 220); setTimeout(() => tone(990, 0.14, 'triangle', 0.08), 110); V.buzz(20); },
+    // the VS slam: a deep saw with a square on top
+    vs() { tone(90, 0.4, 'sawtooth', 0.09); setTimeout(() => tone(180, 0.3, 'square', 0.05), 280); V.buzz(25); },
     hit() { tone(200, 0.22, 'sawtooth', 0.06, -140); V.buzz([35, 45, 45]); },
     miss() { tone(760, 0.08, 'sine', 0.05, -320); },
     bad() { tone(130, 0.22, 'square', 0.04); V.buzz(60); },
     bounce() { tone(440, 0.04, 'square', 0.04); V.buzz(10); },
     goal() { tone(660, 0.12, 'triangle', 0.08, 300); V.buzz(40); },
     go() { tone(980, 0.12, 'square', 0.05); V.buzz(30); },
-    ui() { tone(700, 0.035, 'triangle', 0.035); V.buzz(8); },
-    win() { [523, 659, 784, 1046].forEach((f, i) => setTimeout(() => tone(f, 0.15, 'triangle', 0.08), i * 110)); V.buzz([45, 70, 45, 70, 120]); V.music && V.music.duck(3200); },
-    lose() { [392, 330, 262].forEach((f, i) => setTimeout(() => tone(f, 0.22, 'triangle', 0.07), i * 150)); V.buzz(140); V.music && V.music.duck(3200); }
+    ui() { tone(700, 0.035, 'triangle', 0.035); V.buzz(5); },
+    win() { [523, 659, 784, 1046].forEach((f, i) => setTimeout(() => tone(f, 0.15, 'triangle', 0.08), i * 110)); V.buzz(40); V.music && V.music.duck(3200); },
+    lose() { [392, 330, 262].forEach((f, i) => setTimeout(() => tone(f, 0.22, 'triangle', 0.07), i * 150)); V.buzz([30, 40, 30]); V.music && V.music.duck(3200); }
   };
 
   // ---------- effects ----------
@@ -210,6 +218,7 @@
     dl: svg('<path d="M12 3v12M7 10l5 5 5-5"/><path d="M5 21h14"/>'),
     sync: svg('<path d="M20 12a8 8 0 0 1-14 5.3M4 12a8 8 0 0 1 14-5.3"/><path d="M18 3v4h-4M6 21v-4h4"/>'),
     bolt: svg('<path d="M13 2L4 14h7l-1 8 9-12h-7z"/>'),
+    boltf: svg('<path d="M13 2L4 14h7l-1 8 9-12h-7z"/>', true),
     hash: svg('<path d="M5 9h15M4 15h15M10 3L8 21M16 3l-2 18"/>'),
     eye: svg('<path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/>'),
     film: svg('<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M7 4v16M17 4v16M3 9h4M3 15h4M17 9h4M17 15h4"/>'),

@@ -899,7 +899,18 @@
     joinTable(null, code);
   }
 
-  V.online = { tab, wire, picker, openPanel, seek, quick, invite, resume, watch, start, check, profile, addFriends, challenge, friendOf, request, table, tablePanel, resumeTable, report, block, isBlocked, loadBlocks, blocks: () => blocked };
+  // own weekly place and win streak for the profile head (one request every two minutes at most)
+  let meCache = null, meAt = 0, meWho = null;
+  function meStats() {
+    if (!ready() || isAnon()) return Promise.resolve(null);
+    const who = C().user().username;
+    if (meCache && meWho === who && Date.now() - meAt < 120000) return meCache;
+    meWho = who; meAt = Date.now();
+    meCache = C().rpc('player_profile', { name: who }).then(p => ({ week: p.week ? p.week.pos : 0, streak: p.streak || 0 }), () => null);
+    return meCache;
+  }
+  const quickGo = () => quick(qGame ? V.byId[qGame] : null);
+  V.online = { tab, wire, picker, openPanel, seek, quick, quickGo, meStats, invite, resume, watch, start, check, profile, addFriends, challenge, friendOf, request, table, tablePanel, resumeTable, report, block, isBlocked, loadBlocks, blocks: () => blocked };
   let blocksFor = null;
   if (C()) C().on(() => {
     if (ready()) {

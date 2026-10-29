@@ -42,10 +42,30 @@
       <button class="iconbtn" id="snd" aria-label="Ton an oder aus" title="Ton (M)">${settings.sound ? IC.sound : IC.mute}</button></div></header>`;
   }
   function wireHeader(root) {
-    const s = root.querySelector('#snd'); if (s) s.onclick = toggleSound;
+    root.querySelectorAll('#snd, .snd').forEach(s => s.onclick = toggleSound);
     const k = root.querySelector('#kbd'); if (k) k.onclick = showKeys;
     const a = root.querySelector('#acct'); if (a) a.onclick = () => { V.sfx.ui(); home('profile'); };
     const l = root.querySelector('#logo'); if (l) l.onclick = () => home('games');
+    wireHead(root);
+  }
+  // phone: profile head instead of the logo bar (avatar, name, weekly place and win streak, sound and options)
+  function appHead() {
+    const u = V.cloud && V.cloud.available() ? V.cloud.user() : null, full = u && !u.anon;
+    const name = u ? u.username : 'Gast';
+    return `<header class="ahd"><button class="ah-av${full ? '' : ' guest'}" id="ahav" aria-label="Konto"><span>${full ? escA(name.slice(0, 1).toUpperCase()) : '+'}</span></button>
+      <div class="ah-t"><b>${escA(name)}</b><div class="ah-c" id="ahc"></div></div>
+      <button class="iconbtn snd" aria-label="Ton an oder aus">${settings.sound ? IC.sound : IC.mute}</button><button class="iconbtn" id="ahopt" aria-label="Optionen">${IC.gear}</button></header>`;
+  }
+  function wireHead(root) {
+    const h = root.querySelector('.ahd'); if (!h) return;
+    h.querySelector('#ahav').onclick = () => { V.sfx.ui(); home('profile'); };
+    h.querySelector('#ahopt').onclick = () => { V.sfx.ui(); home('opts'); };
+    h.querySelectorAll('.snd').forEach(s => s.onclick = toggleSound);
+    // weekly place and streak come from the own profile (cached for a while in js/online.js)
+    if (V.online && V.online.meStats) V.online.meStats().then(st => {
+      const c = h.querySelector('#ahc'); if (!c || !st) return;
+      c.innerHTML = (st.week ? `<em class="chip y">${IC.trophy}Woche #${st.week}</em>` : '') + (st.streak >= 2 ? `<em class="chip c">${IC.bolt}Serie ${st.streak}</em>` : '');
+    });
   }
   // Guests (accounts exist, but nobody is logged in) can play these games against the AI and on one device.
   // Everything else, plus online matches and the rankings, needs a free account.
@@ -61,14 +81,17 @@
     return `<button class="acct${u && !u.anon ? ' in' : ' guest'}" id="acct" title="Konto">${IC.user}<span>${u ? u.username : 'Gast'}</span>${u && !u.anon ? '' : `<em>${u ? 'Konto behalten' : 'Anmelden'}</em>`}</button>`;
   }
   function refreshAcct() {
+    const h = app.querySelector('.ahd');
+    if (h) { const t = document.createElement('div'); t.innerHTML = appHead(); h.replaceWith(t.firstElementChild); wireHead(app); }
     const a = document.getElementById('acct'); if (!a) return;
     const t = document.createElement('div'); t.innerHTML = acctChip(); const n = t.firstElementChild;
     if (n) { a.replaceWith(n); n.onclick = () => { V.sfx.ui(); home('profile'); }; }
   }
+  const sndIcons = () => document.querySelectorAll('#snd, .snd').forEach(s => { s.innerHTML = settings.sound ? IC.sound : IC.mute; });
   function toggleSound() {
     settings.sound = !settings.sound; saveSettings(); V.sfx.ui();
     if (V.music) V.music.apply();
-    const s = document.getElementById('snd'); if (s) s.innerHTML = settings.sound ? IC.sound : IC.mute;
+    sndIcons();
     toast(settings.sound ? 'Ton an' : 'Ton aus');
   }
 
@@ -82,13 +105,24 @@
     if (shell) return swapTab(shell, prev);
     destroyCurrent(); view = 'home';
     if (V.cloud) V.cloud.touch(null);
-    const tabs = `<nav class="tabs" aria-label="Bereiche"><i class="tab-ind"></i>${TABS.map(([id, l, ic]) => `<button data-tab="${id}" class="${homeTab === id ? 'on' : ''}">${ic}<span>${l}</span></button>`).join('')}</nav>`;
-    const v = mount(`<div class="view home">${header(tabs.replace('class="tabs"', 'class="tabs desk"'))}<div class="hbody">${tabBody()}</div>${tabs.replace('class="tabs"', 'class="tabs bar"')}</div>`);
+    const tb = ([id, l, ic]) => `<button data-tab="${id}" class="${homeTab === id ? 'on' : ''}">${ic}<span>${l}</span></button>`;
+    const desk = `<nav class="tabs desk" aria-label="Bereiche"><i class="tab-ind"></i>${TABS.map(tb).join('')}</nav>`;
+    // phone: a floating bar with four tabs and the raised quick match button in the middle (options sit in the head)
+    const bar = TABS.filter(t => t[0] !== 'opts').map(tb);
+    bar.splice(2, 0, `<button class="qbtn" id="qbtn" aria-label="Schnelles Spiel"><span>${IC.boltf}</span></button>`);
+    const v = mount(`<div class="view home">${appHead()}${header(desk)}<div class="hbody">${tabBody()}</div><nav class="tabs bar" aria-label="Bereiche"><i class="tab-ind"></i>${bar.join('')}</nav><i class="fade-t" aria-hidden="true"></i><i class="fade-b" aria-hidden="true"></i></div>`);
     wireHeader(v);
     v.querySelectorAll('.tabs [data-tab]').forEach(b => b.onclick = () => { if (b.dataset.tab !== homeTab) { V.sfx.ui(); home(b.dataset.tab); } });
+    v.querySelector('#qbtn').onclick = () => { V.sfx.ui(); quickGo(); };
     placeInd(v, false);
     if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => placeInd(v, false));
     wireBody(v.querySelector('.hbody'));
+  }
+  // the raised button in the tab bar: same search as "Schnelles Spiel" in the Online tab
+  function quickGo() {
+    if (!V.cloud || !V.cloud.available() || !V.online) return toast('Online-Spiele sind gleich da');
+    if (navigator.onLine === false) return toast('Du bist offline');
+    V.online.quickGo();
   }
   function offlineTab() {
     return `<section class="page"><div class="empty">${IC.wifioff}<b>Du bist offline</b><p>Freunde, Herausforderungen und Ranglisten brauchen Internet. Gegen die KI oder zu zweit an einem Gerät kannst du trotzdem spielen.</p><button class="btn primary" data-tab="games"><span>Zu den Spielen</span></button></div></section>`;
@@ -106,6 +140,8 @@
   function placeInd(root, anim) {
     root.querySelectorAll('.tabs').forEach(n => {
       const ind = n.querySelector('.tab-ind'), on = n.querySelector('button.on');
+      // the options tab has no button in the phone bar
+      if (ind) ind.style.opacity = on ? '' : '0';
       if (!ind || !on || !on.offsetWidth) return;
       ind.style.transition = anim && V.fxOn() ? '' : 'none';
       ind.style.width = on.offsetWidth + 'px';
@@ -467,7 +503,7 @@
       v.querySelector('[data-vol=mvol]').classList.toggle('off', !settings.sound || settings.music === false);
     };
     flip('o_snd', () => {
-      settings.sound = !settings.sound; const s = document.getElementById('snd'); if (s) s.innerHTML = settings.sound ? IC.sound : IC.mute;
+      settings.sound = !settings.sound; sndIcons();
       dimSliders(); V.music.apply();
       return settings.sound;
     });
@@ -522,7 +558,7 @@
     sure(v.querySelector('#o_def'), () => {
       const keep = settings.stealth;
       Object.keys(settings).forEach(k => delete settings[k]); Object.assign(settings, DEFAULTS, { stealth: keep }); saveSettings(); applyFxClass(); V.music.apply();
-      const s = document.getElementById('snd'); if (s) s.innerHTML = IC.sound;
+      sndIcons();
       toast('Einstellungen zurückgesetzt'); home('opts');
     });
     sure(v.querySelector('#o_rst'), () => { P.stats = {}; S.set('stats', P.stats); toast('Bilanz gelöscht'); home('opts'); });
@@ -542,16 +578,46 @@
     modalEl = V.el('div', 'modal-back' + (cls ? ' mb-' + cls : ''));
     modalEl.innerHTML = `<div class="modal ${cls}" role="dialog" aria-modal="true">${html}</div>`;
     modalEl.addEventListener('pointerdown', e => { if (e.target === modalEl && cls !== 'endm') closeModal(); });
+    if (cls !== 'endm') swipeSheet(modalEl, modalEl.firstElementChild);
     document.body.appendChild(modalEl);
     nav.hide();
     queueGuard();
     return modalEl.firstElementChild;
   }
+  // Phone: every dialog is a bottom sheet. Pulling the grip or the top of the sheet down closes it
+  // (from 90 px or with a quick flick), otherwise it springs back.
+  const sheetMode = () => !wide();
+  function swipeSheet(back, m) {
+    let y0 = 0, t0 = 0, dy = 0, id = null, dragEnd = 0;
+    // the click that ends a drag must not press a button under the finger
+    m.addEventListener('click', x => { if (performance.now() - dragEnd < 350) { x.stopPropagation(); x.preventDefault(); } }, true);
+    m.addEventListener('pointerdown', e => {
+      if (!sheetMode() || e.button > 0 || e.target.closest('input,textarea,select,.oseg,.lv-bar,.qgames,.rgames')) return;
+      if (e.clientY - m.getBoundingClientRect().top > 64 || m.scrollTop > 0) return;
+      id = e.pointerId; y0 = e.clientY; t0 = performance.now(); dy = 0;
+    });
+    m.addEventListener('pointermove', e => {
+      if (e.pointerId !== id) return;
+      dy = Math.max(0, e.clientY - y0);
+      if (dy > 6) { try { m.setPointerCapture(id); } catch (x) { } m.classList.add('drag'); m.style.transform = `translateY(${dy}px)`; }
+    });
+    const up = e => {
+      if (e.pointerId !== id) return;
+      id = null; m.classList.remove('drag');
+      if (dy < 6) { m.style.transform = ''; return; }
+      dragEnd = performance.now();
+      if (dy > 90 || dy / (performance.now() - t0) > 0.6) { if (modalEl === back) closeModal(); }
+      else m.style.transform = '';
+    };
+    m.addEventListener('pointerup', up); m.addEventListener('pointercancel', up);
+  }
   function closeModal() {
     if (!modalEl) return;
     const el = modalEl; modalEl = null; modalKeys = null;
     queueGuard();
-    el.classList.add('out'); setTimeout(() => el.remove(), V.fxOn() ? 160 : 0);
+    // a sheet slides down first (.28 s), a centred dialog just fades
+    const sheet = sheetMode() && !el.classList.contains('mb-endm') && V.fxOn();
+    el.classList.add('out'); setTimeout(() => el.remove(), !V.fxOn() ? 0 : sheet ? 280 : 160);
     const f = modalClose; modalClose = null; if (f) f();
   }
   V.openModal = openModal; V.closeModal = closeModal;
@@ -576,6 +642,8 @@
     if (fromEvent && !off) toast('Wieder online');
   }
   addEventListener('offline', () => netState(true));
+  // the soft edge at the top of the phone screen only shows once the page has moved
+  addEventListener('scroll', () => document.documentElement.classList.toggle('scrolled', scrollY > 8), { passive: true });
   addEventListener('online', () => netState(true));
 
   function tutorial(g, onDone) {
