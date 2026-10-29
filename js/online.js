@@ -165,17 +165,17 @@
     const loginCard = !full ? `<div class="acard"><p class="lead">${C().user() ? 'Du spielst als Gast. ' : ''}Mit einem Konto kannst du Freunde hinzufügen, sie zu Partien herausfordern und in die Rangliste kommen.</p>
       <button class="btn primary" data-tab="profile"><span>${IC().user}${C().user() ? 'Konto behalten' : 'Anmelden oder Konto erstellen'}</span></button></div>` : '';
     return `<section class="online">
-      <h1 class="title"><span>Online</span> spielen</h1>
+      <h1 class="title"><span>Live spielen</span> Online</h1>
       ${C().user() && !full ? '<div id="oactive"></div>' : ''}
       ${quickCard()}
       ${loginCard}
       <div class="ogrid${full ? '' : ' solo'}">
         ${full ? `<div class="ocol">
           <div id="oactive"></div>
-          <div class="apanel fpanel"><div class="fhead"><h3>Freunde <small id="fcount"></small></h3><button class="btn primary sm" id="fadd"><span>${IC().plus}Hinzufügen</span></button></div>
+          <div class="apanel osec fpanel"><div class="fhead"><h3>Freunde <small id="fcount"></small></h3><button class="btn primary sm" id="fadd"><span>${IC().plus}Hinzufügen</span></button></div>
             <div id="ofriends">${V.skel()}</div>
           </div></div>` : ''}
-        <div class="ocol"><div class="apanel"><div class="rtop"><h3>Rangliste</h3><div class="oseg rper" id="oper">${[['week', 'Diese Woche'], ['all', 'Für immer']].map(([k, l]) => `<button data-p="${k}" class="${boardPeriod === k ? 'on' : ''}">${l}</button>`).join('')}</div></div>
+        <div class="ocol"><div class="apanel osec"><div class="rtop"><h3>Rangliste <em class="chip c rleft" id="rleft" hidden></em></h3><div class="oseg rper" id="oper">${[['week', 'Diese Woche'], ['all', 'Für immer']].map(([k, l]) => `<button data-p="${k}" class="${boardPeriod === k ? 'on' : ''}">${l}</button>`).join('')}</div></div>
           <div class="rgames" id="obg">${[['', 'Alle Spiele'], ...ONLINE.concat(TABLE).filter(id => V.byId[id]).map(id => [id, gname(id)])].map(([id, l]) => `<button data-g="${id}" class="${boardGame === id ? 'on' : ''}" title="${esc(l)}">${id && V.byId[id] ? `<span class="ic">${V.byId[id].icon}</span>` : `<span class="ic all">${IC().trophy}</span>`}<small>${esc(id ? l : 'Alle')}</small></button>`).join('')}</div>
           <div id="oboard">${V.skel()}</div></div></div>
       </div></section>`;
@@ -257,7 +257,10 @@
     const out = (d.outgoing || []).length ? `<div class="fout"><small>Angefragt</small>${d.outgoing.map(n => `<span class="fchip">${esc(n)}<button data-rm="${esc(n)}" aria-label="Anfrage an ${esc(n)} zurückziehen" title="Zurückziehen">${IC().x}</button></span>`).join('')}</div>` : '';
     const empty = `<div class="fempty">${IC().users}<b>Noch keine Freunde</b><p>Zeig deinen QR-Code, schick deinen Link oder such nach einem Namen. Danach könnt ihr euch mit einem Tipp herausfordern.</p>
       <div class="arow"><button class="btn primary sm" data-addt="code"><span>${IC().qr}Mein Code</span></button><button class="btn sm" data-addt="search"><span>Name suchen</span></button></div></div>`;
-    el.innerHTML = (inc ? `<div class="freqs"><h4>Anfragen</h4>${inc}</div>` : '') + (rows ? `<div class="flist">${rows}</div>` : empty) + out;
+    // friends online right now as a row of big avatar cards above the full list
+    const onl = fr.filter(f => f.online || f.busy);
+    const orow = onl.length ? `<div class="fon">${onl.map((f, k) => `<button class="fcard on" data-prof="${esc(f.username)}" style="--fc:${['var(--pink)', 'var(--yellow)', 'var(--cyan)', 'var(--good)'][k % 4]}"><span class="fav">${initials(f.username).slice(0, 1)}<i></i></span><b>${esc(f.username)}</b><small>${f.busy && f.match_game ? 'spielt ' + esc(gname(f.match_game)) : f.game && V.byId[f.game] ? 'spielt ' + esc(gname(f.game)) : 'online'}</small></button>`).join('')}</div>` : '';
+    el.innerHTML = orow + (inc ? `<div class="freqs"><h4>Anfragen</h4>${inc}</div>` : '') + (rows ? `<div class="flist">${rows}</div>` : empty) + out;
     el.querySelectorAll('[data-yes]').forEach(x => x.onclick = e => { e.stopPropagation(); respond(x.dataset.yes, true); });
     el.querySelectorAll('[data-no]').forEach(x => x.onclick = e => { e.stopPropagation(); respond(x.dataset.no, false); });
     el.querySelectorAll('[data-play]').forEach(x => x.onclick = e => { e.stopPropagation(); V.sfx.ui(); challenge(x.dataset.play); });
@@ -489,7 +492,9 @@
     const week = board.period === 'week';
     const left = week && board.until ? untilText(board.until) : '';
     const lastW = week && (board.last || []).length ? `<div class="rlast">${IC().trophy}<span><small>Sieger letzte Woche</small>${board.last.map(r => `<b class="l${r.pos}">${r.pos}. ${esc(r.username)}</b>`).join('')}</span></div>` : '';
-    const head = (week ? `<p class="rweek"><b>Wochenwertung</b> · startet jeden Montag neu${left ? ` · noch <em>${left}</em>` : ''}</p>` : board.legacy ? '<p class="rweek">Wochenwertung kommt nach dem nächsten Server-Update.</p>' : '<p class="rweek"><b>Ewige Wertung</b> · alle Partien seit Beginn</p>') + lastW;
+    // the countdown sits as a chip next to the title
+    const chip = b.querySelector('#rleft'); if (chip) { chip.hidden = !left; chip.textContent = left ? 'noch ' + left : ''; }
+    const head = (week ? `<p class="rweek"><b>Wochenwertung</b> · startet jeden Montag neu</p>` : board.legacy ? '<p class="rweek">Wochenwertung kommt nach dem nächsten Server-Update.</p>' : '<p class="rweek"><b>Ewige Wertung</b> · alle Partien seit Beginn</p>') + lastW;
     const pct = r => (r.played ? Math.round(r.wins / r.played * 100) : 0);
     const mine = !C().user() ? '' : me
       ? `<div class="rmine"><span class="rp">#${me.pos}</span><div><small>Dein Platz in ${esc(scope)}${week ? ' diese Woche' : ''}</small><b>${me.wins} ${me.wins === 1 ? 'Sieg' : 'Siege'}</b><span>${me.played} Partien · ${me.losses || 0} verloren · ${me.draws || 0} remis · ${pct(me)} %</span></div></div>`
@@ -498,7 +503,7 @@
     const pod = top.slice(0, 3);
     const order = [pod[1], pod[0], pod[2]].filter(Boolean);
     const podium = `<div class="podium">${order.map(r => `<div class="pod p${Math.min(r.pos, 3)}${r.username === myName ? ' me' : ''}">
-        <span class="medal">${r.pos}</span><b class="plink" data-prof="${esc(r.username)}">${esc(r.username)}</b><em>${r.wins}</em><small>${r.wins === 1 ? 'Sieg' : 'Siege'} · ${pct(r)} %</small><i class="step"></i></div>`).join('')}</div>`;
+        <span class="pav" data-prof="${esc(r.username)}">${initials(r.username).slice(0, 1)}</span><b class="plink" data-prof="${esc(r.username)}">${esc(r.username)}</b><small>${r.wins === 1 ? '1 Sieg' : r.wins + ' Siege'} · ${pct(r)} %</small><i class="step"><span class="medal">${r.pos}</span></i></div>`).join('')}</div>`;
     const row = (r, cls = '') => `<div class="rrow ${cls}"><span class="pos">${r.pos}</span>
         <span class="who"><b class="plink" data-prof="${esc(r.username)}">${esc(r.username)}</b>${r.username === myName ? '<em class="rtag">Du</em>' : ''}<small>${r.played} Partien</small></span>
         <span class="rate"><i style="--w:${pct(r)}%"></i><small>${pct(r)} %</small></span><span class="w">${r.wins}</span></div>`;
@@ -567,15 +572,19 @@
     } catch (e) { V.ui.toast(/quick_match|function/i.test(e.message) ? 'Schnelles Spiel kommt nach dem nächsten Server-Update.' : e.message); V.sfx.bad(); }
     finally { quickBusy = false; }
   }
+  // Search screen: a radar runs while Versus looks for an opponent, the seconds count up; once someone is found
+  // the name springs in and the match starts a second later. After 25 s you may play the AI instead.
   function waitQuick(r, chosen) {
     const mid = r.id, g = V.byId[r.game] || chosen;
     let done = false, t = null, tick = null, ch = null, secs = 0;
     const stop = () => { done = true; clearTimeout(t); clearInterval(tick); if (ch) ch.close(); };
     const cancel = () => C().rpc('match_cancel', { mid }).catch(() => { });
-    const m = V.ui.openModal(`<div class="confirm wait quickw"><div class="spin"><i></i><i></i></div>
-      <h3>Suche Gegner</h3><p class="qw-g">${g ? `<span class="ic">${g.icon}</span>${esc(g.name)}` : ''}</p>
+    const u = C().user(), me = u && !u.anon ? u.username.slice(0, 1).toUpperCase() : '+';
+    const m = V.ui.openModal(`<div class="radar-v">
+      <div class="radar"><i class="rr"></i><i class="rr"></i><i class="rr"></i><i class="rc"></i><span class="r-av">${esc(me)}</span></div>
+      <h3 id="qwh">Gegner suchen</h3><p class="qw-g">${g ? `<span class="ic">${g.icon}</span>${esc(g.name)} · ` : ''}<span id="qws">0 s</span></p>
       <p class="qw-t" id="qwt">Wer jetzt auch sucht, landet bei dir.</p>
-      <div class="actions" id="qwa"><button class="btn ghost" id="wc"><span>Abbrechen</span></button></div></div>`, '', () => { if (!done) { stop(); cancel(); } });
+      <div class="actions" id="qwa"><button class="btn ghost" id="wc"><span>Abbrechen</span></button></div></div>`, 'radarm', () => { if (!done) { stop(); cancel(); } });
     m.querySelector('#wc').onclick = () => V.ui.closeModal();
     const vsAI = () => {
       stop(); cancel(); V.ui.closeModal();
@@ -583,8 +592,9 @@
     };
     tick = setInterval(() => {
       secs++;
+      const s = m.querySelector('#qws'); if (s) s.textContent = secs + ' s';
       const el = m.querySelector('#qwt'); if (!el) return;
-      if (secs < QUICK_GIVEUP) { el.textContent = secs < 8 ? 'Wer jetzt auch sucht, landet bei dir.' : `Noch niemand da · ${secs} s`; return; }
+      if (secs < QUICK_GIVEUP) { el.textContent = secs < 8 ? 'Wer jetzt auch sucht, landet bei dir.' : 'Noch niemand da'; return; }
       if (secs === QUICK_GIVEUP) {
         el.textContent = 'Gerade ist niemand frei. Spiel solange gegen die KI, oder warte weiter.';
         m.querySelector('#qwa').innerHTML = `<button class="btn primary" id="wai"><span>${IC().robot}Gegen die KI</span></button><button class="btn ghost" id="wc"><span>Abbrechen</span></button>`;
@@ -593,13 +603,23 @@
         V.sfx.ui();
       }
     }, 1000);
+    const found = st => {
+      stop();
+      const opp = st.role === 'a' ? st.b_name : st.a_name;
+      m.classList.add('found');
+      m.querySelector('#qwh').textContent = 'Gegner gefunden';
+      m.querySelector('#qwt').innerHTML = `<b class="qw-n">${esc(opp || '')}</b>`;
+      m.querySelector('#qwa').innerHTML = '';
+      V.sfx.found();
+      setTimeout(() => { V.ui.closeModal(); start(st); }, V.fxOn() ? 1000 : 300);
+    };
     const poll = async () => {
       if (done) return;
       clearTimeout(t);
       try {
         const st = await C().rpc('match_state', { mid, since: 0 });
         if (done) return;
-        if (st.status === 'live') { stop(); V.ui.closeModal(); V.sfx.goal(); V.buzz([40, 60, 40]); return start(st); }
+        if (st.status === 'live') return found(st);
         if (st.status !== 'invited') { stop(); V.ui.closeModal(); V.ui.toast('Die Suche ist abgelaufen'); return; }
       } catch (e) { }
       t = setTimeout(poll, 1500);
@@ -608,29 +628,36 @@
     ch = C().channel('m:' + mid, () => { if (!done) poll(); });
   }
 
-  // the quick match card at the top of the Online tab
+  // the quick match card at the top of the Online tab; a tap opens a sheet with the choice of game
   let qGame = V.store.get('quick', '');
   function quickCard() {
+    return `<button class="qhero" id="qopen"><i class="qh-st"></i><i class="qh-sh"></i>
+      <span class="qh-t"><small>Ein Tipp, ein Gegner</small><b>Schnelles Spiel</b><em id="qstat"></em></span>
+      <span class="qh-go">${IC().boltf}</span></button>`;
+  }
+  function quickSheet() {
     const anon = !C().user() || isAnon();
     const ids = ONLINE.filter(id => V.byId[id]).sort((a, b) => guestOk(b) - guestOk(a));
     if (anon && !guestOk(qGame)) qGame = '';
-    return `<div class="apanel qcard"><div class="qc-h"><span class="qc-ic">${IC().bolt}</span><div><h3>Schnelles Spiel</h3><small id="qstat">Ein Tipp, und Versus sucht dir einen Gegner.</small></div></div>
+    const m = V.ui.openModal(`<div class="qsheet"><h3>Schnelles Spiel</h3><p class="fhint">Welches Spiel? Bei „Egal“ nimmt Versus das, wofür gerade jemand wartet.</p>
       <div class="rgames qgames" id="qg">${[''].concat(ids).map(id => {
         const lock = anon && !guestOk(id);
         return `<button data-q="${id}" class="${qGame === id ? 'on' : ''}${lock ? ' lockd' : ''}" title="${esc(id ? gname(id) : 'Egal')}">${id ? `<span class="ic">${V.byId[id].icon}</span>` : `<span class="ic all">${IC().spark}</span>`}<small>${esc(id ? gname(id) : 'Egal')}</small>${lock ? `<i class="ql">${IC().lock}</i>` : ''}</button>`;
       }).join('')}</div>
-      <div class="arow"><button class="btn primary big" id="qgo"><span>${IC().globe}${C().user() ? 'Gegner suchen' : 'Als Gast spielen'}</span></button>
-        ${C().user() ? '' : `<button class="btn ghost" data-tab="profile"><span>Konto erstellen</span></button>`}</div>
-      <p class="fine">${anon ? 'Als Gast gehen 4 Spiele. Mit Konto alle, dazu Freunde und Rangliste.' : 'Ist gerade niemand frei, kannst du solange gegen die KI spielen.'}</p></div>`;
-  }
-  function wireQuick(b) {
-    b.querySelectorAll('#qg [data-q]').forEach(x => x.onclick = () => {
+      <div class="actions"><button class="btn primary big" id="qgo"><span>${IC().globe}${C().user() ? 'Suchen' : 'Als Gast suchen'}</span></button></div>
+      ${C().user() ? '' : '<button class="btn ghost sm" data-tab-go="profile"><span>Konto erstellen</span></button>'}
+      <p class="fine">${anon ? 'Als Gast gehen 4 Spiele. Mit Konto alle, dazu Freunde und Rangliste.' : 'Ist gerade niemand frei, kannst du solange gegen die KI spielen.'}</p></div>`, 'qsm');
+    m.querySelectorAll('#qg [data-q]').forEach(x => x.onclick = () => {
       const id = x.dataset.q;
       if (x.classList.contains('lockd')) { V.sfx.bad(); return V.ui.toast('Dafür brauchst du ein Konto'); }
       qGame = id; V.store.set('quick', id); V.sfx.ui();
-      b.querySelectorAll('#qg [data-q]').forEach(y => y.classList.toggle('on', y === x));
+      m.querySelectorAll('#qg [data-q]').forEach(y => y.classList.toggle('on', y === x));
     });
-    const go = b.querySelector('#qgo'); if (go) go.onclick = () => { V.sfx.ui(); quick(qGame ? V.byId[qGame] : null); };
+    m.querySelector('#qgo').onclick = () => { V.sfx.ui(); V.ui.closeModal(); quick(qGame ? V.byId[qGame] : null); };
+    const tg = m.querySelector('[data-tab-go]'); if (tg) tg.onclick = () => { V.ui.closeModal(); V.ui.home('profile'); };
+  }
+  function wireQuick(b) {
+    const o = b.querySelector('#qopen'); if (o) o.onclick = () => { V.sfx.ui(); quickSheet(); };
     C().rpc('quick_stats').then(s => {
       const el = b.querySelector('#qstat'); if (!el || !s) return;
       const parts = [s.online ? `${s.online} online` : '', s.waiting ? `${s.waiting} ${s.waiting === 1 ? 'sucht' : 'suchen'} gerade` : '', s.playing ? `${s.playing} spielen` : ''].filter(Boolean);
@@ -705,7 +732,7 @@
     m.innerHTML = `<div class="prof">
       <div class="phead"><span class="abig">${esc(p.username.slice(0, 2).toUpperCase())}</span>
         <div><b>${esc(p.username)}</b>${p.dev ? '<em class="rtag dev">Dev</em>' : ''}<small>${status} · dabei seit ${new Date(p.since).toLocaleDateString('de-DE', { month: 'long', year: 'numeric' })}</small></div>
-        <button class="iconbtn" id="pc" aria-label="Schließen">${IC().x}</button></div>
+        <button class="iconbtn" id="pc" aria-label="Schließen">${V.ui.wide() ? IC().x : IC().back}</button></div>
       <div class="kpis pk">
         <div class="kpi"><b>${t.wins || 0}</b><span>Siege</span></div>
         <div class="kpi"><b>${t.losses || 0}</b><span>Niederlagen</span></div>

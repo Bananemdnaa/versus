@@ -132,6 +132,7 @@
     wireInstall(b);
     if (homeTab === 'games') wireGames(b);
     if (homeTab === 'opts') wireOpts(b);
+    if (homeTab === 'stats') countUp(b);
     if (homeTab === 'profile' && V.account) V.account.wire(b);
     if (homeTab === 'online' && V.online) V.online.wire(b);
     b.querySelectorAll('[data-tab]').forEach(x => x.onclick = () => { V.sfx.ui(); home(x.dataset.tab); });
@@ -550,16 +551,27 @@
     return `<section class="stats page">
       <h1 class="title"><span>Deine</span> Bilanz</h1>
       <div class="kpis">
-        <div class="kpi"><b>${t.total}</b><span>Partien</span></div>
-        <div class="kpi"><b>${t.aiWins}</b><span>Siege gegen KI</span></div>
-        <div class="kpi"><b>${t.onWins}</b><span>Online-Siege</span></div>
-        <div class="kpi"><b>${t.rate} %</b><span>Siegquote</span></div>
+        <div class="kpi"><b data-v="${t.total}">${t.total}</b><span>Partien</span></div>
+        <div class="kpi"><b data-v="${t.aiWins}">${t.aiWins}</b><span>Siege gegen KI</span></div>
+        <div class="kpi"><b data-v="${t.onWins}">${t.onWins}</b><span>Online-Siege</span></div>
+        <div class="kpi"><b data-v="${t.rate}" data-s=" %">${t.rate} %</b><span>Siegquote</span></div>
       </div>
       <div class="slist">${rows || `<div class="empty">${IC.trophy}<b>Noch keine Partien</b><p>Spiel eine Runde, dann steht hier deine Bilanz pro Spiel: gegen die KI, online und zu zweit.</p><button class="btn primary" data-tab="games"><span>Spiel aussuchen</span></button></div>`}</div>
       ${rows ? '<div class="legend"><span><i class="w"></i>Siege</span><span><i class="d"></i>Remis</span><span><i class="l"></i>Niederlagen</span></div>' : ''}
     </section>`;
   }
 
+  // the big numbers count up from 0 when the tab opens (.6 s)
+  function countUp(root) {
+    if (!V.fxOn()) return;
+    const els = [...root.querySelectorAll('[data-v]')], t0 = performance.now();
+    const step = now => {
+      const k = Math.min(1, (now - t0) / 600), e = 1 - Math.pow(1 - k, 3);
+      els.forEach(b => { b.textContent = Math.round(+b.dataset.v * e) + (b.dataset.s || ''); });
+      if (k < 1 && els[0] && els[0].isConnected) requestAnimationFrame(step);
+    };
+    requestAnimationFrame(step);
+  }
   function optsTab() {
     const sw = (id, on, label, sub, ic) => `<button class="opt" id="${id}" role="switch" aria-checked="${on}">${ic}<span><b>${label}</b><small>${sub}</small></span><i class="sw ${on ? 'on' : ''}"></i></button>`;
     const slider = (k, label, val, off) => `<div class="opt ovol${off ? ' off' : ''}" data-vol="${k}"><i class="ospc"></i><span><b>Lautstärke ${label}</b><input type="range" min="0" max="100" step="5" value="${val}" style="--p:${val}%" aria-label="Lautstärke ${label}"></span><em>${val} %</em></div>`;
@@ -698,7 +710,7 @@
     modalEl = V.el('div', 'modal-back' + (cls ? ' mb-' + cls : ''));
     modalEl.innerHTML = `<div class="modal ${cls}" role="dialog" aria-modal="true">${html}</div>`;
     modalEl.addEventListener('pointerdown', e => { if (e.target === modalEl && cls !== 'endm') closeModal(); });
-    if (cls !== 'endm') swipeSheet(modalEl, modalEl.firstElementChild);
+    if (!['endm', 'radarm', 'profm'].includes(cls)) swipeSheet(modalEl, modalEl.firstElementChild);
     document.body.appendChild(modalEl);
     nav.hide();
     queueGuard();

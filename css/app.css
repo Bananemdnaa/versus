@@ -1259,7 +1259,7 @@ a.opt{color:inherit;text-decoration:none}
 @keyframes blobA{50%{transform:translate(40px,60px) scale(1.2)}} @keyframes blobB{50%{transform:translate(-50px,-40px) scale(1.15)}}
 @keyframes burst2{to{transform:translate(var(--dx),var(--dy)) rotate(560deg) scale(.3);opacity:0}}
 @keyframes bob{50%{transform:translateY(-5px)}}
-@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes radarSpin{to{transform:rotate(360deg)}}
 
 /* app mode in the phone browser too: no text selection on buttons, no rubber band, no scrollbars in rows */
 body{overscroll-behavior:none}
@@ -1489,3 +1489,109 @@ button{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
   .play.party-v .sglow,.duel.party~.sglow{display:none}
   .facing .pcard-r{rotate:180deg}
 }
+
+/* ---------- online tab ---------- */
+.chip{display:inline-flex;align-items:center;gap:4px;height:20px;padding:0 8px;font:700 italic 11.5px/1 var(--f-d);letter-spacing:.1em;text-transform:uppercase;transform:skewX(var(--sk));white-space:nowrap;vertical-align:middle}
+.chip[hidden]{display:none}
+.chip.c{color:var(--cyan);background:rgba(98,240,255,.12)} .chip.y{color:var(--yellow);background:rgba(255,216,79,.12)}
+.online .title span{font-size:15px;letter-spacing:.24em}
+@media (max-width:959px){.online .title{font-size:44px}}
+/* sections without a box (the admin panel keeps its boxes) */
+.online .apanel.osec{background:none;border:0;padding:0;border-radius:0}
+.online .apanel.osec h3{font-size:22px}
+.online .rtop h3{display:flex;align-items:center;gap:10px}
+/* quick match: a big split card */
+.qhero{position:relative;overflow:hidden;width:100%;height:150px;border-radius:var(--r-l);text-align:left;color:var(--ink);
+  background:linear-gradient(105deg,var(--pink) 0 50%,var(--yellow) 50% 100%);box-shadow:0 22px 40px -18px rgba(255,79,216,.7);transition:transform var(--t-fast) var(--ease)}
+.qhero:active{transform:scale(.97)}
+.qhero::before{content:'';position:absolute;inset:0;background:linear-gradient(105deg,transparent 49.6%,#fff 49.8%,#fff 50.2%,transparent 50.4%)}
+.qhero>i{position:absolute;inset:0;pointer-events:none}
+.qhero .qh-st{background:repeating-linear-gradient(-60deg,rgba(8,9,15,.08) 0 9px,transparent 9px 20px)}
+.qhero .qh-sh{right:auto;width:30%;background:linear-gradient(90deg,transparent,rgba(255,255,255,.45),transparent);animation:shine 5s 1s ease-in-out infinite}
+.qh-t{position:absolute;left:20px;top:20px;right:100px;display:flex;flex-direction:column;gap:4px}
+.qh-t small{font:700 italic 12px/1 var(--f-d);letter-spacing:.18em;text-transform:uppercase}
+.qh-t b{font:800 italic 40px/.9 var(--f-d);text-transform:uppercase}
+.qh-t em{font-style:normal;font-size:12.5px;font-weight:600;opacity:.75}
+.qh-go{position:absolute;right:20px;bottom:20px;width:62px;height:62px;display:grid;place-items:center;background:var(--ink);color:var(--yellow);transform:skewX(var(--sk));box-shadow:4px 4px 0 #fff}
+.qh-go svg{width:28px;height:28px;transform:skewX(10deg)}
+.lowfx .qhero .qh-sh{animation:none}
+.qsheet{display:flex;flex-direction:column;gap:12px}
+.qsheet h3{margin:0;font:800 italic 30px/1 var(--f-d);text-transform:uppercase}
+.qsheet .qgames{flex-wrap:wrap;overflow:visible}
+.qsheet .actions .btn{flex:1 1 100%}
+.qsheet>.btn.ghost{align-self:center}
+/* search screen: radar, seconds, the opponent springs in */
+.modal-back.mb-radarm{padding:0;place-items:stretch;background:var(--ink)}
+.modal.radarm{width:100%;max-width:none;height:100%;max-height:none;border:0;border-radius:0;box-shadow:none;display:grid;place-items:center;animation:fadeIn .3s;
+  background:linear-gradient(105deg,rgba(255,79,216,.12),rgba(255,79,216,.02) 49.9%,rgba(255,216,79,.02) 50.1%,rgba(255,216,79,.1)),var(--ink);padding:24px 20px calc(24px + env(safe-area-inset-bottom,0px))}
+.modal.radarm::before{display:none}
+.modal-back.out .modal.radarm{animation:none}
+.radar-v{display:flex;flex-direction:column;align-items:center;text-align:center;gap:10px;width:min(100%,420px)}
+.radar{position:relative;width:240px;height:240px;margin-bottom:18px;display:grid;place-items:center}
+.radar .rr{position:absolute;inset:0;border-radius:50%;border:2px solid rgba(98,240,255,.6);animation:radar 2.4s ease-out infinite}
+.radar .rr:nth-child(2){animation-delay:.8s} .radar .rr:nth-child(3){animation-delay:1.6s}
+.radar .rc{position:absolute;inset:0;border-radius:50%;background:conic-gradient(from 0deg,rgba(98,240,255,.35),transparent 25%);animation:radarSpin 1.6s linear infinite}
+.r-av{position:relative;width:84px;height:84px;display:grid;place-items:center;background:var(--pink);color:var(--ink);font:800 italic 36px/1 var(--f-d);transform:skewX(var(--sk));box-shadow:5px 5px 0 var(--yellow)}
+.radar-v h3{margin:0;font:800 italic 34px/1 var(--f-d);text-transform:uppercase}
+.radar-v .qw-g{display:flex;align-items:center;gap:8px;margin:0;font:700 italic 17px/1 var(--f-d);text-transform:uppercase;color:var(--muted)}
+.radar-v .qw-g .ic{width:24px;height:24px;display:inline-grid}
+.radar-v .qw-t{margin:0;color:var(--muted);min-height:3em}
+.radar-v .actions{width:100%}
+.radarm.found h3{color:var(--good)}
+.radarm.found .rr,.radarm.found .rc{animation-play-state:paused;opacity:.3}
+.qw-n{display:block;font:800 italic 44px/1 var(--f-d);text-transform:uppercase;color:var(--yellow);animation:popIn .5s var(--spring)}
+.lowfx .radar .rr,.lowfx .radar .rc{animation:none}
+/* friends online now: a row of avatar cards */
+.fon{display:flex;gap:10px;overflow-x:auto;scrollbar-width:none;margin:0 -16px 12px;padding:4px 16px 8px}
+.fon::-webkit-scrollbar{display:none}
+.fcard{--fc:var(--pink);flex:none;width:96px;display:flex;flex-direction:column;align-items:center;gap:4px;padding:12px 6px 10px;border-radius:var(--r-m);background:var(--panel);border:1px solid var(--line);box-shadow:var(--depth);transition:transform var(--t-fast) var(--ease),box-shadow var(--t-fast)}
+.fcard:active{transform:translateY(var(--press-y)) scale(.97);box-shadow:var(--depth-press)}
+.fcard .fav{width:48px;height:48px;font-size:20px;background:var(--fc);color:var(--ink);margin-bottom:4px}
+.fcard .fav i{width:12px;height:12px;background:var(--good);box-shadow:0 0 8px var(--good)}
+.fcard b{font:700 italic 14px/1.1 var(--f-d);text-transform:uppercase;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.fcard small{font-size:11px;color:var(--good);max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.frow .fav{width:44px;height:44px;border-radius:0}
+.frow{border-radius:14px}
+.freqs,.obanner{border-radius:var(--r-m)}
+.mrow{border-radius:14px}
+.mrow.live .m-g{position:relative}
+/* podium: steps 92 / 124 / 74 px, places in yellow, cyan and pink, avatars bob */
+.podium{gap:10px;padding-top:16px}
+.pod.p1{--pc:var(--yellow)} .pod.p2{--pc:var(--cyan)} .pod.p3{--pc:var(--pink)}
+.pod .pav{width:50px;height:50px;display:grid;place-items:center;background:var(--pc);color:var(--ink);font:800 italic 22px/1 var(--f-d);transform:skewX(var(--sk));box-shadow:3px 3px 0 rgba(0,0,0,.4);cursor:pointer;animation:bob 3s ease-in-out infinite}
+.pod.p1 .pav{width:60px;height:60px;font-size:26px}
+.pod.p2 .pav{animation-delay:.5s} .pod.p3 .pav{animation-delay:1s}
+.pod .step{position:relative;display:grid;place-items:center;border-radius:14px 14px 4px 4px;background:linear-gradient(180deg,color-mix(in srgb,var(--pc) 33%,var(--panel2)),var(--panel2));border-color:color-mix(in srgb,var(--pc) 45%,var(--line))}
+.pod.p1 .step{height:124px} .pod.p2 .step{height:92px} .pod.p3 .step{height:74px}
+.pod .step .medal{width:auto;height:auto;background:none;box-shadow:none;transform:none;color:var(--pc);font:800 italic 44px/1 var(--f-d)}
+.lowfx .pod .pav{animation:none}
+.rrow{border-radius:14px}
+
+/* ---------- stats, account, options ---------- */
+.kpi{border-top:0;border-radius:var(--r-m)}
+.kpi b{color:var(--pink)} .kpi:nth-child(even) b{color:var(--yellow)}
+.admin .kpi b{color:inherit}
+.srow{border-left:1px solid var(--line);border-radius:14px}
+.acard{box-shadow:none;border-radius:var(--r-m)}
+.inp{height:50px;border-radius:12px}
+textarea.inp{height:auto}
+.optlist{border-radius:var(--r-m)}
+.oh{font:800 italic 22px/1 var(--f-d);letter-spacing:.02em;color:var(--fg);margin:0 0 10px 2px}
+.empty{border:0;padding:30px 16px}
+.empty svg{width:48px;height:48px}
+.empty .btn{border-radius:var(--r-pill);transform:none}
+.empty .btn.primary{box-shadow:0 6px 0 #05060c}
+.empty .btn.primary:active{transform:translateY(4px);box-shadow:var(--depth-press)}
+.gp-lock{border-radius:14px}
+/* phone: a player profile is its own full screen that slides in from the right */
+@media (max-width:959px){
+  .modal-back.mb-profm{padding:0;place-items:stretch;background:var(--ink);backdrop-filter:none}
+  .modal.profm{width:100%;max-width:none;height:100%;max-height:none;border:0;border-radius:0;box-shadow:none;animation:profIn .35s var(--ease);padding:max(16px,env(safe-area-inset-top,0px)) 18px calc(30px + env(safe-area-inset-bottom,0px))}
+  .modal.profm::before{display:none}
+  .modal-back.out .modal.profm{animation:profOut .28s var(--sheet-out) forwards}
+  .lowfx .modal.profm,.lowfx .modal-back.out .modal.profm{animation:fadeIn .2s}
+  .prof .phead{flex-wrap:nowrap}
+  .prof .phead #pc{order:-1}
+  .prof .abig{width:64px;height:64px;font-size:26px}
+}
+@keyframes profIn{from{transform:translateX(100%)}} @keyframes profOut{to{transform:translateX(100%)}}
