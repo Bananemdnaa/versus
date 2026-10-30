@@ -68,6 +68,8 @@
   const INLINE = new Set(['B', 'I', 'EM', 'STRONG', 'SPAN', 'SMALL', 'A', 'KBD', 'BR', 'SUP', 'SUB', 'U', 'S', 'MARK']);
   const ATTRS = ['placeholder', 'title', 'aria-label', 'alt'];
   const skip = el => SKIP.has(el.tagName) || el.isContentEditable || (el.closest && el.closest('[translate="no"],svg'));
+  // input fields keep what people type, but their placeholder and title are translated
+  const field = el => (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA') && !el.closest('[translate="no"]');
 
   // an element with text and inline tags: translate the whole sentence as one template
   function asTemplate(el) {
@@ -104,7 +106,8 @@
     if (r != null && r !== n.nodeValue) n.nodeValue = r;
   }
   function walk(el, deep) {
-    if (el.nodeType !== 1 || skip(el)) return;
+    if (el.nodeType !== 1) return;
+    if (skip(el)) { if (field(el)) attrs(el); return; }
     attrs(el);
     asTemplate(el);
     for (const k of [...el.childNodes]) {
@@ -114,7 +117,7 @@
   }
   const run = muts => {
     for (const m of muts) {
-      if (m.type === 'attributes') { if (m.target.nodeType === 1 && !skip(m.target)) attrs(m.target); continue; }
+      if (m.type === 'attributes') { if (m.target.nodeType === 1 && (!skip(m.target) || field(m.target))) attrs(m.target); continue; }
       if (m.type === 'characterData') { const p = m.target.parentElement; if (p && !skip(p)) { if (!asTemplate(p)) textNode(m.target); } continue; }
       for (const n of m.addedNodes) {
         if (n.nodeType === 1) walk(n, true);

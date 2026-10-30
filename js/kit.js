@@ -94,7 +94,8 @@
   // ---------- playing cards (Mau-Mau, Poker, Memory) ----------
   // a card is a code: rank '23456789TJQKA' + suit 'SHDC' (Pik, Herz, Karo, Kreuz), e.g. 'TH' = Herz 10
   const SUIT = { S: '♠', H: '♥', D: '♦', C: '♣' }, SUIT_NAME = { S: 'Pik', H: 'Herz', D: 'Karo', C: 'Kreuz' };
-  const RANK = { T: '10', J: 'B', Q: 'D', K: 'K', A: 'A' }, RANK_NAME = { J: 'Bube', Q: 'Dame', K: 'König', A: 'Ass', T: '10' };
+  // English cards say J and Q for Bube and Dame
+  const RANK = V.lang === 'en' ? { T: '10', J: 'J', Q: 'Q', K: 'K', A: 'A' } : { T: '10', J: 'B', Q: 'D', K: 'K', A: 'A' }, RANK_NAME = { J: 'Bube', Q: 'Dame', K: 'König', A: 'Ass', T: '10' };
   V.cardName = c => SUIT_NAME[c[1]] + ' ' + (RANK_NAME[c[0]] || c[0]);
   V.suitName = s => SUIT_NAME[s];
   V.suitSym = s => SUIT[s];

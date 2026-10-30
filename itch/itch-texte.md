@@ -28,7 +28,7 @@ Auf itch.io sind die meisten Leute englischsprachig, darum steht oben der englis
 - **No ads, no grinding:** made for quick rounds with friends.
 - Works on phones and computers, also offline as an app. German and English.
 
-**Playing online:** for your account, friends and online games, tap **"Play in its own tab"** at the top. Against the AI and on one device everything works right here.
+**Without an account** you can play Connect 4, Battleship, Tic Tac Toe, Dots and Boxes, Reaction Duel and Pong right away. A **free account** (just a username, no e-mail) unlocks all 32 games, online matches, friends and the weekly ranking. For your account and online games, tap **"Play in its own tab"** at the top.
 
 ## Beschreibung (Deutsch)
 
@@ -47,16 +47,73 @@ Auf itch.io sind die meisten Leute englischsprachig, darum steht oben der englis
 - **Ohne Werbung, ohne Grinden:** gemacht für schnelle Runden unter Freunden.
 - Läuft am Handy und am Computer, auch offline als App. Deutsch und Englisch.
 
-**Online spielen:** Für Konto, Freunde und Online-Partien oben auf **„Im eigenen Tab spielen“** tippen. Gegen die KI und am selben Gerät funktioniert alles direkt hier.
+**Ohne Konto** gehen sofort 4 Gewinnt, Schiffe versenken, Tic Tac Toe, Käsekästchen, Reaktionsduell und Pong. Ein **kostenloses Konto** (nur Benutzername, keine E-Mail) schaltet alle 32 Spiele, Online-Partien, Freunde und die Wochen-Rangliste frei. Für Konto und Online-Partien oben auf **„Im eigenen Tab spielen“** tippen.
 
 ## Weitere Felder
 
 - **Genre:** Board Game (oder Puzzle)
 - **Tags:** multiplayer, local-multiplayer, board-game, card-game, chess, two-player, browser, mobile, singleplayer, casual
-- **Screenshots:** `itch/screenshots/` (1280 × 720: 1-4-gewinnt, 2-schach, 3-schiffe-versenken, 4-poker, 5-ludo). Weitere in `itch/screenshots/weitere/` (Startseite, 3D Tic Tac Toe, Hex, Schnapsen, Domino).
-- **Cover image:** `icons/og.png` (1200 × 630). itch.io empfiehlt 630 × 500, schneidet aber selbst zu.
 
-## Auf anderen Seiten einbinden
+## Bilder (alle auf Englisch)
+
+Alles liegt in `itch/`. Die Grafiken entstehen aus `itch/art.html` (im Browser ansehen mit `itch/art.html?k=social`, `wide`, `cover`, `embed`, `logo`, `favicon`).
+
+| Wo auf itch.io | Datei |
+|---|---|
+| Edit game → **Screenshots** (in dieser Reihenfolge) | `screenshots/1-connect-four.png`, `2-chess.png`, `3-battleship.png`, `4-poker.png`, `5-ludo.png` |
+| Weitere Screenshots, falls du mehr willst | `screenshots/more/` (Spielauswahl, 3D Tic Tac Toe, Hex, Schnapsen, Dominoes) |
+| Edit game → **Cover image** | `art/cover-1260x1000.png` (630 × 500 in doppelter Auflösung) |
+| Metadata → Promo images → **Wide cover** | `art/wide-cover-2100x900.png` (21:9) |
+| Metadata → Promo images → **Social media image** | `art/social-1200x630.png` |
+| Metadata → Promo images → **Favicon** | `art/favicon-256.png` |
+| Edit theme → Images → **Banner** | `art/logo-1200x360.png` (durchsichtig) |
+| Edit theme → Images → **Embed BG** | `art/embed-bg-960x740.png` (hinter dem „Run game“-Knopf) |
+| Edit theme → Images → **Background** | leer lassen, die Farbe reicht |
+
+## Projektseite einstellen (Edit theme)
+
+Damit die Seite aussieht wie Versus selbst: dunkel, Pink und Gelb.
+
+**Color**
+- BG: `#08090f`
+- BG 2: `#11132a`
+- Text: `#e8e9f3`
+- Link: `#ff4fd8`
+- More options → Headers: `#ffd84f`
+- More options → Buttons: `#ff4fd8`
+- More options → BG2 Alpha: ganz nach rechts (voll deckend)
+
+**Text**
+- Font: `Saira` oder `Saira Semi Condensed`, falls in der Liste; sonst `Rajdhani` oder `Exo 2`; wenn nichts davon da ist, `Lato` lassen
+- Size: `Large` passt
+- More options → Header font: `Saira Condensed`, `Teko` oder `Oswald` (schmal und sportlich wie das Logo), sonst Default font
+
+**Layout**
+- Screenshots: `Sidebar` (das Spiel ist 960 breit, die Screenshots stehen dann rechts daneben)
+
+**Images:** siehe Tabelle oben (Banner, Embed BG).
+
+## Spiel auf der Seite (Edit game → Embed options)
+
+- Kind of project: HTML, `versus-itch.zip` mit „This file will be played in the browser“
+- Embed in page, Viewport **960 × 740**
+- Häkchen: **Mobile friendly** (Orientation: Default), **Fullscreen button**
+- „Automatically start on page load“ aus lassen, dann sieht man das Embed BG mit dem Start-Knopf
+
+## Distribute
+
+**Widget** (Distribute → Widget): Preset **Dark** anklicken, dann:
+- Background color: `#0e1022`
+- Text color: `#f3f4ff`
+- Button color: `#ff4fd8`
+- Border color: `#262a52`, Border size 1px
+- „Include link to itch.io page“ an. „Square“ nur, wenn der Platz auf der anderen Seite quadratisch ist.
+
+**Embed game** (Distribute → Embed game): Color `#08090f` statt `#333333`, sonst passt alles (960 × 740).
+
+**Custom Button / API:** brauchst du nicht. Das ist für Spiele, die man kauft, Versus ist gratis.
+
+## Eigene Embeds (nicht über itch.io)
 
 Beide laufen direkt von GitHub Pages, jedes Update ist sofort drin. Sprache: deutsche Browser bekommen Deutsch, alle anderen Englisch. Mit `?lang=de` oder `?lang=en` hinter `.html` legst du sie fest.
 

@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="robots" content="noindex">
+<title>Versus art</title>
+<!-- Promo images for itch.io, rendered to PNG with headless Chrome at the size of each kind:
+     art.html?k=social (1200 × 630), wide (2100 × 900, 21:9), cover (630 × 500, shot at 2×), embed (960 × 740),
+     logo (1200 × 360, transparent), favicon (256 × 256, transparent). The screenshots come from itch/screenshots. -->
+<style>
+  @font-face { font-family: SairaC; src: url(../fonts/saira-condensed-800.woff2) format('woff2'); font-weight: 800; }
+  @font-face { font-family: Saira; src: url(../fonts/saira.woff2) format('woff2'); font-weight: 100 900; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; width: 100vw; height: 100vh; overflow: hidden; color: #f3f4ff; font-family: Saira, system-ui, sans-serif; }
+  body.bg { background:
+      repeating-linear-gradient(-62deg, rgba(255,255,255,.035) 0 2px, transparent 2px 22px),
+      radial-gradient(70% 90% at 8% 10%, rgba(255,79,216,.42), transparent 60%),
+      radial-gradient(70% 90% at 95% 100%, rgba(255,216,79,.30), transparent 60%), #0b0c15; }
+  body.bg::before { content: ''; position: absolute; left: 47%; top: -10%; width: 2px; height: 120%; background: rgba(255,255,255,.18); transform: rotate(22deg); }
+  .logo { display: flex; align-items: center; gap: .32em; font: 800 italic 1em/1 SairaC, system-ui, sans-serif; text-transform: uppercase; letter-spacing: .01em; white-space: nowrap; }
+  .logo svg { width: 1.05em; height: 1.05em; flex: none; filter: drop-shadow(0 .04em .08em rgba(0,0,0,.5)); }
+  .logo .w i { color: #ff4fd8; font-style: italic; } .logo .w b { color: #ffd84f; } .logo .w s { text-decoration: none; color: #eef0ff; margin: 0 .02em; }
+  .tag { font-weight: 700; line-height: 1.15; }
+  .sub { color: #c9cbe8; font-weight: 500; }
+  .games { color: #9ca2cc; font-weight: 500; }
+  .chips { display: flex; gap: .5em; flex-wrap: wrap; }
+  .chips span { padding: .25em .7em; border-radius: 999px; background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.14); font: 800 italic 1em/1.2 SairaC, system-ui, sans-serif; letter-spacing: .06em; text-transform: uppercase; color: #dfe1ff; }
+  .chips span:first-child { background: #ff4fd8; border-color: #ff4fd8; color: #0b0c15; box-shadow: .18em .18em 0 #ffd84f; }
+  .shot { position: absolute; border-radius: 14px; overflow: hidden; border: 2px solid rgba(255,255,255,.16); box-shadow: 0 24px 60px rgba(0,0,0,.6); background: #0b0c15; }
+  .shot img { display: block; width: 100%; height: 100%; object-fit: cover; }
+  .k { display: none; position: absolute; inset: 0; }
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute"><defs><symbol id="ic" viewBox="0 0 64 64">
+  <rect width="64" height="64" rx="14" fill="#0b0c15"/>
+  <circle cx="22" cy="26" r="13" fill="#ff4fd8"/><circle cx="42" cy="38" r="13" fill="#ffd84f"/>
+  <path d="M35 8L27 30h8l-6 26 14-30h-8l6-18z" fill="#fff" stroke="#0b0c15" stroke-width="2.5" stroke-linejoin="round"/>
+</symbol></defs></svg>
+
+<!-- social: link previews on Discord, Reddit, X … -->
+<div class="k" id="social">
+  <div class="shot" style="width:620px;height:349px;left:600px;top:40px;transform:rotate(4deg)"><img src="screenshots/2-chess.png"></div>
+  <div class="shot" style="width:560px;height:315px;left:660px;top:300px;transform:rotate(-3deg)"><img src="screenshots/4-poker.png"></div>
+  <div style="position:absolute;left:64px;top:70px;width:560px;display:flex;flex-direction:column;gap:22px">
+    <div class="logo" style="font-size:120px"><svg><use href="#ic"/></svg><span class="w"><i>Ver</i><s>/</s><b>sus</b></span></div>
+    <div class="tag" style="font-size:46px">32 quick games<br>for 2 to 4 players</div>
+    <div class="sub" style="font-size:26px">One device · vs. the AI · online with friends</div>
+    <div class="chips" style="font-size:22px;margin-top:8px"><span>Play free</span><span>No ads</span><span>Browser &amp; phone</span></div>
+  </div>
+</div>
+
+<!-- wide: itch.io featured banner (21:9) -->
+<div class="k" id="wide">
+  <div class="shot" style="width:900px;height:506px;left:1080px;top:60px;transform:rotate(5deg)"><img src="screenshots/2-chess.png"></div>
+  <div class="shot" style="width:820px;height:461px;left:1240px;top:430px;transform:rotate(-4deg)"><img src="screenshots/5-ludo.png"></div>
+  <div class="shot" style="width:760px;height:427px;left:860px;top:440px;transform:rotate(2deg)"><img src="screenshots/4-poker.png"></div>
+  <div style="position:absolute;left:110px;top:170px;width:900px;display:flex;flex-direction:column;gap:30px">
+    <div class="logo" style="font-size:190px"><svg><use href="#ic"/></svg><span class="w"><i>Ver</i><s>/</s><b>sus</b></span></div>
+    <div class="tag" style="font-size:58px">32 quick games for 2 to 4 players</div>
+    <div class="sub" style="font-size:36px">One device · vs. the AI · online with friends</div>
+    <div class="games" style="font-size:30px">Chess · Connect 4 · Poker · Ludo · Battleship …</div>
+  </div>
+</div>
+
+<!-- cover: the thumbnail in itch.io lists (630 × 500) -->
+<div class="k" id="cover">
+  <div class="shot" style="width:470px;height:264px;left:200px;top:250px;transform:rotate(-5deg);border-radius:10px"><img src="screenshots/2-chess.png"></div>
+  <div class="shot" style="width:420px;height:236px;left:-40px;top:300px;transform:rotate(4deg);border-radius:10px"><img src="screenshots/4-poker.png"></div>
+  <div style="position:absolute;left:0;right:0;top:46px;display:flex;flex-direction:column;align-items:center;gap:12px">
+    <div class="logo" style="font-size:112px"><svg><use href="#ic"/></svg><span class="w"><i>Ver</i><s>/</s><b>sus</b></span></div>
+    <div class="tag" style="font-size:34px;text-align:center">32 games for 2 to 4</div>
+    <div class="chips" style="font-size:16px"><span>Play free</span><span>vs. AI</span><span>Online</span></div>
+  </div>
+</div>
+
+<!-- embed: shown behind the "Run game" button on the itch.io page (960 × 740) -->
+<div class="k" id="embed">
+  <div class="shot" style="width:700px;height:394px;left:130px;top:300px;opacity:.55;border-radius:16px"><img src="screenshots/more/0-games.png"></div>
+  <div style="position:absolute;left:0;right:0;top:70px;display:flex;flex-direction:column;align-items:center;gap:16px">
+    <div class="logo" style="font-size:130px"><svg><use href="#ic"/></svg><span class="w"><i>Ver</i><s>/</s><b>sus</b></span></div>
+    <div class="sub" style="font-size:26px">32 quick games for 2 to 4 players</div>
+  </div>
+</div>
+
+<!-- logo: transparent, for the banner of the itch.io page -->
+<div class="k" id="logo" style="display:none;align-items:center;justify-content:center">
+  <div class="logo" style="font-size:205px"><svg><use href="#ic"/></svg><span class="w" style="text-shadow:0 .03em .06em rgba(0,0,0,.45)"><i>Ver</i><s>/</s><b>sus</b></span></div>
+</div>
+
+<!-- favicon: the icon alone -->
+<div class="k" id="favicon"><svg style="width:100%;height:100%"><use href="#ic"/></svg></div>
+
+<script>
+  const k = new URLSearchParams(location.search).get('k') || 'social';
+  const el = document.getElementById(k);
+  el.style.display = k === 'logo' ? 'flex' : 'block';
+  if (!['logo', 'favicon'].includes(k)) document.body.classList.add('bg');
+</script>
+</body>
+</html>

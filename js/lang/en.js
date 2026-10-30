@@ -644,6 +644,8 @@
     'Erhöhen': 'Raise', 'Erhöhen (Regler)': 'Raise (slider)', 'All-in': 'All-in', 'Nächste Hand': 'Next hand', 'Vor dem Flop': 'Pre-flop', 'Flop': 'Flop', 'Turn': 'Turn', 'River': 'River',
     'im Topf': 'in the pot', 'Topf': 'Pot', 'Geteilter Topf': 'Split pot', 'Alle anderen haben gepasst': 'Everyone else folded', 'Hand # von # · Blinds #/#': 'Hand # of # · Blinds #/#',
     '{0}: Check': '{0}: Check', '{0}: Passt': '{0}: Fold', '{0}: Mitgehen #': '{0}: Call #',
+    '# zum Mitgehen': '# to call', 'du kannst checken': 'you can check', '{0} ist dran · # zum Mitgehen': '{0} to move · # to call', '{0} ist dran · du kannst checken': '{0} to move · you can check',
+    'Setzt #': 'Bets #', 'Erhöht auf #': 'Raises to #', 'Erhöhen auf #': 'Raise to #', 'Setzen #': 'Bet #', '½ Topf': '½ pot', 'Gewinnchance ca. # %': 'Win chance approx. # %',
     'Spielt vorsichtig, blufft nie.': 'Plays carefully, never bluffs.', 'Geht fast überall mit und erhöht selten.': 'Calls almost everything and rarely raises.',
     'Spielt starke Hände aggressiv und steigt mit schwachen aus.': 'Plays strong hands aggressively and folds weak ones.', 'Rechnet genau, nutzt seine Position und blufft gezielt.': 'Calculates precisely, uses its position and bluffs on purpose.',
     'Kein Paar': 'No pair', 'Höchste Karte': 'High card', 'Zwei Paare': 'Two pair', 'Drilling': 'Three of a kind', 'Straße': 'Straight', 'Flush': 'Flush', 'Vierling': 'Four of a kind', 'Straight Flush': 'Straight flush', 'Royal Flush': 'Royal flush'
@@ -832,7 +834,9 @@
     [/^Bilanz von (\S+) ist zurückgesetzt\.$/, "$1's stats are reset."], [/^(\S+) ist (ausgeblendet|wieder sichtbar|entsperrt|jetzt Admin|kein Admin mehr|jetzt ein Dev-Konto|kein Dev-Konto mehr)\.$/, (m, n, s) => n + ' ' + { ausgeblendet: 'is hidden', 'wieder sichtbar': 'is visible again', entsperrt: 'is unbanned', 'jetzt Admin': 'is now an admin', 'kein Admin mehr': 'is no longer an admin', 'jetzt ein Dev-Konto': 'is now a dev account', 'kein Dev-Konto mehr': 'is no longer a dev account' }[s] + '.'],
     [/^(\S+) ist (dauerhaft|für .+) gesperrt\.$/, (m, n, d) => n + ' is banned ' + (d === 'dauerhaft' ? 'permanently' : 'for ' + t(d.slice(4))) + '.'], [/^(\S+) heißt jetzt (\S+)\.$/, '$1 is now called $2.'],
     [/^(\d+)× gemeldet$/, 'reported $1×'], [/^von (\S+) · (.+)$/, (m, n, r) => 'by ' + n + ' · ' + r.replace(' · erledigt von ', ' · done by ').replace(' · erledigt', ' · done')],
-    [/^Spieler (\d)$/, 'Player $1'], [/^KI (\d)$/, 'AI $1'], [/^(\d+) KIs$/, '$1 AIs'], [/^(\d+) Spieler$/, '$1 players'],
+    [/^Spieler (\d)$/, 'Player $1'], [/^KI (\d)$/, 'AI $1'], [/^(\d+) KIs$/, '$1 AIs'], [/^Gegen (\d) KIs · (.+)$/, (m, n, l) => 'Vs. ' + n + ' AIs · ' + t(l)],
+    [/^(Du|KI|KI \d|Spieler \d) (\d+)$/, (m, n, a) => t(n) + ' ' + a],
+    [/^(Du|KI|KI \d|Spieler \d) \+([\d.,]+)(?: · (.+))?$/, (m, n, a, h) => t(n) + ' +' + a + (h ? ' · ' + t(h) : '')], [/^(\d+) Spieler$/, '$1 players'],
     [/^(\S+) wünscht sich (.+)$/, (m, n, s) => n + ' calls ' + t(s)], [/^(\S+) zieht (\d+) Karten$/, '$1 draws $2 cards']
   ]);
 
@@ -926,7 +930,7 @@
       [/^\{0\} tauscht den Atout-Buben gegen (Pik|Herz|Karo|Kreuz) (Ass|König|Dame|Bube|\d+)$/, (m, s, r) => '{0} swaps the trump jack for the ' + card(s, r).replace(/^\w/, c => c.toLowerCase())],
       [/^\{0\} sagt (Zwanziger|Vierziger) an \((.)\)(, zählt nach dem ersten Stich)?$/, (m, w, s, late) => '{0} calls ' + (w === 'Zwanziger' ? 'twenty' : 'forty') + ' (' + s + ')' + (late ? ', counts after the first trick' : '')],
       [/^Atout (.)$/, 'Trump $1'],
-      [/^(.+) gewinnt die Runde$/, (m, n) => who(n) + ' wins the round'],
+      [/^(.+) gewinnt die Runde$/, (m, n) => n === 'Du' ? 'You win the round' : who(n) + ' wins the round'],
       [/^(.+) hat zugedreht und keine (\d+) geschafft$/, (m, n, x) => who(n) + ' closed and missed ' + x]
     ]);
   }
@@ -991,7 +995,7 @@
     'ziehst': 'draw', 'passen': 'pass',
     'Die erste Runde beginnt, wer den {0} hat (zum Beispiel #-#), danach der Sieger der letzten Runde. Wer leer ist, bekommt die {1}. Kann niemand mehr legen, gewinnt die kleinste Hand. Wer zuerst die Zielpunkte hat, gewinnt.': 'The first round starts with whoever has the {0} (for example #-#), after that the winner of the last round. Whoever goes out gets the {1}. If nobody can lay a tile, the smallest hand wins. First to reach the target points wins.',
     'höchsten Pasch': 'highest double', 'Augen aller anderen Hände': 'pips of all other hands',
-    'Stapel: #': 'Boneyard: #', 'Noch kein Stein gelegt': 'No tile laid yet', '# Steine · # P.': '# tiles · # pts', 'keine Steine': 'no tiles',
+    'Stapel: #': 'Boneyard: #', 'Noch kein Stein gelegt': 'No tile laid yet', '# Steine · # P.': '# tiles · # pts', '# Stein · # P.': '# tile · # pts', 'keine Steine': 'no tiles',
     'Stein ziehen (#)': 'Draw a tile (#)', '◀ Links anlegen': '◀ Lay left', 'Rechts anlegen ▶': 'Lay right ▶', '# Steine warten auf dich.': '# tiles are waiting for you.',
     '{0}: du beginnst mit dem höchsten Stein #-#': '{0}: you start with the highest tile #-#', '{0}: nichts passt, zieh einen Stein': '{0}: nothing fits, draw a tile',
     '{0}: nichts passt und der Stapel ist leer, du musst passen': '{0}: nothing fits and the boneyard is empty, you must pass',

@@ -239,7 +239,7 @@
       // ---------- screen ----------
       function draw(laid) {
         const me = shown();
-        opp.innerHTML = P.filter(p => p !== me).map(p => `<div class="do-o${p === turn && !over && !endEl ? ' on' : ''}" data-p="${p}" style="--pc:${CLR[p]}"><b>${ctx.name(p)}</b><div class="row">${hands[p].map(() => '<i></i>').join('')}</div><small>${hands[p].length} Steine · ${total[p]} P.</small></div>`).join('');
+        opp.innerHTML = P.filter(p => p !== me).map(p => `<div class="do-o${p === turn && !over && !endEl ? ' on' : ''}" data-p="${p}" style="--pc:${CLR[p]}"><b>${ctx.name(p)}</b><div class="row">${hands[p].map(() => '<i></i>').join('')}</div><small>${hands[p].length} ${hands[p].length === 1 ? 'Stein' : 'Steine'} · ${total[p]} P.</small></div>`).join('');
         // the line as a snake: rows left to right, then right to left, stones turned so the numbers touch
         const per = Math.max(4, Math.floor((table.clientWidth || 340) / 62)), rows = [];
         for (let i = 0; i < line.length; i += per) rows.push(line.slice(i, i + per));
