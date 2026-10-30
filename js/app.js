@@ -72,6 +72,8 @@
   const GUEST_GAMES = ['c4', 'ttt', 'ships', 'dots', 'reaction', 'pong'];
   // a guest session (quick match without an account) still counts as guest here
   const guest = () => !!(V.cloud && V.cloud.available() && !V.cloud.starting() && (!V.cloud.user() || V.cloud.user().anon));
+  // Versus as a Discord activity (js/discord.js): everybody runs it on their own device, so "two players on one device" is gone there
+  const inDiscord = () => !!(V.discord && V.discord.on);
   // inside the Discord activity the table games are open to guests too (the voice channel plays them together)
   const locked = g => !!g && guest() && !GUEST_GAMES.includes(g.id) && !(g.table && V.discord && V.discord.on);
   V.guest = guest; V.locked = locked;
@@ -198,15 +200,16 @@
     const rg = V.byId[S.get('recent')];
     if (ok(rg)) {
       const c = loadCfg(rg), s = P.stats[rg.id], r = s && c.mode === 'ai' ? s.ai[c.level] : null;
-      const how = c.mode === 'local' ? (rg.party ? 'Am Gerät' : 'Zu zweit') : c.mode === 'ai' ? 'Gegen KI · ' + V.LEVELS[c.level] : 'Online';
+      const how = c.mode === 'local' ? (rg.party ? 'Am Gerät' : 'Zu zweit') : c.mode === 'ai' ? 'Gegen KI · ' + V.LEVELS[c.level] : c.mode === 'voice' ? 'Mit dem Sprachkanal' : 'Online';
       cards.push({ g: rg, kick: 'Weiterspielen', sub: how + (r && r.w + r.l ? ` · ${r.w}:${r.l}` : ''), act: 'cont' });
     }
     let pop = null, most = 0;
     for (const id in P.stats) { const o = P.stats[id].on, n = o ? o.w + o.l + o.d : 0; if (n > most && V.byId[id] && V.byId[id].online) { most = n; pop = V.byId[id]; } }
     if (!ok(pop)) pop = V.byId.c4;
-    if (ok(pop) && pop !== rg) cards.push({ g: pop, kick: 'Beliebt online', sub: 'Gegen echte Gegner', act: 'open' });
+    if (ok(pop) && pop !== rg) cards.push(inDiscord() ? { g: pop, kick: 'Mit dem Sprachkanal', sub: 'Gegen jemanden im Kanal', act: 'open' } : { g: pop, kick: 'Beliebt online', sub: 'Gegen echte Gegner', act: 'open' });
     const four = ok(V.byId.ludo) ? V.byId.ludo : V.byId.pong;
-    if (ok(four) && !cards.some(c => c.g === four)) cards.push(four.party ? { g: four, kick: 'Bis zu vier', sub: 'Ein Handy, vier Spieler', act: 'local' } : { g: four, kick: 'Zu zweit', sub: 'Jeder auf seiner Hälfte', act: 'local' });
+    if (inDiscord() && ok(V.byId.ludo) && !cards.some(c => c.g === V.byId.ludo)) cards.push({ g: V.byId.ludo, kick: 'Mit dem Sprachkanal', sub: 'Jeder auf seinem Gerät', act: 'voice' });
+    else if (!inDiscord() && ok(four) && !cards.some(c => c.g === four)) cards.push(four.party ?{ g: four, kick: 'Bis zu vier', sub: 'Ein Handy, vier Spieler', act: 'local' } : { g: four, kick: 'Zu zweit', sub: 'Jeder auf seiner Hälfte', act: 'local' });
     if (installOffer()) cards.push({ inst: true, kick: 'App', name: 'Als App holen', sub: 'Schneller Start, auch offline' });
     return cards;
   }
@@ -226,7 +229,8 @@
   }
   function quickTiles() {
     const qt = (id, cls, ic, label, live) => `<button class="qtile ${cls}" id="${id}"><span class="qt-ic">${ic}</span>${live ? '<i class="live"></i>' : ''}<b>${label}</b></button>`;
-    return `<div class="qtiles">${qt('qt_quick', 'c', IC.boltf, 'Schnelles Spiel', true)}${qt('qt_local', 'y', IC.users, 'Zu zweit')}${qt('qt_ai', 'p', IC.robot, 'Gegen KI')}</div>`;
+    // in Discord the middle tile plays with the voice channel instead of two players on one device
+    return `<div class="qtiles">${qt('qt_quick', 'c', IC.boltf, 'Schnelles Spiel', true)}${inDiscord() ? qt('qt_voice', 'y', IC.users, 'Sprachkanal') : qt('qt_local', 'y', IC.users, 'Zu zweit')}${qt('qt_ai', 'p', IC.robot, 'Gegen KI')}</div>`;
   }
   // the game for "Zu zweit" and "Gegen KI": the last one played if it fits, otherwise 4 Gewinnt
   function lastFor(mode) {
@@ -239,6 +243,7 @@
     v.querySelector('#qt_quick') && (v.querySelector('#qt_quick').onclick = () => { V.sfx.ui(); quickGo(); });
     v.querySelector('#qt_local') && (v.querySelector('#qt_local').onclick = () => { const g = lastFor('local'); V.sfx.ui(); setMode(g, 'local'); setup(g); });
     v.querySelector('#qt_ai') && (v.querySelector('#qt_ai').onclick = () => { const g = lastFor('ai'); V.sfx.ui(); setMode(g, 'ai'); setup(g); });
+    v.querySelector('#qt_voice') && (v.querySelector('#qt_voice').onclick = () => { const r = lastFor('voice'), g = r.table || r.online ? r : V.byId.ludo; V.sfx.ui(); setMode(g, 'voice'); setup(g); });
     if (!h) return;
     const tr = h.querySelector('.hero-tr'), cards = [...h.querySelectorAll('.hcard')], dots = [...h.querySelectorAll('.hero-dots i')];
     const go = (k, sound) => {
@@ -252,9 +257,9 @@
       if (+c.dataset.k !== homeHero) return go(+c.dataset.k, true);
       if (c.dataset.do === 'install') { V.sfx.ui(); return install(); }
       const g = V.byId[c.dataset.id]; V.sfx.ui();
-      if (c.dataset.act === 'cont') return play(g, loadCfg(g));
-      if (c.dataset.act === 'open' && g.online && V.cloud && V.cloud.available()) setMode(g, 'open');
-      if (c.dataset.act === 'local') setMode(g, 'local');
+      if (c.dataset.act === 'cont') { const cf = loadCfg(g); if (cf.mode !== 'voice' && !(cf.mode === 'ai' && g.noAI)) return play(g, cf); }
+      if (c.dataset.act === 'open' && g.online && V.cloud && V.cloud.available()) setMode(g, inDiscord() ? 'voice' : 'open');
+      if (c.dataset.act === 'local' || c.dataset.act === 'voice') setMode(g, c.dataset.act);
       setup(g);
     });
     // swipe: from 40 px the card changes, and the click at the end of the swipe is swallowed
@@ -421,7 +426,7 @@
         timer = null; t.classList.remove('hold'); t._held = true;
         const cfg = loadCfg(g);
         V.buzz(20);
-        if (cfg.mode === 'ai' || cfg.mode === 'local') { V.sfx.go(); play(g, cfg); } else setup(g);
+        if ((cfg.mode === 'ai' && !g.noAI) || cfg.mode === 'local') { V.sfx.go(); play(g, cfg); } else setup(g);
       }, 480);
     });
     t.addEventListener('pointermove', e => { if (timer && Math.hypot(e.clientX - x0, e.clientY - y0) > 10) stop(); });
@@ -450,6 +455,9 @@
   function loadCfg(g) {
     const saved = S.get('setup', {})[g.id] || {};
     const cfg = { mode: g.noAI ? (saved.mode === 'table' && g.table ? 'table' : 'local') : ((saved.mode === 'online' || saved.mode === 'open') && !g.online) || (saved.mode === 'table' && !g.table) ? 'ai' : (saved.mode || 'ai'), level: saved.level ?? 1, first: saved.first || 'me', opts: {} };
+    // inside the Discord activity there are only two modes: against the AI (only you see it) or with the voice channel
+    if (inDiscord()) { if (cfg.mode !== 'ai' && cfg.mode !== 'voice') cfg.mode = g.noAI ? 'voice' : 'ai'; if (cfg.mode === 'voice' && !(g.table || g.online)) cfg.mode = 'ai'; }
+    else if (cfg.mode === 'voice') cfg.mode = g.noAI ? 'local' : 'ai';
     (g.options || []).forEach(o => { cfg.opts[o.id] = saved.opts && saved.opts[o.id] !== undefined ? saved.opts[o.id] : o.def; });
     return cfg;
   }
@@ -458,7 +466,9 @@
   function renderPanel(root, g, full) {
     const cfg = loadCfg(g), s = stat(g.id);
     // options can be limited to some modes (e.g. the chess clock makes no sense against the AI)
-    const optsHere = (g.options || []).filter(o => !o.modes || o.modes.includes(cfg.mode));
+    // (the voice channel in Discord plays like a table or an online duel)
+    const optMode = cfg.mode === 'voice' ? (g.table ? 'table' : 'online') : cfg.mode;
+    const optsHere = (g.options || []).filter(o => !o.modes || o.modes.includes(optMode));
     const firstLabel = g.firstLabels || ['Du', 'KI', 'Zufall'];
     const chipRow = (id, label, items, val) => `<div class="crow"><span>${label}</span><div class="mini-seg" id="${id}">${items.map(([v, l]) => `<button data-v="${v}" class="${String(v) === String(val) ? 'on' : ''}">${l}</button>`).join('')}</div></div>`;
     const lvl = cfg.level, cloudOk = !!(V.cloud && V.cloud.available());
@@ -493,10 +503,21 @@
       return;
     }
     // modes as a segment with a sliding indicator; modes that do not fit stay visible but dimmed and say why when tapped
-    const modes = [{ v: 'ai', ic: IC.robot, l: 'KI', off: g.noAI ? 'Nur zu zweit' : '' }, { v: 'local', ic: IC.users, l: g.party ? 'Am Gerät' : 'Zu zweit' }];
-    if (g.online && cloudOk) modes.push({ v: 'online', ic: IC.user, l: 'Freund', off: guest() ? 'Mit Konto' : '' }, { v: 'open', ic: IC.globe, l: 'Online' });
-    else if (g.table && cloudOk) modes.push({ v: 'table', ic: IC.globe, l: 'Online', off: guest() ? 'Mit Konto' : '' });
-    else modes.push({ v: 'open', ic: IC.globe, l: 'Online', off: cloudOk ? 'Nicht online spielbar' : 'Online kommt gleich' });
+    const dc = inDiscord();
+    const modes = [{ v: 'ai', ic: IC.robot, l: 'KI', off: g.noAI ? (dc ? 'Nur gemeinsam spielbar' : 'Nur zu zweit') : '' }];
+    if (dc) modes.push({ v: 'voice', ic: IC.users, l: 'Sprachkanal', off: !(g.table || g.online) ? 'In Discord nur gegen die KI' : !cloudOk ? 'Online kommt gleich' : '' });
+    else {
+      modes.push({ v: 'local', ic: IC.users, l: g.party ? 'Am Gerät' : 'Zu zweit' });
+      if (g.online && cloudOk) modes.push({ v: 'online', ic: IC.user, l: 'Freund', off: guest() ? 'Mit Konto' : '' }, { v: 'open', ic: IC.globe, l: 'Online' });
+      else if (g.table && cloudOk) modes.push({ v: 'table', ic: IC.globe, l: 'Online', off: guest() ? 'Mit Konto' : '' });
+      else modes.push({ v: 'open', ic: IC.globe, l: 'Online', off: cloudOk ? 'Nicht online spielbar' : 'Online kommt gleich' });
+    }
+    // voice channel: a table (2-4 seats, the AI fills free ones) or a game link for one opponent
+    const voice = cfg.mode === 'voice', vTable = voice && g.table;
+    // game links for guests only work in the guest games (server: match_link)
+    const vNeedAcc = voice && !g.table && guest() && !GUEST_GAMES.includes(g.id);
+    // games only for two people at one device (Pong, Air Hockey, Reaktionsduell) have nothing to offer in Discord
+    const dcNone = dc && g.noAI && !(g.table || g.online);
     const mi = Math.max(0, modes.findIndex(m => m.v === cfg.mode));
     gp.querySelector('.gp-body').innerHTML = `${close}<button class="iconbtn fav${isFav(g) ? ' on' : ''}" id="fav" aria-pressed="${isFav(g)}" aria-label="Favorit" title="${isFav(g) ? 'Aus Favoriten entfernen' : 'Zu Favoriten (F)'}">${IC.star}</button>
       <div class="gp-mode" id="mode" style="--n:${modes.length};--i:${root._mi ?? mi}"><i class="seg-ind"></i>
@@ -505,13 +526,15 @@
       ${cfg.mode === 'ai' || cfg.mode === 'table' ? `<div class="gp-lvl">
         <div class="lv-top"><span>KI-Stärke</span><b class="l${lvl}">${V.LEVELS[lvl]}</b><em>Bilanz ${s.ai[lvl].w}:${s.ai[lvl].l}</em></div>
         <div class="lv-bar l${lvl}" id="level">${V.LEVELS.map((l, i) => `<button data-v="${i}" class="${i <= lvl ? 'fill' : ''} ${i === lvl ? 'on' : ''}" aria-label="${l}" title="${l}"></button>`).join('')}</div>
-        <p class="hint">${cfg.mode === 'table' ? 'So stark spielt die KI auf freien Plätzen.' : (g.levelInfo || LEVEL_INFO)[lvl]}</p></div>` : cfg.mode === 'online' || cfg.mode === 'open' ? '<div class="gp-online" id="ofr"></div>' :`<p class="hint local">${g.localHint || `Ihr spielt abwechselnd am selben Gerät${g.cat === 'Action' ? ', jeder auf seiner Hälfte' : ''}.`}</p>`}
+        <p class="hint">${cfg.mode === 'table' || vTable ? 'So stark spielt die KI auf freien Plätzen.' : (g.levelInfo || LEVEL_INFO)[lvl]}</p></div>` : cfg.mode === 'online' || cfg.mode === 'open' ? '<div class="gp-online" id="ofr"></div>' : voice ? '' : `<p class="hint local">${g.localHint || `Ihr spielt abwechselnd am selben Gerät${g.cat === 'Action' ? ', jeder auf seiner Hälfte' : ''}.`}</p>`}
       ${(cfg.mode === 'ai' && !g.noFirst) || optsHere.length ? `<div class="gp-more">
         ${cfg.mode === 'ai' && !g.noFirst ? chipRow('first', g.firstTitle || 'Wer fängt an?', [['me', firstLabel[0]], ['ai', firstLabel[1]], ['rand', firstLabel[2]]], cfg.first) : ''}
         ${optsHere.map(o => chipRow('o_' + o.id, o.label, o.choices, cfg.opts[o.id])).join('')}
       </div>` : ''}
       ${cfg.mode === 'table' ? '<div class="gp-online" id="ofr"></div>' : ''}
-      <div class="gp-go">${cfg.mode === 'online' || cfg.mode === 'open' || cfg.mode === 'table' ? '' : `<button class="btn primary big" id="go"><span>${IC.play}Spielen</span><kbd class="only-fine">Enter</kbd></button>`}
+      ${dcNone ? '<p class="hint dch">Dieses Spiel spielt ihr zu zweit am selben Gerät. In Discord hat jeder sein eigenes, darum geht es hier nicht.</p>' : dc && cfg.mode === 'ai' ? '<p class="hint dch">Nur du siehst dieses Spiel. Zum Mitspielen mit den anderen wähl oben „Sprachkanal“.</p>' : ''}
+      ${voice ? `<p class="hint dch">${vNeedAcc ? 'Für dieses Spiel braucht ihr beide ein kostenloses Versus-Konto. Als Gast gehen 4 Gewinnt, Tic Tac Toe, Schiffe versenken und Käsekästchen.' : g.table ? 'Du eröffnest einen Tisch. Alle in diesem Sprachkanal sehen ihn unten als Balken und spielen auf ihrem eigenen Gerät mit.' : 'Du lädst ein. Wer in diesem Sprachkanal zuerst auf „Mitspielen“ tippt, spielt auf seinem eigenen Gerät gegen dich.'}</p>` : ''}
+      <div class="gp-go">${cfg.mode === 'online' || cfg.mode === 'open' || cfg.mode === 'table' || dcNone ? '' : vNeedAcc ? `<button class="btn primary big" id="acc"><span>${IC.user}Konto erstellen</span></button>` : `<button class="btn primary big" id="go"><span>${voice ? IC.users + (g.table ? 'Tisch eröffnen' : 'Einladen') : IC.play + 'Spielen'}</span><kbd class="only-fine">Enter</kbd></button>`}
         <button class="btn ghost" id="tut"><span>${IC.book}Regeln${P.seen[g.id] ? '' : '<i class="dot"></i>'}</span></button></div>`;
     // the indicator glides from the old mode to the new one
     const seg = root.querySelector('#mode');
@@ -528,18 +551,20 @@
     on('level', x => cfg.level = +x);
     on('first', x => cfg.first = x);
     (g.options || []).forEach(o => on('o_' + o.id, x => cfg.opts[o.id] = isNaN(+x) ? x : +x));
-    const goBtn = root.querySelector('#go'); if (goBtn) goBtn.onclick = () => { saveCfg(g, cfg); play(g, cfg); };
+    const voiceGo = () => { saveCfg(g, cfg); if (!V.online) return; if (full) closeModal(); return g.table ? V.online.table(g, cfg.opts, cfg.level) : V.online.linkInvite(g, cfg.opts); };
+    const goBtn = root.querySelector('#go'); if (goBtn) goBtn.onclick = () => { if (voice) return voiceGo(); saveCfg(g, cfg); play(g, cfg); };
+    const accBtn = root.querySelector('#acc'); if (accBtn) accBtn.onclick = () => { V.sfx.ui(); closeModal(); home('profile'); };
     if (cfg.mode === 'online' && V.online) V.online.picker(root.querySelector('#ofr'), g, cfg.opts);
     if (cfg.mode === 'open' && V.online) V.online.openPanel(root.querySelector('#ofr'), g, cfg.opts);
     if (cfg.mode === 'table' && V.online) V.online.tablePanel(root.querySelector('#ofr'), g, cfg.opts, cfg.level);
     root.querySelector('#tut').onclick = tut;
     panelApi = {
       g,
-      go() { if (cfg.mode === 'online') return; if (cfg.mode === 'table') return V.online && V.online.table(g, cfg.opts, cfg.level); if (cfg.mode === 'open') return V.online && V.online.seek(g, cfg.opts); saveCfg(g, cfg); play(g, cfg); },
+      go() { if (cfg.mode === 'online' || vNeedAcc || dcNone) return; if (voice) return voiceGo(); if (cfg.mode === 'table') return V.online && V.online.table(g, cfg.opts, cfg.level); if (cfg.mode === 'open') return V.online && V.online.seek(g, cfg.opts); saveCfg(g, cfg); play(g, cfg); },
       tut,
-      level(i) { if (cfg.mode !== 'ai' && cfg.mode !== 'table') return; cfg.level = Math.max(0, Math.min(3, i)); saveCfg(g, cfg); V.sfx.tick(); rer(); },
+      level(i) { if (cfg.mode !== 'ai' && cfg.mode !== 'table' && !vTable) return; cfg.level = Math.max(0, Math.min(3, i)); saveCfg(g, cfg); V.sfx.tick(); rer(); },
       step(d) { this.level(cfg.level + d); },
-      mode() { if (g.noAI) return; cfg.mode = cfg.mode === 'ai' ? 'local' : 'ai'; saveCfg(g, cfg); V.sfx.tick(); rer(); },
+      mode() { if (g.noAI) return; cfg.mode = cfg.mode !== 'ai' ? 'ai' : !dc ? 'local' : g.table || g.online ? 'voice' : 'ai'; saveCfg(g, cfg); V.sfx.tick(); rer(); },
       fav() { toggleFav(g); rer(); }
     };
   }

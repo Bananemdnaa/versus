@@ -983,18 +983,22 @@
     const url = joinLink(mid);
     let done = false, t = null, ch = null;
     const stop = () => { done = true; clearTimeout(t); if (ch) ch.close(); };
-    const m = V.ui.openModal(`<div class="linkw"><h3>Spiel mit mir</h3><p class="fhint">${esc(g.name)} · schick den Link oder lass den Code scannen. Wer ihn öffnet, spielt sofort gegen dich, auch ohne Freundschaft und ohne Konto (bei den Gast-Spielen).</p>
+    // in Discord nobody needs the link: the others in the voice channel get the join bar (discordRoom)
+    const dc = inDiscord();
+    const m = V.ui.openModal(`<div class="linkw"><h3>Spiel mit mir</h3>${dc ? `<p class="fhint"><b>${esc(g.name)}</b> · alle in diesem Sprachkanal sehen deine Einladung unten als Balken. Wer zuerst auf „Mitspielen“ tippt, spielt auf seinem eigenen Gerät gegen dich.</p>` : `<p class="fhint">${esc(g.name)} · schick den Link oder lass den Code scannen. Wer ihn öffnet, spielt sofort gegen dich, auch ohne Freundschaft und ohne Konto (bei den Gast-Spielen).</p>
       <div class="fqr" id="lqr">${V.skel(1)}</div>
-      <div class="arow"><button class="btn primary" id="lsh"><span>${IC().share}Link teilen</span></button><button class="btn" id="lcp"><span>${IC().link}Kopieren</span></button></div>
-      <p class="lb-wait"><span class="spin"><i></i><i></i></span>Warte, bis jemand beitritt …</p><p class="fine">Du kannst den Link in Ruhe verschicken, er gilt 15 Minuten.</p>
+      <div class="arow"><button class="btn primary" id="lsh"><span>${IC().share}Link teilen</span></button><button class="btn" id="lcp"><span>${IC().link}Kopieren</span></button></div>`}
+      <p class="lb-wait"><span class="spin"><i></i><i></i></span>Warte, bis jemand beitritt …</p>${dc ? '' : '<p class="fine">Du kannst den Link in Ruhe verschicken, er gilt 15 Minuten.</p>'}
       <div class="actions"><button class="btn ghost" id="lx"><span>Abbrechen</span></button></div></div>`, 'linkm', () => { if (!done) { stop(); C().rpc('match_cancel', { mid }).catch(() => { }); } });
-    loadQR().then(() => { const q = m.querySelector('#lqr'); if (q) q.innerHTML = qrSvg(url); }, () => { const q = m.querySelector('#lqr'); if (q) q.innerHTML = `<p class="fhint">${esc(url)}</p>`; });
+    if (!dc) loadQR().then(() => { const q = m.querySelector('#lqr'); if (q) q.innerHTML = qrSvg(url); }, () => { const q = m.querySelector('#lqr'); if (q) q.innerHTML = `<p class="fhint">${esc(url)}</p>`; });
     m.querySelector('#lx').onclick = () => V.ui.closeModal();
-    m.querySelector('#lcp').onclick = () => copy(url);
-    m.querySelector('#lsh').onclick = async () => {
-      try { if (navigator.share) return await navigator.share({ title: 'Versus', text: `Spiel ${g.name} mit mir`, url }); } catch (e) { if (e && e.name === 'AbortError') return; }
-      copy(url);
-    };
+    if (!dc) {
+      m.querySelector('#lcp').onclick = () => copy(url);
+      m.querySelector('#lsh').onclick = async () => {
+        try { if (navigator.share) return await navigator.share({ title: 'Versus', text: `Spiel ${g.name} mit mir`, url }); } catch (e) { if (e && e.name === 'AbortError') return; }
+        copy(url);
+      };
+    }
     const poll = async () => {
       if (done) return;
       try {
