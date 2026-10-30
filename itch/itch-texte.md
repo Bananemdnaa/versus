@@ -30,7 +30,7 @@ Auf itch.io sind die meisten Leute englischsprachig, darum steht oben der englis
 
 **Without an account** you can play Connect 4, Battleship, Tic Tac Toe, Dots and Boxes, Reaction Duel and Pong right away. A **free account** (just a username, no e-mail) unlocks all 32 games, online matches, friends and the weekly ranking. For your account and online games, tap **"Play in its own tab"** at the top.
 
-**Community:** find people to play with, share ideas and report bugs on Discord: https://discord.gg/9fpDjbwrdR
+**Community:** find people to play with, share ideas and report bugs on Discord: https://discord.gg/2gaDufgV6Q
 
 ## Beschreibung (Deutsch)
 
@@ -51,13 +51,13 @@ Auf itch.io sind die meisten Leute englischsprachig, darum steht oben der englis
 
 **Ohne Konto** gehen sofort 4 Gewinnt, Schiffe versenken, Tic Tac Toe, Käsekästchen, Reaktionsduell und Pong. Ein **kostenloses Konto** (nur Benutzername, keine E-Mail) schaltet alle 32 Spiele, Online-Partien, Freunde und die Wochen-Rangliste frei. Für Konto und Online-Partien oben auf **„Im eigenen Tab spielen“** tippen.
 
-**Community:** Mitspieler finden, Ideen teilen und Bugs melden auf Discord: https://discord.gg/9fpDjbwrdR
+**Community:** Mitspieler finden, Ideen teilen und Bugs melden auf Discord: https://discord.gg/2gaDufgV6Q
 
 ## Weitere Felder
 
 - **Genre:** Board Game (oder Puzzle)
 - **Tags:** multiplayer, local-multiplayer, board-game, card-game, chess, two-player, browser, mobile, singleplayer, casual
-- **Links** (Edit game → Metadata, unter der Beschreibung oder als Community-Link): Discord `https://discord.gg/9fpDjbwrdR`
+- **Links** (Edit game → Metadata, unter der Beschreibung oder als Community-Link): Discord `https://discord.gg/2gaDufgV6Q`
 
 ## Bilder (alle auf Englisch)
 
