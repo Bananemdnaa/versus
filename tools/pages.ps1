@@ -61,7 +61,7 @@ $TX = @{
     allTitle = 'All games – play free online for 2 to 4 players | Versus'; allH = 'All 32 games'
     allMeta = '32 quick games for 2 to 4 players: Chess, Connect 4, Poker, Ludo, Battleship and more. Free, no ads, in your browser.'
     allLead = 'Quick games for two to four players: on one device, against the AI or online with friends. Free and without ads.'
-    other = 'Deutsch'; legal = 'Legal notice'; home = 'Open Versus'
+    other = 'Deutsch'; legal = 'Legal notice'; terms = 'Terms of service'; home = 'Open Versus'
   }
   de = @{
     dir = 'de/spiele'; locale = 'de_DE'; og = 'icons/og.png'
@@ -74,7 +74,7 @@ $TX = @{
     allTitle = 'Alle Spiele – kostenlos online für 2 bis 4 Spieler | Versus'; allH = 'Alle 32 Spiele'
     allMeta = '32 schnelle Spiele für 2 bis 4: Schach, 4 Gewinnt, Poker, Ludo, Schiffe versenken und mehr. Gratis, ohne Werbung, im Browser.'
     allLead = 'Schnelle Spiele für zwei bis vier: am selben Handy, gegen die KI oder online mit Freunden. Kostenlos und ohne Werbung.'
-    other = 'English'; legal = 'Impressum & Datenschutz'; home = 'Versus öffnen'
+    other = 'English'; legal = 'Impressum & Datenschutz'; terms = 'Nutzungsbedingungen'; home = 'Versus öffnen'
   }
 }
 function Esc($s) { [System.Net.WebUtility]::HtmlEncode([string]$s) }
@@ -153,7 +153,7 @@ function Top($l, $altPath) {
   return "<div class=`"wrap`"><header><a class=`"logo`" href=`"$($script:up)$($TX[$l].dir)/`"><i>Ver</i>/<b>sus</b></a><a class=`"lang`" href=`"$($script:up)$altPath`" hreflang=`"$o`">$($TX[$l].other)</a></header>"
 }
 function Foot($l) {
-  return "<footer><a href=`"$($script:up)?lang=$l`">$($TX[$l].home)</a><a href=`"$($script:up)$($TX[$l].dir)/`">$($TX[$l].allH)</a><a href=`"https://bananemdnsa.itch.io/versus`">itch.io</a><a href=`"$($script:up)rechtliches.html`">$($TX[$l].legal)</a></footer></div>"
+  return "<footer><a href=`"$($script:up)?lang=$l`">$($TX[$l].home)</a><a href=`"$($script:up)$($TX[$l].dir)/`">$($TX[$l].allH)</a><a href=`"https://bananemdnsa.itch.io/versus`">itch.io</a><a href=`"$($script:up)rechtliches.html?lang=$l`">$($TX[$l].legal)</a><a href=`"$($script:up)terms.html?lang=$l`">$($TX[$l].terms)</a></footer></div>"
 }
 function Grid($l, $skip) {
   $items = foreach ($g in $GAMES[$l]) { if ($g.id -ne $skip) { "<li><a href=`"$($script:up)$($TX[$l].dir)/$($slug[$l][$g.id])/`"><i aria-hidden=`"true`">$($g.icon)</i><span>$(Esc $g.name)<small>$(Esc $g.cat)</small></span></a></li>" } }

@@ -79,6 +79,7 @@
         <button class="opt" data-box="blocks">${IC().eye}<span><b>Blockierte Spieler</b><small>${blockSub()}</small></span></button>
         ${openBox === 'blocks' ? `<div class="abox" id="blist">${blockList()}</div>` : ''}
         <a class="opt" href="rechtliches.html">${IC().shield}<span><b>Datenschutz und Impressum</b><small>Welche Daten Versus speichert und wer dahintersteht</small></span></a>
+        <a class="opt" href="terms.html">${IC().book}<span><b>Nutzungsbedingungen</b><small>Fair spielen, Konto und was das Team tun kann</small></span></a>
         <button class="opt danger" data-box="delete">${IC().x}<span><b>Konto löschen</b><small>Löscht dein Konto und alle Daten auf dem Server</small></span></button>
         ${openBox === 'delete' ? `<form class="abox" id="f_delete"><input class="inp" id="d_pw" type="password" autocomplete="current-password" placeholder="Passwort zur Bestätigung"><button class="btn sm danger" type="submit"><span>Endgültig löschen</span></button><p class="aerr" id="d_err"></p></form>` : ''}
       </div>

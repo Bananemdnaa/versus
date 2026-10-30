@@ -45,6 +45,7 @@
   <b>Kontakt:</b> <a href="mailto:felix2b2100.0@gmail.com">felix2b2100.0@gmail.com</a></p>
   <p><b>Grundlegende Richtung:</b> private, nicht kommerzielle Website mit kostenlosen Spielen für zwei bis vier Personen. Keine Werbung, keine Bezahlfunktionen.</p>
 </div>
+<p class="muted">Die Regeln für das Spielen findest du in den <a href="terms.html?lang=de">Nutzungsbedingungen</a>.</p>
 <p class="muted">Benutzernamen und Meldungstexte stammen von Spielerinnen und Spielern. Unpassende Inhalte bitte über „Melden“ im Spielerprofil oder per E-Mail melden, sie werden dann entfernt.</p>
 
 <h1>Datenschutz&shy;erklärung</h1>
@@ -110,6 +111,7 @@
   <b>Contact:</b> <a href="mailto:felix2b2100.0@gmail.com">felix2b2100.0@gmail.com</a></p>
   <p><b>Purpose:</b> private, non-commercial website with free games for two to four people. No ads, no payments.</p>
 </div>
+<p class="muted">The rules for playing are in the <a href="terms.html?lang=en">terms of service</a>.</p>
 <p class="muted">Usernames and report texts come from players. Please report anything inappropriate with “Report” in a player's profile or by e-mail and it will be removed.</p>
 
 <h1>Privacy policy</h1>
@@ -168,10 +170,14 @@
 <a class="back" href="./">← Versus</a>
 </main>
 <script>
-  // language: the app's setting, otherwise the browser; the buttons switch without leaving the page
+  // language: ?lang= in the address, then the app's setting, then the browser; the buttons switch without leaving the page
   (function () {
     let l = 'de';
-    try { const s = JSON.parse(localStorage.getItem('versus.settings') || '{}'); l = s.lang || (/^de\b/i.test(navigator.language || '') ? 'de' : 'en'); } catch (e) { }
+    try {
+      const q = new URLSearchParams(location.search).get('lang');
+      const s = JSON.parse(localStorage.getItem('versus.settings') || '{}');
+      l = q === 'de' || q === 'en' ? q : s.lang || (/^de\b/i.test(navigator.language || '') ? 'de' : 'en');
+    } catch (e) { }
     const set = x => {
       document.documentElement.lang = x;
       document.querySelectorAll('[data-lang]').forEach(s => { s.hidden = s.dataset.lang !== x; });

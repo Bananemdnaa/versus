@@ -685,7 +685,7 @@
         <button class="opt danger" id="o_rst">${IC.x}<span><b>Bilanz löschen</b></span></button>
       </div></div>
       </div>
-      <p class="about">Versus ${V.VERSION || ''} · ohne Werbung. KI und Spiele zu zweit laufen auch offline.<span class="only-fine"> Taste <kbd>?</kbd> zeigt alle Kürzel.</span><br><a href="rechtliches.html">Impressum und Datenschutz</a></p>
+      <p class="about">Versus ${V.VERSION || ''} · ohne Werbung. KI und Spiele zu zweit laufen auch offline.<span class="only-fine"> Taste <kbd>?</kbd> zeigt alle Kürzel.</span><br><a href="rechtliches.html">Impressum und Datenschutz</a> · <a href="terms.html">Nutzungsbedingungen</a></p>
     </section>`;
   }
   function wireOpts(v) {
