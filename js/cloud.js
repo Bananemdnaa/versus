@@ -140,9 +140,23 @@
     try { info = check(await sb.rpc('my_info')); } catch (e) { }
     emit();
   }
+  // in the Discord activity a guest takes the Discord name instead of gast_12345: Discord hands over a code (asking
+  // once for permission), the Edge Function "discord" checks it with Discord and renames the guest (once per visit)
+  let dcTried = false;
+  async function discordName() {
+    if (dcTried || !V.discord || !V.discord.on || !user || !info || !info.guest || !/^gast_/.test(info.username || '')) return;
+    dcTried = true;
+    try {
+      if (!(await V.discord.ready)) return;
+      const code = await V.discord.authorize();
+      const { data, error } = await sb.functions.invoke('discord', { body: { code } });
+      if (!error && data && data.name) await loadInfo();
+    } catch (e) { console.warn('Discord name:', e); }
+  }
   async function afterLogin() {
     state.status = 'sync'; emit();
     await loadInfo();
+    discordName();
     try { await pull(); } catch (e) { state.status = 'error'; state.error = e.message; emit(); }
     startBeat();
   }

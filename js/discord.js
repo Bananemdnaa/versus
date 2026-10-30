@@ -17,6 +17,8 @@
     const sdk = new m.DiscordSDK(CLIENT_ID);
     await sdk.ready();
     V.discord.sdk = sdk;
+    // a one-time code for the Discord name (js/cloud.js swaps it on the server); Discord asks the player once
+    V.discord.authorize = async () => (await sdk.commands.authorize({ client_id: CLIENT_ID, response_type: 'code', state: '', prompt: 'none', scope: ['identify'] })).code;
     return sdk;
   }).catch(e => { console.warn('Discord SDK:', e); return null; });
 })();

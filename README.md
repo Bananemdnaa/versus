@@ -201,7 +201,8 @@ Versus läuft als Activity direkt im Discord-Sprachkanal (`js/discord.js`, SDK 2
 
 - **Gleicher Sprachkanal, gleicher Tisch:** Öffnet jemand in Discord einen Tisch oder Spiel-Link, sehen alle anderen mit Versus im selben Sprachkanal unten einen Balken „… wartet in diesem Sprachkanal · Mitspielen“. In Discord dürfen auch Gäste an Tische, die Tisch-Spiele sind für sie freigeschaltet.
 - **Developer Portal** (App „Versus“, ID `1565782186832039987`): Activities eingeschaltet, URL Mappings `/` → `bananemdnaa.github.io/versus` und `/supabase` → `ygnngmtvncmdunsdnwtk.supabase.co`.
-- **Server:** `supabase/migrations/20261118000000_discord_rooms.sql` im SQL-Editor ausführen.
+- **Discord-Namen:** Gäste in Discord heißen wie in Discord statt gast_12345 (vergeben → mit Zahl). Discord fragt einmal um Erlaubnis („identify“), die Edge Function `discord` prüft den Code bei Discord und benennt den Gast um.
+- **Server:** `supabase/migrations/20261118000000_discord_rooms.sql` und `supabase/migrations/20261119000000_discord_names.sql` im SQL-Editor ausführen. Edge Function anlegen: Dashboard → Edge Functions → neue Funktion `discord`, Inhalt aus `supabase/functions/discord/index.ts` („Enforce JWT verification“ bleibt an). Secret der Edge Functions: `DISCORD_CLIENT_SECRET` (Developer Portal → OAuth2 → Client Secret, gehört nie ins Repo). Im Developer Portal unter OAuth2 → Redirects einmal `https://127.0.0.1` eintragen.
 
 ## Rechtliches
 
