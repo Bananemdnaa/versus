@@ -295,7 +295,8 @@
     c4: 'vier gewinnt connect four', yacht: 'kniffel yahtzee würfel', ludo: 'mensch ärgere dich nicht', ladder: 'schlangen und leitern snakes ladders',
     ships: 'battleship', checkers: 'draughts', mill: 'nine mens morris', kalaha: 'mancala bohnen', reversi: 'othello', maumau: 'uno karten',
     poker: 'texas holdem karten chips', memory: 'paare karten', dots: 'dots and boxes', gomoku: 'gomoku', hangman: 'hangman wörter raten',
-    slf: 'wörter kategorien', schnapsen: 'sechsundsechzig 66 karten bummerl', guess: 'quiz schätzen wissen zahlen', tron: 'snake lightcycle', hockey: 'airhockey', reaction: 'reaktion schnell', go: 'baduk weiqi', uttt: 'tic tac toe'
+    slf: 'wörter kategorien', schnapsen: 'sechsundsechzig 66 karten bummerl', guess: 'quiz schätzen wissen zahlen',
+    hex: 'verbinden sechseck', ttt3: 'tic tac toe 3d würfel vier in einer reihe qubic', code: 'bulls and cows zahlen raten geheimcode', domino: 'dominosteine', tron: 'snake lightcycle', hockey: 'airhockey', reaction: 'reaktion schnell', go: 'baduk weiqi', uttt: 'tic tac toe'
   };
   const norm = s => String(s).toLowerCase().replace(/ä|ae/g, 'a').replace(/ö|oe/g, 'o').replace(/ü|ue/g, 'u').replace(/ß/g, 'ss').replace(/[^a-z0-9 ]+/g, ' ');
   // every word of the query has to appear somewhere; name hits come first

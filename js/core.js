@@ -5,7 +5,7 @@
   V.LEVELS = ['Leicht', 'Mittel', 'Schwer', 'Profi'];
   V.CATS = ['Klassiker', 'Brettspiele', 'Strategie', 'Action'];
   // games that came with the last update; only these get the "Neu" badge on their tile
-  V.NEW_GAMES = ['schnapsen', 'guess'];
+  V.NEW_GAMES = ['hex', 'ttt3', 'code', 'domino'];
   const LEVEL_INFO = [
     'Macht oft Fehler. Gut zum Lernen.',
     'Spielt solide, übersieht aber einiges.',

@@ -191,7 +191,7 @@
   // ---------- games: names by id ----------
   V.i18n.names({
     c4: 'Connect 4', ships: 'Battleship', ttt: 'Tic Tac Toe', gomoku: 'Five in a Row', uttt: 'Ultimate Tic Tac Toe', dots: 'Dots and Boxes',
-    hangman: 'Hangman', slf: 'City Country River', schnapsen: 'Schnapsen', guess: 'Estimation Quiz', ludo: 'Ludo', ladder: 'Snakes and Ladders', checkers: 'Checkers', mill: "Nine Men's Morris",
+    hangman: 'Hangman', slf: 'City Country River', schnapsen: 'Schnapsen', guess: 'Estimation Quiz', hex: 'Hex', ttt3: '3D Tic Tac Toe', code: 'Code Breaker', domino: 'Dominoes', ludo: 'Ludo', ladder: 'Snakes and Ladders', checkers: 'Checkers', mill: "Nine Men's Morris",
     yacht: 'Dice Block', maumau: 'Mau-Mau', memory: 'Memory', poker: 'Poker', chess: 'Chess', reversi: 'Reversi', kalaha: 'Kalah', go: 'Go',
     backgammon: 'Backgammon', reaction: 'Reaction Duel', pong: 'Pong', hockey: 'Air Hockey', tron: 'Light Racer', sumo: 'Sumo Arena'
   });
@@ -930,6 +930,81 @@
       [/^(.+) hat zugedreht und keine (\d+) geschafft$/, (m, n, x) => who(n) + ' closed and missed ' + x]
     ]);
   }
+
+  // ---------- Hex, 3D Tic Tac Toe, Zahlencode knacken, Domino ----------
+  A({
+    'Verbinde deine zwei Seiten.': 'Connect your two sides.',
+    'Ein Rautenbrett aus Sechsecken: Pink will oben mit unten verbinden, Gelb links mit rechts. Wer zuerst eine durchgehende Kette hat, gewinnt. Ein Unentschieden gibt es nie.': 'A rhombus of hexagons: Pink wants to connect top and bottom, Yellow left and right. First to build an unbroken chain wins. There is never a draw.',
+    'Setzt ziemlich wahllos.': 'Places almost at random.', 'Spielt ein paar hundert Partien im Kopf durch.': 'Plays a few hundred games in its head.',
+    'Rechnet tausende Partien durch.': 'Works through thousands of games.', 'Rechnet so viel es geht. Sehr stark auf kleinen Brettern.': 'Calculates as much as it can. Very strong on small boards.',
+    'Ketten': 'Chains', 'Kein Remis': 'No draw',
+    'Ihr setzt abwechselnd einen Stein auf ein freies Sechseck. {0} will eine Kette von der {1} Kante bauen, {2} von der {3}. Die farbigen Ränder zeigen, wohin.': 'You take turns placing a stone on a free hexagon. {0} wants to build a chain from the {1} edge, {2} from the {3}. The coloured edges show where to.',
+    'oberen zur unteren': 'top to the bottom', 'linken zur rechten': 'left to the right',
+    'Zwei Steine sind verbunden, wenn ihre Sechsecke sich an einer Kante berühren. Jedes Feld hat bis zu {0}. Die Kette darf beliebig kurvig sein.': 'Two stones are connected if their hexagons share an edge. Every cell has up to {0}. The chain may bend as much as it likes.',
+    'sechs Nachbarn': 'six neighbours',
+    'Ist das Brett voll, hat immer genau einer eine Verbindung. Wer den anderen blockiert, baut damit automatisch seine eigene Kette.': 'When the board is full, exactly one player always has a connection. Blocking the other automatically builds your own chain.',
+    'Die {0} ist am wertvollsten. Statt Steine direkt nebeneinander zu setzen, ist eine {1} stark: zwei Steine mit genau zwei gemeinsamen freien Nachbarn. Setzt der Gegner in eine Lücke, nimmst du die andere.': 'The {0} is the most valuable. Instead of placing stones right next to each other, a {1} is strong: two stones with exactly two shared free neighbours. If the opponent takes one gap, you take the other.',
+    'Mitte': 'centre', 'Brücke': 'bridge',
+    '{0}: verbinde oben und unten': '{0}: connect top and bottom', '{0}: verbinde links und rechts': '{0}: connect left and right', '# Steine in der Kette': '# stones in the chain',
+    'Vier in einer Reihe, durch vier Ebenen.': 'Four in a row, through four layers.',
+    'Tic Tac Toe im Würfel: vier Ebenen mit je # × # Feldern. Wer zuerst vier in einer Reihe hat, gewinnt, auch quer durch die Ebenen und diagonal durch den ganzen Würfel.': 'Tic Tac Toe in a cube: four layers of # × # cells. First to get four in a row wins, also across the layers and diagonally through the whole cube.',
+    'Übersieht oft Reihen durch die Ebenen.': 'Often misses lines through the layers.', 'Blockt Dreier, plant aber kaum.': 'Blocks threes but hardly plans.',
+    'Rechnet ein paar Züge voraus.': 'Thinks a few moves ahead.', 'Rechnet tief und baut doppelte Drohungen.': 'Calculates deep and builds double threats.',
+    'Reihen in einer Ebene': 'Lines in one layer', 'Reihen durch die Ebenen': 'Lines through the layers', 'Ebene #': 'Layer #',
+    'Gespielt wird in einem Würfel aus {0} mit je # × # Feldern. Ihr setzt abwechselnd einen Stein in ein freies Feld, egal in welcher Ebene. Wer zuerst {1} hat, gewinnt.': 'You play in a cube of {0} with # × # cells each. You take turns placing a stone in any free cell, in any layer. First to get {1} wins.',
+    'vier Ebenen': 'four layers', 'vier in einer Reihe': 'four in a row',
+    'Wie bei Tic Tac Toe zählen Reihen {0} innerhalb einer Ebene.': 'As in Tic Tac Toe, lines count {0} within a layer.', 'waagerecht, senkrecht und diagonal': 'horizontally, vertically and diagonally',
+    'Auch dasselbe Feld in allen vier Ebenen ist eine Reihe, ebenso {0}: ein Feld weiter pro Ebene, gerade oder schräg. Die vier langen Diagonalen gehen durch den ganzen Würfel, von Ecke zu Ecke.': 'The same cell in all four layers is a line too, and so are {0}: one cell further per layer, straight or diagonal. The four long diagonals run through the whole cube, corner to corner.',
+    'Treppen': 'staircases',
+    'Die {0} und die {1} der beiden inneren Ebenen liegen auf den meisten Reihen. Hat der Gegner drei in einer Reihe mit einem freien Feld, markiert Versus dieses Feld rot gestrichelt (abschaltbar mit den Hinweisen).': 'The {0} and the {1} of the two inner layers lie on the most lines. If the opponent has three in a row with one free cell, Versus marks that cell with a red dashed line (can be turned off with the hints).',
+    'vier Mittelfelder': 'four middle cells',
+    'Vier Ziffern, wer knackt zuerst?': 'Four digits, who cracks it first?',
+    'Jeder denkt sich einen Code aus vier verschiedenen Ziffern aus. Dann ratet ihr abwechselnd. Nach jedem Versuch erfährst du, wie viele Ziffern genau stimmen und wie viele nur an der falschen Stelle stehen. Wer zuerst knackt, gewinnt.': 'Everyone thinks of a code of four different digits. Then you take turns guessing. After each guess you learn how many digits are exactly right and how many are only in the wrong place. First to crack it wins.',
+    'Rät oft ins Blaue.': 'Often guesses wildly.', 'Nutzt meistens, was es schon weiß.': 'Mostly uses what it already knows.',
+    'Rät nur noch Codes, die passen können.': 'Only guesses codes that can still be right.', 'Wählt den Versuch, der am meisten verrät.': 'Picks the guess that reveals the most.',
+    'Ziffer eintippen': 'Type a digit', 'Rücktaste': 'Backspace', 'Löschen': 'Delete', 'Raten': 'Guess',
+    'Zuerst gibt jeder geheim seinen Code ein, das Handy wird dafür weitergegeben. Danach ratet ihr abwechselnd.': 'First everyone enters their code in secret, passing the phone on. Then you take turns guessing.',
+    'Die Antwort': 'The answer', 'Beispiel': 'Example', 'Fair bis zum Schluss': 'Fair to the end',
+    'Jeder wählt geheim einen {0}, zum Beispiel # # # #. Ihr ratet abwechselnd den Code des anderen. Wer ihn zuerst knackt, gewinnt.': "Everyone secretly picks a {0}, for example # # # #. You take turns guessing the other's code. First to crack it wins.",
+    'Code aus vier verschiedenen Ziffern': 'code of four different digits',
+    'Nach jedem Versuch gibt es zwei Zahlen: {0} (grün) heißt richtige Ziffer an der richtigen Stelle, {1} (gelb) heißt die Ziffer kommt vor, steht aber woanders. Welche Ziffern gemeint sind, verrät niemand.': 'After every guess there are two numbers: {0} (green) means right digit in the right place, {1} (yellow) means the digit is in the code but somewhere else. Nobody says which digits are meant.',
+    'Der Code ist {0}, du rätst {1}: Die # ist ein Treffer, # und # sind Fast, die # kommt nicht vor. Also {2}.': 'The code is {0}, you guess {1}: the # is a hit, # and # are close, the # is not in it. So {2}.',
+    '# Treffer, # Fast': '# hits, # close',
+    'Knackt der Erste den Code, bekommt der Zweite in derselben Runde noch seinen Versuch. Schafft er es auch, ist es {0}.': 'If the first player cracks the code, the second still gets their try in the same round. If they crack it too, it is a {0}.',
+    'unentschieden': 'draw',
+    'Dein Code': 'Your code', 'Codes': 'Codes', 'Deine Versuche': 'Your guesses', 'noch nichts': 'nothing yet', 'Code festlegen': 'Set code',
+    'Wähle deinen geheimen Code aus vier verschiedenen Ziffern.': 'Choose your secret code of four different digits.', '{0}: Wähle deinen geheimen Code aus vier verschiedenen Ziffern.': '{0}: choose your secret code of four different digits.',
+    'Warte auf {0} …': 'Waiting for {0} …', '{0} ist dran …': "{0}'s turn …", 'Jeder wählt seinen geheimen Code': 'Everyone picks their secret code',
+    '{0} hat seinen Code gewählt': '{0} has picked a code', 'Gib geheim deinen Code ein.': 'Enter your code in secret.',
+    '{0}: # # # # · # Treffer, # Fast': '{0}: # # # # · # hits, # close', '{0} hat geknackt! {1} hat noch einen Versuch': '{0} cracked it! {1} has one more try',
+    'Beide haben geknackt': 'Both cracked it', 'Geknackt nach # Versuchen': 'Cracked after # guesses', 'Nach # Versuchen niemand': 'Nobody after # guesses',
+    'Passende Zahl anlegen, zuerst leer.': 'Match the number, first to go out.',
+    'Leg deine Steine an die Enden der Schlange: Die Augenzahl muss passen. Wer nicht kann, zieht. Wer zuerst alle Steine los ist, bekommt die Augen der anderen. Für # bis #, am Gerät, gegen die KI oder online.': "Lay your tiles at the ends of the line: the number of pips must match. If you can't, you draw. First to get rid of all tiles scores the pips of the others. For # to #, on one device, against the AI or online.",
+    'Legt irgendeinen Stein, der passt.': 'Lays any tile that fits.', 'Wird zuerst die schweren Steine los.': 'Gets rid of the heavy tiles first.',
+    'Hält sich Zahlen offen, die es noch hat.': 'Keeps numbers open that it still holds.', 'Merkt sich, welche Zahlen dir fehlen, und sperrt dich aus.': 'Remembers which numbers you are missing and locks you out.',
+    'Stein wählen': 'Choose a tile', 'Links oder rechts anlegen': 'Lay left or right', 'Ziehen oder passen': 'Draw or pass',
+    'Ihr spielt reihum am selben Gerät. Vor jedem Zug gebt ihr das Handy weiter, damit niemand fremde Steine sieht.': "You take turns on the same device. Pass the phone before every move so nobody sees the others' tiles.",
+    'Anlegen': 'Laying tiles', 'Ziehen und Passen': 'Drawing and passing',
+    'Gespielt wird mit den {0} von #-# bis #-#. Zu zweit bekommt jeder # Steine, zu dritt oder viert #. Wer zuerst {1} ist, gewinnt die Runde.': 'You play with the {0} from #-# to #-#. With two players everyone gets # tiles, with three or four #. First to get {1} wins the round.',
+    '# Steinen': '# tiles', 'alle Steine los': 'rid of all tiles',
+    'Die Steine bilden eine Schlange mit {0}. Du legst einen Stein an, dessen eine Hälfte die {1} wie ein Ende hat. Tippe den Stein an; passt er an beide Enden, wählst du die Seite.': 'The tiles form a line with {0}. You lay a tile with one half showing the {1} as an end. Tap the tile; if it fits both ends, you choose the side.',
+    'zwei offenen Enden': 'two open ends', 'gleiche Augenzahl': 'same number',
+    'Kannst du nicht anlegen, {0} du einen Stein vom Stapel, bis einer passt. Ist der Stapel leer, musst du {1}.': "If you can't lay a tile, you {0} one from the boneyard until one fits. If the boneyard is empty, you must {1}.",
+    'ziehst': 'draw', 'passen': 'pass',
+    'Die erste Runde beginnt, wer den {0} hat (zum Beispiel #-#), danach der Sieger der letzten Runde. Wer leer ist, bekommt die {1}. Kann niemand mehr legen, gewinnt die kleinste Hand. Wer zuerst die Zielpunkte hat, gewinnt.': 'The first round starts with whoever has the {0} (for example #-#), after that the winner of the last round. Whoever goes out gets the {1}. If nobody can lay a tile, the smallest hand wins. First to reach the target points wins.',
+    'höchsten Pasch': 'highest double', 'Augen aller anderen Hände': 'pips of all other hands',
+    'Stapel: #': 'Boneyard: #', 'Noch kein Stein gelegt': 'No tile laid yet', '# Steine · # P.': '# tiles · # pts', 'keine Steine': 'no tiles',
+    'Stein ziehen (#)': 'Draw a tile (#)', '◀ Links anlegen': '◀ Lay left', 'Rechts anlegen ▶': 'Lay right ▶', '# Steine warten auf dich.': '# tiles are waiting for you.',
+    '{0}: du beginnst mit dem höchsten Stein #-#': '{0}: you start with the highest tile #-#', '{0}: nichts passt, zieh einen Stein': '{0}: nothing fits, draw a tile',
+    '{0}: nichts passt und der Stapel ist leer, du musst passen': '{0}: nothing fits and the boneyard is empty, you must pass',
+    '{0} legt #-#': '{0} lays #-#', '{0} zieht einen Stein': '{0} draws a tile', '{0} passt': '{0} passes', '#-# links': '#-# left', '#-# rechts': '#-# right',
+    'Niemand kann mehr legen, die kleinste Hand gewinnt': 'Nobody can lay a tile, the smallest hand wins', 'Alle Steine gelegt': 'All tiles laid', 'Gleichstand': 'Tie',
+    'Niemand kann mehr legen, die kleinsten Hände sind gleich': 'Nobody can lay a tile, the smallest hands are equal'
+  });
+  V.i18n.ctx('[data-g=domino]', { 'Passen': 'Pass', 'passt': 'passes', 'zieht': 'draws' });
+  V.i18n.ctx('[data-g=code]', { 'Treffer': 'Hits', 'Fast': 'Close' });
+  V.i18n.ctx('[data-g=ttt3]', { 'Ecken': 'corners' });
+  V.i18n.pat([[/^Ebene (\d), ([a-d]\d)$/, 'Layer $1, $2']]);
 
   // ---------- words that differ by game ----------
   A({ 'Remis': 'Draw', 'Ziehen': 'Moving' });

@@ -2,7 +2,7 @@
 (function () {
   'use strict';
   const C = () => V.cloud, IC = () => V.ui.IC;
-  const ONLINE = ['c4', 'ships', 'ttt', 'uttt', 'gomoku', 'chess', 'checkers', 'reversi', 'mill', 'kalaha', 'go', 'backgammon', 'dots'];
+  const ONLINE = ['c4', 'ships', 'ttt', 'uttt', 'gomoku', 'chess', 'checkers', 'reversi', 'mill', 'kalaha', 'go', 'backgammon', 'dots', 'hex', 'ttt3'];
   ONLINE.forEach(id => { if (V.byId[id]) V.byId[id].online = true; });
   const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const gname = id => (V.byId[id] ? V.byId[id].name : id || '');
@@ -535,7 +535,7 @@
 
   // ---------- game panel: pick a friend to invite ----------
   // games where a match can go over days (the turn always alternates, so the server knows who is to move)
-  const ASYNC = ['c4', 'ttt', 'uttt', 'gomoku', 'chess', 'checkers', 'mill', 'go', 'backgammon'];
+  const ASYNC = ['c4', 'ttt', 'uttt', 'gomoku', 'chess', 'checkers', 'mill', 'go', 'backgammon', 'hex', 'ttt3'];
   let pickAsync = V.store.get('async', false);
   async function picker(el, g, opts) {
     if (!el) return;
@@ -815,7 +815,7 @@
   // ---------- tables for 2-4 players (party games) ----------
   // Someone opens a table (seat 1, host), invites friends, shares the code or makes it visible for everybody.
   // The host starts; empty seats are played by the AI. Server: supabase/migrations/20261107000000_party_tables.sql
-  const TABLE = ['ludo', 'ladder', 'yacht', 'maumau', 'memory', 'poker', 'hangman', 'slf', 'schnapsen', 'guess'];
+  const TABLE = ['ludo', 'ladder', 'yacht', 'maumau', 'memory', 'poker', 'hangman', 'slf', 'schnapsen', 'guess', 'code', 'domino'];
   TABLE.forEach(id => { if (V.byId[id]) V.byId[id].table = true; });
   let lobbyT = null, lobbyId = null;
   const tableLink = c => location.origin + location.pathname + '?table=' + c;
