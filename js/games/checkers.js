@@ -116,7 +116,8 @@
       const b0 = Array(64).fill(0);
       for (let sq = 0; sq < 64; sq++) { const r = sq >> 3, c = sq & 7; if ((r + c) % 2) { if (r < 3) b0[sq] = 2; else if (r > 4) b0[sq] = 1; } }
       let s = { b: b0, turn: 1, quiet: 0 }, over = false, sel = -1, prefix = [], last = null;
-      const flip = ctx.mode === 'ai' && ctx.aiSide === 1;
+      // your own pieces at the bottom: against the AI and online when you play the second side
+      const flip = (ctx.mode === 'ai' && ctx.aiSide === 1) || ctx.mySide === 2;
       const board = V.el('div', 'ck wood'), cells = {};
       const order = [...Array(64).keys()]; if (flip) order.reverse();
       order.forEach(sq => { const d = V.el('div', 'sq ' + (((sq >> 3) + (sq & 7)) % 2 ? 'dk' : 'lt')); d.dataset.sq = sq; cells[sq] = d; board.appendChild(d); });

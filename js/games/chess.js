@@ -245,7 +245,8 @@
     start(ctx) {
       const P = initial();
       const sideOf = { 1: 'w', 2: 'b' }, numOf = { w: 1, b: 2 };
-      const flip = ctx.mode === 'ai' && ctx.aiSide === 1;
+      // your own pieces at the bottom: against the AI and online when you play the second side
+      const flip = (ctx.mode === 'ai' && ctx.aiSide === 1) || ctx.mySide === 2;
       const reps = new Map();
       const key = () => P.b.join(',') + P.turn + JSON.stringify(P.cs) + P.ep;
       const bump = () => { const k = key(); reps.set(k, (reps.get(k) || 0) + 1); return reps.get(k); };
