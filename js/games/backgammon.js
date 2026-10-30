@@ -144,7 +144,7 @@
     endDelay: 1400,
     icon: `<svg viewBox="0 0 48 48"><rect x="3" y="5" width="42" height="38" rx="4" fill="#5d3a1c"/><rect x="6" y="8" width="17" height="32" fill="#d4a56a"/><rect x="25" y="8" width="17" height="32" fill="#d4a56a"/>${[0, 1, 2].map(k => `<path d="M${6 + k * 5.7} 8l2.85 13 2.85-13z" fill="${k % 2 ? '#efe2c8' : '#8f2d4f'}"/><path d="M${25 + k * 5.7} 40l2.85-13 2.85 13z" fill="${k % 2 ? '#8f2d4f' : '#efe2c8'}"/>`).join('')}<circle cx="11" cy="36" r="3" fill="#ff4fd8"/><circle cx="11" cy="30" r="3" fill="#ff4fd8"/><circle cx="36" cy="12" r="3" fill="#ffd84f"/><circle cx="36" cy="18" r="3" fill="#ffd84f"/></svg>`,
     tutorial: [
-      { t: 'Das Ziel', d: 'Jeder hat <b>15 Steine</b>. Pink zieht gegen den Uhrzeigersinn nach unten rechts, Gelb andersherum nach oben rechts. Sind alle eigenen Steine im <b>Heimfeld</b> (die sechs Zungen in deiner Ecke), darfst du sie <b>abtragen</b>. Wer zuerst alle abgetragen hat, gewinnt.' },
+      { t: 'Das Ziel', d: 'Jeder hat <b>15 Steine</b>. Wer unten sitzt, zieht gegen den Uhrzeigersinn nach unten rechts, der andere andersherum nach oben rechts. Gegen die KI und online sitzt du immer unten. Sind alle eigenen Steine im <b>Heimfeld</b> (die sechs Zungen in deiner Ecke), darfst du sie <b>abtragen</b>. Wer zuerst alle abgetragen hat, gewinnt.' },
       { t: 'Ziehen', d: 'Du würfelst zwei Würfel und ziehst mit jeder Augenzahl einen Stein so weit, mit einem Stein auch zweimal. Bei einem <b>Pasch</b> ziehst du viermal. Tippe einen leuchtenden Stein an, dann das Ziel. Du musst so viele Würfel nutzen wie möglich.' },
       { t: 'Wohin', d: 'Du darfst auf freie Zungen, eigene Zungen oder auf eine Zunge mit <b>genau einem</b> gegnerischen Stein. Zwei oder mehr gegnerische Steine sind ein <b>Block</b>.' },
       { t: 'Schlagen', d: 'Landest du auf einem einzelnen gegnerischen Stein, wird er <b>geschlagen</b> und kommt auf die Bar in der Mitte. Wer Steine auf der Bar hat, muss diese zuerst wieder ins gegnerische Heimfeld <b>einwürfeln</b>.' },
@@ -162,6 +162,10 @@
       // geometry: 12 point columns plus the bar (x 6..7), trays on the right (x 13.2..14.6)
       const X = i => { const c = i <= 12 ? 12 - i : i - 13; return c + (c >= 6 ? 1 : 0) + 0.5; };
       const top = i => i >= 13;
+      // side 2 (against the AI or online) sees the board mirrored top to bottom: own home and tray at the bottom right,
+      // points numbered from its own side (its home is 1-6)
+      const flip = (ctx.mode === 'ai' && ctx.aiSide === 1) || ctx.mySide === 2;
+      const num = i => flip ? 25 - i : i;
       function svg() {
         const myTurn = !over && !ctx.isAI(turn) && left.length;
         const opts = myTurn ? okSteps(s, turn, left) : [];
@@ -169,11 +173,13 @@
         let h = `<svg viewBox="-0.3 -0.3 15.2 12.6"><defs><linearGradient id="bgwood" x1="0" x2="1" y1="0" y2="1"><stop offset="0" stop-color="#e2bb83"/><stop offset="1" stop-color="#c08a4e"/></linearGradient>
           <radialGradient id="bgp1" cx=".35" cy=".3"><stop offset="0" stop-color="#ffb3ee"/><stop offset=".6" stop-color="#ff4fd8"/><stop offset="1" stop-color="#b8329b"/></radialGradient>
           <radialGradient id="bgp2" cx=".35" cy=".3"><stop offset="0" stop-color="#fff3c0"/><stop offset=".6" stop-color="#ffd84f"/><stop offset="1" stop-color="#b9952a"/></radialGradient></defs>
-          <rect class="fld" x="0" y="0" width="13" height="12" rx=".2"/><rect class="barz" x="6" y="0" width="1" height="12"/><rect class="tray" x="13.3" y="0" width="1.5" height="12" rx=".2"/>`;
+          ${flip ? '<g transform="matrix(1 0 0 -1 0 12)">' : '<g>'}<rect class="fld" x="0" y="0" width="13" height="12" rx=".2"/><rect class="barz" x="6" y="0" width="1" height="12"/><rect class="tray" x="13.3" y="0" width="1.5" height="12" rx=".2"/>`;
+        let nums = '';
         for (let i = 1; i <= 24; i++) {
           const x = X(i), t = top(i);
           h += `<path class="tri ${(i % 2) ? 'a' : 'b'}" d="M${x - 0.5} ${t ? 0 : 12}L${x} ${t ? 5 : 7}L${x + 0.5} ${t ? 0 : 12}Z"/>`;
-          h += `<text class="num" x="${x}" y="${t ? 5.45 : 6.8}">${i}</text>`;
+          // numbers stay outside the mirrored group so they are never upside down
+          nums += `<text class="num" x="${x}" y="${t !== flip ? 5.45 : 6.8}">${num(i)}</text>`;
           const n = Math.abs(s.p[i]), side = s.p[i] > 0 ? 1 : 2, gap = n > 5 ? 4.1 / (n - 1) : 0.9;
           for (let k = 0; k < Math.min(n, 15); k++) { const y = t ? 0.48 + k * gap : 11.52 - k * gap; h += `<circle class="ck s${side}" cx="${x}" cy="${y}" r=".44"/>`; }
           if (srcs.has(i)) h += `<circle class="${sel === i ? 'sel' : 'src'}" cx="${x}" cy="${t ? 0.48 + (Math.min(n, 15) - 1) * (n > 5 ? 4.1 / (n - 1) : 0.9) : 11.52 - (Math.min(n, 15) - 1) * (n > 5 ? 4.1 / (n - 1) : 0.9)}" r=".5"/>`;
@@ -189,7 +195,7 @@
         // trays: borne off checkers as thin slabs, side 1 at the bottom, side 2 at the top
         [1, 2].forEach(side => { for (let k = 0; k < s.off[side]; k++) h += `<rect class="off s${side}" x="13.4" y="${side === 1 ? 11.75 - k * 0.32 : 0.05 + k * 0.32}" width="1.3" height=".26" rx=".06"/>`; });
         if (tgts.includes(OFF[turn])) h += `<circle class="tgt" cx="14.05" cy="${turn === 1 ? 6.8 : 5.2}" r=".3"/>`;
-        h += `<rect class="hit" data-i="off" x="13.3" y="0" width="1.5" height="12"/></svg>`;
+        h += `<rect class="hit" data-i="off" x="13.3" y="0" width="1.5" height="12"/></g>${nums}</svg>`;
         host.innerHTML = h;
         pips.innerHTML = `Pips: <b class="c1">${pip(s, 1)}</b> · <b class="c2">${pip(s, 2)}</b>`;
         undo.disabled = over || !done.length || ctx.isAI(turn);
@@ -237,7 +243,7 @@
             }
             return okSteps(t, turn, l).length ? null : { m: raw.m };
           },
-          say: m => m.m.length ? m.m.map(([a, b]) => `${a === BAR[turn] ? 'Bar' : a}/${b === OFF[turn] ? 'ab' : b}`).join(' ') : 'kann nicht'
+          say: m => m.m.length ? m.m.map(([a, b]) => `${a === BAR[turn] ? 'Bar' : num(a)}/${b === OFF[turn] ? 'ab' : num(b)}`).join(' ') : 'kann nicht'
         });
       }
       // play a whole turn step by step (AI and remote players)

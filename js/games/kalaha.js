@@ -87,13 +87,17 @@
     start(ctx) {
       const per = [3, 4, 6].includes(+ctx.opts.seeds) ? +ctx.opts.seeds : 4;
       let s = { b: [per, per, per, per, per, per, 0, per, per, per, per, per, per, 0], turn: 1, done: false }, busy = false, over = false;
-      const lab = V.el('div', 'klh-lab', `<span>${ctx.name(2)}</span><span>${ctx.name(1)}</span>`);
+      // side 2 (against the AI or online) sees the board turned around: own pits at the bottom, own store on the right
+      const flip = (ctx.mode === 'ai' && ctx.aiSide === 1) || ctx.mySide === 2;
+      const lab = V.el('div', 'klh-lab', `<span>${ctx.name(flip ? 1 : 2)}</span><span>${ctx.name(flip ? 2 : 1)}</span>`);
       const board = V.el('div', 'klh'), cells = [];
-      // grid positions: top row = pits 12..7 from left to right, bottom row = 0..5
+      // grid positions: top row = pits 12..7 from left to right, bottom row = 0..5 (turned: top 5..0, bottom 7..12)
       for (let i = 0; i < 14; i++) {
         const store = i === 6 || i === 13;
         const el = V.el('div', store ? 'store ' + (i === 6 ? 's1' : 's2') : 'pit p' + (i < 6 ? 1 : 2));
-        if (!store) { el.style.gridColumn = i < 6 ? i + 2 : 14 - i; el.style.gridRow = i < 6 ? 2 : 1; }
+        const j = flip ? (i + 7) % 14 : i;
+        if (store) el.style.gridColumn = j === 6 ? 8 : 1;
+        else { el.style.gridColumn = j < 6 ? j + 2 : 14 - j; el.style.gridRow = j < 6 ? 2 : 1; }
         el.innerHTML = '<div class="seeds"></div><b class="n"></b>'; el.dataset.i = i;
         cells[i] = el; board.appendChild(el);
       }
@@ -117,7 +121,8 @@
       ctx.nav(() => human() ? pitsOf(s.turn).filter(p => s.b[p]).map(p => cells[p]) : [], { pad: 2, round: true });
       ctx.keys(e => {
         if (!human() || !/^[1-6]$/.test(e.key)) return false;
-        const k = +e.key - 1, i = s.turn === 1 ? k : 12 - k;
+        // keys 1-6 count the pits from left to right as they are shown
+        const k = +e.key - 1, i = (s.turn === 1) !== flip ? (s.turn === 1 ? k : 7 + k) : (s.turn === 1 ? 5 - k : 12 - k);
         if (s.b[i]) play(i);
         return true;
       });
