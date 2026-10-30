@@ -1106,7 +1106,8 @@
     }, () => { });
   }
   function registerSW() {
-    if (!('serviceWorker' in navigator) || !/^https?:$/.test(location.protocol)) return;
+    // (not inside the Discord activity: the frame there is Discord's, and offline play makes no sense in a voice channel)
+    if (!('serviceWorker' in navigator) || !/^https?:$/.test(location.protocol) || (V.discord && V.discord.on)) return;
     navigator.serviceWorker.register('sw.js').then(reg => {
       swReg = reg;
       if (reg.waiting && navigator.serviceWorker.controller) { swWaiting = reg.waiting; updateBar(); }

@@ -5,7 +5,8 @@
 
   // Project URL and publishable key from Supabase (Settings → API). Both are public by design;
   // the database protects itself with row level security and server-side checks.
-  const CFG = { url: 'https://ygnngmtvncmdunsdnwtk.supabase.co', key: 'sb_publishable_DWz8MXxA0PM-rQOqnVMJGQ_FqadTjHg' };
+  // (inside the Discord activity the project is reached through Discord's proxy, see js/discord.js)
+  const CFG = { url: V.discord && V.discord.proxy ? location.origin + '/.proxy/supabase' : 'https://ygnngmtvncmdunsdnwtk.supabase.co', key: 'sb_publishable_DWz8MXxA0PM-rQOqnVMJGQ_FqadTjHg' };
   // Cloudflare Turnstile site key (public). Empty = no captcha. Set it together with Supabase → Attack Protection → Captcha,
   // because once the captcha is on there, every sign-up, login and guest login needs a token.
   const TURNSTILE = '';
