@@ -1,4 +1,4 @@
-﻿# Registers the Discord slash commands /versus and /rules (/regeln in German Discord) for the Versus app.
+﻿# Registers the Discord slash commands /versus and /rules for the Versus app.
 # They are answered by supabase/functions/discord-interactions. Run again after changing a command here.
 # Usage: powershell -ExecutionPolicy Bypass -File tools/discord-commands.ps1
 # The Client Secret (Developer Portal → OAuth2) is asked for here and never stored.
@@ -14,11 +14,12 @@ $h = @{ Authorization = "Bearer $($tok.access_token)" }
 
 # integration_types 0 = server install, 1 = user install; contexts 0 = server, 1 = DM with the app, 2 = other DMs and group calls
 $cmds = @(
+  # English names and descriptions everywhere (the user wants one set of commands); the /rules answer still follows the player's language
   [ordered]@{ name = 'versus'; type = 1; integration_types = @(0, 1); contexts = @(0, 1, 2)
-    description = 'Start Versus: quick games for your voice channel'; description_localizations = @{ de = 'Versus starten: schnelle Spiele für deinen Sprachkanal' } },
-  [ordered]@{ name = 'rules'; name_localizations = @{ de = 'regeln' }; type = 1; integration_types = @(0, 1); contexts = @(0, 1, 2)
-    description = "Show a game's short rules"; description_localizations = @{ de = 'Kurzregeln eines Spiels zeigen' }
-    options = @([ordered]@{ type = 3; name = 'game'; name_localizations = @{ de = 'spiel' }; description = 'Which game'; description_localizations = @{ de = 'Welches Spiel' }; required = $true; autocomplete = $true }) }
+    description = 'Start Versus: quick games for your voice channel' },
+  [ordered]@{ name = 'rules'; type = 1; integration_types = @(0, 1); contexts = @(0, 1, 2)
+    description = "Show a game's short rules"
+    options = @([ordered]@{ type = 3; name = 'game'; description = 'Which game'; required = $true; autocomplete = $true }) }
 )
 # one by one (not all at once): Discord keeps the activity's own start command untouched that way
 foreach ($c in $cmds) {
