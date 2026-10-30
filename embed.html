@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="robots" content="noindex">
+<title>Versus</title>
+<!-- Playable Versus to put on other websites (same size as the itch.io game embed, 960 × 740):
+     <iframe src="https://bananemdnaa.github.io/versus/embed.html" width="960" height="740" frameborder="0" allow="fullscreen; clipboard-write; web-share; autoplay" allowfullscreen></iframe>
+     Language: German browsers get German, everybody else English; ?lang=de or ?lang=en fixes it.
+     Accounts and online games work best in the own tab (link at the top), the AI and one-device games work right here. -->
+<style>
+  @font-face { font-family: SairaC; src: url(fonts/saira-condensed-800.woff2) format('woff2'); font-weight: 800; }
+  html, body { margin: 0; height: 100%; overflow: hidden; background: #08090f; color: #f3f4ff; font: 600 13px/1.2 system-ui, sans-serif; }
+  .bar { position: fixed; left: 0; right: 0; top: 0; height: 40px; box-sizing: border-box; display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 0 12px; background: #11132a; border-bottom: 1px solid #262a52; }
+  .bar b { font: 800 italic 18px/1 SairaC, system-ui, sans-serif; letter-spacing: .04em; text-transform: uppercase; }
+  .bar b i { color: #ff4fd8; } .bar b em { color: #ffd84f; font-style: italic; }
+  .bar span { display: flex; gap: 8px; }
+  .bar a { color: #08090f; background: #62f0ff; padding: 6px 10px; border-radius: 8px; text-decoration: none; font-weight: 800; white-space: nowrap; }
+  .bar a.ghost { color: #f3f4ff; background: none; border: 1px solid #3a3f6b; padding: 5px 9px; }
+  .bar a.ghost:hover { border-color: #62f0ff; }
+  @media (max-width: 420px) { .bar a.ghost { display: none; } }
+  iframe { position: fixed; left: 0; right: 0; top: 40px; bottom: 0; width: 100%; height: calc(100% - 40px); border: 0; display: block; }
+</style>
+</head>
+<body>
+<div class="bar">
+  <b><i>Ver</i>/<em>sus</em></b>
+  <span><a class="ghost" href="https://bananemdnsa.itch.io/versus" target="_blank" rel="noopener">itch.io</a><a id="open" href="./?src=embed" target="_blank" rel="noopener">Play in its own tab ↗</a></span>
+</div>
+<iframe id="game" title="Versus" allow="fullscreen; clipboard-write; web-share; autoplay"></iframe>
+<script>
+  // German browsers get German, everybody else English; ?lang= fixes the language (also for the game inside)
+  const q = new URLSearchParams(location.search).get('lang');
+  const de = q ? q === 'de' : /^de\b/i.test(navigator.language || '');
+  const lang = q === 'de' || q === 'en' ? '&lang=' + q : '';
+  if (de) { document.documentElement.lang = 'de'; document.getElementById('open').textContent = 'Im eigenen Tab spielen ↗'; }
+  document.getElementById('open').href += lang;
+  document.getElementById('game').src = './?src=embed' + lang;
+</script>
+</body>
+</html>

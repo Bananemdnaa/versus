@@ -9,7 +9,9 @@
   'use strict';
   const st = V.settings;
   const auto = /^de\b/i.test(navigator.language || '') ? 'de' : 'en';
-  V.lang = st.lang === 'de' || st.lang === 'en' ? st.lang : auto;
+  // ?lang=de or ?lang=en in the address (embeds, links) wins over the setting for this visit, without saving it
+  let ask = null; try { ask = new URLSearchParams(location.search).get('lang'); } catch (e) { }
+  V.lang = ask === 'de' || ask === 'en' ? ask : st.lang === 'de' || st.lang === 'en' ? st.lang : auto;
   V.locale = () => (V.lang === 'en' ? 'en-GB' : 'de-DE');
   document.documentElement.lang = V.lang;
 

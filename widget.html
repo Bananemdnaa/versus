@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Versus</title>
+<!-- Small card to put Versus on other websites (same size as the itch.io widget, 552 × 167):
+     <iframe src="https://bananemdnaa.github.io/versus/widget.html" width="552" height="167" frameborder="0"></iframe>
+     Language: German browsers get German, everybody else English; ?lang=de or ?lang=en fixes it. -->
+<style>
+  @font-face { font-family: SairaC; src: url(fonts/saira-condensed-800.woff2) format('woff2'); font-weight: 800; }
+  @font-face { font-family: Saira; src: url(fonts/saira.woff2) format('woff2'); font-weight: 100 900; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; background: #08090f; color: #f3f4ff; font: 500 14px/1.35 Saira, system-ui, sans-serif; overflow: hidden; }
+  .card { position: relative; height: 100%; display: flex; gap: 16px; align-items: center; padding: 14px 16px; border: 1px solid #262a52; border-radius: 14px;
+    background: radial-gradient(120% 140% at 0% 0%, rgba(255,79,216,.28), transparent 55%), radial-gradient(120% 140% at 100% 100%, rgba(255,216,79,.18), transparent 55%), #0e1022; }
+  .icon { flex: none; width: 128px; height: 128px; border-radius: 22px; box-shadow: 0 8px 24px rgba(0,0,0,.5), 0 0 0 1px rgba(255,255,255,.08); }
+  .txt { min-width: 0; display: flex; flex-direction: column; gap: 6px; }
+  h1 { margin: 0; font: 800 italic 34px/1 SairaC, system-ui, sans-serif; letter-spacing: .02em; text-transform: uppercase; }
+  h1 i { color: #ff4fd8; font-style: italic; } h1 b { color: #ffd84f; }
+  p { margin: 0; color: #c9cbe8; font-size: 14px; }
+  .chips { display: flex; gap: 6px; flex-wrap: wrap; }
+  .chips span { padding: 3px 8px; border-radius: 999px; background: rgba(255,255,255,.07); border: 1px solid rgba(255,255,255,.1); font: 800 italic 11px/1.2 SairaC, system-ui, sans-serif; letter-spacing: .06em; text-transform: uppercase; color: #9ca2cc; }
+  .btns { display: flex; gap: 8px; margin-top: 2px; }
+  a.btn { display: inline-flex; align-items: center; gap: 6px; padding: 8px 14px; border-radius: 9px; text-decoration: none; font: 800 italic 15px/1 SairaC, system-ui, sans-serif; letter-spacing: .05em; text-transform: uppercase; }
+  a.play { background: #ff4fd8; color: #08090f; box-shadow: 3px 3px 0 #ffd84f; }
+  a.play:hover { transform: translate(-1px,-1px); box-shadow: 4px 4px 0 #ffd84f; }
+  a.itch { color: #f3f4ff; border: 1px solid #3a3f6b; }
+  a.itch:hover { border-color: #62f0ff; }
+  @media (max-width: 460px) { .icon { width: 84px; height: 84px; border-radius: 16px; } h1 { font-size: 26px; } p { font-size: 12.5px; } .chips { display: none; } }
+</style>
+</head>
+<body>
+<div class="card">
+  <img class="icon" src="icons/icon-192.png" alt="">
+  <div class="txt">
+    <h1><i>Ver</i>/<b>sus</b></h1>
+    <p id="tag">32 quick games for 2 to 4 players: on one device, against the AI or online with friends.</p>
+    <div class="chips"><span id="c1">32 games</span><span id="c2">2–4 players</span><span id="c3">Free · no ads</span></div>
+    <div class="btns">
+      <a class="btn play" id="play" href="https://bananemdnaa.github.io/versus/" target="_blank" rel="noopener">▶ <span>Play now</span></a>
+      <a class="btn itch" href="https://bananemdnsa.itch.io/versus" target="_blank" rel="noopener">itch.io</a>
+    </div>
+  </div>
+</div>
+<script>
+  // German browsers get German, everybody else English; ?lang= fixes the language (also for the game it opens)
+  const q = new URLSearchParams(location.search).get('lang');
+  const de = q ? q === 'de' : /^de\b/i.test(navigator.language || '');
+  if (de) {
+    document.documentElement.lang = 'de';
+    document.getElementById('tag').textContent = '32 schnelle Spiele für 2 bis 4: am selben Handy, gegen die KI oder online mit Freunden.';
+    document.getElementById('c1').textContent = '32 Spiele';
+    document.getElementById('c2').textContent = '2–4 Spieler';
+    document.getElementById('c3').textContent = 'Gratis · ohne Werbung';
+    document.querySelector('#play span').textContent = 'Jetzt spielen';
+  }
+  if (q === 'de' || q === 'en') document.getElementById('play').href += '?lang=' + q;
+</script>
+</body>
+</html>

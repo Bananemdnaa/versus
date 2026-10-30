@@ -55,3 +55,17 @@ Auf itch.io sind die meisten Leute englischsprachig, darum steht oben der englis
 - **Tags:** multiplayer, local-multiplayer, board-game, card-game, chess, two-player, browser, mobile, singleplayer, casual
 - **Screenshots:** `itch/screenshots/` (1280 × 720: 1-4-gewinnt, 2-schach, 3-schiffe-versenken, 4-poker, 5-ludo). Weitere in `itch/screenshots/weitere/` (Startseite, 3D Tic Tac Toe, Hex, Schnapsen, Domino).
 - **Cover image:** `icons/og.png` (1200 × 630). itch.io empfiehlt 630 × 500, schneidet aber selbst zu.
+
+## Auf anderen Seiten einbinden
+
+Beide laufen direkt von GitHub Pages, jedes Update ist sofort drin. Sprache: deutsche Browser bekommen Deutsch, alle anderen Englisch. Mit `?lang=de` oder `?lang=en` hinter `.html` legst du sie fest.
+
+**Widget (Karte, 552 × 167):**
+```html
+<iframe src="https://bananemdnaa.github.io/versus/widget.html" width="552" height="167" frameborder="0"></iframe>
+```
+
+**Spiel (960 × 740):**
+```html
+<iframe src="https://bananemdnaa.github.io/versus/embed.html" width="960" height="740" frameborder="0" allow="fullscreen; clipboard-write; web-share; autoplay" allowfullscreen></iframe>
+```
