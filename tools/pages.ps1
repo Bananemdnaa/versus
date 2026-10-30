@@ -153,7 +153,7 @@ function Top($l, $altPath) {
   return "<div class=`"wrap`"><header><a class=`"logo`" href=`"$($script:up)$($TX[$l].dir)/`"><i>Ver</i>/<b>sus</b></a><a class=`"lang`" href=`"$($script:up)$altPath`" hreflang=`"$o`">$($TX[$l].other)</a></header>"
 }
 function Foot($l) {
-  return "<footer><a href=`"$($script:up)?lang=$l`">$($TX[$l].home)</a><a href=`"$($script:up)$($TX[$l].dir)/`">$($TX[$l].allH)</a><a href=`"https://bananemdnsa.itch.io/versus`">itch.io</a><a href=`"$($script:up)rechtliches.html?lang=$l`">$($TX[$l].legal)</a><a href=`"$($script:up)terms.html?lang=$l`">$($TX[$l].terms)</a></footer></div>"
+  return "<footer><a href=`"$($script:up)?lang=$l`">$($TX[$l].home)</a><a href=`"$($script:up)$($TX[$l].dir)/`">$($TX[$l].allH)</a><a href=`"https://bananemdnsa.itch.io/versus`">itch.io</a><a href=`"https://discord.gg/9fpDjbwrdR`">Discord</a><a href=`"$($script:up)rechtliches.html?lang=$l`">$($TX[$l].legal)</a><a href=`"$($script:up)terms.html?lang=$l`">$($TX[$l].terms)</a></footer></div>"
 }
 function Grid($l, $skip) {
   $items = foreach ($g in $GAMES[$l]) { if ($g.id -ne $skip) { "<li><a href=`"$($script:up)$($TX[$l].dir)/$($slug[$l][$g.id])/`"><i aria-hidden=`"true`">$($g.icon)</i><span>$(Esc $g.name)<small>$(Esc $g.cat)</small></span></a></li>" } }
