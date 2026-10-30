@@ -1722,3 +1722,6 @@ textarea.inp{height:auto}
 .upbar.note b{font-weight:600;line-height:1.35;white-space:pre-line}
 @media (max-width:760px){.upbar.note{bottom:calc(92px + env(safe-area-inset-bottom,0px))}}
 .abig.bad{background:var(--bad)}
+
+.dcom{margin-top:18px}
+.dcom .opt>svg{color:var(--cyan)}

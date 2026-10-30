@@ -78,6 +78,7 @@
         <button class="opt" id="a_inv">${IC().share}<span><b>Freunde einladen</b><small id="a_invs">Wer über deinen Link ein Konto erstellt, ist sofort dein Freund</small></span></button>
         <button class="opt" data-box="blocks">${IC().eye}<span><b>Blockierte Spieler</b><small>${blockSub()}</small></span></button>
         ${openBox === 'blocks' ? `<div class="abox" id="blist">${blockList()}</div>` : ''}
+        <a class="opt" href="${V.DISCORD}" target="_blank" rel="noopener">${IC().chat}<span><b>Community auf Discord</b><small>Mitspieler finden, Ideen teilen und Bugs melden</small></span></a>
         <a class="opt" href="rechtliches.html">${IC().shield}<span><b>Datenschutz und Impressum</b><small>Welche Daten Versus speichert und wer dahintersteht</small></span></a>
         <a class="opt" href="terms.html">${IC().book}<span><b>Nutzungsbedingungen</b><small>Fair spielen, Konto und was das Team tun kann</small></span></a>
         <button class="opt danger" data-box="delete">${IC().x}<span><b>Konto löschen</b><small>Löscht dein Konto und alle Daten auf dem Server</small></span></button>

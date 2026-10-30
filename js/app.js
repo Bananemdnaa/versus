@@ -188,6 +188,7 @@
           <div class="chips" role="tablist">${['Alle', ...V.CATS].map(c => `<button role="tab" data-f="${c}" class="${homeFilter === c && !homeQuery ? 'on' : ''}">${c}<small>${count(c)}</small></button>`).join('')}</div>
         </div>
         <div id="glist">${gameList()}</div>
+        ${inDiscord() ? '' : `<div class="optlist small dcom"><a class="opt" href="${V.DISCORD}" target="_blank" rel="noopener">${IC.chat}<span><b>Community auf Discord</b><small>Mitspieler finden, Ideen teilen und Bugs melden</small></span></a></div>`}
       </section>
       <aside class="sel-panel" id="panel"></aside>
     </div>`;
@@ -686,7 +687,7 @@
         <button class="opt danger" id="o_rst">${IC.x}<span><b>Bilanz löschen</b></span></button>
       </div></div>
       </div>
-      <p class="about">Versus ${V.VERSION || ''} · ohne Werbung. KI und Spiele zu zweit laufen auch offline.<span class="only-fine"> Taste <kbd>?</kbd> zeigt alle Kürzel.</span><br><a href="rechtliches.html">Impressum und Datenschutz</a> · <a href="terms.html">Nutzungsbedingungen</a> · <a href="https://discord.gg/2gaDufgV6Q" target="_blank" rel="noopener">Discord</a></p>
+      <p class="about">Versus ${V.VERSION || ''} · ohne Werbung. KI und Spiele zu zweit laufen auch offline.<span class="only-fine"> Taste <kbd>?</kbd> zeigt alle Kürzel.</span><br><a href="rechtliches.html">Impressum und Datenschutz</a> · <a href="terms.html">Nutzungsbedingungen</a> · <a href="${V.DISCORD}" target="_blank" rel="noopener">Discord</a></p>
     </section>`;
   }
   function wireOpts(v) {
