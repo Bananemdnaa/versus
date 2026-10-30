@@ -53,5 +53,5 @@ Auf itch.io sind die meisten Leute englischsprachig, darum steht oben der englis
 
 - **Genre:** Board Game (oder Puzzle)
 - **Tags:** multiplayer, local-multiplayer, board-game, card-game, chess, two-player, browser, mobile, singleplayer, casual
-- **Screenshots:** `itch/screenshots/` (1-spiele, 2-3d-tictactoe, 3-hex, 4-schnapsen, 5-domino)
+- **Screenshots:** `itch/screenshots/` (1280 × 720: 1-4-gewinnt, 2-schach, 3-schiffe-versenken, 4-poker, 5-ludo). Weitere in `itch/screenshots/weitere/` (Startseite, 3D Tic Tac Toe, Hex, Schnapsen, Domino).
 - **Cover image:** `icons/og.png` (1200 × 630). itch.io empfiehlt 630 × 500, schneidet aber selbst zu.
