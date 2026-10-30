@@ -78,6 +78,7 @@ $TX = @{
   }
 }
 function Esc($s) { [System.Net.WebUtility]::HtmlEncode([string]$s) }
+# js/play.js (pageUrl, for shared results) builds the same names, change both together
 function Slug($s) {
   $s = $s.ToLower().Replace('ä', 'ae').Replace('ö', 'oe').Replace('ü', 'ue').Replace('ß', 'ss')
   return (($s -replace "['’]", '') -replace '[^a-z0-9]+', '-').Trim('-')

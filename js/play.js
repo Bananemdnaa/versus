@@ -308,7 +308,7 @@
             ${series.d ? `<p class="small">${series.d}× unentschieden</p>` : ''}
             ${online ? `<div class="kemo" id="kemo"></div><div class="kquick">${['gg', 'clap', 'haha', 'sweat'].map(e => `<button data-emo="${e}">${EMO[e]}</button>`).join('')}</div>` : ''}
             ${online && V.online.friendOf(M.opp) === false && !(V.cloud.user() && V.cloud.user().anon) ? `<button class="btn ghost sm efr" id="efr"><span>${IC.plus}${esc(M.opp)} als Freund hinzufügen</span></button>` : ''}
-            ${watch ? '' : `<button class="btn ghost sm eshare" id="es"><span>${IC.share}Ergebnis teilen</span></button>`}
+            ${watch ? '' : `<button class="btn ${meWon && !off ? '' : 'ghost '}sm eshare" id="es"><span>${IC.share}${meWon && !off ? 'Freund herausfordern' : 'Ergebnis teilen'}</span></button>`}
             ${online && V.online.report ? `<button class="link erep" id="erep">${esc(M.opp)} melden</button>` : ''}
             <div class="actions">${watch ? '' : `<button class="btn primary" id="er"><span>${IC.redo}${online ? 'Revanche anfragen' : table ? 'Neuer Tisch' : 'Revanche'}</span><kbd class="only-fine">Enter</kbd></button>`}<button class="btn" id="eb"><span>Brett ansehen</span></button><button class="btn ghost" id="em"><span>${watch ? 'Zurück' : 'Menü'}</span></button></div></div>`, 'endm', null, false, e => {
             if ((e.key === 'Enter' || e.key === 'n' || e.key === 'N') && !watch) { again(); return true; }
@@ -324,7 +324,7 @@
           if (efr) efr.onclick = () => V.online.request(M.opp).then(r => { efr.disabled = true; efr.querySelector('span').textContent = r === 'accepted' || r === 'friends' ? 'Ihr seid jetzt Freunde' : 'Anfrage gesendet'; }, e => toast(e.message));
           const erep = m.querySelector('#erep'); if (erep) erep.onclick = () => V.online.report(M.opp, M.id);
           if (online && net) net.rematchUI();
-          const es = m.querySelector('#es'); if (es) es.onclick = () => { V.sfx.ui(); shareCard(); };
+          const es = m.querySelector('#es'); if (es) es.onclick = () => { V.sfx.ui(); shareCard(winner); };
           m.querySelector('#eb').onclick = closeModal;
           m.querySelector('#em').onclick = menu;
         }, g.endDelay ?? 1150);
@@ -627,7 +627,22 @@
     // ---------- result picture ----------
     // A square picture of the series (game, names, score) for the group chat. Phones share it directly,
     // elsewhere it is saved as a PNG.
-    async function shareCard() {
+    // the game's page on the site (same names as tools/pages.ps1 gives them), so the link shows a preview in chats
+    const pageUrl = () => 'https://bananemdnaa.github.io/versus/' + (V.lang === 'en' ? 'games/' : 'de/spiele/') +
+      g.name.toLowerCase().replace(/ä/g, 'ae').replace(/ö/g, 'oe').replace(/ü/g, 'ue').replace(/ß/g, 'ss').replace(/['’]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') + '/';
+    // the words that go with the picture: after beating the AI a challenge, otherwise the score and an invitation
+    function shareText(winner) {
+      const en = V.lang === 'en', nm = s => V.t(names[s]), lvl = V.t(V.LEVELS[cfg.level]);
+      if (ai && !party && me) {
+        const a = series[me], b = series[aiSide];
+        if (winner === me) return en ? `I beat the AI at ${g.name} (${lvl}, ${a}:${b}). Can you beat it too?` : `Ich habe die KI in ${g.name} geschlagen (${lvl}, ${a}:${b}). Schaffst du das auch?`;
+        return en ? `${g.name} against the AI (${lvl}): ${a}:${b}. Think you can do better?` : `${g.name} gegen die KI (${lvl}): ${a}:${b}. Kannst du es besser?`;
+      }
+      if (online && winner === me) return en ? `I just beat ${M.opp} at ${g.name}. Fancy a game?` : `Ich habe gerade ${M.opp} in ${g.name} geschlagen. Lust auf eine Runde?`;
+      const score = party ? SIDES.slice().sort((x, y) => series[y] - series[x]).map(s => `${nm(s)} ${series[s]}`).join(', ') : `${nm(L)} ${series[L]}:${series[R]} ${nm(R)}`;
+      return `${g.name}: ${score}. ` + (en ? 'Play along on Versus!' : 'Spiel mit auf Versus!');
+    }
+    async function shareCard(winner) {
       const W = 1080, cv = document.createElement('canvas'); cv.width = W; cv.height = W;
       const c = cv.getContext('2d'), D = '"Saira Condensed", "Arial Narrow", sans-serif';
       try { await document.fonts.load(`800 italic 100px ${D}`); } catch (e) { }
@@ -643,7 +658,6 @@
       c.fillStyle = '#fff'; c.fillRect(W / 2 - 4, 76, 8, 62);
       c.fillStyle = '#fff'; fit(g.name.toUpperCase(), 104, W - 140); c.fillText(g.name.toUpperCase(), W / 2, 280);
       c.fillStyle = '#9a9cc4'; font(34, 700); c.fillText(v.querySelector('.pbar .ttl small').textContent.toUpperCase(), W / 2, 336);
-      let text;
       if (party) {
         const order = SIDES.slice().sort((a, b) => series[b] - series[a]);
         order.forEach((s, k) => {
@@ -654,26 +668,28 @@
           c.textAlign = 'right'; font(76); c.fillText(String(series[s]), W - 190, y - 4);
         });
         c.textAlign = 'center';
-        text = `${g.name}: ` + order.map(s => `${names[s]} ${series[s]}`).join(', ');
       } else {
         font(300); c.fillStyle = V.hex(L); c.fillText(String(series[L]), W / 2 - 200, 690);
         c.fillStyle = '#5c5f86'; c.fillText(':', W / 2, 670);
         c.fillStyle = V.hex(R); c.fillText(String(series[R]), W / 2 + 200, 690);
         [[L, W / 2 - 200], [R, W / 2 + 200]].forEach(([s, x]) => { c.fillStyle = '#fff'; fit(V.t(names[s]).toUpperCase(), 54, 380); c.fillText(V.t(names[s]).toUpperCase(), x, 790); });
         if (series.d) { c.fillStyle = '#9a9cc4'; font(32, 700); c.fillText(V.t(series.d + '× unentschieden').toUpperCase(), W / 2, 860); }
-        text = `${g.name}: ${names[L]} ${series[L]}:${series[R]} ${names[R]}`;
       }
       c.fillStyle = '#6f7299'; font(30, 700);
-      c.fillText(new Date().toLocaleDateString('de-DE') + '  ·  BANANEMDNAA.GITHUB.IO/VERSUS', W / 2, W - 60);
+      c.fillText(new Date().toLocaleDateString(V.locale()) + '  ·  BANANEMDNAA.GITHUB.IO/VERSUS', W / 2, W - 60);
+      const text = shareText(winner) + '\n' + pageUrl();
       const blob = await new Promise(ok => cv.toBlob(ok, 'image/png'));
       if (!blob) return toast('Bild ging nicht');
       const file = new File([blob], 'versus-' + g.id + '.png', { type: 'image/png' });
+      // phones: picture and text with the link in one go; some apps only take text, then the link brings the preview
       try {
-        if (navigator.canShare && navigator.canShare({ files: [file] })) return await navigator.share({ files: [file], title: 'Versus', text });
+        if (navigator.canShare && navigator.canShare({ files: [file], text })) return await navigator.share({ files: [file], title: 'Versus', text });
+        if (navigator.share && V.coarse) return await navigator.share({ title: 'Versus', text });
       } catch (e) { if (e && e.name === 'AbortError') return; }
+      // computers: the text with the link goes to the clipboard, the picture is saved
       const a = V.el('a'); a.href = URL.createObjectURL(blob); a.download = file.name;
       document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 4000);
-      toast('Bild gespeichert');
+      try { await navigator.clipboard.writeText(text); toast('Text mit Link kopiert, Bild gespeichert'); } catch (e) { toast('Bild gespeichert'); }
     }
 
     // ---------- reactions ----------
