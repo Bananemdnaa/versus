@@ -80,8 +80,8 @@
   .t3-stack{position:relative;width:var(--size);aspect-ratio:1;transform-style:preserve-3d;transform:translateY(calc(var(--gap) * 1.35)) rotateX(68deg) rotateZ(var(--rz));transition:transform .35s var(--ease)}
   .t3-stack.drag{transition:none}
   .t3.v-cube .t3-g{position:absolute;inset:0;transform:translateZ(calc(var(--k) * var(--gap)));transform-style:preserve-3d;background:rgba(29,33,64,.5);border-color:rgba(98,240,255,.35)}
-  .t3.v-cube .t3-c{background:color-mix(in srgb,var(--lc) 30%,transparent)}
-  .t3.v-cube .t3-c i{transform:rotateZ(calc(var(--rz) * -1)) rotateX(-68deg)}
+  .t3.v-cube .t3-c{background:color-mix(in srgb,var(--lc) 30%,transparent);transform-style:preserve-3d;transform:translateZ(1px)}
+  .t3.v-cube .t3-c i{transform:translateZ(calc(var(--size) / 22)) rotateZ(calc(var(--rz) * -1)) rotateX(-68deg);pointer-events:none}
   .t3-lab{position:absolute;left:-26px;top:50%;font:800 italic 14px/1 var(--f-d);color:var(--lc);transform:translateY(-50%) rotateZ(calc(var(--rz) * -1)) rotateX(-68deg)}`);
 
   V.register({
