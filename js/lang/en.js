@@ -696,7 +696,7 @@
     'Die Suche ist abgelaufen': 'The search timed out', 'Schnelles Spiel kommt nach dem nächsten Server-Update.': 'Quick match comes with the next server update.',
     'Versus sucht dir einen Gegner. Ohne Konto spielst du als Gast.': 'Versus finds you an opponent. Without an account you play as a guest.',
     'Versus sucht dir einen Gegner: Wer gerade wartet, spielt gegen dich, sonst wartest du auf den Nächsten. Ist niemand frei, geht es gegen die KI.': "Versus finds you an opponent: whoever is waiting plays you, otherwise you wait for the next one. If nobody is free, you play the AI.",
-    'sucht gerade einen Gegner': 'is looking for an opponent', 'Mitspielen': 'Join', 'Sucht einen Gegner': 'Looking for an opponent', 'Herausforderung': 'Challenge', 'Einladung an den Tisch': 'Table invitation',
+    'sucht gerade einen Gegner': 'is looking for an opponent', 'Mitspielen': 'Join', '{0} wartet in diesem Sprachkanal': '{0} is waiting in this voice channel', 'Alle in diesem Sprachkanal sehen den Tisch und kommen mit einem Tipp dazu.': 'Everybody in this voice channel sees the table and can join with one tap.', 'Sucht einen Gegner': 'Looking for an opponent', 'Herausforderung': 'Challenge', 'Einladung an den Tisch': 'Table invitation',
     'Annehmen': 'Accept', 'Ablehnen': 'Decline', 'Nein danke': 'No thanks', 'Hinsetzen': 'Sit down', 'Laufende Partie': 'Game in progress',
     'Dein Tisch läuft': 'Your table is playing', 'Dein Tisch wartet': 'Your table is waiting', 'Zurück an den Tisch': 'Back to the table',
     'Einladung an den Tisch · #/#': 'Table invitation · #/#', 'Offener Tisch · #/#': 'Open table · #/#', 'Tisch · #/#': 'Table · #/#',

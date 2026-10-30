@@ -833,14 +833,29 @@
       V.ui.toast('Das Spiel an diesem Tisch ist vorbei.'); V.ui.home('online');
     } catch (e) { V.ui.toast(e.message); V.ui.home('online'); }
   }
+  // tables need an account, except in the Discord activity: there the voice channel sits down together, guests too
+  async function tableAccess() {
+    if (inDiscord() && C() && C().available()) {
+      if (!C().user()) { V.ui.toast('Du spielst als Gast'); await C().signInGuest(); }
+      return true;
+    }
+    if (!ready() || isAnon()) { V.ui.toast('Dafür brauchst du ein Konto'); V.ui.home('profile'); return false; }
+    return true;
+  }
   async function table(g, opts, lvl) {
-    if (!ready() || isAnon()) { V.ui.toast('Dafür brauchst du ein Konto'); return V.ui.home('profile'); }
-    try { lobby(await C().rpc('party_create', { gm: g.id, op: opts || optsFor(g), n: g.party ? +(opts && opts.n) || 4 : 2, lvl: lvl ?? 1, pub: false })); }
+    try {
+      if (!(await tableAccess())) return;
+      const st = await C().rpc('party_create', { gm: g.id, op: opts || optsFor(g), n: g.party ? +(opts && opts.n) || 4 : 2, lvl: lvl ?? 1, pub: false });
+      lobby(st);
+      showRoom('table', st.id);
+    }
     catch (e) { V.ui.toast(noServer(e)); V.sfx.bad(); }
   }
   async function joinTable(id, code) {
-    if (!ready() || isAnon()) { V.ui.toast('Dafür brauchst du ein Konto'); return V.ui.home('profile'); }
-    try { const st = await C().rpc('party_join', { tid: id || null, cd: code || null }); if (st.status === 'live') return startTable(st); lobby(st); }
+    try {
+      if (!(await tableAccess())) return;
+      const st = await C().rpc('party_join', { tid: id || null, cd: code || null }); if (st.status === 'live') return startTable(st); lobby(st);
+    }
     catch (e) { V.ui.toast(noServer(e)); V.sfx.bad(); check(); }
   }
   let lobbyChan = null;
@@ -855,6 +870,7 @@
       <div class="fadd-h"><span class="lb-ic">${g.icon}</span><div class="lb-t"><small>Online-Tisch · ${cur.n} Plätze</small><h3>${esc(g.name)}</h3></div><button class="iconbtn" id="lbx" aria-label="Schließen">${IC().x}</button></div>
       <div class="lb-seats" id="lbs"></div>
       <div class="lb-code"><div><small>Tischcode</small><b>${esc(cur.code)}</b></div><button class="btn sm" id="lbsh"><span>${IC().share}Link teilen</span></button></div>
+      ${inDiscord() ? '<p class="fhint">Alle in diesem Sprachkanal sehen den Tisch und kommen mit einem Tipp dazu.</p>' : ''}
       <div id="lbhost"></div>
       <div class="actions" id="lba"></div></div>`, 'lobm', () => {
       // closing the lobby means leaving the table (the host closes it)
@@ -933,7 +949,7 @@
   // game panel, mode "Online" for table games: open a table, join an open one or enter a code
   function tablePanel(el, g, opts, lvl) {
     if (!el) return;
-    if (!ready() || isAnon()) { el.innerHTML = `<p class="hint">Für Online-Tische brauchst du ein Konto.</p><button class="btn sm" id="plog"><span>${IC().user}Anmelden</span></button>`; el.querySelector('#plog').onclick = () => V.ui.home('profile'); return; }
+    if (!inDiscord() && (!ready() || isAnon())) { el.innerHTML = `<p class="hint">Für Online-Tische brauchst du ein Konto.</p><button class="btn sm" id="plog"><span>${IC().user}Anmelden</span></button>`; el.querySelector('#plog').onclick = () => V.ui.home('profile'); return; }
     const open = ((tpending && tpending.open) || []).filter(o => o.game === g.id);
     el.innerHTML = `<p class="hint">Eröffne einen Tisch für ${+(opts && opts.n) || 4} Spieler und lade Freunde ein. Freie Plätze spielt die KI.</p>
       ${open.map(o => `<div class="fline on"><span class="adot"></span><b>${esc(o.from)}</b><small>Tisch · ${o.players}/${o.n}</small><button class="btn sm primary" data-tjoin="${o.id}"><span>Mitspielen</span></button></div>`).join('')}
@@ -962,6 +978,7 @@
     try {
       if (!C().user()) { if (!guestOk(g.id)) { V.ui.toast('Dafür brauchst du ein Konto'); return V.ui.home('profile'); } await C().signInGuest(); }
       mid = await C().rpc('match_link', { gm: g.id, op: opts || optsFor(g) });
+      showRoom('match', mid);
     } catch (e) { V.sfx.bad(); return V.ui.toast(/match_link|function/i.test(e.message) ? 'Spiel-Links kommen nach dem nächsten Server-Update.' : e.message); }
     const url = joinLink(mid);
     let done = false, t = null, ch = null;
@@ -1023,6 +1040,43 @@
     try { sessionStorage.removeItem('versus.match'); } catch (e) { }
     resume(id);
   }
+
+  // ---------- Discord activity: what is open in this voice channel (server: discord_room_set, discord_room_peek) ----------
+  function inDiscord() { return !!(V.discord && V.discord.on && V.discord.instance); }
+  // a new table or game link is shown to everybody else who has Versus open in the same voice channel
+  function showRoom(kind, ref) {
+    if (inDiscord()) C().rpc('discord_room_set', { inst: V.discord.instance, kind, ref }).catch(() => { });
+  }
+  let roomT = null, roomKey = '';
+  async function discordRoom() {
+    clearTimeout(roomT);
+    if (!inDiscord()) return;
+    roomT = setTimeout(discordRoom, 5000);
+    if (document.hidden || !C() || !C().available() || C().starting()) return;
+    let r = null;
+    try { r = await C().rpc('discord_room_peek', { inst: V.discord.instance }); } catch (e) { }
+    const g = r && V.byId[r.game];
+    // not while playing or while a window is open (the lobby of that very table, for example)
+    const show = g && !r.mine && !busyScreen() && !document.querySelector('.view.play');
+    const key = show ? r.kind + ':' + (r.code || r.id) + ':' + (r.players || 0) : '';
+    const old = document.querySelector('.upbar.dc');
+    if (key === roomKey && !!old === !!key) return;
+    roomKey = key;
+    if (old) old.remove();
+    if (!key) return;
+    const bar = V.el('div', 'upbar dc', `<i class="dcic">${g.icon}</i><span><b><em class="dn" translate="no"></em> wartet in diesem Sprachkanal</b><small></small></span><button class="btn sm primary"><span>Mitspielen</span></button>`);
+    bar.querySelector('.dn').textContent = r.from || 'Jemand';
+    bar.querySelector('small').textContent = g.name + (r.kind === 'table' ? ' · ' + r.players + '/' + r.n : '');
+    document.body.appendChild(bar);
+    bar.querySelector('button').onclick = () => {
+      V.sfx.ui(); bar.remove(); roomKey = '';
+      if (r.kind === 'table') return joinTable(null, r.code);
+      // a game link: the same way as an opened ?join= link (as a guest where the game allows it)
+      try { sessionStorage.setItem('versus.join', r.id); } catch (e) { }
+      consumeJoin();
+    };
+  }
+  if (inDiscord()) setTimeout(discordRoom, 2500);
 
   // ---------- push notifications ----------
   const PUSH_KEY = 'BI91bCDLWF_XqePjImRog1IEmr80m6ssBOq6vw9n_Z_sBKwiNKt9IVknChF7sZBx0nErbQ37Ft6w-m2d1eDByUk';

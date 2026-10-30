@@ -72,7 +72,8 @@
   const GUEST_GAMES = ['c4', 'ttt', 'ships', 'dots', 'reaction', 'pong'];
   // a guest session (quick match without an account) still counts as guest here
   const guest = () => !!(V.cloud && V.cloud.available() && !V.cloud.starting() && (!V.cloud.user() || V.cloud.user().anon));
-  const locked = g => !!g && guest() && !GUEST_GAMES.includes(g.id);
+  // inside the Discord activity the table games are open to guests too (the voice channel plays them together)
+  const locked = g => !!g && guest() && !GUEST_GAMES.includes(g.id) && !(g.table && V.discord && V.discord.on);
   V.guest = guest; V.locked = locked;
   // account button in the header: name when logged in, otherwise "Gast · Anmelden"
   function acctChip() {

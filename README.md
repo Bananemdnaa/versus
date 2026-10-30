@@ -195,6 +195,14 @@ Server dafür:
 
 Ohne Schritt 2 bis 4 läuft alles andere normal, es kommen nur keine Benachrichtigungen.
 
+## Discord Activity
+
+Versus läuft als Activity direkt im Discord-Sprachkanal (`js/discord.js`, SDK 2.5.0 in `js/vendor/discord-sdk.mjs`). Discord lädt die Seite über seinen Proxy `<App-ID>.discordsays.com`; dort geht Supabase über `/.proxy/supabase`, und es gibt keinen Service Worker.
+
+- **Gleicher Sprachkanal, gleicher Tisch:** Öffnet jemand in Discord einen Tisch oder Spiel-Link, sehen alle anderen mit Versus im selben Sprachkanal unten einen Balken „… wartet in diesem Sprachkanal · Mitspielen“. In Discord dürfen auch Gäste an Tische, die Tisch-Spiele sind für sie freigeschaltet.
+- **Developer Portal** (App „Versus“, ID `1565782186832039987`): Activities eingeschaltet, URL Mappings `/` → `bananemdnaa.github.io/versus` und `/supabase` → `ygnngmtvncmdunsdnwtk.supabase.co`.
+- **Server:** `supabase/migrations/20261118000000_discord_rooms.sql` im SQL-Editor ausführen.
+
 ## Rechtliches
 
 `rechtliches.html` (Deutsch/Englisch): Offenlegung nach § 25 MediengesetzG und Datenschutzerklärung, verlinkt unter Optionen, auf der Konto-Seite und beim Konto-Erstellen. Neue Funktionen, die Daten speichern oder fremde Dienste einbinden (z. B. das Turnstile-Captcha), müssen dort ergänzt werden. Schriften (`fonts/`, SIL OFL) und Bibliotheken (`js/vendor/`: supabase-js 2.49.4, qrcode-generator 1.4.4) liegen im Projekt, damit keine IP-Adressen an Google Fonts oder CDNs gehen.

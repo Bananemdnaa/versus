@@ -799,6 +799,7 @@ div.opt:hover{background:transparent}
 .upbar>svg{width:22px;height:22px;color:var(--cy);flex:none}
 .upbar span{flex:1;display:flex;flex-direction:column;line-height:1.25} .upbar small{font-size:12.5px;color:var(--muted)}
 .upbar.out{opacity:0;transform:translate(-50%,20px)}
+.upbar.dc{border-left-color:#5865f2} .upbar .dcic{width:34px;height:34px;flex:none;display:block} .upbar .dcic svg{width:100%;height:100%;display:block} .upbar .dn{font-style:normal;color:var(--pink)}
 /* the update note sits above the tab bar and waits while a match is running */
 @media (max-width:959px){.upbar{bottom:calc(var(--tabh) + 12px + env(safe-area-inset-bottom,0px))}}
 body:has(.view.play) .upbar{display:none}

@@ -56,7 +56,9 @@
     const clockMin = g.id === 'chess' && cfg.mode !== 'ai' && [3, 5, 10].includes(+(cfg.opts && cfg.opts.clock)) ? +cfg.opts.clock : 0;
     // guests with a guest session (quick match) may play online duels; tables and friends need an account
     const session = V.cloud && V.cloud.user();
-    if (cfg.mode !== 'watch' && (locked(g) || (guest() && (cfg.mode === 'table' || (['online', 'open'].includes(cfg.mode) && !session))))) { toast('Dafür brauchst du ein Konto'); return home('profile'); }
+    // (a table inside the Discord activity is open to guests: the voice channel plays together)
+    const dcTable = cfg.mode === 'table' && V.discord && V.discord.on;
+    if (cfg.mode !== 'watch' && !dcTable && (locked(g) || (guest() && (cfg.mode === 'table' || (['online', 'open'].includes(cfg.mode) && !session))))) { toast('Dafür brauchst du ein Konto'); return home('profile'); }
     P.enterPlay(g);
     const online = cfg.mode === 'online', watch = cfg.mode === 'watch', M = cfg.match || {};
     // a match over days: no offline countdown, leaving just puts it aside (it waits for your next move)
