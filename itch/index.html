@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Versus</title>
+<!-- Start page for itch.io (upload itch/versus-itch.zip as an HTML game). It shows the live Versus site, so every
+     update on GitHub Pages is there at once. Accounts and online games work best in the own tab (link at the top). -->
+<style>
+  html, body { margin: 0; height: 100%; overflow: hidden; background: #08090f; color: #f3f4ff; font: 600 13px/1.2 system-ui, sans-serif; }
+  .bar { position: fixed; left: 0; right: 0; top: 0; height: 40px; box-sizing: border-box; display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 0 12px; background: #11132a; border-bottom: 1px solid #262a52; }
+  .bar b { font: 800 italic 15px/1 system-ui, sans-serif; letter-spacing: .06em; text-transform: uppercase; color: #ff4fd8; }
+  .bar a { color: #08090f; background: #62f0ff; padding: 6px 10px; border-radius: 8px; text-decoration: none; font-weight: 800; white-space: nowrap; }
+  iframe { position: fixed; left: 0; right: 0; top: 40px; bottom: 0; width: 100%; height: calc(100% - 40px); border: 0; display: block; }
+</style>
+</head>
+<body>
+<div class="bar"><b>Versus</b><a id="open" href="https://bananemdnaa.github.io/versus/?src=itch" target="_blank" rel="noopener">Im eigenen Tab spielen ↗</a></div>
+<iframe src="https://bananemdnaa.github.io/versus/?src=itch" title="Versus" allow="fullscreen; clipboard-write; web-share; autoplay"></iframe>
+<script>
+  // English browsers get the English button text
+  if (!/^de\b/i.test(navigator.language || '')) { document.documentElement.lang = 'en'; document.getElementById('open').textContent = 'Play in its own tab ↗'; }
+</script>
+</body>
+</html>
