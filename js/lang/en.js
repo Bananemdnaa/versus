@@ -960,8 +960,6 @@
     'vier Mittelfelder': 'four middle cells',
     'Vier Ziffern, wer knackt zuerst?': 'Four digits, who cracks it first?',
     'Jeder denkt sich einen Code aus vier verschiedenen Ziffern aus. Dann ratet ihr abwechselnd. Nach jedem Versuch erfährst du, wie viele Ziffern genau stimmen und wie viele nur an der falschen Stelle stehen. Wer zuerst knackt, gewinnt.': 'Everyone thinks of a code of four different digits. Then you take turns guessing. After each guess you learn how many digits are exactly right and how many are only in the wrong place. First to crack it wins.',
-    'Rät oft ins Blaue.': 'Often guesses wildly.', 'Nutzt meistens, was es schon weiß.': 'Mostly uses what it already knows.',
-    'Rät nur noch Codes, die passen können.': 'Only guesses codes that can still be right.', 'Wählt den Versuch, der am meisten verrät.': 'Picks the guess that reveals the most.',
     'Ziffer eintippen': 'Type a digit', 'Rücktaste': 'Backspace', 'Löschen': 'Delete', 'Raten': 'Guess',
     'Zuerst gibt jeder geheim seinen Code ein, das Handy wird dafür weitergegeben. Danach ratet ihr abwechselnd.': 'First everyone enters their code in secret, passing the phone on. Then you take turns guessing.',
     'Die Antwort': 'The answer', 'Beispiel': 'Example', 'Fair bis zum Schluss': 'Fair to the end',
@@ -1002,8 +1000,17 @@
     'Niemand kann mehr legen, die kleinsten Hände sind gleich': 'Nobody can lay a tile, the smallest hands are equal'
   });
   V.i18n.ctx('[data-g=domino]', { 'Passen': 'Pass', 'passt': 'passes', 'zieht': 'draws' });
+  A({
+    'Ebenen': 'Layers', 'Von vorne': 'Front', 'Von der Seite': 'Side', 'Ansichten': 'Views', 'Reihe #': 'Row #', 'Nach links drehen': 'Turn left', 'Nach rechts drehen': 'Turn right',
+    'Jede Tafel ist eine Ebene, von oben gesehen. Ebene # liegt unten.': 'Each board is a layer, seen from above. Layer # is at the bottom.',
+    'Von vorne: Jede Tafel ist eine Reihe (# bis #). Oben liegt Ebene #, unten Ebene #.': 'From the front: each board is a row (# to #). Layer # is at the top, layer # at the bottom.',
+    'Von der Seite: Jede Tafel ist eine Spalte (a bis d). Oben liegt Ebene #, unten Ebene #.': 'From the side: each board is a column (a to d). Layer # is at the top, layer # at the bottom.',
+    'Alle vier Ebenen übereinander, Ebene # unten. Zum Drehen wischen oder die Pfeile tippen.': 'All four layers stacked, layer # at the bottom. Swipe or tap the arrows to turn it.',
+    'Über dem Brett wechselst du die Ansicht. {0} und {1} schneiden den Würfel anders in Scheiben, dann sehen Reihen durch die Ebenen ganz normal aus. {2} stapelt die Ebenen übereinander, den Würfel kannst du drehen.': 'Above the board you switch the view. {0} and {1} slice the cube differently, so lines through the layers look completely normal. {2} stacks the layers on top of each other, and you can turn the cube.'
+  });
   V.i18n.ctx('[data-g=code]', { 'Treffer': 'Hits', 'Fast': 'Close' });
   V.i18n.ctx('[data-g=ttt3]', { 'Ecken': 'corners' });
+  V.i18n.pat([[/^Spalte ([a-d])$/, 'Column $1']]);
   V.i18n.pat([[/^Ebene (\d), ([a-d]\d)$/, 'Layer $1, $2']]);
 
   // ---------- words that differ by game ----------

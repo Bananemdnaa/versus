@@ -2,7 +2,8 @@
   // Zahlencode knacken (the old pen-and-paper game also known as Bulls and Cows): both pick a secret code of
   // four different digits, then guess the other's code in turns. Each guess gets "Treffer" (right digit, right
   // place) and "Fast" (in the code, wrong place). If side 1 cracks the code first, side 2 gets its last try
-  // in the same round; both cracked = draw.
+  // in the same round; both cracked = draw. No AI to choose (against a computer it is just a puzzle); only a seat
+  // taken over by the computer at a table keeps guessing, with codes that can still be right.
   // Uses ctx.listen/ctx.submit: { c: '1234' } secret code, { g: '5678', n } guess number n.
   const LEN = 4, MAX = 15;
   const ALL = [];
@@ -41,10 +42,9 @@
   .cd-legend{display:flex;gap:14px;color:var(--muted);font-size:12px} .cd-legend span{display:flex;gap:5px;align-items:center}`);
 
   V.register({
-    id: 'code', name: 'Zahlencode knacken', cat: 'Klassiker', order: 8, accent: '#5dff9d',
+    id: 'code', name: 'Zahlencode knacken', cat: 'Klassiker', order: 8, accent: '#5dff9d', noAI: true,
     short: 'Vier Ziffern, wer knackt zuerst?',
     desc: 'Jeder denkt sich einen Code aus vier verschiedenen Ziffern aus. Dann ratet ihr abwechselnd. Nach jedem Versuch erfährst du, wie viele Ziffern genau stimmen und wie viele nur an der falschen Stelle stehen. Wer zuerst knackt, gewinnt.',
-    levelInfo: ['Rät oft ins Blaue.', 'Nutzt meistens, was es schon weiß.', 'Rät nur noch Codes, die passen können.', 'Wählt den Versuch, der am meisten verrät.'],
     keys: [['0–9', 'Ziffer eintippen'], ['Rücktaste', 'Löschen'], ['Enter', 'Raten']],
     localHint: 'Zuerst gibt jeder geheim seinen Code ein, das Handy wird dafür weitergegeben. Danach ratet ihr abwechselnd.',
     endDelay: 1200,
@@ -124,7 +124,7 @@
         ctx.later(() => { const g = think(s); ctx.submit({ g, n: guesses[s].length + 1 }, s); }, ctx.auto ? 0 : 900 + Math.random() * 700);
       }
       function think(s) {
-        const L = ctx.level, mine = guesses[s];
+        const L = 2, mine = guesses[s];
         if (!mine.length) return L === 3 ? '0123' : randCode();
         const cand = ALL.filter(c => mine.every(x => score(c, x.g) === x.r));
         if (!cand.length) return randCode();

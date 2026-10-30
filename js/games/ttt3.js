@@ -59,7 +59,22 @@
   .t3-c.w{box-shadow:0 0 0 2px #fff,0 0 12px rgba(255,255,255,.7);animation:winPulse .9s ease-in-out infinite}
   .t3.done .t3-c:not(.w) i{opacity:.4;transition:opacity .5s}
   .t3-c.th::after{content:'';position:absolute;inset:2px;border-radius:5px;border:2px dashed var(--bad);opacity:.7;pointer-events:none}
-  .nohints .t3-c.th::after{display:none}`);
+  .nohints .t3-c.th::after{display:none}
+  .t3-box{width:min(var(--bw),640px);display:flex;flex-direction:column;gap:10px;align-items:center}
+  .t3-views{display:flex;gap:4px;padding:4px;border-radius:12px;background:var(--panel);border:1px solid var(--line);flex-wrap:wrap;justify-content:center}
+  .t3-views button{padding:7px 11px;border-radius:9px;font:800 italic 13px/1 var(--f-d);text-transform:uppercase;letter-spacing:.04em;color:var(--muted);background:none}
+  .t3-views button.on{background:var(--cyan);color:var(--ink)}
+  .t3-hint{display:flex;align-items:center;justify-content:center;gap:10px;color:var(--muted);font-size:12.5px;text-align:center;min-height:34px;max-width:440px}
+  .t3:not(.v-top) .t3-g{transform:none}
+  /* 3D: the four layers stacked, tilted and turned; the stones always face the viewer */
+  .t3.v-cube{display:block}
+  .t3-scene{--size:clamp(150px,44vw,200px);--gap:clamp(84px,26vw,112px);perspective:1400px;height:calc(var(--gap) * 2.9 + var(--size) * 1);display:grid;place-items:center;touch-action:pan-y;cursor:grab;user-select:none}
+  .t3-stack{position:relative;width:var(--size);aspect-ratio:1;transform-style:preserve-3d;transform:translateY(calc(var(--gap) * 1.35)) rotateX(68deg) rotateZ(var(--rz));transition:transform .35s var(--ease)}
+  .t3-stack.drag{transition:none}
+  .t3.v-cube .t3-g{position:absolute;inset:0;transform:translateZ(calc(var(--k) * var(--gap)));transform-style:preserve-3d;background:rgba(29,33,64,.5);border-color:rgba(98,240,255,.35)}
+  .t3.v-cube .t3-c{background:rgba(255,255,255,.07)}
+  .t3.v-cube .t3-c i{transform:rotateZ(calc(var(--rz) * -1)) rotateX(-68deg)}
+  .t3-lab{position:absolute;left:-26px;top:50%;font:800 italic 14px/1 var(--f-d);color:var(--cyan);transform:translateY(-50%) rotateZ(calc(var(--rz) * -1)) rotateX(-68deg)}`);
 
   V.register({
     id: 'ttt3', name: '3D Tic Tac Toe', cat: 'Klassiker', order: 5, accent: '#62f0ff',
@@ -72,23 +87,62 @@
       { t: 'Das Ziel', d: 'Gespielt wird in einem Würfel aus <b>vier Ebenen</b> mit je 4 × 4 Feldern. Ihr setzt abwechselnd einen Stein in ein freies Feld, egal in welcher Ebene. Wer zuerst <b>vier in einer Reihe</b> hat, gewinnt.' },
       { t: 'Reihen in einer Ebene', d: 'Wie bei Tic Tac Toe zählen Reihen <b>waagerecht, senkrecht und diagonal</b> innerhalb einer Ebene.' },
       { t: 'Reihen durch die Ebenen', d: 'Auch dasselbe Feld in allen vier Ebenen ist eine Reihe, ebenso <b>Treppen</b>: ein Feld weiter pro Ebene, gerade oder schräg. Die vier langen Diagonalen gehen durch den ganzen Würfel, von Ecke zu Ecke.' },
+      { t: 'Ansichten', d: 'Über dem Brett wechselst du die Ansicht. <b>Von vorne</b> und <b>Von der Seite</b> schneiden den Würfel anders in Scheiben, dann sehen Reihen durch die Ebenen ganz normal aus. <b>3D</b> stapelt die Ebenen übereinander, den Würfel kannst du drehen.' },
       { t: 'Tipps', d: 'Die <b>Ecken</b> und die <b>vier Mittelfelder</b> der beiden inneren Ebenen liegen auf den meisten Reihen. Hat der Gegner drei in einer Reihe mit einem freien Feld, markiert Versus dieses Feld rot gestrichelt (abschaltbar mit den Hinweisen).' }
     ],
     start(ctx) {
-      let s = { b: Array(64).fill(0), turn: 1, last: -1, n: 0 }, over = false, busy = false;
-      const wrap = V.el('div', 't3'), cells = [];
-      for (let l = 0; l < 4; l++) {
-        const lay = V.el('div', 't3-l', `<small>Ebene ${l + 1}</small>`), g = V.el('div', 't3-g');
-        for (let k = 0; k < 16; k++) { const c = V.el('div', 't3-c e', '<i></i>'); c.dataset.i = l * 16 + k; cells.push(c); g.appendChild(c); }
-        lay.appendChild(g); wrap.appendChild(lay);
+      let s = { b: Array(64).fill(0), turn: 1, last: -1, n: 0 }, over = false, busy = false, winLine = null, winShown = 0;
+      // views: the four layers from above, the cube cut into slices from the front or the side, or all layers stacked in 3D
+      const VIEWS = [['top', 'Ebenen'], ['front', 'Von vorne'], ['side', 'Von der Seite'], ['cube', '3D']];
+      const HINT = {
+        top: 'Jede Tafel ist eine Ebene, von oben gesehen. Ebene 1 liegt unten.',
+        front: 'Von vorne: Jede Tafel ist eine Reihe (1 bis 4). Oben liegt Ebene 4, unten Ebene 1.',
+        side: 'Von der Seite: Jede Tafel ist eine Spalte (a bis d). Oben liegt Ebene 4, unten Ebene 1.',
+        cube: 'Alle vier Ebenen übereinander, Ebene 1 unten. Zum Drehen wischen oder die Pfeile tippen.'
+      };
+      let view = V.store.get('ttt3view', 'top'), rz = V.store.get('ttt3rot', -35);
+      if (!VIEWS.some(v => v[0] === view)) view = 'top';
+      const box = V.el('div', 't3-box'), bar = V.el('div', 't3-views'), wrap = V.el('div', 't3'), hint = V.el('div', 't3-hint');
+      box.append(bar, wrap, hint); ctx.stage.appendChild(box);
+      let cells = [];
+      // the cell at slice k, grid row g, grid column c (in the side views row 0 is the top layer)
+      const at = (k, g, c) => view === 'front' ? (3 - g) * 16 + k * 4 + c : view === 'side' ? (3 - g) * 16 + c * 4 + k : k * 16 + g * 4 + c;
+      const label = k => view === 'front' ? `Reihe ${k + 1}` : view === 'side' ? `Spalte ${'abcd'[k]}` : `Ebene ${k + 1}`;
+      function grid(k) {
+        const g = V.el('div', 't3-g');
+        for (let r = 0; r < 4; r++) for (let c = 0; c < 4; c++) { const i = at(k, r, c), el = V.el('div', 't3-c e', '<i></i>'); el.dataset.i = i; cells[i] = el; g.appendChild(el); }
+        return g;
       }
-      ctx.stage.appendChild(wrap);
+      function build() {
+        cells = []; wrap.className = 't3 v-' + view; wrap.innerHTML = '';
+        bar.innerHTML = VIEWS.map(([v, l]) => `<button class="${v === view ? 'on' : ''}" data-v="${v}">${l}</button>`).join('');
+        if (view === 'cube') {
+          const scene = V.el('div', 't3-scene'), stack = V.el('div', 't3-stack');
+          stack.style.setProperty('--rz', rz + 'deg');
+          for (let k = 0; k < 4; k++) { const g = grid(k); g.style.setProperty('--k', k); g.insertAdjacentHTML('beforeend', `<small class="t3-lab">${k + 1}</small>`); stack.appendChild(g); }
+          scene.appendChild(stack); wrap.appendChild(scene);
+          hint.innerHTML = `<button class="iconbtn" data-r="-1" aria-label="Nach links drehen">⟲</button><span>${HINT.cube}</span><button class="iconbtn" data-r="1" aria-label="Nach rechts drehen">⟳</button>`;
+        } else {
+          for (let k = 0; k < 4; k++) { const lay = V.el('div', 't3-l', `<small>${label(k)}</small>`); lay.appendChild(grid(k)); wrap.appendChild(lay); }
+          hint.innerHTML = `<span>${HINT[view]}</span>`;
+        }
+        draw();
+      }
+      bar.addEventListener('click', e => { const b = e.target.closest('[data-v]'); if (!b || b.dataset.v === view) return; view = b.dataset.v; V.store.set('ttt3view', view); V.sfx.ui(); build(); });
+      // turning the cube: arrow buttons in 90° steps, or dragging sideways
+      const turnTo = (deg, smooth) => { rz = deg; const st = wrap.querySelector('.t3-stack'); if (st) { st.classList.toggle('drag', !smooth); st.style.setProperty('--rz', rz + 'deg'); } };
+      hint.addEventListener('click', e => { const b = e.target.closest('[data-r]'); if (b) { turnTo(Math.round((rz + 90 * +b.dataset.r) / 45) * 45, true); V.store.set('ttt3rot', rz); V.sfx.tick(); } });
+      let drag = null, dragged = false;
+      wrap.addEventListener('pointerdown', e => { if (view === 'cube') { drag = { x: e.clientX, rz }; dragged = false; } });
+      wrap.addEventListener('pointermove', e => { if (!drag) return; const dx = e.clientX - drag.x; if (Math.abs(dx) > 6) dragged = true; if (dragged) turnTo(drag.rz + dx * 0.6, false); });
+      const endDrag = () => { if (drag && dragged) V.store.set('ttt3rot', rz); drag = null; };
+      wrap.addEventListener('pointerup', endDrag); wrap.addEventListener('pointercancel', endDrag); wrap.addEventListener('pointerleave', endDrag);
       const name = i => `Ebene ${Math.floor(i / 16) + 1}, ${'abcd'[i % 4]}${Math.floor(i % 16 / 4) + 1}`;
       const human = () => !over && !busy && !ctx.isAI(s.turn);
       // the same cell in the other layers lights up, so lines through the layers are easier to see
       wrap.addEventListener('mouseover', e => { const t = e.target.closest('.t3-c'); cells.forEach(c => c.classList.toggle('lit', !!t && +c.dataset.i % 16 === +t.dataset.i % 16 && c !== t)); });
       wrap.addEventListener('mouseleave', () => cells.forEach(c => c.classList.remove('lit')));
-      wrap.addEventListener('click', e => { const t = e.target.closest('.t3-c'); if (t && human() && !s.b[+t.dataset.i]) put(+t.dataset.i); });
+      wrap.addEventListener('click', e => { if (dragged) { dragged = false; return; } const t = e.target.closest('.t3-c'); if (t && human() && !s.b[+t.dataset.i]) put(+t.dataset.i); });
       ctx.nav(() => human() ? cells.filter((_, i) => !s.b[i]) : [], { pad: 1 });
       function draw() {
         const op = 3 - s.turn, threat = new Set();
@@ -97,8 +151,10 @@
           c.classList.toggle('e', !s.b[i]); c.classList.toggle('p1', s.b[i] === 1); c.classList.toggle('p2', s.b[i] === 2);
           c.classList.toggle('last', i === s.last && !over);
           c.classList.toggle('th', human() && threat.has(i));
+          c.classList.toggle('w', !!winLine && winLine.indexOf(i) >= 0 && winLine.indexOf(i) < winShown);
         });
         wrap.classList.toggle('can', human());
+        wrap.classList.toggle('done', over && !!winLine);
       }
       function put(i) {
         if (over || s.b[i]) return;
@@ -110,8 +166,8 @@
         V.kit.placed(cells[i], V.hex(who), ctx.isAI(who));
         const line = lineAt(s.b, i);
         if (line) {
-          over = true; busy = false; wrap.classList.add('done'); draw();
-          line.forEach((j, n) => ctx.later(() => { cells[j].classList.add('w'); V.fx.burstAt(cells[j], '#ffffff', 6, 45); }, n * 110));
+          over = true; busy = false; winLine = line; draw();
+          line.forEach((j, n) => ctx.later(() => { winShown = n + 1; cells[j].classList.add('w'); V.fx.burstAt(cells[j], '#ffffff', 6, 45); }, n * 110));
           return ctx.end(who);
         }
         if (s.n >= 64) { over = true; busy = false; draw(); return ctx.end(0); }
@@ -133,6 +189,7 @@
           say: name
         });
       }
+      build();
       next();
     }
   });
