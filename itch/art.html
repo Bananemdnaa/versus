@@ -6,7 +6,8 @@
 <title>Versus art</title>
 <!-- Promo images for itch.io, rendered to PNG with headless Chrome at the size of each kind:
      art.html?k=social (1200 × 630), wide (2100 × 900, 21:9), cover (630 × 500, shot at 2×), embed (960 × 740),
-     logo (1200 × 360, transparent), favicon (256 × 256, transparent). The screenshots come from itch/screenshots. -->
+     logo (1200 × 360, transparent), favicon (256 × 256, transparent), dccover and dcbg (1024 × 576, Discord activity).
+     The screenshots come from itch/screenshots. -->
 <style>
   @font-face { font-family: SairaC; src: url(../fonts/saira-condensed-800.woff2) format('woff2'); font-weight: 800; }
   @font-face { font-family: Saira; src: url(../fonts/saira.woff2) format('woff2'); font-weight: 100 900; }
@@ -86,6 +87,27 @@
 <!-- logo: transparent, for the banner of the itch.io page -->
 <div class="k" id="logo" style="display:none;align-items:center;justify-content:center">
   <div class="logo" style="font-size:205px"><svg><use href="#ic"/></svg><span class="w" style="text-shadow:0 .03em .06em rgba(0,0,0,.45)"><i>Ver</i><s>/</s><b>sus</b></span></div>
+</div>
+
+<!-- dccover: Discord activity shelf (1024 × 576), title and screenshots -->
+<div class="k" id="dccover">
+  <div class="shot" style="width:520px;height:292px;left:520px;top:40px;transform:rotate(5deg)"><img src="screenshots/5-ludo.png"></div>
+  <div class="shot" style="width:480px;height:270px;left:560px;top:290px;transform:rotate(-4deg)"><img src="screenshots/4-poker.png"></div>
+  <div style="position:absolute;left:56px;top:120px;width:500px;display:flex;flex-direction:column;gap:18px">
+    <div class="logo" style="font-size:104px"><svg><use href="#ic"/></svg><span class="w"><i>Ver</i><s>/</s><b>sus</b></span></div>
+    <div class="tag" style="font-size:38px">Quick games for<br>your voice channel</div>
+    <div class="chips" style="font-size:19px"><span>2–4 players</span><span>Free</span><span>No ads</span></div>
+  </div>
+</div>
+
+<!-- dcbg: Discord activity background (1024 × 576); pictures only at the edges, the middle stays calm for Discord's buttons -->
+<div class="k" id="dcbg">
+  <div class="shot" style="width:300px;height:169px;left:-60px;top:-40px;transform:rotate(-8deg);opacity:.75"><img src="screenshots/2-chess.png"></div>
+  <div class="shot" style="width:300px;height:169px;left:790px;top:-50px;transform:rotate(7deg);opacity:.75"><img src="screenshots/1-connect-four.png"></div>
+  <div class="shot" style="width:300px;height:169px;left:-70px;top:440px;transform:rotate(6deg);opacity:.75"><img src="screenshots/5-ludo.png"></div>
+  <div class="shot" style="width:300px;height:169px;left:800px;top:450px;transform:rotate(-6deg);opacity:.75"><img src="screenshots/4-poker.png"></div>
+  <svg style="position:absolute;left:30px;top:250px;width:70px;height:70px;opacity:.8"><use href="#ic"/></svg>
+  <svg style="position:absolute;left:925px;top:250px;width:70px;height:70px;opacity:.8"><use href="#ic"/></svg>
 </div>
 
 <!-- favicon: the icon alone -->
