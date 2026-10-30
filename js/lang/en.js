@@ -765,6 +765,40 @@
     'ausgeblendet': 'hidden', 'eingeblendet': 'shown', 'entsperrt': 'unbanned', 'umbenannt': 'renamed', 'Bilanz zurückgesetzt': 'stats reset', 'zum Admin gemacht': 'made admin', 'Admin entzogen': 'admin removed',
     'Dev-Konto an': 'dev account on', 'Dev-Konto aus': 'dev account off', 'Partie annulliert': 'game voided', 'Meldung erledigt': 'report done', 'Meldung wieder offen': 'report reopened', 'Neu laden': 'Reload'
   });
+  // admin tools for many players (site page, warnings, tables, filters)
+  A({
+    'Seite': 'Site', 'Tische': 'Tables', 'Zuletzt aktiv': 'Recently active', 'Gemeldet': 'Reported', 'Gesperrt': 'Banned', 'Gäste': 'Guests', 'Englisch': 'English', 'Unbekannt': 'Unknown',
+    'Verwarnen …': 'Warn …', 'Verwarnen': 'Warn', 'Eigener Text': 'Own text', 'Name': 'Name', 'Beleidigung': 'Insults', 'Abbruch': 'Quitting', 'Spam': 'Spam',
+    'Vorlagen sieht der Spieler in seiner Sprache (Deutsch oder Englisch). Eigener Text geht auch, kommt aber genau so an.': 'Players see templates in their own language (German or English). Own text works too but arrives exactly as written.',
+    '#× gemeldet': 'reported #×', '#× gemeldet · # offen': 'reported #× · # open', '#× verwarnt': 'warned #×', 'Letzte Verwarnung: {0}': 'Last warning: {0}',
+    'Letzte 14 Tage': 'Last 14 days', 'neue Konten': 'new accounts', 'Online-Partien (Duelle und Tische)': 'online games (duels and tables)', 'Sprachen': 'Languages',
+    'Spieler der letzten # Tage, nach Sprache im Spiel.': 'Players of the last # days, by language in the game.', '# offene Meldungen': '# open reports',
+    'Neue Konten sind pausiert': 'New accounts are paused', 'Gast-Zugang ist pausiert': 'Guest access is paused',
+    'wartet auf Spieler': 'waiting for players', 'abgebrochen': 'canceled', 'annulliert': 'voided', 'frei': 'free', '(weg)': '(gone)', 'Keine Tische.': 'No tables.', 'Tisch annulliert.': 'Table voided.',
+    'Online-Tische für 2 bis 4 Spieler (Ludo, Mau-Mau, Poker …). Laufende Tische aktualisieren sich alle # Sekunden.': 'Online tables for 2 to 4 players (Ludo, Mau-Mau, Poker …). Running tables refresh every # seconds.',
+    'Verwarnen oder Sperren setzt die Meldung gleich auf „Erledigt“. Tipp auf den Namen für alles andere (ausblenden, umbenennen, Notiz).': 'Warning or banning marks the report as done right away. Tap the name for everything else (hide, rename, note).',
+    'Ankündigung': 'Announcement', 'Gerade keine Ankündigung.': 'No announcement right now.', 'Text auf Deutsch': 'Text in German', 'Text auf Englisch (optional)': 'Text in English (optional)',
+    'Erscheint als Hinweis unten auf der Startseite, für alle, auch ohne Konto. Englischsprachige Spieler sehen den englischen Text, wenn es einen gibt.': 'Shows as a note at the bottom of the home screen, for everyone, even without an account. English-speaking players see the English text if there is one.',
+    'Bis ich sie entferne': 'Until I remove it', '# Std.': '# h', '# Tag': '# day', '# Tage': '# days', '# Woche': '# week', 'Normal': 'Normal', 'Wichtig (rot)': 'Important (red)',
+    'Veröffentlichen': 'Publish', 'Entfernen': 'Remove', 'Zugang': 'Access', 'Neue Konten': 'New accounts', 'Gast-Zugang': 'Guest access',
+    'Aus: niemand kann sich gerade registrieren. Für eine Spam-Welle.': 'Off: nobody can sign up right now. For a spam wave.',
+    'Aus: keine neuen Gäste für schnelle Partien. Bestehende Konten spielen weiter.': 'Off: no new guests for quick games. Existing accounts keep playing.',
+    'Automatisch ausblenden': 'Hide automatically', 'Aus': 'Off', 'Ab #': 'From #',
+    'Melden so viele verschiedene Spieler jemanden innerhalb von # Stunden, kommt das Konto aus Ranglisten und Suche, bis ihr es euch anseht.': 'When this many different players report someone within # hours, the account is taken out of rankings and search until you look at it.',
+    'Gäste aufräumen': 'Clean up guests', 'Aufräumen': 'Clean up', 'Gerade keine alten Gastkonten.': 'No old guest accounts right now.', '{0} Gastkonten sind älter als # Tage.': '{0} guest accounts are older than # days.',
+    'Löscht Gastkonten, die seit # Tagen nicht mehr da waren, samt ihren Partien. Gäste zählen nirgends, ihr Fortschritt bleibt im Browser.': 'Deletes guest accounts not seen for # days, along with their games. Guests count nowhere; their progress stays in the browser.',
+    'Ankündigung ist sichtbar.': 'Announcement is live.', 'Ankündigung entfernt.': 'Announcement removed.', 'Wieder offen.': 'Open again.', 'Pausiert.': 'Paused.', 'Gespeichert.': 'Saved.',
+    'Schreib einen Text auf Deutsch.': 'Write a text in German.', 'Schreib kurz, worum es geht.': 'Write briefly what it is about.',
+    'verwarnt': 'warned', 'automatisch ausgeblendet': 'hidden automatically', 'Tisch annulliert': 'table voided', 'Ankündigung entfernt': 'announcement removed', 'Seiteneinstellungen': 'site settings', 'Gäste aufgeräumt': 'guests cleaned up',
+    // what players see
+    'Verwarnung vom Team': 'Warning from the team',
+    'Dein Benutzername verstößt gegen die Regeln. Bitte ändere ihn, sonst wird das Konto gesperrt.': 'Your username breaks the rules. Please change it, or the account will be banned.',
+    'Bitte bleib fair und freundlich. Beleidigungen und Spam führen zu einer Sperre.': 'Please stay fair and friendly. Insults and spam lead to a ban.',
+    'Bitte brich Partien nicht absichtlich ab und schummle nicht. Beim nächsten Mal wird das Konto gesperrt.': "Please don't quit games on purpose or cheat. Next time the account will be banned.",
+    'Bitte schick keine Spam-Einladungen und keine falschen Meldungen.': 'Please send no spam invites and no false reports.',
+    'Neue Konten sind gerade pausiert. Versuch es später nochmal.': 'New accounts are paused right now. Please try again later.',
+    'Der Gast-Zugang ist gerade pausiert. Versuch es später nochmal.': 'Guest access is paused right now. Please try again later.'
+  });
 
   // ---------- patterns: text with names, moves and hands ----------
   const t = V.t;

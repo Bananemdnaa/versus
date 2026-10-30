@@ -245,12 +245,22 @@
 
   // ---------- admin panel ----------
   let aTab = 'overview', mFilter = 'live', mQuery = '', matches = null, stats = null, online = null, players = null, logs = null, query = '', aErr = '', box = null, sure = null, liveT = null, busy = false, reports = null, rFilter = 'open';
+  let pFilter = '', site = null, purge = null;
+  // warning templates: the player sees them in their own language (js/lang/en.js has the English text)
+  const WARN = {
+    '@name': 'Dein Benutzername verstößt gegen die Regeln. Bitte ändere ihn, sonst wird das Konto gesperrt.',
+    '@abuse': 'Bitte bleib fair und freundlich. Beleidigungen und Spam führen zu einer Sperre.',
+    '@cheat': 'Bitte brich Partien nicht absichtlich ab und schummle nicht. Beim nächsten Mal wird das Konto gesperrt.',
+    '@spam': 'Bitte schick keine Spam-Einladungen und keine falschen Meldungen.'
+  };
+  const WARN_L = { '@name': 'Name', '@abuse': 'Beleidigung', '@cheat': 'Abbruch', '@spam': 'Spam' };
+  const LANG = { de: 'DE', en: 'EN' };
   function admin(t) {
     if (t) aTab = t;
     const v = V.ui.show('admin', `<div class="view admin">
       <div class="sbar"><button class="iconbtn" id="bk" aria-label="Zurück">${IC().back}</button><span class="crumb">Admin-Panel</span>
         ${C().role() ? `<em class="rtag ${C().role()}">${ROLE[C().role()]}</em>` : ''}</div>
-      <div class="chips" id="atabs">${[['overview', 'Übersicht'], ['matches', 'Partien'], ['players', 'Spieler'], ['reports', 'Meldungen'], ['log', 'Protokoll']].map(([k, l]) => `<button data-t="${k}" class="${aTab === k ? 'on' : ''}">${l}${k === 'reports' && reports && reports.open ? ` <small class="nb">${reports.open}</small>` : ''}</button>`).join('')}</div>
+      <div class="chips" id="atabs">${[['overview', 'Übersicht'], ['matches', 'Partien'], ['players', 'Spieler'], ['reports', 'Meldungen'], ['site', 'Seite'], ['log', 'Protokoll']].map(([k, l]) => `<button data-t="${k}" class="${aTab === k ? 'on' : ''}">${l}${k === 'reports' && reports && reports.open ? ` <small class="nb">${reports.open}</small>` : ''}</button>`).join('')}</div>
       <div id="abody" class="abody"></div></div>`);
     v.querySelector('#bk').onclick = () => { stopLive(); V.ui.home('profile'); };
     v.querySelectorAll('#atabs button').forEach(x => x.onclick = () => { aTab = x.dataset.t; aErr = ''; box = null; sure = null; V.sfx.ui(); v.querySelectorAll('#atabs button').forEach(y => y.classList.toggle('on', y === x)); draw(); load(); });
@@ -265,31 +275,34 @@
       if (V.ui.view() !== 'admin') return stopLive();
       if (aTab === 'overview') C().rpc('admin_online').then(o => { online = o || []; draw(); }, () => { });
       if (aTab === 'matches' && mFilter === 'live') C().rpc('admin_matches', { st: 'live', q: mQuery, lim: 60 }).then(m => { matches = m || []; draw(); }, () => { });
+      if (aTab === 'matches' && mFilter === 'tables') C().rpc('admin_tables', { st: 'live', q: mQuery, lim: 60 }).then(m => { matches = m || []; draw(); }, () => { });
     }, 20000);
   }
   function stopLive() { clearInterval(liveT); liveT = null; }
   async function load() {
     try {
       if (aTab === 'overview') { const [s, o] = await Promise.all([C().rpc('admin_stats'), C().rpc('admin_online')]); stats = s; online = o || []; }
-      if (aTab === 'players') players = await C().rpc('admin_players', { q: query, lim: 40 });
+      if (aTab === 'players') players = await C().rpc('admin_players', { q: query, lim: 40, f: pFilter });
       if (aTab === 'log') logs = await C().rpc('admin_log_list', { lim: 80 });
       if (aTab === 'reports') reports = await C().rpc('admin_reports', { st: rFilter, lim: 80 });
-      if (aTab === 'matches') matches = await C().rpc('admin_matches', { st: mFilter, q: mQuery, lim: 80 });
+      if (aTab === 'matches') matches = mFilter === 'tables' ? await C().rpc('admin_tables', { st: 'all', q: mQuery, lim: 80 }) : await C().rpc('admin_matches', { st: mFilter, q: mQuery, lim: 80 });
+      if (aTab === 'site') { const [s, p] = await Promise.all([C().rpc('admin_stats'), C().role() === 'owner' ? C().rpc('admin_purge_guests', { days: 30, dry: true }) : null]); stats = s; site = s.site || {}; purge = p; }
       aErr = '';
     } catch (e) { aErr = e.message; }
     draw();
   }
-  async function act(name, args, ok) {
+  async function act(name, args, ok) { return act2(() => C().rpc(name, args), ok); }
+  async function act2(run, ok) {
     if (busy) return; busy = true; draw();
-    try { await C().rpc(name, args); V.ui.toast(ok); box = null; sure = null; await load(); }
+    try { await run(); if (ok) V.ui.toast(ok); box = null; sure = null; await load(); }
     catch (e) { aErr = e.message; V.sfx.bad(); }
-    busy = false; draw();
+    busy = false; draw(true);
   }
   function draw(force) {
     const host = document.getElementById('abody'); if (!host) return;
     const keep = document.activeElement && host.contains(document.activeElement) && /INPUT|TEXTAREA/.test(document.activeElement.tagName);
     if (keep && !force) return;
-    host.innerHTML = (aErr ? `<p class="aerr big">${esc(aErr)}</p>` : '') + (aTab === 'overview' ? overview() : aTab === 'matches' ? matchList() : aTab === 'players' ? playerList() : aTab === 'reports' ? reportList() : logList());
+    host.innerHTML = (aErr ? `<p class="aerr big">${esc(aErr)}</p>` : '') + (aTab === 'overview' ? overview() : aTab === 'matches' ? matchList() : aTab === 'players' ? playerList() : aTab === 'reports' ? reportList() : aTab === 'site' ? sitePage() : logList());
     wireAdmin(host);
   }
   function overview() {
@@ -298,7 +311,17 @@
     const tile = (l, v, s) => `<div class="kpi"><b>${v}</b><span>${l}</span>${s ? `<small>${s}</small>` : ''}</div>`;
     const games = Object.entries(S.games || {}).sort((a, b) => b[1] - a[1]);
     const max = games.length ? games[0][1] : 1;
-    return `<div class="kpis">${tile('Spieler', S.players, '+' + S.new7 + ' in 7 Tagen')}${tile('Online', S.online)}${tile('Aktiv heute', S.active1, S.active7 + ' in 7 Tagen')}${tile('Partien', S.matches, (S.online_matches || 0) + ' online')}${tile('Live', S.live_matches || 0, (S.friendships || 0) + ' Freundschaften')}</div>
+    const days = S.days || [], dmax = Math.max(1, ...days.map(d => Math.max(d.new, d.games)));
+    const langs = Object.entries(S.langs || {}).sort((a, b) => b[1] - a[1]), lsum = langs.reduce((s, x) => s + x[1], 0) || 1;
+    const LN = { de: 'Deutsch', en: 'Englisch', '?': 'Unbekannt' };
+    const st = S.site || {};
+    const warn = [st.signups === false ? 'Neue Konten sind pausiert' : '', st.guests === false ? 'Gast-Zugang ist pausiert' : ''].filter(Boolean);
+    return `${warn.length ? `<button class="anote bad" data-t2="site">${IC().shield}<span>${warn.join(' · ')}</span></button>` : ''}
+      ${S.open_reports ? `<button class="anote" data-t2="reports">${IC().shield}<span>${S.open_reports} offene Meldungen</span></button>` : ''}
+      <div class="kpis">${tile('Spieler', S.players, '+' + S.new7 + ' in 7 Tagen · ' + (S.guests || 0) + ' Gäste')}${tile('Online', S.online)}${tile('Aktiv heute', S.active1, S.active7 + ' in 7 Tagen')}${tile('Partien', S.matches, (S.online_matches || 0) + ' online')}${tile('Live', (S.live_matches || 0) + (S.live_tables || 0), (S.live_tables || 0) + ' Tische · ' + (S.friendships || 0) + ' Freundschaften')}</div>
+      ${days.length ? `<div class="apanel"><h3>Letzte 14 Tage</h3>
+        <div class="achart">${days.map(d => `<div class="acol" title="${day(d.d)}: ${d.new} neu, ${d.games} online"><i class="g" style="--h:${Math.round(d.games / dmax * 100)}%"></i><i class="n" style="--h:${Math.round(d.new / dmax * 100)}%"></i><small>${new Date(d.d).getDate()}</small></div>`).join('')}</div>
+        <p class="fine"><i class="lg n"></i> neue Konten · <i class="lg g"></i> Online-Partien (Duelle und Tische)</p></div>` : ''}
       <div class="agrid">
         <div class="apanel"><h3>Gerade online <small>${(online || []).length}</small></h3>
           ${(online || []).length ? (online || []).map(o => `<div class="aline"><button class="link" data-p="${esc(o.username)}">${esc(o.username)}</button><span>${esc(gameName(o.game))}</span><small>${ago(o.seen)}</small></div>`).join('') : '<p class="muted">Gerade niemand.</p>'}
@@ -306,7 +329,10 @@
         <div class="apanel"><h3>Beliebte Spiele</h3>
           ${games.length ? games.map(([id, n]) => `<div class="abar"><span>${esc(gameName(id))}</span><i style="--w:${Math.round(n / max * 100)}%"></i><b>${n}</b></div>`).join('') : '<p class="muted">Noch keine Partien.</p>'}</div>
         <div class="apanel"><h3>Neue Spieler</h3>
-          ${(S.recent || []).map(p => `<div class="aline"><button class="link" data-p="${esc(p.username)}">${esc(p.username)}</button><small>${day(p.joined)}</small></div>`).join('') || '<p class="muted">Noch niemand.</p>'}</div>
+          ${(S.recent || []).map(p => `<div class="aline"><button class="link" data-p="${esc(p.username)}">${esc(p.username)}</button>${p.lang ? `<em class="rtag">${LANG[p.lang]}</em>` : ''}<small>${day(p.joined)}</small></div>`).join('') || '<p class="muted">Noch niemand.</p>'}</div>
+        ${langs.length ? `<div class="apanel"><h3>Sprachen</h3>
+          ${langs.map(([l, n]) => `<div class="abar"><span>${LN[l] || l}</span><i style="--w:${Math.round(n / lsum * 100)}%"></i><b>${n}</b></div>`).join('')}
+          <p class="fine">Spieler der letzten 30 Tage, nach Sprache im Spiel.</p></div>` : ''}
         <div class="apanel"><h3>Team</h3>
           ${(S.team || []).map(t => `<div class="aline"><button class="link" data-p="${esc(t.username)}">${esc(t.username)}</button><em class="rtag ${t.role}">${ROLE[t.role]}</em></div>`).join('')}
           <p class="fine">${S.banned} gesperrt · ${S.hidden} ausgeblendet</p></div>
@@ -319,22 +345,27 @@
       const n = esc(p.username), st = p.stats || {};
       const canEdit = owner || !p.role || p.me;
       const tags = [p.role ? `<em class="rtag ${p.role}">${ROLE[p.role]}</em>` : '', p.dev ? '<em class="rtag dev">Dev</em>' : '',
-        p.hidden ? '<em class="rtag muted">Ausgeblendet</em>' : '', p.banned_until ? `<em class="rtag bad">Gesperrt bis ${day(p.banned_until)}</em>` : ''].join('');
+        p.guest ? '<em class="rtag">Gast</em>' : '', p.lang ? `<em class="rtag">${LANG[p.lang]}</em>` : '',
+        p.hidden && !p.guest ? '<em class="rtag muted">Ausgeblendet</em>' : '', p.banned_until ? `<em class="rtag bad">Gesperrt bis ${day(p.banned_until)}</em>` : '',
+        p.reports ? `<em class="rtag${p.reports_open ? ' bad' : ''}">${p.reports}× gemeldet${p.reports_open ? ` · ${p.reports_open} offen` : ''}</em>` : '',
+        p.warns ? `<em class="rtag">${p.warns}× verwarnt</em>` : ''].join('');
       const online = p.seen && Date.now() - new Date(p.seen).getTime() < 120000;
       const btn = (a, l, cls = '') => `<button class="btn ghost sm ${cls}" data-a="${a}" data-n="${n}"${busy ? ' disabled' : ''}><span>${l}</span></button>`;
       const confirmBtn = (key, l, l2, a) => sure === key + n ? btn(a, l2, 'danger') : `<button class="btn ghost sm" data-sure="${key + n}"><span>${l}</span></button>`;
       let boxHtml = '';
-      if (box === 'ban:' + n) boxHtml = `<div class="abox"><input class="inp" id="ban_r" maxlength="200" placeholder="Grund (optional, nur für Admins sichtbar)">
-        <div class="arow">${[[1, '1 Tag'], [7, '7 Tage'], [30, '30 Tage'], [0, 'Dauerhaft']].map(([d, l]) => `<button class="btn sm danger" data-ban="${d}" data-n="${n}"><span>${l}</span></button>`).join('')}</div></div>`;
+      if (box === 'ban:' + n) boxHtml = banBox(n);
       if (box === 'note:' + n) boxHtml = `<div class="abox"><textarea class="inp" id="note_t" maxlength="500" rows="3" placeholder="Private Notiz für das Team">${esc(p.note || '')}</textarea><button class="btn sm" data-a="note_save" data-n="${n}"><span>Speichern</span></button></div>`;
+      if (box === 'warn:' + n) boxHtml = warnBox(n);
       if (box === 'ren:' + n) boxHtml = `<div class="abox"><input class="inp" id="ren_n" maxlength="16" value="${n}" autocapitalize="none" spellcheck="false"><button class="btn sm" data-a="ren_save" data-n="${n}"><span>Umbenennen</span></button></div>`;
       return `<div class="pcard-a${online ? ' on' : ''}">
         <div class="pa-top"><span class="adot"></span><b>${n}</b>${tags}</div>
-        <div class="pa-info">Dabei seit ${day(p.joined)} · ${online ? '<b class="good">online</b> · ' + esc(gameName(p.game)) : 'zuletzt ' + ago(p.seen)} · ${st.played || 0} Partien · KI ${st.ai_wins || 0}:${(st.ai_games || 0) - (st.ai_wins || 0)}</div>
+        <div class="pa-info">Dabei seit ${day(p.joined)} · ${online ? '<b class="good">online</b> · ' + esc(gameName(p.game)) : 'zuletzt ' + ago(p.seen)} · ${st.played || 0} Partien · KI ${st.ai_wins || 0}:${(st.ai_games || 0) - (st.ai_wins || 0)}${p.online_games != null ? ` · ${p.online_games} online · ${p.friends || 0} Freunde` : ''}${p.invited_by ? ` · eingeladen von <button class="link" data-p="${esc(p.invited_by)}">${esc(p.invited_by)}</button>` : ''}</div>
+        ${p.last_warn ? `<div class="pa-note">Letzte Verwarnung: ${esc(WARN_L[p.last_warn] || p.last_warn)}</div>` : ''}
         ${p.ban_reason ? `<div class="pa-note bad">Sperrgrund: ${esc(p.ban_reason)}</div>` : ''}
         ${p.note ? `<div class="pa-note">Notiz${p.note_by ? ' von ' + esc(p.note_by) : ''}: ${esc(p.note)}</div>` : ''}
         ${canEdit ? `<div class="arow wrap">
           ${btn(p.hidden ? 'show' : 'hide', p.hidden ? 'Einblenden' : 'Ausblenden')}
+          ${p.role === 'owner' || p.me ? '' : `<button class="btn ghost sm" data-box="warn:${n}"><span>Verwarnen …</span></button>`}
           ${p.banned_until ? btn('unban', 'Entsperren') : p.role === 'owner' || p.me ? '' : `<button class="btn ghost sm" data-box="ban:${n}"><span>Sperren …</span></button>`}
           <button class="btn ghost sm" data-box="note:${n}"><span>${p.note ? 'Notiz ändern' : 'Notiz'}</span></button>
           <button class="btn ghost sm" data-box="ren:${n}"><span>Umbenennen</span></button>
@@ -345,11 +376,35 @@
       </div>`;
     }).join('');
     return `<div class="asearch"><input class="inp" id="aq" placeholder="Spieler suchen (Namensanfang)" value="${esc(query)}" autocapitalize="none" spellcheck="false"><button class="btn ghost sm" id="reload"><span>${IC().redo}</span></button></div>
+      <div class="chips mini" id="pf">${[['', 'Zuletzt aktiv'], ['new', 'Neu'], ['reported', 'Gemeldet'], ['banned', 'Gesperrt'], ['hidden', 'Ausgeblendet'], ['guest', 'Gäste'], ['en', 'Englisch']].map(([k, l]) => `<button data-pf="${k}" class="${pFilter === k ? 'on' : ''}">${l}</button>`).join('')}</div>
       ${players ? cards || '<p class="muted">Niemand gefunden.</p>' : V.skel()}`;
   }
   // match log: running and finished online matches; each one can be watched live or replayed move by move
+  function filterBar() {
+    return `<div class="asearch"><div class="chips mini" id="mf">${[['live', 'Laufend'], ['done', 'Beendet'], ['all', 'Alle'], ['tables', 'Tische']].map(([k, l]) => `<button data-mf="${k}" class="${mFilter === k ? 'on' : ''}">${l}</button>`).join('')}</div>
+        <input class="inp" id="mq" placeholder="Spieler" value="${esc(mQuery)}" autocapitalize="none" spellcheck="false"><button class="btn ghost sm" id="reload"><span>${IC().redo}</span></button></div>`;
+  }
+  // online tables (2-4 players): who sits where, who is still there; a stuck or abused table can be voided
+  function tableList() {
+    const ST = { lobby: 'wartet auf Spieler', live: 'läuft', done: 'beendet', canceled: 'abgebrochen', void: 'annulliert' };
+    const rows = (matches || []).map(t => {
+      const live = t.status === 'live' || t.status === 'lobby';
+      const seats = (t.seats || []).map((s, i) => !s ? '<i class="muted">frei</i>' : s === 'KI' ? '<i>KI</i>'
+        : `<button class="link${t.winner === i + 1 ? ' good' : ''}" data-p="${esc(s)}">${esc(s)}</button>${live && t.status === 'live' && t.online && !t.online[i] ? ' <small class="muted">(weg)</small>' : ''}`).join(' · ');
+      return `<div class="mrow${live ? ' live' : ''}">
+        <div class="m-g">${V.byId[t.game] ? V.byId[t.game].icon : ''}</div>
+        <div class="m-t"><b>${seats}</b>
+          <small>${esc(gameName(t.game))} · Tisch ${esc(t.code)} · ${t.moves} Züge · ${when(t.finished_at || t.started_at || t.created_at)}</small>
+          <span class="m-r">${t.status === 'live' ? '<em class="rtag live">Live</em> ' : ''}${ST[t.status] || esc(t.status)}${t.result && t.status === 'void' ? ' · ' + esc(t.result) : ''}</span></div>
+        <div class="m-a">${t.status !== 'void' && t.status !== 'canceled' ? (sure === 'vt:' + t.id ? `<button class="btn ghost sm danger" data-vtab="${t.id}"><span>Wirklich annullieren?</span></button>` : `<button class="btn ghost sm" data-sure="vt:${t.id}"><span>Annullieren</span></button>`) : ''}</div>
+      </div>`;
+    }).join('');
+    return `${filterBar()}<p class="fine">Online-Tische für 2 bis 4 Spieler (Ludo, Mau-Mau, Poker …). Laufende Tische aktualisieren sich alle 20 Sekunden.</p>
+      ${matches ? rows || '<p class="muted">Keine Tische.</p>' : V.skel()}`;
+  }
   function matchList() {
-    const ST = { invited: 'wartet auf Antwort', live: 'läuft', done: 'beendet', void: 'annulliert' };
+    if (mFilter === 'tables') return tableList();
+    const ST ={ invited: 'wartet auf Antwort', live: 'läuft', done: 'beendet', void: 'annulliert' };
     const RES = { win: 'gewonnen', draw: 'remis', resign: 'aufgegeben', abandon: 'verlassen', time: 'Zeit abgelaufen', mismatch: 'Ergebnis strittig' };
     const rows = (matches || []).map(m => {
       const a = esc(m.a), b = esc(m.b);
@@ -365,16 +420,52 @@
           ${m.status === 'live' || m.status === 'done' ? (sure === 'void:' + m.id ? `<button class="btn ghost sm danger" data-void="${m.id}"><span>Wirklich annullieren?</span></button>` : `<button class="btn ghost sm" data-sure="void:${m.id}"><span>Annullieren</span></button>`) : ''}</div>
       </div>`;
     }).join('');
-    return `<div class="asearch"><div class="chips mini" id="mf">${[['live', 'Laufend'], ['done', 'Beendet'], ['all', 'Alle']].map(([k, l]) => `<button data-mf="${k}" class="${mFilter === k ? 'on' : ''}">${l}</button>`).join('')}</div>
-        <input class="inp" id="mq" placeholder="Spieler" value="${esc(mQuery)}" autocapitalize="none" spellcheck="false"><button class="btn ghost sm" id="reload"><span>${IC().redo}</span></button></div>
+    return `${filterBar()}
       ${mFilter === 'live' ? '<p class="fine">Laufende Partien aktualisieren sich alle 20 Sekunden. „Zuschauen“ zeigt das Brett live, „Abspielen“ spielt eine beendete Partie Zug für Zug nach.</p>' : ''}
       ${matches ? rows || '<p class="muted">Keine Partien.</p>' : V.skel()}`;
   }
   function logList() {
-    const L = { hide: 'ausgeblendet', show: 'eingeblendet', ban: 'gesperrt', unban: 'entsperrt', note: 'Notiz', rename: 'umbenannt', reset_stats: 'Bilanz zurückgesetzt', admin_on: 'zum Admin gemacht', admin_off: 'Admin entzogen', dev_on: 'Dev-Konto an', dev_off: 'Dev-Konto aus', void_match: 'Partie annulliert', report_done: 'Meldung erledigt', report_open: 'Meldung wieder offen' };
+    const L = { hide: 'ausgeblendet', show: 'eingeblendet', ban: 'gesperrt', unban: 'entsperrt', note: 'Notiz', rename: 'umbenannt', reset_stats: 'Bilanz zurückgesetzt', admin_on: 'zum Admin gemacht', admin_off: 'Admin entzogen', dev_on: 'Dev-Konto an', dev_off: 'Dev-Konto aus', void_match: 'Partie annulliert', report_done: 'Meldung erledigt', report_open: 'Meldung wieder offen',
+      warn: 'verwarnt', auto_hide: 'automatisch ausgeblendet', void_table: 'Tisch annulliert', notice: 'Ankündigung', notice_off: 'Ankündigung entfernt', site: 'Seiteneinstellungen', purge_guests: 'Gäste aufgeräumt' };
     if (!logs) return V.skel();
     if (!logs.length) return '<p class="muted">Noch keine Admin-Aktionen.</p>';
-    return `<div class="apanel">${logs.map(l => `<div class="aline log"><small>${when(l.created_at)}</small><b>${esc(l.admin_name || '?')}</b><span>${esc(L[l.action] || l.action)} <button class="link" data-p="${esc(l.target || '')}">${esc(l.target || '')}</button>${l.detail ? ' · ' + esc(l.detail) : ''}</span></div>`).join('')}</div>`;
+    // a void_table target is a table code, not a player
+    return `<div class="apanel">${logs.map(l => `<div class="aline log"><small>${when(l.created_at)}</small><b>${esc(l.admin_name || '?')}</b><span>${esc(L[l.action] || l.action)} ${l.action === 'void_table' ? esc(l.target || '') : `<button class="link" data-p="${esc(l.target || '')}">${esc(l.target || '')}</button>`}${l.detail ? ' · ' + esc(WARN_L[l.detail] || l.detail) : ''}</span></div>`).join('')}</div>`;
+  }
+  function warnBox(n, rid) {
+    return `<div class="abox"><div class="arow">${Object.keys(WARN).map(k => `<button class="btn sm" data-warn="${k}" data-n="${n}"${rid ? ` data-rid="${rid}"` : ''}><span>${WARN_L[k]}</span></button>`).join('')}</div>
+      <p class="fine">Vorlagen sieht der Spieler in seiner Sprache (Deutsch oder Englisch). Eigener Text geht auch, kommt aber genau so an.</p>
+      <input class="inp" id="warn_t" maxlength="300" placeholder="Eigener Text">
+      <button class="btn sm" data-warn="" data-n="${n}"${rid ? ` data-rid="${rid}"` : ''}><span>Verwarnen</span></button></div>`;
+  }
+  function banBox(n, rid) {
+    return `<div class="abox"><input class="inp" id="ban_r" maxlength="200" placeholder="Grund (optional, nur für Admins sichtbar)">
+      <div class="arow">${[[1, '1 Tag'], [7, '7 Tage'], [30, '30 Tage'], [0, 'Dauerhaft']].map(([d, l]) => `<button class="btn sm danger" data-ban="${d}" data-n="${n}"${rid ? ` data-rid="${rid}"` : ''}><span>${l}</span></button>`).join('')}</div></div>`;
+  }
+  // site settings: announcement for everyone, emergency switches for a spam wave after a public post, guest clean-up
+  function sitePage() {
+    if (!site) return V.skel();
+    const s = site, owner = C().role() === 'owner';
+    const active = s.txt && (!s.until || new Date(s.until) > new Date());
+    const sw = (k, on, l, d) => `<button class="opt" data-site="${k}" data-on="${on ? 1 : 0}" role="switch" aria-checked="${on}"${busy ? ' disabled' : ''}>${IC().shield}<span><b>${l}</b><small>${d}</small></span><i class="sw ${on ? 'on' : ''}"></i></button>`;
+    return `<div class="apanel"><h3>Ankündigung</h3>
+        ${active ? `<div class="pa-note${s.kind === 'warn' ? ' bad' : ''}">Gerade sichtbar${s.until ? ' bis ' + when(s.until) : ''}: ${esc(s.txt)}${s.txt_en ? `<br><small>EN: ${esc(s.txt_en)}</small>` : ''}</div>` : '<p class="muted">Gerade keine Ankündigung.</p>'}
+        <p class="fine">Erscheint als Hinweis unten auf der Startseite, für alle, auch ohne Konto. Englischsprachige Spieler sehen den englischen Text, wenn es einen gibt.</p>
+        <textarea class="inp" id="n_de" maxlength="300" rows="2" placeholder="Text auf Deutsch">${esc(active ? s.txt : '')}</textarea>
+        <textarea class="inp" id="n_en" maxlength="300" rows="2" placeholder="Text auf Englisch (optional)">${esc(active ? s.txt_en || '' : '')}</textarea>
+        <div class="chips mini" id="nh">${[['', 'Bis ich sie entferne'], ['1', '1 Std.'], ['6', '6 Std.'], ['24', '1 Tag'], ['72', '3 Tage'], ['168', '1 Woche']].map(([k, l]) => `<button data-nh="${k}" class="${k === '' ? 'on' : ''}">${l}</button>`).join('')}</div>
+        <div class="chips mini" id="nk">${[['info', 'Normal'], ['warn', 'Wichtig (rot)']].map(([k, l]) => `<button data-nk="${k}" class="${(s.kind || 'info') === k ? 'on' : ''}">${l}</button>`).join('')}</div>
+        <div class="arow"><button class="btn sm primary" id="n_save"${busy ? ' disabled' : ''}><span>Veröffentlichen</span></button>${active ? `<button class="btn ghost sm" id="n_off"${busy ? ' disabled' : ''}><span>Entfernen</span></button>` : ''}</div></div>
+      <div class="apanel"><h3>Zugang</h3>
+        ${sw('signups', s.signups !== false, 'Neue Konten', 'Aus: niemand kann sich gerade registrieren. Für eine Spam-Welle.')}
+        ${sw('guests', s.guests !== false, 'Gast-Zugang', 'Aus: keine neuen Gäste für schnelle Partien. Bestehende Konten spielen weiter.')}
+        <h4>Automatisch ausblenden</h4>
+        <p class="fine">Melden so viele verschiedene Spieler jemanden innerhalb von 24 Stunden, kommt das Konto aus Ranglisten und Suche, bis ihr es euch anseht.</p>
+        <div class="chips mini" id="ah">${[[0, 'Aus'], [2, 'Ab 2'], [3, 'Ab 3'], [5, 'Ab 5']].map(([k, l]) => `<button data-ah="${k}" class="${(s.auto_hide ?? 3) === k ? 'on' : ''}">${l}</button>`).join('')}</div></div>
+      ${owner ? `<div class="apanel"><h3>Gäste aufräumen</h3>
+        <p class="fine">Löscht Gastkonten, die seit 30 Tagen nicht mehr da waren, samt ihren Partien. Gäste zählen nirgends, ihr Fortschritt bleibt im Browser.</p>
+        <p>${purge == null ? '' : purge ? `<b>${purge}</b> Gastkonten sind älter als 30 Tage.` : 'Gerade keine alten Gastkonten.'}</p>
+        ${purge ? (sure === 'purge' ? `<button class="btn sm danger" id="purge"><span>Wirklich ${purge} löschen?</span></button>` : `<button class="btn ghost sm" data-sure="purge"><span>Aufräumen</span></button>`) : ''}</div>` : ''}`;
   }
   // reports from players: who, why, the match if there was one; the name opens the player card (ban, hide, rename)
   function reportList() {
@@ -384,9 +475,11 @@
           <small>von ${r.reporter ? `<button class="link" data-p="${esc(r.reporter)}">${esc(r.reporter)}</button>` : '?'} · ${when(r.at)}${r.game ? ' · ' + esc(gameName(r.game)) : ''}${r.status === 'done' ? ' · erledigt' + (r.by ? ' von ' + esc(r.by) : '') : ''}</small>
           ${r.note ? `<span class="m-r">„${esc(r.note)}“</span>` : ''}</div>
         <div class="m-a">${r.match ? `<button class="btn sm" data-watch="${r.match}"><span>Partie</span></button>` : ''}
-          <button class="btn ghost sm" data-rdone="${r.id}" data-v="${r.status === 'open' ? 1 : 0}"><span>${r.status === 'open' ? 'Erledigt' : 'Wieder öffnen'}</span></button></div></div>`).join('');
+          ${r.status === 'open' ? `<button class="btn ghost sm" data-box="rw:${r.id}"><span>Verwarnen …</span></button>${r.banned ? '' : `<button class="btn ghost sm" data-box="rb:${r.id}"><span>Sperren …</span></button>`}` : ''}
+          <button class="btn ghost sm" data-rdone="${r.id}" data-v="${r.status === 'open' ? 1 : 0}"><span>${r.status === 'open' ? 'Erledigt' : 'Wieder öffnen'}</span></button></div>
+        ${box === 'rw:' + r.id ? warnBox(esc(r.target), r.id) : box === 'rb:' + r.id ? banBox(esc(r.target), r.id) : ''}</div>`).join('');
     return `<div class="asearch"><div class="chips mini" id="rf">${[['open', 'Offen'], ['all', 'Alle']].map(([k, l]) => `<button data-rf="${k}" class="${rFilter === k ? 'on' : ''}">${l}</button>`).join('')}</div><button class="btn ghost sm" id="reload"><span>${IC().redo}</span></button></div>
-      <p class="fine">Tipp auf den Namen, um den Spieler zu sperren, auszublenden oder umzubenennen. Danach die Meldung auf „Erledigt“ setzen.</p>
+      <p class="fine">Verwarnen oder Sperren setzt die Meldung gleich auf „Erledigt“. Tipp auf den Namen für alles andere (ausblenden, umbenennen, Notiz).</p>
       ${reports ? rows || `<p class="muted">${rFilter === 'open' ? 'Keine offenen Meldungen.' : 'Noch keine Meldungen.'}</p>` : V.skel()}`;
   }
   let qTimer = null;
@@ -407,10 +500,34 @@
     h.querySelectorAll('[data-void]').forEach(x => x.onclick = () => act('admin_void_match', { mid: x.dataset.void, why: null }, 'Partie annulliert.'));
     h.querySelectorAll('[data-box]').forEach(x => x.onclick = () => { box = box === x.dataset.box ? null : x.dataset.box; sure = null; draw(); });
     h.querySelectorAll('[data-sure]').forEach(x => x.onclick = () => { sure = x.dataset.sure; draw(); });
+    // from a report: the action also closes the report
+    const thenDone = x => x.dataset.rid ? C().rpc('admin_report_done', { rid: +x.dataset.rid, done: true }) : Promise.resolve();
     h.querySelectorAll('[data-ban]').forEach(x => x.onclick = () => {
       const d = +x.dataset.ban, n = x.dataset.n, reason = (h.querySelector('#ban_r') || {}).value || null;
-      act('admin_ban', { name: n, days: d || null, reason }, `${n} ist ${d ? 'für ' + x.textContent.trim() : 'dauerhaft'} gesperrt.`);
+      act2(() => C().rpc('admin_ban', { name: n, days: d || null, reason }).then(() => thenDone(x)), `${n} ist ${d ? 'für ' + x.textContent.trim() : 'dauerhaft'} gesperrt.`);
     });
+    h.querySelectorAll('[data-warn]').forEach(x => x.onclick = () => {
+      const n = x.dataset.n, txt = x.dataset.warn || (h.querySelector('#warn_t') || {}).value || '';
+      act2(() => C().rpc('admin_warn', { name: n, txt }).then(() => thenDone(x)), n + ' ist verwarnt. Die Verwarnung erscheint beim nächsten Öffnen.');
+    });
+    h.querySelectorAll('[data-pf]').forEach(x => x.onclick = () => { pFilter = x.dataset.pf; players = null; V.sfx.ui(); draw(); load(); });
+    h.querySelectorAll('[data-t2]').forEach(x => x.onclick = () => { aTab = x.dataset.t2; V.sfx.ui(); admin(); });
+    h.querySelectorAll('[data-vtab]').forEach(x => x.onclick = () => act('admin_void_table', { tid: x.dataset.vtab, why: null }, 'Tisch annulliert.'));
+    // site page
+    const nv = id => (h.querySelector(id) || {}).value || '';
+    const ns = h.querySelector('#n_save');
+    // duration and kind chips switch in place, so the typed text stays
+    const pick = sel => h.querySelectorAll(sel).forEach(x => x.onclick = () => { h.querySelectorAll(sel).forEach(y => y.classList.toggle('on', y === x)); V.sfx.ui(); });
+    pick('[data-nh]'); pick('[data-nk]');
+    const onv = (sel, k) => { const b = h.querySelector(sel + '.on'); return b ? b.dataset[k] : ''; };
+    if (ns) ns.onclick = () => {
+      if (!nv('#n_de').trim()) return V.ui.toast('Schreib einen Text auf Deutsch.');
+      act('admin_set_notice', { txt: nv('#n_de'), txt_en: nv('#n_en'), hours: +onv('[data-nh]', 'nh') || null, kind: onv('[data-nk]', 'nk') || 'info' }, 'Ankündigung ist sichtbar.');
+    };
+    const no = h.querySelector('#n_off'); if (no) no.onclick = () => act('admin_set_notice', { txt: '', txt_en: null, hours: null, kind: 'info' }, 'Ankündigung entfernt.');
+    h.querySelectorAll('[data-site]').forEach(x => x.onclick = () => { const on = x.dataset.on !== '1'; act('admin_set_site', { [x.dataset.site]: on }, on ? 'Wieder offen.' : 'Pausiert.'); });
+    h.querySelectorAll('[data-ah]').forEach(x => x.onclick = () => act('admin_set_site', { auto_hide: +x.dataset.ah }, 'Gespeichert.'));
+    const pg = h.querySelector('#purge'); if (pg) pg.onclick = () => act2(() => C().rpc('admin_purge_guests', { days: 30, dry: false }).then(n => V.ui.toast(n + ' Gastkonten gelöscht.')), null);
     h.querySelectorAll('[data-a]').forEach(x => x.onclick = () => {
       const n = x.dataset.n;
       const A = {

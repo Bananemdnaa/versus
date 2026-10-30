@@ -147,6 +147,11 @@
   }
 
   async function need() { if (!(await lib)) throw new Error('Keine Verbindung zum Server.'); }
+  // the team can pause new accounts or guests (spam wave); the server blocks them too, this only gives a clear message
+  async function paused(k) {
+    let s = null; try { s = (await sb.rpc('site_notice')).data; } catch (e) { }
+    if (s && s[k] === false) throw new Error(k === 'guests' ? 'Der Gast-Zugang ist gerade pausiert. Versuch es später nochmal.' : 'Neue Konten sind gerade pausiert. Versuch es später nochmal.');
+  }
 
   // ---------- captcha (Cloudflare Turnstile) ----------
   // Only shows something when Cloudflare wants an interaction; most of the time the token comes back silently.
@@ -218,6 +223,7 @@
       const u = clean(name);
       if (!NAME_RE.test(u)) throw new Error('Benutzername: 3 bis 16 Zeichen, nur a–z, 0–9, _ und -.');
       if (String(pw).length < 6) throw new Error('Das Passwort ist zu kurz (mindestens 6 Zeichen).');
+      await paused('signups');
       const d = check(await sb.auth.signUp({ email: u + '@' + MAIL, password: pw, options: { data: { username: u }, captchaToken: await captcha() } }));
       if (!d.session) throw new Error('Konto angelegt, aber auf dem Server ist „Confirm email“ noch an.');
       user = d.user; await afterLogin();
@@ -231,6 +237,7 @@
     async signInGuest() {
       await need();
       if (user) return;
+      await paused('guests');
       const d = check(await sb.auth.signInAnonymously({ options: { captchaToken: await captcha() } }));
       user = d.user; await afterLogin();
     },

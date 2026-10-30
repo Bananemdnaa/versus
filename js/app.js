@@ -1064,6 +1064,47 @@
     };
     bar.querySelector('.x').onclick = () => { bar.classList.add('out'); setTimeout(() => bar.remove(), 250); };
   }
+  // announcement from the team (maintenance, news): a bar like the update bar; closed it stays closed until the text changes
+  let noticeAt = 0;
+  function noticeBar() {
+    if (!V.cloud || !V.cloud.available() || navigator.onLine === false || Date.now() - noticeAt < 300000) return;
+    noticeAt = Date.now();
+    V.cloud.rpc('site_notice').then(n => {
+      const txt = n && (V.lang === 'en' && n.txt_en ? n.txt_en : n.txt), key = n && n.at;
+      const old = document.querySelector('.upbar.note');
+      if (old && old.dataset.k !== key) old.remove();
+      if (!txt || S.get('noticeSeen') === key || document.querySelector('.upbar')) return;
+      const bar = V.el('div', 'upbar note' + (n.kind === 'warn' ? ' warn' : ''), `${IC.bell || IC.help}<span><b class="nt"></b></span><button class="x" aria-label="Schließen">${IC.x}</button>`);
+      bar.dataset.k = key;
+      // the team's own words: never translated, never HTML
+      const b = bar.querySelector('.nt'); b.textContent = txt; b.setAttribute('translate', 'no');
+      document.body.appendChild(bar);
+      bar.querySelector('.x').onclick = () => { S.set('noticeSeen', key); bar.classList.add('out'); setTimeout(() => bar.remove(), 250); };
+    }, () => { noticeAt = 0; });
+  }
+  // a warning from the team: shown once, the player confirms it
+  const WARN = {
+    '@name': 'Dein Benutzername verstößt gegen die Regeln. Bitte ändere ihn, sonst wird das Konto gesperrt.',
+    '@abuse': 'Bitte bleib fair und freundlich. Beleidigungen und Spam führen zu einer Sperre.',
+    '@cheat': 'Bitte brich Partien nicht absichtlich ab und schummle nicht. Beim nächsten Mal wird das Konto gesperrt.',
+    '@spam': 'Bitte schick keine Spam-Einladungen und keine falschen Meldungen.'
+  };
+  function checkWarnings() {
+    V.cloud.rpc('my_warnings').then(list => {
+      if (!list || !list.length) return;
+      const show = () => {
+        if (modalEl) return setTimeout(show, 3000);
+        const m = openModal(`<div class="confirm"><span class="abig bad">!</span><h2>Verwarnung vom Team</h2>
+          ${list.map(w => WARN[w.txt] ? `<p>${WARN[w.txt]}</p>` : `<p class="wtxt"></p>`).join('')}
+          <div class="actions"><button class="btn primary" id="wok"><span>Verstanden</span></button></div></div>`, '', () => V.cloud.rpc('warnings_seen').catch(() => { }));
+        // own text from the team as plain text
+        const own = list.filter(w => !WARN[w.txt]);
+        m.querySelectorAll('.wtxt').forEach((p, i) => { p.textContent = own[i].txt; p.setAttribute('translate', 'no'); });
+        m.querySelector('#wok').onclick = closeModal;
+      };
+      show();
+    }, () => { });
+  }
   function registerSW() {
     if (!('serviceWorker' in navigator) || !/^https?:$/.test(location.protocol)) return;
     navigator.serviceWorker.register('sw.js').then(reg => {
@@ -1159,6 +1200,8 @@
       const who = id !== cloudUser;
       cloudUser = id; cloudKnown = known;
       if (id && settings.stealth) V.cloud.rpc('set_stealth', { hide: true }).catch(() => { });
+      // the team sees which language a player reads, and warnings from the team show up once
+      if (id) { V.cloud.rpc('set_lang', { l: V.lang }).catch(() => { }); checkWarnings(); }
       // an open game sheet shows the new locks and modes too
       if (sheetRoot && sheetRoot.isConnected && selected) renderPanel(sheetRoot, selected, true);
       // the account tab is drawn again too when the login changed (a restored session must not leave the login form up)
@@ -1191,7 +1234,11 @@
     registerSW();
     netState();
     if (!document.getElementById('fx')) { const f = V.el('div'); f.id = 'fx'; document.body.appendChild(f); }
-    if (V.cloud && V.cloud.available()) { V.cloud.on(onCloud); V.cloud.init(); }
+    if (V.cloud && V.cloud.available()) {
+      V.cloud.on(onCloud); V.cloud.init();
+      setTimeout(noticeBar, 2500);
+      document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') noticeBar(); });
+    }
     const b = document.getElementById('boot');
     if (!b || !V.fxOn() || settings.intro === false || getComputedStyle(b).display === 'none') { if (b) b.remove(); start(); setTimeout(greet, 300); return; }
     let opened = false;

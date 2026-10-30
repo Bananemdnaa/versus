@@ -1699,3 +1699,24 @@ textarea.inp{height:auto}
 .plinkr{margin-top:10px;padding-top:10px;border-top:1px solid var(--line)}
 .alist{display:flex;flex-direction:column;gap:8px}
 .mrow .good{color:var(--good);font-weight:600}
+
+/* ---------- admin: site page, 14-day chart, notes; team announcement bar ---------- */
+.mrow.rep{flex-wrap:wrap} .mrow>.abox{flex-basis:100%;margin:4px -14px -12px;border-radius:0 0 10px 10px}
+.abox>.arow,.abox>.fine{flex-basis:100%}
+.apanel>.opt{padding:12px 0;background:none} .apanel>.opt>svg{color:var(--cyan)}
+.apanel>.chips.mini{flex-wrap:wrap;overflow:visible}
+.apanel textarea.inp{width:100%;resize:vertical;margin-bottom:6px}
+.anote{display:flex;align-items:center;gap:10px;width:100%;margin-bottom:10px;padding:10px 14px;background:rgba(255,214,10,.08);border:1px solid var(--yellow);border-radius:8px;text-align:left;font-weight:600}
+.anote svg{width:18px;height:18px;color:var(--yellow);flex:none}
+.anote.bad{background:rgba(255,93,115,.1);border-color:var(--bad)} .anote.bad svg{color:var(--bad)}
+.achart{display:grid;grid-template-columns:repeat(14,1fr);gap:4px;height:120px;align-items:end;margin:4px 0 6px}
+.acol{position:relative;height:100%;display:flex;align-items:flex-end;justify-content:center;gap:2px;padding-bottom:16px}
+.acol i{width:42%;height:var(--h);min-height:2px;transform:skewX(-8deg)}
+.acol i.g,.lg.g{background:var(--cyan)} .acol i.n,.lg.n{background:var(--pink)}
+.acol small{position:absolute;bottom:0;left:0;right:0;text-align:center;font-size:11px;color:var(--dim);font-variant-numeric:tabular-nums}
+.lg{display:inline-block;width:10px;height:10px;vertical-align:-1px;transform:skewX(-12deg)}
+.upbar.note{border-left-color:var(--yellow)} .upbar.note>svg{color:var(--yellow)}
+.upbar.note.warn{border-left-color:var(--bad)} .upbar.note.warn>svg{color:var(--bad)}
+.upbar.note b{font-weight:600;line-height:1.35;white-space:pre-line}
+@media (max-width:760px){.upbar.note{bottom:calc(92px + env(safe-area-inset-bottom,0px))}}
+.abig.bad{background:var(--bad)}
