@@ -1,5 +1,5 @@
 ﻿# Builds one page per game for search engines: games/<name>/ (English) and de/spiele/<name>/ (German),
-# the two overviews, sitemap.xml and the <noscript> game list in index.html.
+# the two overviews, sitemap.xml, games/rules.json (for the Discord command /rules) and the <noscript> game list in index.html.
 # The texts (names, descriptions, rules and their translations) come from the app itself, read with headless Chrome.
 # Usage: powershell -ExecutionPolicy Bypass -File tools/pages.ps1   (again after adding a game or changing its texts)
 $ErrorActionPreference = 'Stop'
@@ -224,4 +224,14 @@ $links = '<noscript><!-- games -->' + (($GAMES.en | ForEach-Object { "<a href=`"
 if ($index -match '<noscript><!-- games -->.*?<!-- /games --></noscript>') { $index = [regex]::Replace($index, '<noscript><!-- games -->.*?<!-- /games --></noscript>', [Text.RegularExpressions.MatchEvaluator] { param($m) $links }) }
 else { $index = $index.Replace('</body>', $links + "`n</body>") }
 [IO.File]::WriteAllText((Join-Path $root 'index.html'), $index, $utf8)
-Write-Output ("Wrote {0} pages, sitemap.xml and the game links in index.html" -f $urls.Count)
+
+# ---------- 5. games/rules.json: names and rules for the Discord command /rules (supabase/functions/discord-interactions) ----------
+$rules = [ordered]@{}
+foreach ($l in 'en', 'de') {
+  $rules[$l] = @($GAMES[$l] | ForEach-Object {
+    [ordered]@{ id = $_.id; name = $_.name; short = $_.short; desc = $_.desc; cat = $_.cat; players = $(if ($_.party) { '2-4' } else { '2' })
+      url = "$base$($TX[$l].dir)/$($slug[$l][$_.id])/"; tut = @($_.tut | ForEach-Object { [ordered]@{ t = $_.t; d = $_.d } }) }
+  })
+}
+[IO.File]::WriteAllText((Join-Path $root 'games\rules.json'), ($rules | ConvertTo-Json -Depth 6 -Compress), $utf8)
+Write-Output ("Wrote {0} pages, sitemap.xml, games/rules.json and the game links in index.html" -f $urls.Count)
