@@ -1,6 +1,6 @@
 // Versus service worker: makes the app installable and playable offline (AI and two-player games).
 // Online features (accounts, friends, matches) talk to Supabase directly and are never cached.
-const CACHE = 'versus-v63';
+const CACHE = 'versus-v65';
 
 // On install, everything index.html loads is cached, so the very first visit already works offline later.
 self.addEventListener('install', e => {
@@ -36,7 +36,9 @@ self.addEventListener('fetch', e => {
   // pages: network first (so updates arrive), cached copy when offline
   // (only the app itself is stored as './', not other pages like test.html)
   if (req.mode === 'navigate') {
-    const app = /\/(index\.html)?$/.test(url.pathname);
+    // (the game pages in games/ and de/spiele/ end in / too, so compare with the app folder itself)
+    const home = new URL('./', self.registration.scope).pathname;
+    const app = url.pathname === home || url.pathname === home + 'index.html';
     e.respondWith(fetch(req).then(r => { if (app && r.ok) { const copy = r.clone(); caches.open(CACHE).then(c => c.put('./', copy)); } return r; })
       .catch(async () => (await caches.match('./')) || (await caches.match('./index.html'))));
     return;

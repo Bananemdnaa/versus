@@ -1183,20 +1183,24 @@
     // a game link (?join=) and a tapped notification about a match over days (?match=)
     for (const k of ['join', 'match']) if (/^[0-9a-f-]{36}$/.test(q.get(k) || '')) try { sessionStorage.setItem('versus.' + k, q.get(k)); } catch (e) { }
     if (qt && TABS.some(t => t[0] === qt)) homeTab = qt;
-    if (['tab', 'app', 'add', 'table', 'join', 'match'].some(k => q.has(k))) try { history.replaceState(null, '', location.pathname); } catch (e) { }
+    // ?game=chess (from the game pages in /games/ and /de/spiele/): open that game's setup instead of the welcome
+    const qg = V.byId[q.get('game')] || null;
+    const start = () => { home(qg ? 'games' : undefined); if (qg) setup(qg); };
+    const greet = () => { if (!qg) welcome(); };
+    if (['tab', 'app', 'add', 'table', 'join', 'match', 'game'].some(k => q.has(k))) try { history.replaceState(null, '', location.pathname); } catch (e) { }
     registerSW();
     netState();
     if (!document.getElementById('fx')) { const f = V.el('div'); f.id = 'fx'; document.body.appendChild(f); }
     if (V.cloud && V.cloud.available()) { V.cloud.on(onCloud); V.cloud.init(); }
     const b = document.getElementById('boot');
-    if (!b || !V.fxOn() || settings.intro === false || getComputedStyle(b).display === 'none') { if (b) b.remove(); home(); setTimeout(welcome, 300); return; }
+    if (!b || !V.fxOn() || settings.intro === false || getComputedStyle(b).display === 'none') { if (b) b.remove(); start(); setTimeout(greet, 300); return; }
     let opened = false;
     const open = skip => {
       if (opened) return; opened = true;
       window.removeEventListener('keydown', onKey, true);
       b.classList.add(skip ? 'skip' : 'open');
-      home();
-      setTimeout(welcome, skip ? 350 : 900);
+      start();
+      setTimeout(greet, skip ? 350 : 900);
       setTimeout(() => b.remove(), skip ? 260 : 800);
     };
     const onKey = e => { e.preventDefault(); e.stopPropagation(); open(true); };
