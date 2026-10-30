@@ -1002,9 +1002,9 @@
   V.i18n.ctx('[data-g=domino]', { 'Passen': 'Pass', 'passt': 'passes', 'zieht': 'draws' });
   A({
     'Ebenen': 'Layers', 'Von vorne': 'Front', 'Von der Seite': 'Side', 'Ansichten': 'Views', 'Reihe #': 'Row #', 'Nach links drehen': 'Turn left', 'Nach rechts drehen': 'Turn right',
-    'Jede Tafel ist eine Ebene, von oben gesehen. Ebene # liegt unten.': 'Each board is a layer, seen from above. Layer # is at the bottom.',
-    'Von vorne: Jede Tafel ist eine Reihe (# bis #). Oben liegt Ebene #, unten Ebene #.': 'From the front: each board is a row (# to #). Layer # is at the top, layer # at the bottom.',
-    'Von der Seite: Jede Tafel ist eine Spalte (a bis d). Oben liegt Ebene #, unten Ebene #.': 'From the side: each board is a column (a to d). Layer # is at the top, layer # at the bottom.',
+    'Jede Tafel ist eine Ebene von oben, jede Ebene hat ihre Farbe: # blau (unten), # lila, # türkis, # orange (oben).': 'Each board is a layer seen from above, and every layer has its colour: # blue (bottom), # purple, # teal, # orange (top).',
+    'Der Würfel von vorne in Scheiben geschnitten: Jede Zeile ist eine Ebene (Farbe und Zahl links). Reihen durch die Ebenen laufen hier senkrecht oder schräg.': 'The cube sliced from the front: every row is a layer (colour and number on the left). Lines through the layers run straight up or diagonally here.',
+    'Der Würfel von der Seite in Scheiben geschnitten: Jede Zeile ist eine Ebene (Farbe und Zahl links). Reihen durch die Ebenen laufen hier senkrecht oder schräg.': 'The cube sliced from the side: every row is a layer (colour and number on the left). Lines through the layers run straight up or diagonally here.',
     'Alle vier Ebenen übereinander, Ebene # unten. Zum Drehen wischen oder die Pfeile tippen.': 'All four layers stacked, layer # at the bottom. Swipe or tap the arrows to turn it.',
     'Über dem Brett wechselst du die Ansicht. {0} und {1} schneiden den Würfel anders in Scheiben, dann sehen Reihen durch die Ebenen ganz normal aus. {2} stapelt die Ebenen übereinander, den Würfel kannst du drehen.': 'Above the board you switch the view. {0} and {1} slice the cube differently, so lines through the layers look completely normal. {2} stacks the layers on top of each other, and you can turn the cube.'
   });

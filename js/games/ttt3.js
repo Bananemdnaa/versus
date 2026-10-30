@@ -47,8 +47,16 @@
   .t3-l small{font:700 italic 11px/1 var(--f-d);letter-spacing:.14em;text-transform:uppercase;color:var(--muted);text-align:center}
   .t3-g{display:grid;grid-template-columns:repeat(4,1fr);gap:3px;padding:5px;border-radius:10px;background:var(--panel);border:1px solid var(--line);transform:perspective(500px) rotateX(18deg);transform-origin:50% 100%}
   .t3-c{aspect-ratio:1;border-radius:6px;background:var(--panel2);display:grid;place-items:center;position:relative;transition:background .15s}
+  /* every layer has its colour, in all views: whole boards from above, stripes in the slices */
+  .t3 .l0{--lc:#4f7cff} .t3 .l1{--lc:#a970ff} .t3 .l2{--lc:#2fd4b4} .t3 .l3{--lc:#ff9f43}
+  .t3-c{background:color-mix(in srgb,var(--lc) 24%,var(--panel2))}
+  .t3-row{display:flex;gap:4px;align-items:stretch}
+  .t3-row .t3-g{flex:1}
+  .t3-ax{display:grid;grid-template-rows:repeat(4,1fr);gap:3px;padding:5px 0}
+  .t3 .t3-g.t3-g[class*=" l"]{border-color:color-mix(in srgb,var(--lc) 70%,transparent)}
+  .t3-ax b{display:grid;place-items:center;width:16px;border-radius:4px;background:var(--lc);color:var(--ink);font:800 italic 11px/1 var(--f-d)}
   .t3.can .t3-c.e{cursor:pointer}
-  @media (hover:hover) and (pointer:fine){.t3.can .t3-c.e:hover{background:var(--panel3)}.t3.can .t3-c.e.lit{background:var(--panel3)}}
+  @media (hover:hover) and (pointer:fine){.t3.can .t3-c.e:hover{background:color-mix(in srgb,var(--lc) 45%,var(--panel3))}.t3.can .t3-c.e.lit{background:color-mix(in srgb,var(--lc) 45%,var(--panel3))}}
   .t3-c i{width:72%;height:72%;border-radius:50%}
   .t3-c.p1 i{background:radial-gradient(circle at 35% 30%,var(--p1hi),var(--p1) 62%);box-shadow:0 0 8px color-mix(in srgb,var(--p1) 55%,transparent)}
   .t3-c.p2 i{background:radial-gradient(circle at 35% 30%,var(--p2hi),var(--p2) 62%);box-shadow:0 0 8px color-mix(in srgb,var(--p2) 55%,transparent)}
@@ -72,9 +80,9 @@
   .t3-stack{position:relative;width:var(--size);aspect-ratio:1;transform-style:preserve-3d;transform:translateY(calc(var(--gap) * 1.35)) rotateX(68deg) rotateZ(var(--rz));transition:transform .35s var(--ease)}
   .t3-stack.drag{transition:none}
   .t3.v-cube .t3-g{position:absolute;inset:0;transform:translateZ(calc(var(--k) * var(--gap)));transform-style:preserve-3d;background:rgba(29,33,64,.5);border-color:rgba(98,240,255,.35)}
-  .t3.v-cube .t3-c{background:rgba(255,255,255,.07)}
+  .t3.v-cube .t3-c{background:color-mix(in srgb,var(--lc) 30%,transparent)}
   .t3.v-cube .t3-c i{transform:rotateZ(calc(var(--rz) * -1)) rotateX(-68deg)}
-  .t3-lab{position:absolute;left:-26px;top:50%;font:800 italic 14px/1 var(--f-d);color:var(--cyan);transform:translateY(-50%) rotateZ(calc(var(--rz) * -1)) rotateX(-68deg)}`);
+  .t3-lab{position:absolute;left:-26px;top:50%;font:800 italic 14px/1 var(--f-d);color:var(--lc);transform:translateY(-50%) rotateZ(calc(var(--rz) * -1)) rotateX(-68deg)}`);
 
   V.register({
     id: 'ttt3', name: '3D Tic Tac Toe', cat: 'Klassiker', order: 5, accent: '#62f0ff',
@@ -95,9 +103,9 @@
       // views: the four layers from above, the cube cut into slices from the front or the side, or all layers stacked in 3D
       const VIEWS = [['top', 'Ebenen'], ['front', 'Von vorne'], ['side', 'Von der Seite'], ['cube', '3D']];
       const HINT = {
-        top: 'Jede Tafel ist eine Ebene, von oben gesehen. Ebene 1 liegt unten.',
-        front: 'Von vorne: Jede Tafel ist eine Reihe (1 bis 4). Oben liegt Ebene 4, unten Ebene 1.',
-        side: 'Von der Seite: Jede Tafel ist eine Spalte (a bis d). Oben liegt Ebene 4, unten Ebene 1.',
+        top: 'Jede Tafel ist eine Ebene von oben, jede Ebene hat ihre Farbe: 1 blau (unten), 2 lila, 3 türkis, 4 orange (oben).',
+        front: 'Der Würfel von vorne in Scheiben geschnitten: Jede Zeile ist eine Ebene (Farbe und Zahl links). Reihen durch die Ebenen laufen hier senkrecht oder schräg.',
+        side: 'Der Würfel von der Seite in Scheiben geschnitten: Jede Zeile ist eine Ebene (Farbe und Zahl links). Reihen durch die Ebenen laufen hier senkrecht oder schräg.',
         cube: 'Alle vier Ebenen übereinander, Ebene 1 unten. Zum Drehen wischen oder die Pfeile tippen.'
       };
       let view = V.store.get('ttt3view', 'top'), rz = V.store.get('ttt3rot', -35);
@@ -109,8 +117,9 @@
       const at = (k, g, c) => view === 'front' ? (3 - g) * 16 + k * 4 + c : view === 'side' ? (3 - g) * 16 + c * 4 + k : k * 16 + g * 4 + c;
       const label = k => view === 'front' ? `Reihe ${k + 1}` : view === 'side' ? `Spalte ${'abcd'[k]}` : `Ebene ${k + 1}`;
       function grid(k) {
-        const g = V.el('div', 't3-g');
-        for (let r = 0; r < 4; r++) for (let c = 0; c < 4; c++) { const i = at(k, r, c), el = V.el('div', 't3-c e', '<i></i>'); el.dataset.i = i; cells[i] = el; g.appendChild(el); }
+        // from above and in 3D a board is one layer and wears its colour on the rim
+        const g = V.el('div', 't3-g' + (view === 'top' || view === 'cube' ? ' l' + k : ''));
+        for (let r = 0; r < 4; r++) for (let c = 0; c < 4; c++) { const i = at(k, r, c), el = V.el('div', 't3-c e l' + Math.floor(i / 16), '<i></i>'); el.dataset.i = i; cells[i] = el; g.appendChild(el); }
         return g;
       }
       function build() {
@@ -119,11 +128,17 @@
         if (view === 'cube') {
           const scene = V.el('div', 't3-scene'), stack = V.el('div', 't3-stack');
           stack.style.setProperty('--rz', rz + 'deg');
-          for (let k = 0; k < 4; k++) { const g = grid(k); g.style.setProperty('--k', k); g.insertAdjacentHTML('beforeend', `<small class="t3-lab">${k + 1}</small>`); stack.appendChild(g); }
+          for (let k = 0; k < 4; k++) { const g = grid(k); g.style.setProperty('--k', k); g.insertAdjacentHTML('beforeend', `<small class="t3-lab l${k}">${k + 1}</small>`); stack.appendChild(g); }
           scene.appendChild(stack); wrap.appendChild(scene);
           hint.innerHTML = `<button class="iconbtn" data-r="-1" aria-label="Nach links drehen">⟲</button><span>${HINT.cube}</span><button class="iconbtn" data-r="1" aria-label="Nach rechts drehen">⟳</button>`;
         } else {
-          for (let k = 0; k < 4; k++) { const lay = V.el('div', 't3-l', `<small>${label(k)}</small>`); lay.appendChild(grid(k)); wrap.appendChild(lay); }
+          for (let k = 0; k < 4; k++) {
+            const lay = V.el('div', 't3-l', `<small>${label(k)}</small>`);
+            // in the slices every row is one layer: its number in its colour on the left
+            if (view === 'top') lay.appendChild(grid(k));
+            else { const row = V.el('div', 't3-row', `<div class="t3-ax">${[4, 3, 2, 1].map(n => `<b class="l${n - 1}">${n}</b>`).join('')}</div>`); row.appendChild(grid(k)); lay.appendChild(row); }
+            wrap.appendChild(lay);
+          }
           hint.innerHTML = `<span>${HINT[view]}</span>`;
         }
         draw();
