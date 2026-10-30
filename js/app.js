@@ -101,6 +101,7 @@
   // ---------- home ----------
   // The home shell (header + tab bar) stays on screen; switching tabs only swaps the content below it.
   function home(tab, sel) {
+    V.discord.status(V.t('Im Menü'), V.t('Sucht ein Spiel aus'), null);
     if (sel) selected = sel;
     if (!selected) selected = V.byId[S.get('recent')] || V.games[0];
     const prev = homeTab; if (tab) homeTab = tab;

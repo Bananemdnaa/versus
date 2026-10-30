@@ -140,16 +140,15 @@
     try { info = check(await sb.rpc('my_info')); } catch (e) { }
     emit();
   }
-  // in the Discord activity a guest takes the Discord name instead of gast_12345: Discord hands over a code (asking
-  // once for permission), the Edge Function "discord" checks it with Discord and renames the guest (once per visit)
+  // in the Discord activity a guest takes the Discord name instead of gast_12345: with the Discord login of the
+  // activity (js/discord.js) the Edge Function "discord" asks Discord for the name and renames the guest (once per visit)
   let dcTried = false;
   async function discordName() {
     if (dcTried || !V.discord || !V.discord.on || !user || !info || !info.guest || !/^gast_/.test(info.username || '')) return;
     dcTried = true;
     try {
-      if (!(await V.discord.ready)) return;
-      const code = await V.discord.authorize();
-      const { data, error } = await sb.functions.invoke('discord', { body: { code } });
+      const a = await V.discord.auth; if (!a) return;
+      const { data, error } = await sb.functions.invoke('discord', { body: { access_token: a.token } });
       if (!error && data && data.name) await loadInfo();
     } catch (e) { console.warn('Discord name:', e); }
   }
@@ -247,6 +246,13 @@
       await need();
       const d = check(await sb.auth.signInWithPassword({ email: clean(name) + '@' + MAIL, password: pw, options: { captchaToken: await captcha() } }));
       user = d.user; await afterLogin();
+    },
+    // Discord activity: the one-time code from Discord becomes an access token (Edge Function "discord-token", works without a login)
+    async discordToken(code) {
+      await need();
+      const { data, error } = await sb.functions.invoke('discord-token', { body: { code } });
+      if (error || !data || !data.access_token) throw new Error((data && data.error) || (error && error.message) || 'no Discord token');
+      return data.access_token;
     },
     // guest: an anonymous account with a name like gast_48213, enough for quick online matches
     async signInGuest() {
