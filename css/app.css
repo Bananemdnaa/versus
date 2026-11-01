@@ -2435,3 +2435,56 @@ html.lowfx::view-transition-group(*),html.lowfx::view-transition-old(*),html.low
 @media (min-width:960px){.mtiles{gap:16px}.hc-btns{gap:16px}}
 @media (min-width:960px){.mtiles{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media (min-width:1360px){.mtiles{grid-template-columns:repeat(4,minmax(0,1fr))}.mtile{padding:14px 12px;gap:12px}}
+
+/* ---------- laptop game panel, redesigned: picture in the game's colour, "Wie spielst du?" as tiles, settings, play ---------- */
+@media (min-width:960px){
+  .sel-panel .gp-art{height:168px;background:repeating-linear-gradient(-60deg,rgba(255,255,255,.03) 0 10px,transparent 10px 22px),
+    radial-gradient(80% 110% at 70% 40%,color-mix(in srgb,var(--acc) 45%,transparent),transparent 70%),linear-gradient(160deg,color-mix(in srgb,var(--acc) 22%,var(--panel2)),var(--panel) 90%)}
+  .sel-panel .gp-art .ic{width:112px;height:112px}
+  .sel-panel .gp-art .cat{background:var(--acc)}
+  .sel-panel .gp-txt{padding:14px 20px 0}
+  .sel-panel .gp-txt h2{font-size:34px}
+  .sel-panel .gp-txt p{-webkit-line-clamp:2;font-size:14.5px;margin-top:6px}
+  .sel-panel .gp-tags{margin-top:10px}
+  .gp-h{margin:18px 20px 8px;font:700 italic 12px/1 var(--f-d);letter-spacing:.16em;text-transform:uppercase;color:var(--dim)}
+  .gp-modes{display:grid;grid-template-columns:minmax(0,1fr);gap:8px;margin:0 20px}
+  .gp-modes.two{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .gp-modes button{display:flex;align-items:center;gap:10px;min-height:62px;padding:10px 12px;border-radius:14px;border:1px solid var(--line2);background:var(--panel2);text-align:left;
+    transition:border-color var(--t-fast),background var(--t-fast),transform var(--t-fast)}
+  .gp-modes button:hover{border-color:color-mix(in srgb,var(--acc) 55%,var(--line2))}
+  .gp-modes button:active{transform:scale(.97)}
+  .gp-modes button.on{border-color:var(--acc);background:color-mix(in srgb,var(--acc) 13%,var(--panel2));box-shadow:inset 0 0 0 1px var(--acc)}
+  .gp-modes button.lockd{opacity:.45}
+  .gm-ic{width:34px;height:34px;flex:none;display:grid;place-items:center;border-radius:10px;background:var(--panel3);color:var(--muted);transition:background var(--t-fast),color var(--t-fast)}
+  .gm-ic svg{width:18px;height:18px}
+  .gp-modes button.on .gm-ic{background:var(--acc);color:var(--ink)}
+  .gm-t{min-width:0;display:flex;flex-direction:column;gap:3px}
+  .gm-t b{font:800 italic 16px/1.05 var(--f-d);text-transform:uppercase;letter-spacing:.02em}
+  .gm-t small{font-size:12px;line-height:1.25;color:var(--muted)}
+  .sel-panel .gp-lvl{margin:0 20px;padding:0;border:0;background:none}
+  .sel-panel .lv-top{margin-bottom:8px}
+  .sel-panel .lv-big{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px}
+  .sel-panel .lvb{--c:var(--good);display:flex;flex-direction:column;align-items:flex-start;gap:3px;min-height:52px;padding:8px 10px;border-radius:10px;border:1px solid var(--line2);background:var(--panel2);text-align:left;
+    transition:background var(--t-fast),border-color var(--t-fast)}
+  .sel-panel .lvb.l1{--c:var(--cyan)} .sel-panel .lvb.l2{--c:var(--yellow)} .sel-panel .lvb.l3{--c:var(--pink)}
+  .sel-panel .lvb b{font:800 italic 14px/1 var(--f-d);text-transform:uppercase;color:var(--c)}
+  .sel-panel .lvb small{font-size:11px;line-height:1.2;color:var(--muted)}
+  .sel-panel .lvb:hover{border-color:var(--c)}
+  .sel-panel .lvb.on{background:var(--c);border-color:var(--c)}
+  .sel-panel .lvb.on b,.sel-panel .lvb.on small{color:var(--ink)}
+  .sel-panel .gp-lvl .hint{margin-top:8px}
+  .sel-panel .gp-more,.sel-panel .gp-extra{margin:10px 20px 0}
+  .sel-panel .hint.local,.sel-panel .hint.dch{margin:10px 20px 0}
+  .sel-panel .gp-online{margin:0 20px}
+  .sel-panel .gp-go{padding:22px 20px 20px}
+}
+@media (min-width:960px){.hcard.hw .hc-tx b{font-size:clamp(34px,3.7vw,64px);overflow-wrap:normal;word-break:keep-all}}
+@media (min-width:960px) and (max-width:1279px){
+  .gm-ic{display:none}
+  .gp-modes button{min-height:56px;padding:8px 10px}
+  .gm-t b{font-size:15px} .gm-t small{font-size:11.5px}
+  .sel-panel .lvb small{display:none}
+  .sel-panel .lvb{min-height:38px;justify-content:center}
+}
+/* the panel scrolls itself (.sel-panel); the card must not clip, or the play button cannot stay at the bottom */
+@media (min-width:960px){.sel-panel .gp{overflow:visible}}

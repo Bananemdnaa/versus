@@ -777,7 +777,8 @@
       gp.querySelector('.cat').textContent = g.cat;
       gp.querySelector('.ic').innerHTML = g.icon;
       gp.querySelector('h2').textContent = g.name;
-      gp.querySelector('.gp-txt p').textContent = g.desc;
+      // laptop: the short line (the long description is in the rules), phone sheet: the full description
+      gp.querySelector('.gp-txt p').textContent = full ? g.desc : g.short;
       gp.querySelector('.gp-tags').innerHTML = [g.party ? '2–4 Spieler' : '2 Spieler', g.online || g.table ? 'Online' : '', g.noAI ? 'Ohne KI' : 'KI · 4 Stufen'].filter(Boolean).map((t, k) => `<em style="--k:${k}">${t}</em>`).join('');
       if (V.fxOn()) { V.fx.pop(gp, fresh ? 'gp-new' : 'gp-sw'); clearTimeout(gp._t); gp._t = setTimeout(() => gp.classList.remove('gp-new', 'gp-sw'), 450); }
     }
@@ -813,14 +814,20 @@
     // games only for two people at one device (Pong, Air Hockey, Reaktionsduell) have nothing to offer in Discord
     const dcNone = dc && g.noAI && !(g.table || g.online);
     const mi = Math.max(0, modes.findIndex(m => m.v === cfg.mode));
+    const modeSub = v => ({ ai: 'Gegen den Computer', local: g.party ? 'Reihum an diesem Gerät' : 'Abwechselnd an diesem Gerät', online: 'Einen Freund herausfordern', open: 'Gegen jemand Fremdes', table: 'Online-Tisch für 2 bis 4', voice: 'Mit allen im Sprachkanal' })[v] || '';
     gp.querySelector('.gp-body').innerHTML = `${close}<button class="iconbtn fav${isFav(g) ? ' on' : ''}" id="fav" aria-pressed="${isFav(g)}" aria-label="Favorit" title="${isFav(g) ? 'Aus Favoriten entfernen' : 'Zu Favoriten (F)'}">${IC.star}</button>
-      <div class="gp-mode" id="mode" style="--n:${modes.length};--i:${root._mi ?? mi}"><i class="seg-ind"></i>
+      ${full ? `<div class="gp-mode" id="mode" style="--n:${modes.length};--i:${root._mi ?? mi}"><i class="seg-ind"></i>
         ${modes.map(m => `<button data-v="${m.v}" class="${cfg.mode === m.v ? 'on' : ''}${m.off ? ' lockd' : ''}"${m.off ? ` data-why="${m.off}" aria-disabled="true"` : ''}>${m.off === 'Mit Konto' ? IC.lock : m.ic}<span>${m.l}</span></button>`).join('')}
-      </div>
+      </div>`
+        // laptop: the modes as tiles that say what happens, so nothing is hidden behind a short label
+        : `<h4 class="gp-h">Wie spielst du?</h4><div class="gp-modes${modes.length > 2 ? ' two' : ''}" id="mode">
+        ${modes.map(m => `<button data-v="${m.v}" class="${cfg.mode === m.v ? 'on' : ''}${m.off ? ' lockd' : ''}"${m.off ? ` data-why="${m.off}" aria-disabled="true"` : ''} aria-pressed="${cfg.mode === m.v}">
+          <span class="gm-ic">${m.off === 'Mit Konto' ? IC.lock : m.ic}</span><span class="gm-t"><b>${m.v === 'ai' ? 'Gegen KI' : m.l}</b><small>${m.off || modeSub(m.v)}</small></span></button>`).join('')}
+      </div>`}
+      ${!full && cfg.mode !== 'online' && cfg.mode !== 'open' && (cfg.mode === 'ai' || cfg.mode === 'table' || optsHere.length || g.panelExtra) ? '<h4 class="gp-h">Einstellungen</h4>' : ''}
       ${cfg.mode === 'ai' || cfg.mode === 'table' ? `<div class="gp-lvl">
         <div class="lv-top"><span>KI-Stärke</span><b class="l${lvl}">${V.LEVELS[lvl]}</b><em>Bilanz ${s.ai[lvl].w}:${s.ai[lvl].l}</em></div>
-        ${full ? `<div class="lv-big" id="level">${V.LEVELS.map((l, i) => `<button data-v="${i}" class="lvb l${i}${i === lvl ? ' on' : ''}" aria-pressed="${i === lvl}"><b>${l}</b><small>${LV_SHORT[i]}</small></button>`).join('')}</div>`
-          : `<div class="lv-bar l${lvl}" id="level">${V.LEVELS.map((l, i) => `<button data-v="${i}" class="${i <= lvl ? 'fill' : ''} ${i === lvl ? 'on' : ''}" aria-label="${l}" title="${l}"></button>`).join('')}</div>`}
+        <div class="lv-big" id="level">${V.LEVELS.map((l, i) => `<button data-v="${i}" class="lvb l${i}${i === lvl ? ' on' : ''}" aria-pressed="${i === lvl}"><b>${l}</b><small>${LV_SHORT[i]}</small></button>`).join('')}</div>
         <p class="hint">${cfg.mode === 'table' || vTable ? 'So stark spielt die KI auf freien Plätzen.' : (g.levelInfo || LEVEL_INFO)[lvl]}</p></div>` : cfg.mode === 'online' || cfg.mode === 'open' ? '<div class="gp-online" id="ofr"></div>' : voice ? '' : `<p class="hint local">${g.localHint || `Ihr spielt abwechselnd am selben Gerät${g.cat === 'Action' ? ', jeder auf seiner Hälfte' : ''}.`}</p>`}
       ${(cfg.mode === 'ai' && !g.noFirst) || optsHere.length ? `<div class="gp-more">
         ${cfg.mode === 'ai' && !g.noFirst ? chipRow('first', g.firstTitle || 'Wer fängt an?', [['me', firstLabel[0]], ['ai', firstLabel[1]], ['rand', firstLabel[2]]], cfg.first) : ''}

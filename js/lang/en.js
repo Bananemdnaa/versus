@@ -904,6 +904,13 @@
     'Wer die Versus-Aktivität in Discord startet (Gäste und Konten). # davon spielen als Gast. Partien zählen pro Spieler: eine Partie zu zweit in Discord sind zwei. Gezählt seit diesem Update.': 'Who starts the Versus activity in Discord (guests and accounts). # of them play as guests. Games count per player: one game for two in Discord counts twice. Counted since this update.'
   });
 
+  // game panel redesign: modes explained
+  A({
+    'Wie spielst du?': 'How do you play?', 'Einstellungen': 'Settings', 'Gegen den Computer': 'Against the computer', 'Abwechselnd an diesem Gerät': 'Taking turns on this device',
+    'Reihum an diesem Gerät': 'In turn on this device', 'Einen Freund herausfordern': 'Challenge a friend', 'Gegen jemand Fremdes': 'Against someone new',
+    'Online-Tisch für 2 bis 4': 'Online table for 2 to 4', 'Mit allen im Sprachkanal': 'With everyone in the voice channel'
+  });
+
   // ---------- patterns: text with names, moves and hands ----------
   const t = V.t;
   const PIECE = { Bauer: 'Pawn', Springer: 'Knight', Läufer: 'Bishop', Turm: 'Rook', Dame: 'Queen', König: 'King' };
