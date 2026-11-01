@@ -3,10 +3,50 @@
   // the others get 10 more seconds. Then everybody can strike answers that don't count, and points are given:
   // 20 if you're the only one with an answer, 10 for a unique answer, 5 if someone has the same.
   // Uses ctx.listen/ctx.submit: { a: answers, r } written answers, { v: struck keys, r } votes.
-  const CATS = ['Stadt', 'Land', 'Fluss', 'Tier', 'Name', 'Beruf'];
+  const DEF_CATS = ['Stadt', 'Land', 'Fluss', 'Tier', 'Name', 'Beruf'];
   const LETTERS = 'ABCDEFGHIKLMNOPRSTUWZ';
   const WRITE = 90, STOP = 10;
   const norm = s => String(s || '').trim().toLowerCase().replace(/\s+/g, ' ');
+  const esc = t => String(t).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  // Categories are chosen in the game panel (option "cats", 3 to 8 of them, own ones up to 16 letters). They travel with
+  // the table's options to everyone at the table, so the server limit of 500 bytes for options must hold.
+  const POOL = [...DEF_CATS, 'Pflanze', 'Essen', 'Marke', 'Sport', 'Körperteil', 'Farbe', 'Film oder Serie', 'Promi', 'Spiel', 'Getränk'];
+  const MINC = 3, MAXC = 8, LEN = 16;
+  const clean = c => String(c || '').replace(/\s+/g, ' ').trim().slice(0, LEN);
+  const pickCats = v => { const a = Array.isArray(v) ? [...new Set(v.map(clean).filter(Boolean))].slice(0, MAXC) : []; return a.length >= MINC ? a : DEF_CATS.slice(); };
+  const own = () => V.store.get('slfCustom', []);
+  // the category editor in the game panel (js/app.js renders it under the options)
+  const panelExtra = {
+    html(opts) {
+      const cur = pickCats(opts.cats), mine = own(), pool = [...new Set([...POOL, ...mine, ...cur])];
+      return `<div class="slc"><div class="slc-h"><span>Kategorien</span><small>${cur.length} von höchstens ${MAXC}</small></div>
+        <div class="slc-l">${pool.map(c => `<button type="button" data-c="${esc(c)}" class="${cur.includes(c) ? 'on' : ''}" aria-pressed="${cur.includes(c)}">${esc(c)}${mine.includes(c) ? `<i data-x="${esc(c)}" role="button" aria-label="${esc(c)} löschen">×</i>` : ''}</button>`).join('')}</div>
+        <form class="slc-add"><input class="inp" maxlength="${LEN}" placeholder="Eigene Kategorie" aria-label="Eigene Kategorie" autocomplete="off"><button class="btn sm" type="submit"><span>Hinzufügen</span></button></form>
+        ${cur.join() !== DEF_CATS.join() ? '<button type="button" class="link slc-reset">Standard wiederherstellen</button>' : ''}</div>`;
+    },
+    wire(el, opts, save) {
+      const cur = pickCats(opts.cats);
+      el.querySelectorAll('[data-x]').forEach(x => x.onclick = e => {
+        e.stopPropagation();
+        const c = x.dataset.x; V.store.set('slfCustom', own().filter(k => k !== c));
+        save({ cats: cur.filter(k => k !== c).length >= MINC ? cur.filter(k => k !== c) : DEF_CATS.slice() });
+      });
+      el.querySelectorAll('[data-c]').forEach(b => b.onclick = () => {
+        const c = b.dataset.c, on = cur.includes(c);
+        if (on && cur.length <= MINC) return V.ui.toast(`Mindestens ${MINC} Kategorien`);
+        if (!on && cur.length >= MAXC) return V.ui.toast(`Höchstens ${MAXC} Kategorien`);
+        save({ cats: on ? cur.filter(k => k !== c) : [...cur, c] });
+      });
+      el.querySelector('.slc-add').onsubmit = e => {
+        e.preventDefault();
+        const c = clean(el.querySelector('.slc-add input').value);
+        if (!c) return;
+        if (!POOL.includes(c) && !own().includes(c)) V.store.set('slfCustom', [...own(), c].slice(-20));
+        save({ cats: cur.includes(c) ? cur : cur.length >= MAXC ? (V.ui.toast(`Höchstens ${MAXC} Kategorien, sie ist jetzt in der Liste`), cur) : [...cur, c] });
+      };
+      const r = el.querySelector('.slc-reset'); if (r) r.onclick = () => save({ cats: DEF_CATS.slice() });
+    }
+  };
 
   V.css(`
   .slf{width:min(var(--bw),620px);display:flex;flex-direction:column;gap:12px;align-items:center}
@@ -42,11 +82,12 @@
     sides: { 1: 'Pink', 2: 'Gelb', 3: 'Cyan', 4: 'Grün' },
     keys: [['Tab', 'Nächstes Feld'], ['Enter', 'Fertig']],
     options: [{ id: 'n', label: 'Spieler', def: 2, choices: [[2, '2'], [3, '3'], [4, '4']] }, { id: 'rounds', label: 'Runden', def: 3, choices: [[3, '3'], [5, '5']] }],
+    extraOpts: ['cats'], panelExtra,
     localHint: 'Am selben Gerät schreibt jeder für sich, das Handy wird nach jedem weitergegeben (je 60 Sekunden).',
     endDelay: 1300,
     icon: `<svg viewBox="0 0 48 48"><rect x="6" y="5" width="36" height="38" rx="5" fill="#f3e6cc" stroke="#b9952a" stroke-width="2"/><path d="M12 15h24M12 23h24M12 31h24" stroke="#b9952a" stroke-width="1.6"/><rect x="26" y="26" width="18" height="18" rx="5" fill="#ff4fd8"/><text x="35" y="40" text-anchor="middle" font-size="14" font-weight="800" fill="#08090f" font-family="Arial">B</text><text x="12" y="13" font-size="6" fill="#5d3a1c" font-family="Arial" font-weight="700">STADT LAND</text></svg>`,
     tutorial: [
-      { t: 'Das Ziel', d: 'Ein <b>Buchstabe</b> wird ausgelost. Schreib zu jeder Spalte etwas, das damit anfängt: <b>Stadt, Land, Fluss, Tier, Name, Beruf</b>.' },
+      { t: 'Das Ziel', d: 'Ein <b>Buchstabe</b> wird ausgelost. Schreib zu jeder Spalte etwas, das damit anfängt, zum Beispiel <b>Stadt, Land, Fluss, Tier, Name, Beruf</b>. Welche Spalten es gibt, legt ihr vorher im Spiel-Panel fest, auch eigene.' },
       { t: 'Stopp!', d: 'Bist du fertig, tippe <b>Stopp</b>. Die anderen haben dann noch <b>10 Sekunden</b>. Spätestens nach 90 Sekunden ist die Runde vorbei.' },
       { t: 'Streichen', d: 'Danach seht ihr alle Antworten. <b>Tippe auf eine Antwort</b>, die nicht zählt (gibt es nicht, falscher Buchstabe). Sie wird gestrichen, wenn genug Mitspieler sie streichen. Dann <b>Weiter</b>.' },
       { t: 'Punkte', d: '<b>20</b>: nur du hast in der Spalte etwas. <b>10</b>: deine Antwort hat sonst niemand. <b>5</b>: jemand hat dasselbe. Nach allen Runden gewinnt, wer die meisten Punkte hat.' },
@@ -54,6 +95,7 @@
     ],
     start(ctx) {
       const N = ctx.n, P = ctx.players, R = ctx.rng, local = ctx.mode === 'local';
+      const CATS = pickCats(ctx.opts.cats);
       const rounds = [3, 5].includes(+ctx.opts.rounds) ? +ctx.opts.rounds : 3;
       const total = {}; P.forEach(p => { total[p] = 0; });
       let round = 0, letter = '', phase = '', ans = {}, votes = {}, deadline = 0, stopAt = 0, sent = false, voted = false, over = false, tick = null, writer = 0;
@@ -90,7 +132,7 @@
       function writeUI() {
         const p = me();
         wrap.innerHTML = `<div class="slf-head"><div class="slf-letter spin">${letter}</div><div class="slf-time"><small>${local ? ctx.name(p) + ' schreibt' : 'Zeit'}</small><b id="slft">${WRITE}</b></div></div>
-          <form class="slf-form" id="slff">${CATS.map((c, i) => `<label for="slf${i}">${c}</label><input class="inp" id="slf${i}" maxlength="40" autocomplete="off" spellcheck="false" placeholder="${letter} …">`).join('')}</form>
+          <form class="slf-form" id="slff">${CATS.map((c, i) => `<label for="slf${i}">${esc(c)}</label><input class="inp" id="slf${i}" maxlength="40" autocomplete="off" spellcheck="false" placeholder="${letter} …">`).join('')}</form>
           <button class="btn primary big" id="slfs"><span>Stopp! Fertig</span></button><p class="slf-note" id="slfn"></p>`;
         const f = wrap.querySelector('#slff');
         f.onsubmit = e => e.preventDefault();
@@ -146,7 +188,7 @@
         const waiting = !local && voted;
         wrap.innerHTML = `<div class="slf-head"><div class="slf-letter">${letter}</div><div class="slf-time"><small>Runde ${round}</small><b>Streichen</b></div></div>
           <table class="slf-tab"><tr><th></th>${P.map(p => `<th class="c${p}">${ctx.name(p)}</th>`).join('')}</tr>
-          ${CATS.map((c, ci) => `<tr><td class="c">${c}</td>${P.map(p => { const a = ans[p][ci], k = p + ':' + ci; return `<td class="a${!norm(a) ? ' empty' : ''}${mine.has(k) ? ' bad' : ''}${p === viewer ? ' mine' : ''}" data-k="${k}">${norm(a) ? esc(a) : '–'}</td>`; }).join('')}</tr>`).join('')}</table>
+          ${CATS.map((c, ci) => `<tr><td class="c">${esc(c)}</td>${P.map(p => { const a = ans[p][ci], k = p + ':' + ci; return `<td class="a${!norm(a) ? ' empty' : ''}${mine.has(k) ? ' bad' : ''}${p === viewer ? ' mine' : ''}" data-k="${k}">${norm(a) ? esc(a) : '–'}</td>`; }).join('')}</tr>`).join('')}</table>
           <p class="slf-note">${waiting ? 'Warte auf die anderen …' : 'Tippe auf Antworten, die nicht zählen. Falscher Anfangsbuchstabe ist schon gestrichen.'}</p>
           ${waiting ? '' : '<button class="btn primary big" id="slfv"><span>Weiter</span></button>'}`;
         wrap.querySelectorAll('td.a').forEach(td => td.onclick = () => {
@@ -155,7 +197,7 @@
         });
         const b = wrap.querySelector('#slfv'); if (b) b.onclick = () => { if (voted) return; voted = true; ctx.submit({ v: [...mine], r: round }, local ? P[0] : me()); if (!local) drawVote(); };
       }
-      const esc = t => String(t).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+
       function scoreRound() {
         phase = 'score';
         const voters = local ? [P[0]] : people();
@@ -169,7 +211,7 @@
         P.forEach(p => { total[p] += pts[p].reduce((a, b) => a + b, 0); });
         wrap.innerHTML = `<div class="slf-head"><div class="slf-letter">${letter}</div><div class="slf-time"><small>Runde ${round}</small><b>Punkte</b></div></div>
           <table class="slf-tab"><tr><th></th>${P.map(p => `<th class="c${p}">${ctx.name(p)}</th>`).join('')}</tr>
-          ${CATS.map((c, ci) => `<tr><td class="c">${c}</td>${P.map(p => { const a = ans[p][ci]; return `<td class="a mine${!norm(a) ? ' empty' : !pts[p][ci] ? ' bad' : ''}">${norm(a) ? esc(a) : '–'}<em>${norm(a) ? pts[p][ci] : ''}</em></td>`; }).join('')}</tr>`).join('')}
+          ${CATS.map((c, ci) => `<tr><td class="c">${esc(c)}</td>${P.map(p => { const a = ans[p][ci]; return `<td class="a mine${!norm(a) ? ' empty' : !pts[p][ci] ? ' bad' : ''}">${norm(a) ? esc(a) : '–'}<em>${norm(a) ? pts[p][ci] : ''}</em></td>`; }).join('')}</tr>`).join('')}
           <tr class="tot"><td class="c">Gesamt</td>${P.map(p => `<td class="c${p}">${total[p]}</td>`).join('')}</tr></table>`;
         scoreLine(); V.sfx.win();
         ctx.later(newRound, 5200);

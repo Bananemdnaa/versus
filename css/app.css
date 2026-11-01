@@ -2362,3 +2362,36 @@ textarea.inp{height:auto}
 html.lowfx::view-transition-group(*),html.lowfx::view-transition-old(*),html.lowfx::view-transition-new(*){animation:none!important}
 @media (prefers-reduced-motion:reduce){::view-transition-group(*),::view-transition-old(*),::view-transition-new(*){animation:none!important}}
 .sd-inst{color:var(--cyan)}
+/* Online on the phone: friends before the ranking (on the laptop the ranking has the wide left column) */
+@media (max-width:959px){.online .ogrid>.ocol{display:contents}.online .orank{order:2}}
+
+/* options as a popup during a match */
+.modal.optm{width:min(100%,920px);padding:22px;max-height:min(86dvh,760px)}
+.optpop{position:relative}
+.optpop .opx{position:absolute;top:0;right:0;z-index:6}
+.optpop .oset{max-width:none;margin:0}
+.optpop .onav{position:static;top:auto}
+.optpop .onav .title{font-size:38px}
+@media (max-width:959px){.optpop .onav{position:sticky;top:-22px;padding-top:4px}.optpop .onav .title{font-size:32px;padding-right:50px}}
+/* laptop match: the view spans the whole main area so the game bar reaches both edges; the arena stays at 1180 px */
+@media (min-width:960px){
+  .view.play{max-width:none}
+  .view.play>.duel{width:100%;max-width:1180px;margin-inline:auto}
+  .view.play>.pbar{background:color-mix(in srgb,var(--ink2) 96%,transparent)}
+}
+
+/* game panel: own editor of a game (Stadt Land Fluss categories) */
+.gp-extra{margin:12px 18px 0}
+.slc{display:flex;flex-direction:column;gap:10px;padding:12px 14px;border-radius:var(--r-m);background:var(--panel2);border:1px solid var(--line)}
+.slc-h{display:flex;justify-content:space-between;align-items:baseline;gap:10px}
+.slc-h span{font-size:13px;color:var(--muted)}
+.slc-h small{font-size:12px;color:var(--dim)}
+.slc-l{display:flex;flex-wrap:wrap;gap:6px}
+.slc-l button{display:inline-flex;align-items:center;gap:6px;height:32px;padding:0 12px;border:1px solid var(--line2);border-radius:var(--r-pill);font-size:13px;color:var(--muted);transition:all var(--t-fast)}
+.slc-l button.on{color:var(--ink);background:var(--yellow);border-color:var(--yellow);font-weight:700}
+.slc-l button i{font-style:normal;font-size:15px;line-height:1;opacity:.7;padding:0 2px}
+.slc-l button i:hover{opacity:1}
+.slc-add{display:flex;gap:8px}
+.slc-add .inp{flex:1;min-width:0;height:38px}
+.slc-reset{align-self:flex-start;font-size:12.5px}
+@media (min-width:960px){.bprev{max-width:440px}}

@@ -195,7 +195,7 @@
     function go(id, left) {
       V.sfx.ui();
       // during a match the areas are reached through the usual "leave the match?" question
-      if (view === 'play' && !left) { if (P.playApi) P.playApi.leaveTo(() => go(id, true)); return; }
+      if (view === 'play' && !left) { if (!P.playApi) return; if (id === 'opts') return P.playApi.opts(); P.playApi.leaveTo(() => go(id, true)); return; }
       if (id === 'quick') return quickGo();
       if (id === 'install') return install();
       if (id === 'start' || id === 'lib') {
@@ -745,6 +745,8 @@
     if (inDiscord()) { if (cfg.mode !== 'ai' && cfg.mode !== 'voice') cfg.mode = g.noAI ? 'voice' : 'ai'; if (cfg.mode === 'voice' && !(g.table || g.online)) cfg.mode = 'ai'; }
     else if (cfg.mode === 'voice') cfg.mode = g.noAI ? 'local' : 'ai';
     (g.options || []).forEach(o => { cfg.opts[o.id] = saved.opts && saved.opts[o.id] !== undefined ? saved.opts[o.id] : o.def; });
+    // options with their own editor in the panel (g.panelExtra, e.g. the categories of Stadt Land Fluss)
+    (g.extraOpts || []).forEach(k => { if (saved.opts && saved.opts[k] !== undefined) cfg.opts[k] = saved.opts[k]; });
     return cfg;
   }
   function saveCfg(g, cfg) { const all = S.get('setup', {}); all[g.id] = cfg; S.set('setup', all); }
@@ -820,6 +822,7 @@
         ${cfg.mode === 'ai' && !g.noFirst ? chipRow('first', g.firstTitle || 'Wer fängt an?', [['me', firstLabel[0]], ['ai', firstLabel[1]], ['rand', firstLabel[2]]], cfg.first) : ''}
         ${optsHere.map(o => chipRow('o_' + o.id, o.label, o.choices, cfg.opts[o.id])).join('')}
       </div>` : ''}
+      ${g.panelExtra && cfg.mode !== 'online' && cfg.mode !== 'open' ? `<div class="gp-extra" id="gpext">${g.panelExtra.html(cfg.opts)}</div>` : ''}
       ${cfg.mode === 'table' ? '<div class="gp-online" id="ofr"></div>' : ''}
       ${dcNone ? '<p class="hint dch">Dieses Spiel spielt ihr zu zweit am selben Gerät. In Discord hat jeder sein eigenes, darum geht es hier nicht.</p>' : dc && cfg.mode === 'ai' ? '<p class="hint dch">Nur du siehst dieses Spiel. Zum Mitspielen mit den anderen wähl oben „Sprachkanal“.</p>' : ''}
       ${voice ? `<p class="hint dch">${vNeedAcc ? 'Für dieses Spiel braucht ihr beide ein kostenloses Versus-Konto. Als Gast gehen 4 Gewinnt, Tic Tac Toe, Schiffe versenken und Käsekästchen.' : g.table ? 'Du eröffnest einen Tisch. Alle in diesem Sprachkanal sehen ihn unten als Balken und spielen auf ihrem eigenen Gerät mit.' : 'Du lädst ein. Wer in diesem Sprachkanal zuerst auf „Mitspielen“ tippt, spielt auf seinem eigenen Gerät gegen dich.'}</p>` : ''}
@@ -842,6 +845,8 @@
     on('level', x => cfg.level = +x);
     on('first', x => cfg.first = x);
     (g.options || []).forEach(o => on('o_' + o.id, x => cfg.opts[o.id] = isNaN(+x) ? x : +x));
+    const ext = root.querySelector('#gpext');
+    if (ext) g.panelExtra.wire(ext, cfg.opts, o => { Object.assign(cfg.opts, o); saveCfg(g, cfg); V.sfx.ui(); rer(); });
     const voiceGo = () => { saveCfg(g, cfg); if (!V.online) return; if (full) closeModal(); return g.table ? V.online.table(g, cfg.opts, cfg.level) : V.online.linkInvite(g, cfg.opts); };
     const goBtn = root.querySelector('#go'); if (goBtn) goBtn.onclick = () => { if (voice) return voiceGo(); saveCfg(g, cfg); play(g, cfg); };
     const accBtn = root.querySelector('#acc'); if (accBtn) accBtn.onclick = () => { V.sfx.ui(); closeModal(); home('profile'); };
@@ -963,7 +968,8 @@
     };
     requestAnimationFrame(step);
   }
-  function optsTab() {
+  // pop: the options as a popup during a match, without language, app and data (they reload or end the match)
+  function optsTab(pop) {
     const sw = (id, on, label, sub, ic) => `<button class="opt" id="${id}" role="switch" aria-checked="${on}">${ic}<span><b>${label}</b><small>${sub}</small></span><i class="sw ${on ? 'on' : ''}"></i></button>`;
     const slider = (k, label, val, off) => `<div class="opt ovol${off ? ' off' : ''}" data-vol="${k}"><i class="ospc"></i><span><b>Lautstärke ${label}</b><input type="range" min="0" max="100" step="5" value="${val}" style="--p:${val}%" aria-label="Lautstärke ${label}"></span><em>${val} %</em></div>`;
     const seg = (key, cur, list) => `<div class="oseg" data-k="${key}" role="radiogroup">${list.map(([v, l]) => `<button role="radio" data-v="${v}" aria-checked="${cur === v}" class="${cur === v ? 'on' : ''}">${l}</button>`).join('')}</div>`;
@@ -974,9 +980,9 @@
       ? `<div class="opt">${IC.phone}<span><b>Läuft als App</b><small>Versus ist auf diesem Gerät installiert</small></span></div>`
       : `<button class="opt" id="o_inst">${IC.dl}<span><b>Als App installieren</b><small>Eigenes Symbol, startet schneller, ohne Browserleiste</small></span></button>`;
     // categories: a list on the left on the laptop (one group at a time), a jump bar on the phone
-    const cats = [['sound', 'Ton und Vibration'], ['look', 'Anzeige'], ['game', 'Spiel'], V.coarse ? null : ['keys', 'Tastatur'], V.cloud && V.cloud.available() ? ['net', 'Online'] : null, ['app', 'App'], ['data', 'Daten']].filter(Boolean);
+    const cats = [['sound', 'Ton und Vibration'], ['look', 'Anzeige'], ['game', 'Spiel'], V.coarse ? null : ['keys', 'Tastatur'], V.cloud && V.cloud.available() ? ['net', 'Online'] : null, pop ? null : ['app', 'App'], pop ? null : ['data', 'Daten']].filter(Boolean);
     if (!cats.some(c => c[0] === optCat)) optCat = 'sound';
-    return `<section class="opts page oset">
+    return `<section class="opts page oset${pop ? ' opop' : ''}">
       <nav class="onav" aria-label="Kategorien"><h1 class="title"><span>Deine</span> Optionen</h1>
         <label class="osearch">${IC.search}<input id="oq" type="search" placeholder="Option suchen" autocomplete="off" spellcheck="false" aria-label="Option suchen"></label>
         <div class="onav-l">${cats.map(([k, l]) => `<button data-oj="${k}" class="${optCat === k ? 'on' : ''}">${l}</button>`).join('')}</div>
@@ -999,7 +1005,7 @@
         ${sw('o_coords', settings.coords !== false, 'Koordinaten', 'Buchstaben und Zahlen am Schachbrett', IC.hash)}
         ${sw('o_hints', settings.hints !== false, 'Zughilfen', 'Zeigt, wohin du ziehen kannst (Schach, Dame, Reversi, Mühle)', IC.bulb)}
         ${sw('o_cb', !!settings.cb, 'Farbenblind-Modus', 'Muster auf den Steinen, Formen an den Namen, Nummern auf den Figuren', IC.eye)}
-        <div class="opt orow">${IC.globe}<span><b>Sprache</b><small>Language · Deutsch oder Englisch</small></span>${seg('lang', V.lang, [['de', 'Deutsch'], ['en', 'English']])}</div>
+        ${pop ? '' : `<div class="opt orow">${IC.globe}<span><b>Sprache</b><small>Language · Deutsch oder Englisch</small></span>${seg('lang', V.lang, [['de', 'Deutsch'], ['en', 'English']])}</div>`}
         <div class="opt orow">${IC.grid}<span><b>Spielbrett</b><small>Schach, Dame und Reversi</small></span>${seg('board', settings.board || 'std', [['std', 'Standard'], ['neon', 'Neon'], ['wood', 'Holz']])}</div>
         <div class="bprev" aria-hidden="true">${[['std', 'Standard'], ['neon', 'Neon'], ['wood', 'Holz']].map(([k, l]) => `<button tabindex="-1" data-bp="${k}" class="bp bp-${k}${(settings.board || 'std') === k ? ' on' : ''}"><i></i><span>${l}</span></button>`).join('')}</div>
       </div></div>
@@ -1016,7 +1022,7 @@
         ${u && !u.anon ? `<button class="opt" id="o_push" role="switch" aria-checked="false">${IC.bell}<span><b>Benachrichtigungen</b><small id="o_pushs">Herausforderungen, Freundschaftsanfragen und wenn du in einer Partie über Tage dran bist</small></span><i class="sw"></i></button>` : ''}
         ${u ? sw('o_stealth', !!settings.stealth, 'Online-Status verbergen', 'Freunde sehen nicht, ob und was du gerade spielst, und können nicht zuschauen', IC.eye) : ''}
       </div></div>` : ''}
-      <div class="ogroup" data-oc="app"><h2 class="oh"><button class="oh-b" data-ot="app" aria-expanded="true">App</button></h2>
+      ${pop ? '' : `<div class="ogroup" data-oc="app"><h2 class="oh"><button class="oh-b" data-ot="app" aria-expanded="true">App</button></h2>
       <div class="optlist small">
         ${appRow}
         <button class="opt" id="o_upd">${IC.sync}<span><b>Nach Updates suchen</b><small>Version ${V.VERSION || ''}</small></span></button>
@@ -1027,11 +1033,18 @@
         <button class="opt" id="o_tut">${IC.book}<span><b>Tutorials wieder als neu zeigen</b></span></button>
         <button class="opt" id="o_def">${IC.redo}<span><b>Einstellungen zurücksetzen</b></span></button>
         <button class="opt danger" id="o_rst">${IC.x}<span><b>Bilanz löschen</b></span></button>
-      </div></div>
+      </div></div>`}
       </div>
       <p class="onone" id="onone" hidden>Keine Option gefunden.</p>
       <p class="about">Versus ${V.VERSION || ''} · ohne Werbung. KI und Spiele zu zweit laufen auch offline.<span class="only-fine"> Taste <kbd>?</kbd> zeigt alle Kürzel.</span><br><a href="rechtliches.html">Impressum und Datenschutz</a> · <a href="terms.html">Nutzungsbedingungen</a> · <a href="${V.DISCORD}" target="_blank" rel="noopener">Discord</a></p>
     </div></section>`;
+  }
+  // the options as a popup (during a match): same rows and categories, the match stays where it is
+  function optsPopup(onClose) {
+    const m = openModal(`<div class="optpop"><button class="iconbtn opx" id="opx" aria-label="Schließen">${IC.x}</button>${optsTab(true)}</div>`, 'optm', onClose);
+    m.querySelector('#opx').onclick = () => { V.sfx.ui(); closeModal(); };
+    wireOpts(m);
+    return m;
   }
   let optCat = 'sound';
   // laptop: only the chosen group is shown (class oc-<cat> on the section); a search shows matching rows of all groups.
@@ -1133,12 +1146,12 @@
       st.setAttribute('aria-checked', on); st.querySelector('.sw').classList.toggle('on', on);
     };
     const inst = v.querySelector('#o_inst'); if (inst) inst.onclick = () => { V.sfx.ui(); install(); };
-    v.querySelector('#o_upd').onclick = () => { V.sfx.ui(); checkUpdate(); };
-    v.querySelector('#o_tut').onclick = () => { P.seen = {}; S.set('seen', P.seen); toast('Alle Tutorials sind wieder neu'); };
-    const sure = (b, fn) => b.onclick = () => {
+    const upd = v.querySelector('#o_upd'); if (upd) upd.onclick = () => { V.sfx.ui(); checkUpdate(); };
+    const tu = v.querySelector('#o_tut'); if (tu) tu.onclick = () => { P.seen = {}; S.set('seen', P.seen); toast('Alle Tutorials sind wieder neu'); };
+    const sure = (b, fn) => b && (b.onclick = () => {
       if (!b.classList.contains('sure')) { b.classList.add('sure'); b.querySelector('b').textContent = 'Sicher? Nochmal tippen'; return; }
       fn();
-    };
+    });
     sure(v.querySelector('#o_def'), () => {
       const keep = settings.stealth;
       Object.keys(settings).forEach(k => delete settings[k]); Object.assign(settings, DEFAULTS, { stealth: keep }); saveSettings(); applyFxClass(); V.music.apply();
@@ -1631,7 +1644,7 @@
   };
   // what js/play.js needs from the shell
   Object.assign(P, {
-    mount, locked, guest, toast, home, setup, openModal, closeModal, nav, tutorial, showKeys,
+    mount, locked, guest, toast, home, setup, openModal, closeModal, nav, tutorial, showKeys, optsPopup,
     enterPlay(g) { destroyCurrent(); view = 'play'; lastGame = g; selected = g; document.querySelectorAll('.upbar:not(.note)').forEach(b => b.remove()); },
     updateBar,
     setCurrent(c) { current = c; },

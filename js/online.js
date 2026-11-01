@@ -202,11 +202,11 @@
         ${full ? `<form class="ocode" id="ocode"><input class="inp" id="ocodei" maxlength="8" placeholder="Raum-Code eingeben" autocomplete="off" autocapitalize="characters" spellcheck="false" aria-label="Raum-Code eingeben"><button class="btn sm" type="submit"><span>Beitreten</span></button></form>` : ''}</div>
       ${C().user() ? '<div id="oactive" class="obanners"></div>' : ''}
       <div class="ogrid${full ? '' : ' solo'}">
-        <div class="ocol">${quickCard()}${full ? '<div id="oasync"></div>' : ''}</div>
-        <div class="ocol">${full ? `<div class="apanel osec fpanel"><div class="fhead"><h3>Freunde <small id="fcount"></small></h3><button class="btn primary sm" id="fadd"><span>${IC().plus}Hinzufügen</span></button></div>
-            <div id="ofriends">${V.skel()}</div></div>` : loginCard}<div class="apanel osec"><div class="rtop"><h3>Rangliste <em class="chip c rleft" id="rleft" hidden></em></h3><div class="oseg rper" id="oper">${[['week', 'Diese Woche'], ['all', 'Für immer']].map(([k, l]) => `<button data-p="${k}" class="${boardPeriod === k ? 'on' : ''}">${l}</button>`).join('')}</div></div>
+        <div class="ocol">${quickCard()}${full ? '<div id="oasync"></div>' : ''}<div class="apanel osec orank"><div class="rtop"><h3>Rangliste <em class="chip c rleft" id="rleft" hidden></em></h3><div class="oseg rper" id="oper">${[['week', 'Diese Woche'], ['all', 'Für immer']].map(([k, l]) => `<button data-p="${k}" class="${boardPeriod === k ? 'on' : ''}">${l}</button>`).join('')}</div></div>
           <label class="rsel">${IC().trophy}<select class="inp" id="obgs" aria-label="Spiel für die Rangliste">${[['', 'Alle Spiele'], ...ONLINE.concat(TABLE).filter(id => V.byId[id]).map(id => [id, gname(id)])].map(([id, l]) => `<option value="${id}"${boardGame === id ? ' selected' : ''}>${esc(l)}</option>`).join('')}</select></label>
           <div id="oboard">${V.skel()}</div></div></div>
+        <div class="ocol">${full ? `<div class="apanel osec fpanel"><div class="fhead"><h3>Freunde <small id="fcount"></small></h3><button class="btn primary sm" id="fadd"><span>${IC().plus}Hinzufügen</span></button></div>
+            <div id="ofriends">${V.skel()}</div></div>` : loginCard}</div>
       </div></section>`;
   }
   const onlineBody = () => { const b = document.querySelector('.hbody'); return b && V.ui.view() === 'home' && V.ui.tab() === 'online' ? b : null; };

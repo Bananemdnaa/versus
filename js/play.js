@@ -913,6 +913,8 @@
     }
     const tut = () => { if (inst && inst.pause) inst.pause(); tutorial(g, () => { if (inst && inst.resume && alive) inst.resume(); }); };
     const back = () => leave(() => watch ? (M.admin ? V.account.admin('matches') : V.ui.home('online')) : setup(g));
+    // all options as a popup: the game holds still while it is open (online it keeps running)
+    const optsPop = () => { if (inst && inst.pause) inst.pause(); P.optsPopup(() => { if (inst && inst.resume && alive) inst.resume(); }); };
     // ---------- pause menu (Esc, the back button) ----------
     // Local matches and against the AI: the game holds still (action games pause their loop). Online it keeps running,
     // so it is called "Menü" there and offers resigning instead of a new start. Leaving still asks once more.
@@ -952,7 +954,7 @@
       on('pz_rules', () => { P.closeModalQuiet(); tut(); });
       on('pz_keys', () => { P.closeModalQuiet(); P.showKeys(); });
       on('pz_leave', () => { P.closeModalQuiet(); back(); });
-      on('pz_opts', () => { P.closeModalQuiet(); leave(() => V.ui.home('opts')); });
+      on('pz_opts', () => { P.closeModalQuiet(); optsPop(); });
       m.querySelectorAll('[data-pzs]').forEach(b => b.onclick = () => {
         const k = b.dataset.pzs, val = k === 'hints' ? settings.hints === false : !settings[k];
         settings[k] = val; P.saveSettings(); P.applyFxClass(); V.sfx.ui();
@@ -976,6 +978,7 @@
       menu: pauseMenu,
       // the laptop sidebar during a match: leave (with the usual question), then go there
       leaveTo(fn) { leave(fn); },
+      opts: optsPop,
       undo() { if (canUndo && !ended) undo(); },
       restart() { if (!online && !watch) leave(() => play(g, cfg, series)); },
       tut

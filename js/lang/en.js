@@ -869,6 +869,14 @@
     'Zu Favoriten': 'Add to favourites', 'Online-Raum öffnen': 'Open an online room', 'Link kopiert': 'Link copied', 'Als App installieren': 'Install as app'
   });
 
+  // Stadt Land Fluss: own categories; options as a popup in a match
+  A({
+    'Pflanze': 'Plant', 'Essen': 'Food', 'Marke': 'Brand', 'Sport': 'Sport', 'Körperteil': 'Body part', 'Farbe': 'Colour', 'Film oder Serie': 'Film or series', 'Promi': 'Celebrity', 'Getränk': 'Drink',
+    '# von höchstens #': '# of at most #', 'Eigene Kategorie': 'Own category', 'Standard wiederherstellen': 'Back to the standard', 'Mindestens # Kategorien': 'At least # categories',
+    'Höchstens # Kategorien': 'At most # categories', 'Höchstens # Kategorien, sie ist jetzt in der Liste': 'At most # categories, it is in the list now',
+    'Ein {0} wird ausgelost. Schreib zu jeder Spalte etwas, das damit anfängt, zum Beispiel {1}. Welche Spalten es gibt, legt ihr vorher im Spiel-Panel fest, auch eigene.': 'A {0} is drawn. For each column write something that starts with it, for example {1}. You pick the columns in the game panel beforehand, your own ones too.'
+  });
+
   // ---------- patterns: text with names, moves and hands ----------
   const t = V.t;
   const PIECE = { Bauer: 'Pawn', Springer: 'Knight', Läufer: 'Bishop', Turm: 'Rook', Dame: 'Queen', König: 'King' };
