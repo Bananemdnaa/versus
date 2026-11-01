@@ -270,7 +270,7 @@
 
   // ---------- admin panel ----------
   let aTab = 'overview', mFilter = 'live', mQuery = '', matches = null, stats = null, online = null, players = null, logs = null, query = '', aErr = '', box = null, sure = null, liveT = null, busy = false, reports = null, rFilter = 'open';
-  let pFilter = '', site = null, purge = null, fb = null, fFilter = 'open', dcs = null;
+  let pFilter = '', site = null, purge = null, fb = null, fFilter = 'open', dcs = null, pSel = '', pLim = 40;
   // warning templates: the player sees them in their own language (js/lang/en.js has the English text)
   const WARN = {
     '@name': 'Dein Benutzername verstößt gegen die Regeln. Bitte ändere ihn, sonst wird das Konto gesperrt.',
@@ -284,17 +284,26 @@
     if (t) aTab = t;
     const v = V.ui.show('admin', `<div class="view admin">
       <div class="sbar"><button class="iconbtn" id="bk" aria-label="Zurück">${IC().back}</button><span class="crumb">Admin-Panel</span>
-        ${C().role() ? `<em class="rtag ${C().role()}">${ROLE[C().role()]}</em>` : ''}</div>
+        ${C().role() ? `<em class="rtag ${C().role()}">${ROLE[C().role()]}</em>` : ''}<div class="aattn" id="aattn"></div></div>
       <div class="chips" id="atabs">${[['overview', 'Übersicht'], ['matches', 'Partien'], ['players', 'Spieler'], ['reports', 'Meldungen'], ['feedback', 'Feedback'], ['site', 'Seite'], ['log', 'Protokoll']].map(([k, l]) => `<button data-t="${k}" class="${aTab === k ? 'on' : ''}">${l}${k === 'reports' && reports && reports.open ? ` <small class="nb">${reports.open}</small>` : ''}${k === 'feedback' && fb && fb.open ? ` <small class="nb">${fb.open}</small>` : ''}</button>`).join('')}</div>
       <div id="abody" class="abody"></div></div>`);
     v.querySelector('#bk').onclick = () => { stopLive(); V.ui.home('profile'); };
     v.querySelectorAll('#atabs button').forEach(x => x.onclick = () => { aTab = x.dataset.t; aErr = ''; box = null; sure = null; V.sfx.ui(); v.querySelectorAll('#atabs button').forEach(y => y.classList.toggle('on', y === x)); draw(); load(); });
     draw(); load();
-    // number of open reports and feedback on the tabs, whichever tab is open
-    const badge = (t, rpc) => { if (aTab !== t) C().rpc(rpc, { st: 'open', lim: 1 }).then(r => {
+    // what needs attention, on every tab: open reports and new feedback as chips at the top (and the numbers on the tabs)
+    const attn = {};
+    const showAttn = () => {
+      const el = v.querySelector('#aattn'); if (!el) return;
+      const chips = [attn.reports ? `<button class="atn bad" data-t3="reports">${IC().shield}${attn.reports} offene Meldungen</button>` : '',
+        attn.feedback ? `<button class="atn" data-t3="feedback">${IC().chat}${attn.feedback} neues Feedback</button>` : ''].filter(Boolean);
+      el.innerHTML = chips.length ? `<span class="atn-k">Braucht Aufmerksamkeit</span>${chips.join('')}` : '<span class="atn-k ok">Alles erledigt</span>';
+      el.querySelectorAll('[data-t3]').forEach(x => x.onclick = () => { aTab = x.dataset.t3; V.sfx.ui(); admin(); });
+    };
+    const badge = (t, rpc) => C().rpc(rpc, { st: 'open', lim: 1 }).then(r => {
+      attn[t] = (r && r.open) || 0; showAttn();
       const b = v.querySelector(`#atabs [data-t=${t}]`);
       if (b && r && r.open && !b.querySelector('.nb')) b.insertAdjacentHTML('beforeend', ` <small class="nb">${r.open}</small>`);
-    }, () => { }); };
+    }, () => { });
     badge('reports', 'admin_reports'); badge('feedback', 'admin_feedback');
     stopLive();
     liveT = setInterval(() => {
@@ -310,7 +319,7 @@
       if (aTab === 'overview') {
         const [s, o, d] = await Promise.all([C().rpc('admin_stats'), C().rpc('admin_online'), C().rpc('admin_discord').catch(() => null)]); stats = s; online = o || []; dcs = d;
       }
-      if (aTab === 'players') players = await C().rpc('admin_players', { q: query, lim: 40, f: pFilter });
+      if (aTab === 'players') players = await C().rpc('admin_players', { q: query, lim: pLim, f: pFilter });
       if (aTab === 'log') logs = await C().rpc('admin_log_list', { lim: 80 });
       if (aTab === 'reports') reports = await C().rpc('admin_reports', { st: rFilter, lim: 80 });
       if (aTab === 'feedback') fb = await C().rpc('admin_feedback', { st: fFilter, lim: 80 });
@@ -377,7 +386,7 @@
   }
   function playerList() {
     const owner = C().role() === 'owner';
-    const cards = (players || []).map(p => {
+    const card = p => {
       const n = esc(p.username), st = p.stats || {};
       const canEdit = owner || !p.role || p.me;
       const tags = [p.role ? `<em class="rtag ${p.role}">${ROLE[p.role]}</em>` : '', p.dev ? '<em class="rtag dev">Dev</em>' : '',
@@ -416,10 +425,26 @@
           ${owner ? confirmBtn('dev:', p.dev ? 'Dev aufheben' : 'Zum Dev-Konto', 'Wirklich?', p.dev ? 'dev_off' : 'dev_on') : ''}
         </div>${boxHtml}` : '<div class="pa-info muted">Nur der Owner kann Admins bearbeiten.</div>'}
       </div>`;
-    }).join('');
+    };
     return `<div class="asearch"><input class="inp" id="aq" placeholder="Spieler suchen (Namensanfang)" value="${esc(query)}" autocapitalize="none" spellcheck="false"><button class="btn ghost sm" id="reload"><span>${IC().redo}</span></button></div>
       <div class="chips mini" id="pf">${[['', 'Zuletzt aktiv'], ['new', 'Neu'], ['reported', 'Gemeldet'], ['banned', 'Gesperrt'], ['hidden', 'Ausgeblendet'], ['guest', 'Gäste'], ['warned', 'Verwarnt'], ['noted', 'Mit Notiz'], ['discord', 'Discord'], ['en', 'Englisch']].map(([k, l]) => `<button data-pf="${k}" class="${pFilter === k ? 'on' : ''}">${l}</button>`).join('')}</div>
-      ${players ? cards || '<p class="muted">Niemand gefunden.</p>' : V.skel()}`;
+      ${players ? (players.length ? table() : '<p class="muted">Niemand gefunden.</p>') : V.skel()}`;
+    // many players: a compact table; a click opens everything about one player (and the actions) beside it
+    function table() {
+      const sel = players.find(p => p.username === pSel) || (players.length === 1 ? players[0] : null);
+      const row = p => {
+        const st = p.stats || {}, online = p.seen && Date.now() - new Date(p.seen).getTime() < 120000;
+        const tags = [p.role ? `<em class="rtag ${p.role}">${ROLE[p.role]}</em>` : '', p.guest ? '<em class="rtag">Gast</em>' : '', p.discord ? '<em class="rtag dc">Discord</em>' : '',
+          p.banned_until ? '<em class="rtag bad">Gesperrt</em>' : '', Date.now() - new Date(p.joined).getTime() < 864e5 ? '<em class="rtag">Neu</em>' : ''].join('');
+        return `<button class="prow${sel === p ? ' on' : ''}${online ? ' live' : ''}" data-psel="${esc(p.username)}"><span class="pr-n"><span class="adot"></span><b>${esc(p.username)}</b>${tags}</span>
+          <span>${day(p.joined)}</span><span>${online ? '<b class="good">online</b>' : ago(p.seen)}</span><span>${st.played || 0}</span><span>${p.online_wins || 0}:${p.online_losses || 0}</span>
+          <span>${p.reports_open ? `<em class="rtag bad">${p.reports_open} offen</em>` : p.reports || '–'}</span></button>`;
+      };
+      return `<div class="pgrid2"><div class="ptable"><div class="prow ph"><span>Spieler</span><span>Dabei seit</span><span>Zuletzt</span><span>Partien</span><span>Online</span><span>Meldungen</span></div>
+        ${players.map(row).join('')}
+        ${players.length >= pLim && pLim < 100 ? '<button class="btn ghost sm pmore" id="pmore"><span>Mehr laden</span></button>' : ''}</div>
+        <aside class="pdrawer${sel ? '' : ' empty'}" id="pdrawer">${sel ? card(sel) : '<p class="muted">Tipp auf einen Spieler für alle Infos und Aktionen.</p>'}</aside></div>`;
+    }
   }
   // match log: running and finished online matches; each one can be watched live or replayed move by move
   function filterBar() {
@@ -571,7 +596,13 @@
       act2(() => C().rpc('admin_warn', { name: n, txt }).then(() => thenDone(x)), n + ' ist verwarnt. Die Verwarnung erscheint beim nächsten Öffnen.');
     });
     h.querySelectorAll('[data-games]').forEach(x => x.onclick = () => { mQuery = x.dataset.games; mFilter = 'all'; matches = null; sure = null; aTab = 'matches'; V.sfx.ui(); admin(); });
-    h.querySelectorAll('[data-pf]').forEach(x => x.onclick = () => { pFilter = x.dataset.pf; players = null; V.sfx.ui(); draw(); load(); });
+    h.querySelectorAll('[data-pf]').forEach(x => x.onclick = () => { pFilter = x.dataset.pf; players = null; pSel = ''; pLim = 40; V.sfx.ui(); draw(); load(); });
+    h.querySelectorAll('[data-psel]').forEach(x => x.onclick = () => {
+      pSel = x.dataset.psel; box = null; sure = null; V.sfx.ui(); draw(true);
+      // phone: the details sit above the table
+      if (!V.ui.wide()) { const d = document.getElementById('pdrawer'); if (d) d.scrollIntoView({ block: 'start', behavior: V.fxOn() ? 'smooth' : 'auto' }); }
+    });
+    const pm = h.querySelector('#pmore'); if (pm) pm.onclick = () => { pLim = Math.min(100, pLim + 40); V.sfx.ui(); pm.classList.add('busy'); load(); };
     h.querySelectorAll('[data-t2]').forEach(x => x.onclick = () => { aTab = x.dataset.t2; V.sfx.ui(); admin(); });
     h.querySelectorAll('[data-vtab]').forEach(x => x.onclick = () => act('admin_void_table', { tid: x.dataset.vtab, why: null }, 'Tisch annulliert.'));
     // site page

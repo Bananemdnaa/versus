@@ -326,55 +326,78 @@
   }
 
   // ---------- adding friends: search by name, own code (QR and link), enter a code ----------
-  let addTab = 'search', myCode = null, renewSure = false;
+  let myCode = null, renewSure = false;
   const addLink = c => location.origin + location.pathname + '?add=' + c;
   const fmtCode = c => c.slice(0, 3) + ' ' + c.slice(3);
+  // Adding friends on one page: one field for a name or a friend code (names show while typing, a code can be redeemed
+  // right there), requests to you, the people you played lately, and your own code with QR and link at the bottom.
+  // t === 'code' scrolls to your own code.
   function addFriends(t) {
-    if (t) addTab = t;
     renewSure = false;
-    const m = V.ui.openModal(`<div class="fadd">
-      <div class="fadd-h"><h3>Freund hinzufügen</h3><button class="iconbtn" id="fclose" aria-label="Schließen">${IC().x}</button></div>
-      <div class="oseg fseg" id="fseg">${[['search', 'Name suchen'], ['code', 'Mein Code'], ['enter', 'Code eingeben']].map(([k, l]) => `<button data-t="${k}" class="${addTab === k ? 'on' : ''}">${l}</button>`).join('')}</div>
-      <div id="fbody"></div></div>`, 'faddm');
+    const m = V.ui.openModal(`<div class="fadd fadd2">
+      <div class="fadd-h"><h3>Freunde finden</h3><button class="iconbtn" id="fclose" aria-label="Schließen">${IC().x}</button></div>
+      <label class="fq2">${IC().search}<input id="fq" placeholder="Name oder Freundescode" autocapitalize="none" autocomplete="off" spellcheck="false" maxlength="16" aria-label="Name oder Freundescode"></label>
+      <div id="fres" class="fres"></div>
+      <div id="freq"></div>
+      <section class="fsec"><h4>Zuletzt gegen dich gespielt</h4><div id="frecent">${V.skel(2)}</div></section>
+      <section class="fsec" id="fmine"><h4>Dein Code</h4><div id="fcodebox"></div></section></div>`, 'faddm');
     m.querySelector('#fclose').onclick = V.ui.closeModal;
-    m.querySelectorAll('#fseg button').forEach(x => x.onclick = () => {
-      if (addTab === x.dataset.t) return;
-      addTab = x.dataset.t; V.sfx.ui();
-      m.querySelectorAll('#fseg button').forEach(y => y.classList.toggle('on', y === x));
-      draw();
-    });
-    function draw() {
-      const body = m.querySelector('#fbody'); if (!body) return;
-      if (addTab === 'search') return drawSearch(body);
-      if (addTab === 'code') return drawCode(body);
-      drawEnter(body);
-    }
-    draw();
-  }
-  function drawSearch(body) {
-    body.innerHTML = `<input class="inp big" id="fq" placeholder="Name, z. B. blitzfuchs" autocapitalize="none" autocomplete="off" spellcheck="false" maxlength="16">
-      <div id="fres" class="fres"><p class="fhint">Tipp die ersten Buchstaben. Die Liste erscheint beim Tippen.</p></div>`;
-    const q = body.querySelector('#fq'), res = body.querySelector('#fres');
-    let t = null, seq = 0;
-    const run = async () => {
-      const s = q.value.trim(), my = ++seq;
-      if (s.length < 2) { res.innerHTML = `<p class="fhint">${s ? 'Noch ein Buchstabe …' : 'Tipp die ersten Buchstaben. Die Liste erscheint beim Tippen.'}</p>`; return; }
-      let list;
-      try { list = await C().rpc('player_search', { q: s }); } catch (e) { res.innerHTML = `<p class="aerr">${esc(e.message)}</p>`; return; }
-      if (my !== seq) return;
-      if (!list.length) { res.innerHTML = `<p class="fhint">Niemand mit „${esc(s)}“ gefunden. Frag nach dem genauen Namen oder lass dir den Code geben.</p>`; return; }
-      res.innerHTML = list.map(r => `<div class="frow" data-prof="${esc(r.username)}"><span class="fav">${initials(r.username)}</span><div class="ft"><b>${esc(r.username)}</b></div>
-        ${r.state === 'friend' ? '<em class="rtag good">Freund</em>' : r.state === 'outgoing' ? '<em class="rtag">angefragt</em>'
-          : `<button class="btn sm primary" data-req="${esc(r.username)}" data-st="${r.state || ''}"><span>${r.state === 'incoming' ? 'Annehmen' : IC().plus + 'Hinzufügen'}</span></button>`}</div>`).join('');
-      res.querySelectorAll('[data-req]').forEach(x => x.onclick = async e => {
+    const q = m.querySelector('#fq'), res = m.querySelector('#fres');
+    const row = (name, st) => `<div class="frow" data-prof="${esc(name)}"><span class="fav">${initials(name)}</span><div class="ft"><b>${esc(name)}</b></div>${stateBtn(name, st)}</div>`;
+    const wireRows = el => {
+      el.querySelectorAll('[data-prof]').forEach(x => x.onclick = () => { V.sfx.ui(); profile(x.dataset.prof); });
+      el.querySelectorAll('[data-req]').forEach(x => x.onclick = async e => {
         e.stopPropagation();
         try { const r = await request(x.dataset.req); x.outerHTML = r === 'accepted' || r === 'friends' ? '<em class="rtag good">Freund</em>' : '<em class="rtag">angefragt</em>'; }
         catch (er) { V.ui.toast(er.message); }
       });
     };
-    q.oninput = () => { clearTimeout(t); t = setTimeout(run, 250); };
-    q.onkeydown = e => { if (e.key === 'Enter') { clearTimeout(t); run(); } };
-    if (!V.coarse) setTimeout(() => q.focus(), 60);
+    // a friend code: three letters and three digits/letters, e.g. "ABC 123" (names are never 6 characters with a space)
+    const asCode = s => { const c = s.toUpperCase().replace(/[^A-Z0-9]/g, ''); return c.length === 6 && /[0-9]/.test(c) && s.replace(/\s/g, '').length === 6 ? c : ''; };
+    let tm = null, seq = 0;
+    const run = async () => {
+      const s = q.value.trim(), my = ++seq, code = asCode(s);
+      const codeRow = code ? `<div class="fcodehit"><span>Freundescode <b>${fmtCode(code)}</b></span><button class="btn primary sm" id="fredeem"><span>Code einlösen</span></button></div><p class="aerr" id="fce"></p>` : '';
+      if (s.length < 2) { res.innerHTML = ''; return; }
+      let list = [];
+      try { list = await C().rpc('player_search', { q: s.toLowerCase() }); } catch (e) { if (!code) { res.innerHTML = `<p class="aerr">${esc(e.message)}</p>`; return; } }
+      if (my !== seq) return;
+      res.innerHTML = codeRow + (list.length ? list.map(r => row(r.username, r.state)).join('') : code ? '' : `<p class="fhint">Niemand mit „${esc(s)}“ gefunden. Frag nach dem genauen Namen oder lass dir den Code geben.</p>`);
+      wireRows(res);
+      const rd = res.querySelector('#fredeem');
+      if (rd) rd.onclick = async () => {
+        rd.classList.add('busy');
+        try { const r = await C().rpc('friend_add_code', { code }); V.ui.closeModal(); welcomeFriend(r); }
+        catch (x) { res.querySelector('#fce').textContent = /friend_add_code|function/i.test(x.message) ? 'Freundescodes kommen nach dem nächsten Server-Update.' : x.message; V.sfx.bad(); rd.classList.remove('busy'); }
+      };
+    };
+    q.oninput = () => { clearTimeout(tm); tm = setTimeout(run, 250); };
+    q.onkeydown = e => { if (e.key === 'Enter') { clearTimeout(tm); run(); } };
+    // requests to you, from the last loaded friends list
+    const inc = friendsData && friendsData.incoming || [];
+    if (inc.length) {
+      const fr = m.querySelector('#freq');
+      fr.innerHTML = `<section class="fsec"><h4>Anfragen an dich</h4>${inc.map(n => `<div class="frow req" data-prof="${esc(n)}"><span class="fav">${initials(n)}</span><div class="ft"><b>${esc(n)}</b><small>möchte dein Freund sein</small></div>
+        <button class="btn primary sm" data-yes="${esc(n)}"><span>Annehmen</span></button><button class="iconbtn sm" data-no="${esc(n)}" aria-label="Ablehnen">${IC().x}</button></div>`).join('')}</section>`;
+      fr.querySelectorAll('[data-yes]').forEach(x => x.onclick = e => { e.stopPropagation(); respond(x.dataset.yes, true); x.closest('.frow').remove(); });
+      fr.querySelectorAll('[data-no]').forEach(x => x.onclick = e => { e.stopPropagation(); respond(x.dataset.no, false); x.closest('.frow').remove(); });
+    }
+    // people you played lately (online), who are not friends yet
+    C().rpc('player_profile', { name: C().user().username }).then(p => {
+      const el = m.querySelector('#frecent'); if (!el) return;
+      const seen = new Set(), list = (p.recent || []).map(r => r.opp).filter(n => n && !seen.has(n) && seen.add(n) && !(fstate && fstate[n] === 'friend')).slice(0, 5);
+      el.innerHTML = list.length ? list.map(n => row(n)).join('') : '<p class="fhint">Spielt ihr online gegeneinander, steht der Gegner hier und du kannst ihn mit einem Tipp hinzufügen.</p>';
+      wireRows(el);
+    }, () => { const el = m.querySelector('#frecent'); if (el) el.innerHTML = '<p class="fhint">Gerade nicht erreichbar.</p>'; });
+    drawCode(m.querySelector('#fcodebox'));
+    if (t === 'code') setTimeout(() => m.querySelector('#fmine').scrollIntoView({ block: 'start' }), 120);
+    else if (!V.coarse) setTimeout(() => q.focus(), 60);
+  }
+  // the button next to a name: friend, asked, accept or add
+  function stateBtn(name, known) {
+    const st = known !== undefined ? known : fstate && fstate[name];
+    return st === 'friend' ? '<em class="rtag good">Freund</em>' : st === 'outgoing' ? '<em class="rtag">angefragt</em>'
+      : `<button class="btn sm primary" data-req="${esc(name)}"><span>${st === 'incoming' ? 'Annehmen' : IC().plus + 'Hinzufügen'}</span></button>`;
   }
   async function drawCode(body) {
     body.innerHTML = `<div class="fcode">${V.skel(2)}</div>`;
@@ -405,24 +428,6 @@
       try { myCode = await C().rpc('my_friend_code', { renew: true }); V.ui.toast('Neuer Code: ' + fmtCode(myCode)); drawCode(body); }
       catch (e) { V.ui.toast(e.message); }
     };
-  }
-  function drawEnter(body) {
-    body.innerHTML = `<form class="fenter" id="fen"><p class="fhint">Gib den Code deines Freundes ein. Er steht bei ihm unter „Mein Code“.</p>
-      <input class="inp code" id="fci" placeholder="ABC 123" maxlength="7" autocapitalize="characters" autocomplete="off" spellcheck="false" inputmode="text">
-      <p class="aerr" id="fce"></p>
-      <button class="btn primary big" type="submit"><span>Freund hinzufügen</span></button></form>`;
-    const f = body.querySelector('#fen'), i = body.querySelector('#fci'), er = body.querySelector('#fce');
-    i.oninput = () => { const v = i.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 6); i.value = v.length > 3 ? v.slice(0, 3) + ' ' + v.slice(3) : v; er.textContent = ''; };
-    f.onsubmit = async e => {
-      e.preventDefault();
-      const c = i.value.replace(/\s/g, '');
-      if (c.length !== 6) { er.textContent = 'Der Code hat 6 Zeichen.'; return; }
-      f.classList.add('busy');
-      try { const r = await C().rpc('friend_add_code', { code: c }); V.ui.closeModal(); welcomeFriend(r); }
-      catch (x) { er.textContent = /friend_add_code|function/i.test(x.message) ? 'Freundescodes kommen nach dem nächsten Server-Update.' : x.message; V.sfx.bad(); }
-      f.classList.remove('busy');
-    };
-    if (!V.coarse) setTimeout(() => i.focus(), 60);
   }
   // new friend via code or link: a small celebration with the obvious next step
   function welcomeFriend(r) {

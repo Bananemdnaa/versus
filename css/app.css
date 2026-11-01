@@ -2488,3 +2488,58 @@ html.lowfx::view-transition-group(*),html.lowfx::view-transition-old(*),html.low
 }
 /* the panel scrolls itself (.sel-panel); the card must not clip, or the play button cannot stay at the bottom */
 @media (min-width:960px){.sel-panel .gp{overflow:visible}}
+
+/* ---------- finding friends: one page ---------- */
+.modal.faddm:has(.fadd2){width:min(100%,560px)}
+.fq2{display:flex;align-items:center;gap:10px;height:52px;padding:0 14px;border:1px solid var(--line2);border-radius:14px;background:var(--panel2);color:var(--dim)}
+.fq2:focus-within{border-color:var(--cyan);box-shadow:0 0 0 3px color-mix(in srgb,var(--cyan) 18%,transparent)}
+.fq2 svg{width:19px;height:19px;flex:none}
+.fq2 input{flex:1;min-width:0;height:100%;background:none;border:0;outline:none;color:var(--fg);font:500 16px/1 var(--f-b)}
+.fadd2 .fres:empty{display:none}
+.fadd2 .fres{display:flex;flex-direction:column;gap:6px}
+.fcodehit{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 12px;border-radius:12px;border:1px solid color-mix(in srgb,var(--yellow) 50%,var(--line));background:color-mix(in srgb,var(--yellow) 8%,var(--panel2))}
+.fcodehit b{font:800 italic 18px/1 var(--f-d);letter-spacing:.08em}
+.fsec{display:flex;flex-direction:column;gap:6px}
+.fsec h4{margin:6px 0 2px;font:700 italic 12px/1 var(--f-d);letter-spacing:.16em;text-transform:uppercase;color:var(--dim)}
+.fadd2 #fcodebox .fcode{padding:12px;border-radius:14px;background:var(--panel2);border:1px solid var(--line)}
+.fadd2 #fcodebox .fqr{width:120px;height:120px;flex:none}
+
+/* ---------- admin: attention strip, player table with a detail panel ---------- */
+.aattn{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-left:auto}
+.atn-k{font:700 italic 12px/1 var(--f-d);letter-spacing:.14em;text-transform:uppercase;color:var(--dim)}
+.atn-k.ok{color:var(--good)}
+.atn{display:inline-flex;align-items:center;gap:6px;height:32px;padding:0 12px;border-radius:var(--r-pill);border:1px solid color-mix(in srgb,var(--yellow) 50%,var(--line));background:color-mix(in srgb,var(--yellow) 10%,var(--panel));font-size:13px;font-weight:700}
+.atn.bad{border-color:color-mix(in srgb,var(--bad) 55%,var(--line));background:color-mix(in srgb,var(--bad) 12%,var(--panel))}
+.atn svg{width:15px;height:15px}
+.pgrid2{display:grid;gap:14px;align-items:start}
+.ptable{display:flex;flex-direction:column;gap:2px;min-width:0;padding:6px;border-radius:var(--r-m);background:var(--panel);border:1px solid var(--line)}
+.prow{display:grid;grid-template-columns:minmax(0,2.2fr) 1fr 1fr .6fr .7fr .9fr;align-items:center;gap:10px;width:100%;min-height:44px;padding:6px 10px;border-radius:10px;text-align:left;font-size:13.5px;color:var(--muted)}
+.prow>span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.prow:not(.ph):hover{background:var(--panel2)}
+.prow.on{background:var(--panel2);box-shadow:inset 3px 0 0 var(--pink)}
+.prow.ph{min-height:30px;font:700 italic 11px/1 var(--f-d);letter-spacing:.12em;text-transform:uppercase;color:var(--dim);border-bottom:1px solid var(--line);border-radius:0}
+.pr-n{display:flex;align-items:center;gap:6px}
+.pr-n b{color:var(--fg);font-size:14.5px;overflow:hidden;text-overflow:ellipsis}
+.pr-n .rtag{flex:none;font-size:10px;padding:2px 5px}
+.prow .adot{width:8px;height:8px;border-radius:50%;background:var(--line2);flex:none}
+.prow.live .adot{background:var(--good)}
+.pmore{align-self:center;margin:8px 0 4px}
+.pdrawer.empty{padding:28px 18px;border-radius:var(--r-m);border:1px dashed var(--line2);text-align:center}
+.pdrawer .pcard-a{margin:0}
+@media (min-width:1200px){
+  .pgrid2{grid-template-columns:minmax(0,1fr) 420px}
+  .pdrawer{position:sticky;top:12px;max-height:calc(100dvh - 40px);overflow-y:auto}
+}
+@media (max-width:1199px){.pdrawer{order:-1}.pdrawer.empty{display:none}}
+@media (max-width:700px){
+  .prow{grid-template-columns:minmax(0,1fr) auto auto}
+  .prow>span:nth-child(2),.prow>span:nth-child(4),.prow>span:nth-child(5){display:none}
+  .aattn{margin-left:0;width:100%}
+}
+@media (min-width:960px){.view.admin{grid-template-columns:180px minmax(0,1fr)}}
+@media (min-width:1200px){.pgrid2{grid-template-columns:minmax(0,1fr) 380px}}
+@media (max-width:1599px){
+  .prow{grid-template-columns:minmax(0,2.4fr) 1fr .7fr .9fr}
+  .prow>span:nth-child(2),.prow>span:nth-child(4){display:none}
+}
+@media (max-width:700px){.prow{grid-template-columns:minmax(0,1fr) auto auto}.prow>span:nth-child(5){display:none}}

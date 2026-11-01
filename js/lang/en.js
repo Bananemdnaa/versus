@@ -911,6 +911,15 @@
     'Online-Tisch für 2 bis 4': 'Online table for 2 to 4', 'Mit allen im Sprachkanal': 'With everyone in the voice channel'
   });
 
+  // finding friends on one page; admin player table and attention strip
+  A({
+    'Freunde finden': 'Find friends', 'Name oder Freundescode': 'Name or friend code', 'Code einlösen': 'Redeem code', 'Freundescode {0}': 'Friend code {0}',
+    'Anfragen an dich': 'Requests to you', 'Zuletzt gegen dich gespielt': 'Played against you lately', 'Dein Code': 'Your code',
+    'Spielt ihr online gegeneinander, steht der Gegner hier und du kannst ihn mit einem Tipp hinzufügen.': 'When you play someone online, they show up here and you can add them with one tap.',
+    'Braucht Aufmerksamkeit': 'Needs attention', 'Alles erledigt': 'All done', '# neues Feedback': '# new feedback', 'Mehr laden': 'Load more', '# offen': '# open',
+    'Dabei seit': 'Joined', 'Zuletzt': 'Last seen', 'Tipp auf einen Spieler für alle Infos und Aktionen.': 'Tap a player for all details and actions.'
+  });
+
   // ---------- patterns: text with names, moves and hands ----------
   const t = V.t;
   const PIECE = { Bauer: 'Pawn', Springer: 'Knight', Läufer: 'Bishop', Turm: 'Rook', Dame: 'Queen', König: 'King' };
