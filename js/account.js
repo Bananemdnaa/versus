@@ -41,6 +41,8 @@
         <button class="btn ghost sm" id="r_back"><span>${IC().back}Zurück zum Login</span></button>
       </div></section>`;
     if (!u) return `<section class="page acctp"><h1 class="title"><span>Dein</span> Konto</h1>
+      <div class="asplit"><div class="apromo"><em class="hc-k">Kostenlos</em><b>Ein Konto für alles</b>
+        <ul>${[[IC().chart, 'Bilanz auf jedem Gerät'], [IC().users, 'Freunde und Herausforderungen'], [IC().trophy, 'Rangliste jede Woche'], [IC().shield, 'Keine E-Mail nötig']].map(([ic, t]) => `<li>${ic}<span>${t}</span></li>`).join('')}</ul></div>
       <div class="acard">
         <p class="lead">Mit einem Konto liegt deine Bilanz sicher auf dem Server und ist auf jedem Gerät dabei. Freunde und Online-Duelle bauen darauf auf.</p>
         <div class="gp-mode amode" id="amode"><button data-m="login" class="${mode === 'login' ? 'on' : ''}">${IC().user}<span>Einloggen</span></button><button data-m="new" class="${mode === 'new' ? 'on' : ''}">${IC().spark}<span>Konto erstellen</span></button></div>
@@ -55,7 +57,7 @@
           ${mode === 'new' ? '<p class="fine">Benutzername: 3 bis 16 Zeichen, nur a–z, 0–9, _ und -. Es gibt keine E-Mail. Nach dem Erstellen bekommst du einen Wiederherstellungscode für ein vergessenes Passwort.</p><p class="fine">Konten ab 14 Jahren, jünger nur mit Erlaubnis der Eltern. Was gespeichert wird: <a href="rechtliches.html" target="_blank">Datenschutz</a>.</p>' : '<button class="link aforgot" type="button" id="a_forgot">Passwort vergessen?</button>'}
         </form>
         ${guestNote()}
-      </div></section>`;
+      </div></div></section>`;
     const info = c.info() || {}, st = c.state(), role = c.role();
     const sync = st.status === 'sync' ? ['sync', 'Wird abgeglichen …'] : st.status === 'error' ? ['bad', 'Abgleich fehlgeschlagen: ' + esc(st.error)] : ['ok', 'Gespeichert ' + ago(st.last)];
     const next = info.next_rename && new Date(info.next_rename) > new Date() ? info.next_rename : null;
@@ -71,6 +73,10 @@
           <button class="btn" id="a_out"><span>Abmelden</span></button>
         </div>
       </div>
+      <div class="kpis akpis" id="akpis">${V.skel(1)}</div>
+      <div class="agrid2">
+      <div class="apanel arecent"><div class="fhead"><h3>Letzte Partien</h3><button class="link" id="a_hist">Ganzer Verlauf</button></div><div id="arecent">${V.skel(3)}</div></div>
+      <div class="asec"><h3 class="ash">Konto und Sicherheit</h3>
       <div class="optlist small">
         <button class="opt" data-box="rename">${IC().user}<span><b>Benutzernamen ändern</b><small>${next ? 'Wieder möglich ab ' + day(next) : 'Einmal pro Woche möglich'}</small></span></button>
         ${openBox === 'rename' ? `<form class="abox" id="f_rename"><input class="inp" id="r_name" maxlength="16" placeholder="Neuer Name" autocapitalize="none" spellcheck="false" value="${esc(u.username)}"><button class="btn sm" type="submit"><span>Ändern</span></button><p class="aerr" id="r_err"></p></form>` : ''}
@@ -83,8 +89,23 @@
         <a class="opt" href="terms.html">${IC().book}<span><b>Nutzungsbedingungen</b><small>Fair spielen, Konto und was das Team tun kann</small></span></a>
         <button class="opt danger" data-box="delete">${IC().x}<span><b>Konto löschen</b><small>Löscht dein Konto und alle Daten auf dem Server</small></span></button>
         ${openBox === 'delete' ? `<form class="abox" id="f_delete"><input class="inp" id="d_pw" type="password" autocomplete="current-password" placeholder="Passwort zur Bestätigung"><button class="btn sm danger" type="submit"><span>Endgültig löschen</span></button><p class="aerr" id="d_err"></p></form>` : ''}
-      </div>
+      </div></div></div>
     </section>`;
+  }
+  // numbers and the latest online matches from the own profile (same data as "Profil und Verlauf")
+  function fillMe(b) {
+    const k = b.querySelector('#akpis'), r = b.querySelector('#arecent'); if (!k) return;
+    const name = C().user().username;
+    C().rpc('player_profile', { name }).then(p => {
+      if (!k.isConnected) return;
+      const t = p.total || {}, fr = V.online && V.online.sideFriends ? V.online.sideFriends().length : 0;
+      const kp = (v, l) => `<div class="kpi"><b>${v}</b><span>${l}</span></div>`;
+      k.innerHTML = kp(t.played || 0, 'Online-Partien') + kp((t.played ? Math.round((t.wins || 0) / t.played * 100) : 0) + ' %', 'Siegquote') + kp(p.week && p.week.pos ? '#' + p.week.pos : '–', 'Rang diese Woche') + kp(fr, 'Freunde');
+      const RES = { win: 'S', loss: 'N', draw: 'U', void: '–' };
+      const rows = (p.recent || []).slice(0, 6).map(x => `<div class="prec ${x.res}"><span class="pr-r">${RES[x.res] || '–'}</span><span class="ic">${V.byId[x.game] ? V.byId[x.game].icon : ''}</span>
+        <span class="pr-t"><b>${esc(gameName(x.game))}</b><small>gegen ${esc(x.opp || '?')}</small></span><span class="pr-d">${ago(x.at)}</span></div>`).join('');
+      r.innerHTML = rows || `<p class="muted">Noch keine Online-Partie. Über „Online“ findest du einen Gegner.</p>`;
+    }, () => { k.innerHTML = ''; r.innerHTML = '<p class="muted">Gerade nicht erreichbar.</p>'; });
   }
   function guestNote() {
     const s = V.store.get('stats', {});
@@ -209,6 +230,8 @@
     if (q('#a_sync')) q('#a_sync').onclick = () => { V.sfx.ui(); c.syncNow(); };
     if (q('#a_out')) q('#a_out').onclick = async () => { V.sfx.ui(); await c.signOut(); V.ui.toast('Abgemeldet'); V.ui.home('profile'); };
     if (q('#a_admin')) q('#a_admin').onclick = () => { V.sfx.ui(); admin(); };
+    if (q('#akpis')) fillMe(b);
+    if (q('#a_hist')) q('#a_hist').onclick = () => { V.sfx.ui(); V.online.profile(C().user().username); };
     if (q('#a_prof')) q('#a_prof').onclick = () => { V.sfx.ui(); V.online.profile(c.user().username); };
     b.querySelectorAll('[data-box]').forEach(x => x.onclick = () => { openBox = openBox === x.dataset.box ? null : x.dataset.box; V.sfx.ui(); V.ui.home('profile'); });
     if (q('#f_rename')) q('#f_rename').onsubmit = async e => {

@@ -390,6 +390,11 @@
           else if (online || table) { s.on = s.on || { w: 0, l: 0, d: 0 }; if (winner === 0) s.on.d++; else if (winner === mySide) s.on.w++; else s.on.l++; }
           else { if (winner === 0) s.local.d++; else if (winner === 1) s.local.a++; else s.local.b++; }
           S.set('stats', P.stats);
+          // per day for the chart in Bilanz (last 60 days): wins and losses of your own games, games at one device
+          const day = new Date().toLocaleDateString('sv'), daily = S.get('daily', {}), dd = daily[day] = daily[day] || { w: 0, l: 0, d: 0, n: 0 };
+          if (ai || online || table) { if (winner === 0) dd.d++; else if (winner === me) dd.w++; else dd.l++; } else dd.n++;
+          Object.keys(daily).sort().slice(0, -60).forEach(k => delete daily[k]);
+          S.set('daily', daily);
         }
         if (off) { } else if (winner === 0) series.d++; else series[winner]++;
         turnPill(0); serCard();

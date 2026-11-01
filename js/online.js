@@ -190,35 +190,34 @@
   let fstate = null;
   const initials = n => esc(String(n).slice(0, 2).toUpperCase());
   function tab() {
-    if (!C() || !C().available()) return `<section class="page"><h1 class="title"><span>Online</span> spielen</h1><div class="acard"><p class="lead">Online-Spiele sind gleich da.</p></div></section>`;
+    // no server: a real empty page with a retry
+    if (!C() || !C().available()) return `<section class="page"><div class="empty ooff">${IC().wifioff}<b>Online ist gerade nicht erreichbar</b><p>KI und Zu zweit gehen weiter. Versuch es gleich nochmal.</p>
+      <div class="arow"><button class="btn primary sm" id="oretry"><span>${IC().redo}Erneut versuchen</span></button><button class="btn sm" data-tab="games"><span>Zu den Spielen</span></button></div></div></section>`;
     const full = C().user() && !isAnon();
-    const loginCard = !full ? `<div class="acard"><p class="lead">${C().user() ? 'Du spielst als Gast. ' : ''}Mit einem Konto kannst du Freunde hinzufügen, sie zu Partien herausfordern und in die Rangliste kommen.</p>
+    const loginCard = !full ? `<div class="acard oacc"><b>Mit Konto: Freunde, Herausforderungen, Rangliste</b><p class="lead">${C().user() ? 'Du spielst als Gast. ' : ''}Mit einem kostenlosen Konto kannst du Freunde hinzufügen, sie herausfordern und in die Rangliste kommen.</p>
       <button class="btn primary" data-tab="profile"><span>${IC().user}${C().user() ? 'Konto behalten' : 'Anmelden oder Konto erstellen'}</span></button></div>` : '';
+    const st = C().starting() ? ['wait', 'Verbinde …'] : navigator.onLine === false ? ['off', 'Offline'] : ['on', 'Verbunden'];
     return `<section class="online">
-      <h1 class="title"><span>Live spielen</span> Online</h1>
-      ${C().user() && !full ? '<div id="oactive"></div>' : ''}
-      ${quickCard()}
-      ${loginCard}
+      <div class="ohead"><h1 class="title"><span>Live spielen</span> Online</h1><em class="ostat ${st[0]}"><i></i>${st[1]}</em>
+        ${full ? `<form class="ocode" id="ocode"><input class="inp" id="ocodei" maxlength="8" placeholder="Raum-Code eingeben" autocomplete="off" autocapitalize="characters" spellcheck="false" aria-label="Raum-Code eingeben"><button class="btn sm" type="submit"><span>Beitreten</span></button></form>` : ''}</div>
+      ${C().user() ? '<div id="oactive" class="obanners"></div>' : ''}
       <div class="ogrid${full ? '' : ' solo'}">
-        ${full ? `<div class="ocol">
-          <div id="oactive"></div><div id="oasync"></div>
-          <div class="apanel osec fpanel"><div class="fhead"><h3>Freunde <small id="fcount"></small></h3><button class="btn primary sm" id="fadd"><span>${IC().plus}Hinzufügen</span></button></div>
-            <div id="ofriends">${V.skel()}</div>
-          </div></div>` : ''}
-        <div class="ocol"><div class="apanel osec"><div class="rtop"><h3>Rangliste <em class="chip c rleft" id="rleft" hidden></em></h3><div class="oseg rper" id="oper">${[['week', 'Diese Woche'], ['all', 'Für immer']].map(([k, l]) => `<button data-p="${k}" class="${boardPeriod === k ? 'on' : ''}">${l}</button>`).join('')}</div></div>
-          <div class="rgames" id="obg">${[['', 'Alle Spiele'], ...ONLINE.concat(TABLE).filter(id => V.byId[id]).map(id => [id, gname(id)])].map(([id, l]) => `<button data-g="${id}" class="${boardGame === id ? 'on' : ''}" title="${esc(l)}">${id && V.byId[id] ? `<span class="ic">${V.byId[id].icon}</span>` : `<span class="ic all">${IC().trophy}</span>`}<small>${esc(id ? l : 'Alle')}</small></button>`).join('')}</div>
+        <div class="ocol">${quickCard()}${full ? '<div id="oasync"></div>' : ''}</div>
+        <div class="ocol">${full ? `<div class="apanel osec fpanel"><div class="fhead"><h3>Freunde <small id="fcount"></small></h3><button class="btn primary sm" id="fadd"><span>${IC().plus}Hinzufügen</span></button></div>
+            <div id="ofriends">${V.skel()}</div></div>` : loginCard}<div class="apanel osec"><div class="rtop"><h3>Rangliste <em class="chip c rleft" id="rleft" hidden></em></h3><div class="oseg rper" id="oper">${[['week', 'Diese Woche'], ['all', 'Für immer']].map(([k, l]) => `<button data-p="${k}" class="${boardPeriod === k ? 'on' : ''}">${l}</button>`).join('')}</div></div>
+          <label class="rsel">${IC().trophy}<select class="inp" id="obgs" aria-label="Spiel für die Rangliste">${[['', 'Alle Spiele'], ...ONLINE.concat(TABLE).filter(id => V.byId[id]).map(id => [id, gname(id)])].map(([id, l]) => `<option value="${id}"${boardGame === id ? ' selected' : ''}>${esc(l)}</option>`).join('')}</select></label>
           <div id="oboard">${V.skel()}</div></div></div>
       </div></section>`;
   }
   const onlineBody = () => { const b = document.querySelector('.hbody'); return b && V.ui.view() === 'home' && V.ui.tab() === 'online' ? b : null; };
   function refreshTab() { const b = onlineBody(); if (b) { loadFriends(b); fillActive(b); } }
   function wire(b) {
+    const rt = b.querySelector('#oretry'); if (rt) rt.onclick = () => { V.sfx.ui(); location.reload(); };
     if (!C() || !C().available()) return;
-    b.querySelectorAll('#obg button').forEach(x => x.onclick = () => {
-      boardGame = x.dataset.g; V.sfx.ui();
-      b.querySelectorAll('#obg button').forEach(y => y.classList.toggle('on', y === x));
-      loadBoard(b);
-    });
+    const sel = b.querySelector('#obgs'); if (sel) sel.onchange = () => { boardGame = sel.value; V.sfx.ui(); loadBoard(b); };
+    // a table code (from a friend): straight to that table
+    const cf = b.querySelector('#ocode');
+    if (cf) cf.onsubmit = e => { e.preventDefault(); const c = b.querySelector('#ocodei').value.trim().toUpperCase(); if (!c) return; V.sfx.ui(); joinTable(null, c); };
     b.querySelectorAll('#oper button').forEach(x => x.onclick = () => {
       if (boardPeriod === x.dataset.p) return;
       boardPeriod = x.dataset.p; V.sfx.ui();

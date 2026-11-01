@@ -259,7 +259,7 @@
     wireInstall(b);
     if (homeTab === 'games') wireGames(b);
     if (homeTab === 'opts') wireOpts(b);
-    if (homeTab === 'stats') countUp(b);
+    if (homeTab === 'stats') { countUp(b); wireStats(b); }
     if (homeTab === 'profile' && V.account) V.account.wire(b);
     if (homeTab === 'online' && V.online) V.online.wire(b);
     b.querySelectorAll('[data-tab]').forEach(x => x.onclick = () => { V.sfx.ui(); home(x.dataset.tab); });
@@ -791,33 +791,71 @@
   }
 
   // ---------- stats and options ----------
+  // ---------- Bilanz ----------
+  // Laptop: filter, numbers with this week's change, the last 14 days, a sortable table per game and milestones.
+  // Phone: the same parts in one column. Days are counted locally since this version (js/play.js, versus.daily).
+  let statMode = 'all', statSort = { k: 'n', d: -1 };
+  const STAT_MODES = [['all', 'Alle'], ['ai', 'Gegen KI'], ['on', 'Online'], ['local', 'Zu zweit']];
+  const LVL_CLS = ['l0', 'l1', 'l2', 'l3'];
+  function gameRec(g, mode) {
+    const s = P.stats[g.id]; if (!s) return null;
+    const on = s.on || { w: 0, l: 0, d: 0 }, ai = s.ai.reduce((a, r) => ({ w: a.w + r.w, l: a.l + r.l, d: a.d + r.d }), { w: 0, l: 0, d: 0 });
+    const loc = { w: s.local.a, l: s.local.b, d: s.local.d };
+    const r = mode === 'ai' ? ai : mode === 'on' ? on : mode === 'local' ? loc : { w: ai.w + on.w, l: ai.l + on.l, d: ai.d + on.d };
+    const n = r.w + r.l + r.d, best = [3, 2, 1, 0].find(k => s.ai[k].w > 0);
+    return { g, w: r.w, l: r.l, d: r.d, n, rate: n ? Math.round(r.w / n * 100) : -1, best: best ?? -1, all: ai.w + ai.l + ai.d + on.w + on.l + on.d + loc.w + loc.l + loc.d };
+  }
+  function lastDays(k) {
+    const daily = S.get('daily', {}), out = [];
+    for (let i = k - 1; i >= 0; i--) { const d = new Date(Date.now() - i * 864e5), key = d.toLocaleDateString('sv'); out.push(Object.assign({ key, date: d }, daily[key] || { w: 0, l: 0, d: 0, n: 0 })); }
+    return out;
+  }
   function statsTab() {
     const t = totals();
-    const rows = V.games.map(g => {
-      const s = P.stats[g.id]; if (!s) return '';
-      const on = s.on || { w: 0, l: 0, d: 0 }, onN = on.w + on.l + on.d;
-      const w = s.ai.reduce((a, r) => a + r.w, on.w), l = s.ai.reduce((a, r) => a + r.l, on.l), d = s.ai.reduce((a, r) => a + r.d, on.d), n = w + l + d;
-      const loc = s.local.a + s.local.b + s.local.d;
-      if (!n && !loc) return '';
-      return `<div class="srow" style="--acc:${g.accent || 'var(--pink)'}"><div class="ic">${g.icon}</div>
-        <div class="sm"><b>${g.name}</b>
-          <div class="wbar">${n ? `<i class="w" style="flex:${w}"></i><i class="d" style="flex:${d}"></i><i class="l" style="flex:${l}"></i>` : '<i class="e"></i>'}</div>
-          <div class="lv">${onN ? `<span class="lon">Online ${on.w}:${on.l}</span>` : ''}${V.LEVELS.map((lv, k) => s.ai[k].w + s.ai[k].l + s.ai[k].d ? `<span>${lv} ${s.ai[k].w}:${s.ai[k].l}</span>` : '').join('')}${loc ? `<span>Zu zweit ${loc}</span>` : ''}</div>
-        </div><div class="sn"><b>${w}:${l}</b><small>${n ? Math.round(w / n * 100) + ' %' : '–'}</small></div></div>`;
-    }).join('');
-    return `<section class="stats page">
-      <h1 class="title"><span>Deine</span> Bilanz</h1>
-      <div class="kpis">
-        <div class="kpi"><b data-v="${t.total}">${t.total}</b><span>Partien</span></div>
-        <div class="kpi"><b data-v="${t.aiWins}">${t.aiWins}</b><span>Siege gegen KI</span></div>
-        <div class="kpi"><b data-v="${t.onWins}">${t.onWins}</b><span>Online-Siege</span></div>
-        <div class="kpi"><b data-v="${t.rate}" data-s=" %">${t.rate} %</b><span>Siegquote</span></div>
+    const recs = V.games.map(g => gameRec(g, statMode)).filter(r => r && r.all);
+    const week = lastDays(7).reduce((a, x) => ({ n: a.n + x.w + x.l + x.d + x.n, w: a.w + x.w }), { n: 0, w: 0 });
+    const days = lastDays(14), dmax = Math.max(1, ...days.map(x => x.w + x.l + x.d + x.n));
+    const kpi = (v, l, sub, s = '') => `<div class="kpi"><b data-v="${v}"${s ? ` data-s="${s}"` : ''}>${v}${s}</b><span>${l}</span>${sub ? `<small class="up">${sub}</small>` : ''}</div>`;
+    if (!recs.length && statMode === 'all') return `<section class="stats page"><h1 class="title"><span>Deine</span> Bilanz</h1>
+      <div class="empty sempty">${IC.trophy}<b>Noch keine Partien</b><p>Spiel eine Runde, dann steht hier deine Bilanz pro Spiel: gegen die KI, online und zu zweit.</p><button class="btn primary" data-tab="games"><span>Spiel aussuchen</span></button></div></section>`;
+    const sorted = recs.slice().sort((a, b) => {
+      const k = statSort.k, x = k === 'name' ? a.g.name.localeCompare(b.g.name) : (a[k] - b[k]);
+      return x * statSort.d || b.n - a.n;
+    });
+    const th = (k, l) => `<button class="st-h${statSort.k === k ? ' on' : ''}" data-sort="${k}" aria-sort="${statSort.k === k ? (statSort.d > 0 ? 'ascending' : 'descending') : 'none'}">${l}${statSort.k === k ? (statSort.d > 0 ? ' ↑' : ' ↓') : ''}</button>`;
+    const tried = V.games.filter(g => { const r = gameRec(g, 'all'); return r && r.all; }).length;
+    const bestAll = Math.max(-1, ...V.games.map(g => { const r = gameRec(g, 'all'); return r ? r.best : -1; }));
+    const ms = (l, v, max, sub) => `<div class="mst"><div><b>${l}</b><small>${sub}</small></div><i class="mbar"><i style="--w:${Math.round(Math.min(1, v / max) * 100)}%"></i></i></div>`;
+    return `<section class="stats page sx">
+      <div class="shead"><h1 class="title"><span>Deine</span> Bilanz</h1>
+        <div class="chips mini" id="smode">${STAT_MODES.map(([k, l]) => `<button data-sm="${k}" class="${statMode === k ? 'on' : ''}">${l}</button>`).join('')}</div></div>
+      <div class="kpis">${kpi(t.total, 'Partien', week.n ? '+' + week.n + ' diese Woche' : '')}${kpi(t.aiWins, 'Siege gegen KI')}${kpi(t.onWins, 'Online-Siege')}${kpi(t.rate, 'Siegquote', '', ' %')}</div>
+      <div class="sgrid">
+        <div class="scol">
+          <div class="apanel schart"><h3>Letzte 14 Tage</h3>
+            ${days.some(x => x.w + x.l + x.d + x.n) ? `<div class="sbars">${days.map(x => `<div class="sb" title="${x.date.toLocaleDateString(V.locale())}: ${x.w} Siege, ${x.l} Niederlagen${x.n ? ', ' + x.n + ' zu zweit' : ''}">
+              <i class="n" style="--h:${(x.l + x.d + x.n) / dmax * 100}%"></i><i class="w" style="--h:${x.w / dmax * 100}%"></i><small>${x.date.getDate()}</small></div>`).join('')}</div>
+              <p class="fine"><i class="lg w"></i> Siege · <i class="lg n"></i> Niederlagen, Remis und zu zweit</p>` : '<p class="muted">Ab jetzt zählt Versus deine Partien pro Tag. Spiel eine Runde, dann wächst hier das Diagramm.</p>'}</div>
+          <div class="apanel stable"><div class="st-row st-head">${th('name', 'Spiel')}${th('w', 'S')}${th('l', 'N')}${th('d', 'U')}${th('rate', 'Quote')}${statMode === 'local' ? '' : th('best', 'Beste KI')}</div>
+            ${sorted.length ? sorted.map(r => `<button class="st-row" data-sg="${r.g.id}" style="--acc:${r.g.accent || 'var(--pink)'}"><span class="st-g"><span class="ic">${r.g.icon}</span><b>${r.g.name}</b></span>
+              <span class="good">${r.w}</span><span class="bad">${r.l}</span><span class="dim">${r.d}</span>
+              <span class="st-q">${r.n ? `<i class="qbar"><i style="--w:${r.rate}%"></i></i>${r.rate} %` : '–'}</span>
+              ${statMode === 'local' ? '' : `<span>${r.best >= 0 ? `<em class="lvt ${LVL_CLS[r.best]}">${V.LEVELS[r.best]}</em>` : '–'}</span>`}</button>`).join('') : '<p class="muted st-none">In diesem Modus noch keine Partie.</p>'}
+            ${statMode === 'local' ? '<p class="fine">Zu zweit: S = Spieler 1 gewinnt, N = Spieler 2 gewinnt.</p>' : ''}</div>
+        </div>
+        <div class="scol side-col"><div class="apanel smiles"><h3>Meilensteine</h3>
+          ${ms('Spiele ausprobiert', tried, V.games.length, tried + ' von ' + V.games.length)}
+          ${ms('Stärkste geschlagene KI', bestAll + 1, 4, bestAll >= 0 ? V.LEVELS[bestAll] : 'Noch keine')}
+          ${ms('Siege gegen Profi', t.proWins, 10, t.proWins + ' von 10')}
+          ${ms('Online-Siege', t.onWins, 25, t.onWins + ' von 25')}</div></div>
       </div>
-      <div class="slist">${rows || `<div class="empty">${IC.trophy}<b>Noch keine Partien</b><p>Spiel eine Runde, dann steht hier deine Bilanz pro Spiel: gegen die KI, online und zu zweit.</p><button class="btn primary" data-tab="games"><span>Spiel aussuchen</span></button></div>`}</div>
-      ${rows ? '<div class="legend"><span><i class="w"></i>Siege</span><span><i class="d"></i>Remis</span><span><i class="l"></i>Niederlagen</span></div>' : ''}
     </section>`;
   }
-
+  function wireStats(b) {
+    b.querySelectorAll('[data-sm]').forEach(x => x.onclick = () => { statMode = x.dataset.sm; V.sfx.ui(); home('stats'); });
+    b.querySelectorAll('[data-sort]').forEach(x => x.onclick = () => { const k = x.dataset.sort; statSort = { k, d: statSort.k === k ? -statSort.d : k === 'name' ? 1 : -1 }; V.sfx.tick(); home('stats'); });
+    b.querySelectorAll('[data-sg]').forEach(x => x.onclick = () => { const g = V.byId[x.dataset.sg]; V.sfx.ui(); homeSpot = 'lib'; if (wide()) { home('games', g); setTimeout(() => selectTile(g), 180); } else setup(g); });
+  }
   // the big numbers count up from 0 when the tab opens (.6 s)
   function countUp(root) {
     if (!V.fxOn()) return;
@@ -839,10 +877,17 @@
     const appRow = standalone()
       ? `<div class="opt">${IC.phone}<span><b>Läuft als App</b><small>Versus ist auf diesem Gerät installiert</small></span></div>`
       : `<button class="opt" id="o_inst">${IC.dl}<span><b>Als App installieren</b><small>Eigenes Symbol, startet schneller, ohne Browserleiste</small></span></button>`;
-    return `<section class="opts page">
-      <h1 class="title"><span>Deine</span> Optionen</h1>
+    // categories: a list on the left on the laptop (one group at a time), a jump bar on the phone
+    const cats = [['sound', 'Ton und Vibration'], ['look', 'Anzeige'], ['game', 'Spiel'], V.coarse ? null : ['keys', 'Tastatur'], V.cloud && V.cloud.available() ? ['net', 'Online'] : null, ['app', 'App'], ['data', 'Daten']].filter(Boolean);
+    if (!cats.some(c => c[0] === optCat)) optCat = 'sound';
+    return `<section class="opts page oset">
+      <nav class="onav" aria-label="Kategorien"><h1 class="title"><span>Deine</span> Optionen</h1>
+        <label class="osearch">${IC.search}<input id="oq" type="search" placeholder="Option suchen" autocomplete="off" spellcheck="false" aria-label="Option suchen"></label>
+        <div class="onav-l">${cats.map(([k, l]) => `<button data-oj="${k}" class="${optCat === k ? 'on' : ''}">${l}</button>`).join('')}</div>
+        <p class="onav-v">Versus ${V.VERSION || ''}<br><a href="rechtliches.html">Impressum und Datenschutz</a><br><a href="terms.html">Nutzungsbedingungen</a></p></nav>
+      <div class="omain"><p class="onow">Änderungen gelten sofort</p>
       <div class="ogroups">
-      <div class="ogroup"><h2 class="oh">Ton und Vibration</h2>
+      <div class="ogroup" data-oc="sound"><h2 class="oh"><button class="oh-b" data-ot="sound" aria-expanded="true">Ton und Vibration</button></h2>
       <div class="optlist">
         ${sw('o_snd', settings.sound, 'Ton', 'Schaltet Effekte und Musik zusammen an und aus', IC.sound)}
         ${slider('vol', 'Effekte', settings.vol, !settings.sound)}
@@ -851,7 +896,7 @@
         ${showVib ? `<div class="opt orow${V.canVibrate ? '' : ' off'}">${IC.vib}<span><b>Vibration</b><small>${vibSub}</small></span>${V.canVibrate ? `<div class="ovib">${seg('haptic', settings.haptic, [['off', 'Aus'], ['light', 'Leicht'], ['strong', 'Stark']])}<button class="btn ghost sm" id="o_vtest"><span>Testen</span></button></div>` : ''}</div>
         <p class="ohint" id="o_vhint" hidden></p>` : ''}
       </div></div>
-      <div class="ogroup"><h2 class="oh">Anzeige</h2>
+      <div class="ogroup" data-oc="look"><h2 class="oh"><button class="oh-b" data-ot="look" aria-expanded="true">Anzeige</button></h2>
       <div class="optlist">
         ${sw('o_fx', settings.fx !== 'low', 'Effekte', 'Konfetti, Partikel, Animationen. Aus spart Akku.', IC.spark)}
         ${sw('o_intro', settings.intro !== false, 'Intros', 'Start-Animation und VS-Einblendung vor jeder Partie', IC.film)}
@@ -860,35 +905,71 @@
         ${sw('o_cb', !!settings.cb, 'Farbenblind-Modus', 'Muster auf den Steinen, Formen an den Namen, Nummern auf den Figuren', IC.eye)}
         <div class="opt orow">${IC.globe}<span><b>Sprache</b><small>Language · Deutsch oder Englisch</small></span>${seg('lang', V.lang, [['de', 'Deutsch'], ['en', 'English']])}</div>
         <div class="opt orow">${IC.grid}<span><b>Spielbrett</b><small>Schach, Dame und Reversi</small></span>${seg('board', settings.board || 'std', [['std', 'Standard'], ['neon', 'Neon'], ['wood', 'Holz']])}</div>
+        <div class="bprev" aria-hidden="true">${[['std', 'Standard'], ['neon', 'Neon'], ['wood', 'Holz']].map(([k, l]) => `<button tabindex="-1" data-bp="${k}" class="bp bp-${k}${(settings.board || 'std') === k ? ' on' : ''}"><i></i><span>${l}</span></button>`).join('')}</div>
       </div></div>
-      <div class="ogroup"><h2 class="oh">Spiel</h2>
+      <div class="ogroup" data-oc="game"><h2 class="oh"><button class="oh-b" data-ot="game" aria-expanded="true">Spiel</button></h2>
       <div class="optlist">
         ${sw('o_fast', !!settings.aiFast, 'Schnelle KI', 'Die KI zieht sofort, ohne Nachdenken und Zielen', IC.bolt)}
         ${sw('o_face', !!settings.face, 'Gegenüber sitzen', 'Zu zweit am Handy: Name und Hinweise für Spieler 2 stehen auf dem Kopf', IC.users)}
       </div></div>
-      ${V.cloud && V.cloud.available() ? `<div class="ogroup"><h2 class="oh">Online</h2>
+      ${V.coarse ? '' : `<div class="ogroup" data-oc="keys"><h2 class="oh"><button class="oh-b" data-ot="keys" aria-expanded="true">Tastatur</button></h2>
+      <div class="optlist small">${keyRows()}</div></div>`}
+      ${V.cloud && V.cloud.available() ? `<div class="ogroup" data-oc="net"><h2 class="oh"><button class="oh-b" data-ot="net" aria-expanded="true">Online</button></h2>
       <div class="optlist">
         ${sw('o_open', settings.openCards !== false, 'Offene Herausforderungen', 'Einblenden, wenn jemand einen Gegner sucht', IC.globe)}
         ${u && !u.anon ? `<button class="opt" id="o_push" role="switch" aria-checked="false">${IC.bell}<span><b>Benachrichtigungen</b><small id="o_pushs">Herausforderungen, Freundschaftsanfragen und wenn du in einer Partie über Tage dran bist</small></span><i class="sw"></i></button>` : ''}
         ${u ? sw('o_stealth', !!settings.stealth, 'Online-Status verbergen', 'Freunde sehen nicht, ob und was du gerade spielst, und können nicht zuschauen', IC.eye) : ''}
       </div></div>` : ''}
-      <div class="ogroup"><h2 class="oh">App</h2>
+      <div class="ogroup" data-oc="app"><h2 class="oh"><button class="oh-b" data-ot="app" aria-expanded="true">App</button></h2>
       <div class="optlist small">
         ${appRow}
         <button class="opt" id="o_upd">${IC.sync}<span><b>Nach Updates suchen</b><small>Version ${V.VERSION || ''}</small></span></button>
         <button class="opt" data-fb="1">${IC.bulb}<span><b>Feedback senden</b><small>Fehler melden oder eine Idee schicken</small></span></button>
       </div></div>
-      <div class="ogroup"><h2 class="oh">Daten</h2>
+      <div class="ogroup" data-oc="data"><h2 class="oh"><button class="oh-b" data-ot="data" aria-expanded="true">Daten</button></h2>
       <div class="optlist small">
         <button class="opt" id="o_tut">${IC.book}<span><b>Tutorials wieder als neu zeigen</b></span></button>
         <button class="opt" id="o_def">${IC.redo}<span><b>Einstellungen zurücksetzen</b></span></button>
         <button class="opt danger" id="o_rst">${IC.x}<span><b>Bilanz löschen</b></span></button>
       </div></div>
       </div>
+      <p class="onone" id="onone" hidden>Keine Option gefunden.</p>
       <p class="about">Versus ${V.VERSION || ''} · ohne Werbung. KI und Spiele zu zweit laufen auch offline.<span class="only-fine"> Taste <kbd>?</kbd> zeigt alle Kürzel.</span><br><a href="rechtliches.html">Impressum und Datenschutz</a> · <a href="terms.html">Nutzungsbedingungen</a> · <a href="${V.DISCORD}" target="_blank" rel="noopener">Discord</a></p>
-    </section>`;
+    </div></section>`;
+  }
+  let optCat = 'sound';
+  // laptop: only the chosen group is shown (class oc-<cat> on the section); a search shows matching rows of all groups.
+  // Phone: the bar jumps to a group, a group title folds it.
+  function wireOptNav(v) {
+    const sec = v.querySelector('.oset'); if (!sec) return;
+    const show = c => { optCat = c; sec.dataset.cat = c; sec.querySelectorAll('[data-oj]').forEach(b => b.classList.toggle('on', b.dataset.oj === c)); };
+    show(optCat);
+    sec.querySelectorAll('[data-oj]').forEach(b => b.onclick = () => {
+      V.sfx.ui(); show(b.dataset.oj);
+      const q = sec.querySelector('#oq'); if (q.value) { q.value = ''; q.oninput(); }
+      if (!wide()) scrollToEl(sec.querySelector(`[data-oc="${b.dataset.oj}"]`));
+    });
+    sec.querySelectorAll('[data-ot]').forEach(b => b.onclick = () => {
+      if (wide()) return;
+      const grp = b.closest('.ogroup'), shut = grp.classList.toggle('shut'); b.setAttribute('aria-expanded', !shut); V.sfx.tick();
+    });
+    const q = sec.querySelector('#oq'), none = sec.querySelector('#onone');
+    q.oninput = () => {
+      const t = norm(q.value.trim());
+      sec.classList.toggle('osearching', !!t);
+      let hits = 0;
+      sec.querySelectorAll('.ogroup').forEach(gr => {
+        let n = 0;
+        gr.querySelectorAll('.opt, .krow').forEach(r => { const ok = !t || norm(r.textContent).includes(t); r.classList.toggle('ohide', !ok); if (ok) n++; });
+        gr.classList.toggle('ohide', !!t && !n); hits += n;
+      });
+      none.hidden = !t || hits > 0;
+    };
   }
   function wireOpts(v) {
+    wireOptNav(v);
+    // the board previews pick the board like the segment above them
+    v.querySelectorAll('[data-bp]').forEach(b => b.onclick = () => { const s = v.querySelector(`[data-k=board] [data-v=${b.dataset.bp}]`); if (s) s.click(); v.querySelectorAll('[data-bp]').forEach(x => x.classList.toggle('on', x === b)); });
     const flip = (id, fn) => { const b = v.querySelector('#' + id); if (b) b.onclick = () => { const on = fn(); b.setAttribute('aria-checked', on); b.querySelector('.sw').classList.toggle('on', on); saveSettings(); V.sfx.ui(); }; };
     const dimSliders = () => {
       v.querySelector('[data-vol=vol]').classList.toggle('off', !settings.sound);
@@ -1164,13 +1245,19 @@
 
   // ---------- keyboard ----------
   let lastGame = null;
+  // all shortcuts, grouped: the ? overlay and the Tastatur group in the options
+  const KEYS = [
+    ['Überall', [['?', 'Diese Übersicht'], ['M', 'Ton an oder aus'], ['Esc', 'Zurück oder schließen'], ['Strg K', 'Spiel suchen'], ['Strg B', 'Seitenleiste ein- oder ausklappen'], ['Alt ← →', 'Zurück und vor zwischen den Bereichen']]],
+    ['Spielauswahl', [['← → ↑ ↓', 'Spiel wählen'], ['Enter', 'Spielen'], ['1 2 3 4', 'KI-Stärke'], ['/', 'Spiel suchen'], ['S', 'Gegen KI oder zu zweit'], ['F', 'Favorit an oder aus'], ['T', 'Regeln']]],
+    ['Im Spiel', [['← → ↑ ↓', 'Cursor über das Brett'], ['Enter Leertaste', 'Feld wählen oder setzen'], ['Esc', 'Pause-Menü'], ['Z', 'Zug zurück'], ['N', 'Neue Partie'], ['H', 'Regeln'], ['R', 'Revanche nach der Partie'], ['F11', 'Vollbild']]]
+  ];
+  const keyRow = (k, d) => `<div class="krow"><span>${k.split(' ').map(x => `<kbd>${x}</kbd>`).join(' ')}</span><p>${d}</p></div>`;
+  const keyRows = () => KEYS.map(([h, list]) => `<h4 class="kh">${h}</h4>${list.map(([k, d]) => keyRow(k, d)).join('')}`).join('') +
+    '<p class="fine">In den Action-Spielen hat jeder Spieler seine eigenen Tasten, sie stehen in den Regeln des Spiels.</p>';
   function showKeys() {
-    const row = (k, d) => `<div class="krow"><span>${k.split(' ').map(x => `<kbd>${x}</kbd>`).join(' ')}</span><p>${d}</p></div>`;
     const m = openModal(`<div class="keys"><h3>Tastenkürzel</h3>
-      <h4>Überall</h4>${row('?', 'Diese Übersicht')}${row('M', 'Ton an oder aus')}${row('Esc', 'Zurück oder schließen')}
-      <h4>Spielauswahl</h4>${row('← → ↑ ↓', 'Spiel wählen')}${row('Enter', 'Spielen')}${row('1 2 3 4', 'KI-Stärke')}${row('/', 'Spiel suchen')}${row('S', 'Gegen KI oder zu zweit')}${row('F', 'Favorit an oder aus')}${row('T', 'Regeln')}
-      <h4>Im Spiel</h4>${row('← → ↑ ↓', 'Cursor über das Brett')}${row('Enter Leertaste', 'Feld wählen oder setzen')}${row('N', 'Neue Partie')}${row('T', 'Regeln')}
-      ${lastGame && lastGame.keys ? `<h4>${lastGame.name}</h4>${lastGame.keys.map(k => row(k[0], k[1])).join('')}` : ''}
+      ${KEYS.map(([h, list]) => `<h4>${h}</h4>${list.map(([k, d]) => keyRow(k, d)).join('')}`).join('')}
+      ${lastGame && lastGame.keys ? `<h4>${lastGame.name}</h4>${lastGame.keys.map(k => keyRow(k[0], k[1])).join('')}` : ''}
       <div class="actions"><button class="btn" id="kx"><span>Schließen</span></button></div></div>`, 'keysm');
     m.querySelector('#kx').onclick = closeModal;
   }
