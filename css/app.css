@@ -1800,7 +1800,7 @@ textarea.inp{height:auto}
   #app::-webkit-scrollbar-track,.side::-webkit-scrollbar-track{background:transparent}
   /* views without the app bar keep the old top spacing */
   #app>.view:not(.home){padding-top:max(12px,env(safe-area-inset-top,0px))}
-  .connbar,.icard{left:calc(50% + var(--side-w) / 2)}
+  .connbar{left:calc(50% + var(--side-w) / 2)}
 
   /* sidebar */
   .side{display:flex;flex-direction:column;gap:14px;position:fixed;z-index:20;left:0;top:0;bottom:0;width:var(--side-w);padding:20px 14px 14px;
@@ -2025,9 +2025,8 @@ textarea.inp{height:auto}
 .lowfx .tiles.cards .tile:hover,.lowfx .tiles.cards .tile:hover .art .ic,.lowfx .mtile:hover,.lowfx .ccard:hover{transform:none}
 .lowfx .gp.gp-sw .gp-body{animation:none}
 
-/* ---------- match: game bar, turn pill, right panel (laptop) and the pause menu ---------- */
-:root{--pside-w:276px}
-.pbar .iconbtn .pk,.tpill,.pside,.pso{display:none}
+/* ---------- match: game bar, turn pill (laptop) and the pause menu ---------- */
+.tpill{display:none}
 .pbar .iconbtn{position:relative}
 @media (min-width:960px){
   /* the game bar: a strip over the whole main area with the tools and their keys */
@@ -2035,8 +2034,6 @@ textarea.inp{height:auto}
     background:color-mix(in srgb,var(--ink2) 85%,transparent);-webkit-backdrop-filter:var(--blur);backdrop-filter:var(--blur);border-bottom:1px solid var(--line)}
   .view.play>.pbar .ttl{flex:1;text-align:left;align-items:flex-start;padding-left:6px}
   .view.play>.pbar .ttl b{font-size:24px}
-  .pbar .iconbtn:has(.pk),.pbar .iconbtn.only-fine:has(.pk){width:auto;padding:0 10px 0 12px;gap:8px;display:flex!important;align-items:center}
-  .pbar .iconbtn .pk{display:inline-grid;height:19px;min-width:19px;font-size:11px;color:var(--muted)}
   .pbar .iconbtn:disabled{opacity:.35}
   /* the player whose turn it is glows, the other one waits */
   .duel:has(.pcard.on) .pcard:not(.on){opacity:.62}
@@ -2050,41 +2047,6 @@ textarea.inp{height:auto}
   .tpill small{color:var(--muted);font-size:12.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .tpill kbd{height:19px;min-width:19px;font-size:11px}
   .center{display:flex;flex-direction:column;align-items:center}
-}
-@media (min-width:1280px){
-  html.pside-on #app{right:var(--pside-w)}
-  .pside{display:flex;flex-direction:column;gap:12px;position:fixed;z-index:19;top:0;right:0;bottom:0;width:var(--pside-w);padding:16px 14px;background:var(--ink2);border-left:1px solid var(--line)}
-  .pside[hidden]{display:none}
-  .ps-tabs{display:flex;align-items:center;gap:4px;padding:4px;border-radius:12px;background:var(--panel);border:1px solid var(--line)}
-  .ps-tabs [data-pt]{flex:1;height:34px;border-radius:9px;color:var(--muted);font:700 italic 14px/1 var(--f-d);letter-spacing:.06em;text-transform:uppercase;transition:background var(--t-fast),color var(--t-fast)}
-  .ps-tabs [data-pt].on{background:var(--panel3);color:var(--fg);box-shadow:inset 0 -3px 0 var(--pink)}
-  .ps-tabs .ps-x{width:34px;height:34px;border-radius:9px;border:0;background:none}
-  .ps-tabs .ps-x svg{width:16px;height:16px}
-  .ps-body{flex:1;min-height:0;overflow-y:auto;margin:0;scrollbar-width:thin;scrollbar-color:var(--line2) transparent}
-  .ps-body[hidden]{display:none}
-  .ps-log{list-style:none;padding:0;counter-reset:mv;display:flex;flex-direction:column;gap:2px}
-  .ps-log li{counter-increment:mv;display:flex;align-items:flex-start;gap:8px;padding:6px 8px;border-radius:8px;font-size:13px;line-height:1.35}
-  .ps-log li:nth-child(odd){background:var(--panel)}
-  .ps-log li::before{content:counter(mv);min-width:22px;color:var(--dim);font:700 12px/1.35 var(--f-d);text-align:right}
-  .ps-log li.ps-none::before{content:none}
-  .ps-log li>i{width:9px;height:9px;flex:none;margin-top:4px;border-radius:50%;background:var(--c)}
-  .ps-log li span{min-width:0;color:var(--muted)}
-  .ps-log li b{color:var(--fg);font-weight:700}
-  .ps-none{color:var(--dim);font-size:13px;padding:6px 8px}
-  .ps-tips{display:flex;flex-direction:column;gap:10px}
-  .ps-tips>div{padding:10px 12px;border-radius:10px;background:var(--panel);border:1px solid var(--line)}
-  .ps-tips b{font:800 italic 15px/1.1 var(--f-d);text-transform:uppercase}
-  .ps-tips p{margin:4px 0 0;color:var(--muted);font-size:13px;line-height:1.45}
-  .ps-ser{padding:12px;border-radius:12px;background:var(--panel);border:1px solid var(--line)}
-  .ps-ser h4{margin:0 0 8px;font:800 italic 15px/1 var(--f-d);text-transform:uppercase;display:flex;justify-content:space-between;align-items:baseline}
-  .ps-ser h4 small{font:600 11px/1 var(--f-b);color:var(--dim);text-transform:none}
-  .ps-f{display:flex;gap:6px;flex-wrap:wrap}
-  .ps-f i{width:34px;height:34px;display:grid;place-items:center;transform:skewX(var(--sk));font:800 italic 15px/1 var(--f-d);font-style:normal;background:var(--panel3);color:var(--dim)}
-  .ps-f i.w{background:var(--good);color:var(--ink)} .ps-f i.l{background:var(--bad);color:var(--ink)} .ps-f i.d{background:var(--line2);color:var(--fg)}
-  .ps-ser p{margin:8px 0 0;color:var(--muted);font-size:12.5px}
-  .ps-ser kbd{height:19px;min-width:19px;font-size:11px}
-  .pso{display:grid;position:fixed;z-index:19;right:16px;bottom:16px}
-  .pso[hidden]{display:none}
 }
 
 /* pause menu: two columns on the laptop, a sheet on the phone */
@@ -2395,3 +2357,5 @@ html.lowfx::view-transition-group(*),html.lowfx::view-transition-old(*),html.low
 .slc-add .inp{flex:1;min-width:0;height:38px}
 .slc-reset{align-self:flex-start;font-size:12.5px}
 @media (min-width:960px){.bprev{max-width:440px}}
+/* sidebar: options sit in the profile card (gear); the separate row only in the icon strip */
+@media (min-width:960px){html:not(.side-rail) .sd-bot>[data-go="opts"]{display:none}}

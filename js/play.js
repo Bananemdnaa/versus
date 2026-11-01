@@ -88,10 +88,15 @@
     const canUndo = ai && !party && cfg.level <= 1 && UNDO.includes(g.id) && !auto;
     const hist = [], rep = replay ? { queue: replay } : null;
     const mySide = online ? M.side : table ? M.seat : 0;
-    const oppSide = ai ? aiSide : online ? 3 - mySide : 0;
+    // you are always left and pink: against the AI, in online duels and at online tables with two seats (only the look;
+    // the game keeps its own sides)
+    const oppSide = ai ? aiSide : online || (table && N === 2) ? 3 - mySide : 0;
     setSwap(oppSide === 1);
     const L = oppSide ? 3 - oppSide : 1, R = 3 - L;
-    const sideLabel = s => g.sides ? g.sides[s] : V.colorName(s);
+    // party games: odd seats on the left, at a two-seat table you on the left
+    const leftCol = s => table && N === 2 ? s === mySide : s % 2 === 1;
+    // colour names follow the swap; names like Weiß/Schwarz stay
+    const sideLabel = s => g.sides && g.sides[s] && !/^(Pink|Gelb|Cyan|Grün)$/.test(g.sides[s]) ? g.sides[s] : V.colorName(s);
     const names = { 1: 'Spieler 1', 2: 'Spieler 2', 3: 'Spieler 3', 4: 'Spieler 4' };
     if (ai && party) SIDES.forEach(s => { names[s] = s === 1 ? 'Du' : N > 2 ? 'KI ' + (s - 1) : 'KI'; });
     else if (ai) { names[aiSide] = 'KI'; names[3 - aiSide] = 'Du'; }
@@ -118,31 +123,24 @@
     V.discord.status(g.name, table ? V.t('Online-Tisch') + ' · ' + V.t(N + ' Spieler') : ai ? V.t('Gegen die KI') + ' · ' + V.t(V.LEVELS[cfg.level]) : online ? V.t('Online-Duell') : watch ? V.t('Zuschauen') : V.t(party ? 'Am Gerät' : 'Zu zweit'), g.id);
     // two people at one phone, sitting opposite: player 2's card (and the status on their turn) is turned around
     const facing = cfg.mode === 'local' && settings.face && !party && g.cat !== 'Action';
-    // laptop (from 1280 px, see css): a panel on the right with the moves, the game's tips and the series
-    const pside = V.ui.wide() && g.cat !== 'Action' && !auto;
     let plies = 0;
     const v = mount(`<div class="view play${online || table ? ' net' : ''}${watch ? ' watch' : ''}${facing ? ' facing' + (g.turnBoard ? ' rotboard' : '') : ''}" data-g="${g.id}" style="--acc:${g.accent || 'var(--pink)'}">
       <div class="pbar"><button class="iconbtn" id="pb" aria-label="Zurück">${IC.back}</button><div class="ttl"><b>${g.name}</b><small>${sublabel}</small></div>
         <span class="watchn" id="pw" hidden title="Zuschauer">${IC.eye}<b></b></span>
         ${online || (watch && !M.admin) ? `<button class="iconbtn" id="pe" aria-label="Reaktion senden" title="Reaktion">${IC.smile}</button>` : ''}
-        ${canUndo ? `<button class="iconbtn" id="pu" aria-label="Zug zurück" title="Zug zurück (Z)" disabled>${IC.undo}<kbd class="pk">Z</kbd></button>` : ''}
-        <button class="iconbtn" id="ph" aria-label="Regeln" title="Regeln (H)">${IC.help}<kbd class="pk">H</kbd></button>
-        ${online ? `<button class="iconbtn" id="pr" aria-label="Aufgeben" title="Aufgeben">${IC.flag}</button>` : watch || table ? '' : `<button class="iconbtn" id="pr" aria-label="Neu starten" title="Neue Partie (N)">${IC.redo}<kbd class="pk">N</kbd></button>`}
-        ${document.fullscreenEnabled ? `<button class="iconbtn only-fine" id="pfs" aria-label="Vollbild" title="Vollbild (F11)">${IC.full}<kbd class="pk">F11</kbd></button>` : ''}
-        ${watch ? '' : `<button class="iconbtn" id="pz" aria-label="Menü" title="Menü (Esc)">${IC.menu}<kbd class="pk">Esc</kbd></button>`}</div>
+        ${canUndo ? `<button class="iconbtn" id="pu" aria-label="Zug zurück" title="Zug zurück (Z)" disabled>${IC.undo}</button>` : ''}
+        <button class="iconbtn" id="ph" aria-label="Regeln" title="Regeln (H)">${IC.help}</button>
+        ${online ? `<button class="iconbtn" id="pr" aria-label="Aufgeben" title="Aufgeben">${IC.flag}</button>` : watch || table ? '' : `<button class="iconbtn" id="pr" aria-label="Neu starten" title="Neue Partie (N)">${IC.redo}</button>`}
+        <button class="iconbtn snd" aria-label="Ton an oder aus" title="Ton (M)">${settings.sound ? IC.sound : IC.mute}</button>
+        ${document.fullscreenEnabled ? `<button class="iconbtn only-fine" id="pfs" aria-label="Vollbild" title="Vollbild (F11)">${IC.full}</button>` : ''}
+        ${watch ? '' : `<button class="iconbtn" id="pz" aria-label="Menü" title="Menü (Esc)">${IC.menu}</button>`}</div>
       <div class="duel${party ? ' party n' + N : ''}">
-        ${party ? `<div class="pcol pcol-l">${SIDES.filter(s => s % 2).map(s => card(s, 'l')).join('')}</div><div class="pcol pcol-r">${SIDES.filter(s => !(s % 2)).map(s => card(s, 'r')).join('')}</div>` : `${card(L, 'l')}
+        ${party ? `<div class="pcol pcol-l">${SIDES.filter(s => leftCol(s)).map(s => card(s, 'l')).join('')}</div><div class="pcol pcol-r">${SIDES.filter(s => !leftCol(s)).map(s => card(s, 'r')).join('')}</div>` : `${card(L, 'l')}
         <div class="score" id="sc"><b class="sl">${series[L]}</b><i>:</i><b class="sr">${series[R]}</b></div>
         ${card(R, 'r')}`}
         <div class="center"><div class="status" id="st" aria-live="polite"></div><div class="stage" id="stage"></div>
           <div class="tpill" id="tpill" hidden><i></i><b></b>${g.keys && g.cat !== 'Action' ? `<small>${g.keys.slice(0, 2).map(([k, d]) => `<kbd>${k}</kbd> ${V.t(d)}`).join(' · ')}</small>` : ''}</div></div>
-      </div>${pside ? `<aside class="pside" id="pside" aria-label="Partie">
-        <div class="ps-tabs" role="tablist"><button role="tab" class="on" data-pt="log" aria-selected="true">Verlauf</button><button role="tab" data-pt="tips" aria-selected="false">Tipps</button>
-          <button class="iconbtn ps-x" id="psx" aria-label="Seitenleiste schließen" title="Seitenleiste schließen">${IC.x}</button></div>
-        <ol class="ps-log ps-body" data-pb="log" id="pslog"><li class="ps-none">Noch keine Züge</li></ol>
-        <div class="ps-tips ps-body" data-pb="tips" hidden>${(g.tutorial || []).map(x => `<div><b>${x.t}</b><p>${x.d}</p></div>`).join('') || '<p class="ps-none">Keine Tipps für dieses Spiel.</p>'}</div>
-        <div class="ps-ser" id="psser"></div></aside>
-        <button class="iconbtn pso" id="pso" aria-label="Verlauf zeigen" title="Verlauf und Tipps">${IC.book}</button>` : ''}<i class="sglow t" aria-hidden="true"></i><i class="sglow b" aria-hidden="true"></i></div>`);
+      </div><i class="sglow t" aria-hidden="true"></i><i class="sglow b" aria-hidden="true"></i></div>`);
     const stEl = v.querySelector('#st'), pls = {};
     SIDES.forEach(s => { pls[s] = v.querySelector('#pl' + s); });
     // laptop: whose turn it is under the board, with the game's main keys
@@ -153,38 +151,6 @@
       if (pill.hidden) return;
       pill.style.setProperty('--c', V.hex(s));
       pill.querySelector('b').textContent = V.t(s === me ? 'Du bist dran' : names[s] === 'Du' ? 'Du bist dran' : sideLabel(s) + ' ist dran');
-    }
-    // the panel on the right: every move with the player's colour (and the note of AI and online moves), the series
-    const psLog = v.querySelector('#pslog');
-    function logMove(s) {
-      if (!psLog || !alive) return;
-      const none = psLog.querySelector('.ps-none'); if (none) none.remove();
-      const li = document.createElement('li');
-      li.innerHTML = `<i style="--c:${V.hex(s)}"></i><span><b>${esc(shown(s))}</b>${ctx.isAI(s) && lastNote ? ' · ' + lastNote : ''}</span>`;
-      psLog.appendChild(li);
-      while (psLog.children.length > 200) psLog.firstElementChild.remove();
-      if (!ctx.fast()) psLog.scrollTop = psLog.scrollHeight;
-    }
-    function serCard() {
-      const el = v.querySelector('#psser'); if (!el) return;
-      // from your own view: S won, N lost, U draw, ? still open (best of three)
-      const mine = me || L, won = series[mine] || 0, lost = SIDES.reduce((n, k) => n + (k === mine ? 0 : series[k] || 0), 0), d = series.d || 0;
-      const fields = [...Array(won).fill('w'), ...Array(lost).fill('l'), ...Array(d).fill('d')];
-      while (fields.length < 3) fields.push('o');
-      el.innerHTML = `<h4>Serie <small>${me ? 'aus deiner Sicht' : esc(names[L])}</small></h4><div class="ps-f">${fields.slice(-7).map(f => `<i class="${f}">${(V.lang === 'en' ? { w: 'W', l: 'L', d: 'D', o: '?' } : { w: 'S', l: 'N', d: 'U', o: '?' })[f]}</i>`).join('')}</div>
-        <p>${ended && !watch ? 'Revanche mit <kbd>R</kbd>' : 'Best of 3'}</p>`;
-    }
-    if (pside) {
-      const ps = v.querySelector('#pside'), open = on => { S.set('pside', on ? 'open' : 'closed'); document.documentElement.classList.toggle('pside-on', on); ps.hidden = !on; v.querySelector('#pso').hidden = on; };
-      open(S.get('pside', 'open') !== 'closed');
-      v.querySelector('#psx').onclick = () => { V.sfx.ui(); open(false); };
-      v.querySelector('#pso').onclick = () => { V.sfx.ui(); open(true); };
-      ps.querySelectorAll('[data-pt]').forEach(b => b.onclick = () => {
-        V.sfx.ui();
-        ps.querySelectorAll('[data-pt]').forEach(x => { x.classList.toggle('on', x === b); x.setAttribute('aria-selected', x === b); });
-        ps.querySelectorAll('[data-pb]').forEach(x => { x.hidden = x.dataset.pb !== b.dataset.pt; });
-      });
-      queueMicrotask(serCard);   // (after the match state below is set up)
     }
     const timers = new Set(), cleanups = [];
     let alive = true, ended = false, keyFn = null, lastTurn = 0, lastNote = '', moodBand = 0, bubbleT = null;
@@ -349,7 +315,7 @@
         nav.refresh();
       },
       // Every move goes through here (all modes). Online, your own moves are sent to the server.
-      moved(s, m) { plies++; logMove(s); if (net) net.moved(s, m); if (tnet) tnet.moved(s, m); if (canUndo) { hist.push({ s, m: JSON.parse(JSON.stringify(m ?? null)) }); undoBtn(); } },
+      moved(s, m) { plies++; if (net) net.moved(s, m); if (tnet) tnet.moved(s, m); if (canUndo) { hist.push({ s, m: JSON.parse(JSON.stringify(m ?? null)) }); undoBtn(); } },
       // One AI move with a bit of theatre: think (min. time per level), let the crosshair hover over
       // a couple of alternatives, lock on the real target(s), then move and comment in the bubble.
       // o.think() -> { move, mood? }, o.targets(move) -> [elements], o.decoys(move) -> [elements],
@@ -397,7 +363,7 @@
           S.set('daily', daily);
         }
         if (off) { } else if (winner === 0) series.d++; else series[winner]++;
-        turnPill(0); serCard();
+        turnPill(0);
         const sc = v.querySelector('#sc'); if (sc) { sc.innerHTML = `<b class="sl">${series[L]}</b><i>:</i><b class="sr">${series[R]}</b>`; V.fx.pop(sc, 'fx-pop'); }
         SIDES.forEach(k => { const b = pls[k].querySelector('.wins b'); if (b.textContent !== String(series[k])) { b.textContent = series[k]; V.fx.pop(b, 'fx-pop'); } });
         const meWon = me && winner === me;
@@ -883,7 +849,6 @@
     P.setCurrent({
       destroy() {
         alive = false; timers.forEach(clearTimeout); timers.clear();
-        document.documentElement.classList.remove('pside-on');
         cleanups.forEach(f => { try { f(); } catch (e) { } });
         if (inst && inst.destroy) try { inst.destroy(); } catch (e) { }
       }
@@ -967,6 +932,7 @@
     }
     v.querySelector('#pb').onclick = () => { V.sfx.ui(); pauseMenu(); };
     const pz = v.querySelector('#pz'); if (pz) pz.onclick = () => { V.sfx.ui(); pauseMenu(); };
+    v.querySelectorAll('.pbar .snd').forEach(b => b.onclick = () => P.toggleSound());
     const pfs = v.querySelector('#pfs');
     if (pfs) pfs.onclick = () => { V.sfx.ui(); if (document.fullscreenElement) document.exitFullscreen().catch(() => { }); else document.documentElement.requestFullscreen().catch(() => { }); };
     const pr = v.querySelector('#pr');

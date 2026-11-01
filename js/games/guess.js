@@ -100,6 +100,23 @@
     ['In welchem Jahr flogen die Brüder Wright zum ersten Mal?', 'In which year did the Wright brothers first fly?', 1903, '', '', 'y'],
     ['In welchem Jahr endete der Zweite Weltkrieg in Europa?', 'In which year did the Second World War end in Europe?', 1945, '', '', 'y']
   ];
+  // topics by place in the list (the questions are grouped): picked in the game panel (option "topics", none = all)
+  const TOPICS = [['geo', 'Geografie'], ['natur', 'Wissenschaft und Natur'], ['alltag', 'Spiele und Alltag'], ['sport', 'Sport'], ['geschichte', 'Geschichte']];
+  const topicOf = i => i <= 32 ? 'geo' : i <= 53 ? 'natur' : i === 85 || i === 92 || (i >= 63 && i <= 70) ? 'sport' : i <= 73 ? 'alltag' : 'geschichte';
+  const topicsOf = v => Array.isArray(v) ? v.filter(k => TOPICS.some(t => t[0] === k)) : [];
+  const panelExtra = {
+    html(opts) {
+      const on = topicsOf(opts.topics);
+      return `<div class="slc"><div class="slc-h"><span>Themen</span><small>${on.length ? on.length + ' gewählt' : 'Alle'}</small></div>
+        <div class="slc-l">${TOPICS.map(([k, l]) => `<button type="button" data-c="${k}" class="${on.includes(k) ? 'on' : ''}" aria-pressed="${on.includes(k)}">${l}</button>`).join('')}</div>
+        ${on.length ? '<button type="button" class="link slc-reset">Alle Themen</button>' : ''}</div>`;
+    },
+    wire(el, opts, save) {
+      const on = topicsOf(opts.topics);
+      el.querySelectorAll('[data-c]').forEach(b => b.onclick = () => { const k = b.dataset.c; save({ topics: on.includes(k) ? on.filter(x => x !== k) : [...on, k] }); });
+      const r = el.querySelector('.slc-reset'); if (r) r.onclick = () => save({ topics: [] });
+    }
+  };
   const TIME = 25;
   const en = () => V.lang === 'en';
   // German "1.441" or "3,5", English "1,441" or "3.5"
@@ -154,6 +171,7 @@
     sides: { 1: 'Pink', 2: 'Gelb', 3: 'Cyan', 4: 'Grün' },
     keys: [['Ziffern', 'Zahl eintippen'], ['Enter', 'Abgeben']],
     options: [{ id: 'n', label: 'Spieler', def: 2, choices: [[2, '2'], [3, '3'], [4, '4']] }, { id: 'rounds', label: 'Fragen', def: 7, choices: [[7, '7'], [12, '12']] }],
+    extraOpts: ['topics'], panelExtra,
     localHint: 'Am selben Gerät tippt jeder für sich, das Handy wird nach jedem weitergegeben.',
     endDelay: 1300,
     icon: `<svg viewBox="0 0 48 48"><rect x="4" y="30" width="40" height="4" rx="2" fill="#3a3f6b"/><circle cx="14" cy="27" r="5" fill="#ff4fd8"/><circle cx="33" cy="27" r="5" fill="#ffd84f"/><rect x="25" y="20" width="3" height="20" rx="1.5" fill="#fff"/><text x="24" y="15" text-anchor="middle" font-size="14" font-weight="800" fill="#4fe3ff" font-family="Arial">?</text></svg>`,
@@ -168,7 +186,9 @@
       const rounds = [7, 12].includes(+ctx.opts.rounds) ? +ctx.opts.rounds : 7;
       const total = {}; P.forEach(p => { total[p] = 0; });
       // the questions of this match, the same for everybody (shared random source)
-      const order = Q.map((_, i) => i);
+      // only the chosen topics (none chosen or too few questions: all), shuffled with the shared seed
+      const pickT = topicsOf(ctx.opts.topics), inT = Q.map((_, i) => i).filter(i => !pickT.length || pickT.includes(topicOf(i)));
+      const order = inT.length >= 5 ? inT : Q.map((_, i) => i);
       for (let i = order.length - 1; i > 0; i--) { const j = Math.floor(R() * (i + 1)); [order[i], order[j]] = [order[j], order[i]]; }
       let round = 0, q = null, ans = {}, deadline = 0, sent = false, over = false, tick = null, writer = 0, phase = '';
       const wrap = V.el('div', 'gq'); ctx.stage.appendChild(wrap);

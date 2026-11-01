@@ -81,21 +81,24 @@
     desc: 'Ein Buchstabe wird ausgelost, alle schreiben gleichzeitig eine Stadt, ein Land, einen Fluss und mehr damit. Wer fertig ist, ruft Stopp. Danach streicht ihr gemeinsam, was nicht zählt. Für 2 bis 4, online oder reihum am selben Gerät.',
     sides: { 1: 'Pink', 2: 'Gelb', 3: 'Cyan', 4: 'Grün' },
     keys: [['Tab', 'Nächstes Feld'], ['Enter', 'Fertig']],
-    options: [{ id: 'n', label: 'Spieler', def: 2, choices: [[2, '2'], [3, '3'], [4, '4']] }, { id: 'rounds', label: 'Runden', def: 3, choices: [[3, '3'], [5, '5']] }],
+    options: [{ id: 'n', label: 'Spieler', def: 2, choices: [[2, '2'], [3, '3'], [4, '4']] }, { id: 'rounds', label: 'Runden', def: 3, choices: [[3, '3'], [5, '5']] },
+      { id: 'time', label: 'Zeit pro Runde', def: 90, choices: [[60, '60 s'], [90, '90 s'], [120, '2 Min.']] }],
     extraOpts: ['cats'], panelExtra,
-    localHint: 'Am selben Gerät schreibt jeder für sich, das Handy wird nach jedem weitergegeben (je 60 Sekunden).',
+    localHint: 'Am selben Gerät schreibt jeder für sich, das Handy wird nach jedem weitergegeben.',
     endDelay: 1300,
     icon: `<svg viewBox="0 0 48 48"><rect x="6" y="5" width="36" height="38" rx="5" fill="#f3e6cc" stroke="#b9952a" stroke-width="2"/><path d="M12 15h24M12 23h24M12 31h24" stroke="#b9952a" stroke-width="1.6"/><rect x="26" y="26" width="18" height="18" rx="5" fill="#ff4fd8"/><text x="35" y="40" text-anchor="middle" font-size="14" font-weight="800" fill="#08090f" font-family="Arial">B</text><text x="12" y="13" font-size="6" fill="#5d3a1c" font-family="Arial" font-weight="700">STADT LAND</text></svg>`,
     tutorial: [
       { t: 'Das Ziel', d: 'Ein <b>Buchstabe</b> wird ausgelost. Schreib zu jeder Spalte etwas, das damit anfängt, zum Beispiel <b>Stadt, Land, Fluss, Tier, Name, Beruf</b>. Welche Spalten es gibt, legt ihr vorher im Spiel-Panel fest, auch eigene.' },
-      { t: 'Stopp!', d: 'Bist du fertig, tippe <b>Stopp</b>. Die anderen haben dann noch <b>10 Sekunden</b>. Spätestens nach 90 Sekunden ist die Runde vorbei.' },
+      { t: 'Stopp!', d: 'Bist du fertig, tippe <b>Stopp</b>. Die anderen haben dann noch <b>10 Sekunden</b>. Spätestens wenn die Zeit abläuft (im Spiel-Panel einstellbar), ist die Runde vorbei.' },
       { t: 'Streichen', d: 'Danach seht ihr alle Antworten. <b>Tippe auf eine Antwort</b>, die nicht zählt (gibt es nicht, falscher Buchstabe). Sie wird gestrichen, wenn genug Mitspieler sie streichen. Dann <b>Weiter</b>.' },
       { t: 'Punkte', d: '<b>20</b>: nur du hast in der Spalte etwas. <b>10</b>: deine Antwort hat sonst niemand. <b>5</b>: jemand hat dasselbe. Nach allen Runden gewinnt, wer die meisten Punkte hat.' },
-      { t: 'Am selben Handy', d: 'Spielt ihr an einem Gerät, schreibt jeder nacheinander für sich (60 Sekunden), dann wird gemeinsam gestrichen.' }
+      { t: 'Am selben Handy', d: 'Spielt ihr an einem Gerät, schreibt jeder nacheinander für sich, dann wird gemeinsam gestrichen. Die Zeit pro Runde stellt ihr im Spiel-Panel ein.' }
     ],
     start(ctx) {
       const N = ctx.n, P = ctx.players, R = ctx.rng, local = ctx.mode === 'local';
       const CATS = pickCats(ctx.opts.cats);
+      // seconds to write (older tables without the option: 90 online, 60 per person at one device)
+      const T = [60, 90, 120].includes(+ctx.opts.time) ? +ctx.opts.time : local ? 60 : WRITE;
       const rounds = [3, 5].includes(+ctx.opts.rounds) ? +ctx.opts.rounds : 3;
       const total = {}; P.forEach(p => { total[p] = 0; });
       let round = 0, letter = '', phase = '', ans = {}, votes = {}, deadline = 0, stopAt = 0, sent = false, voted = false, over = false, tick = null, writer = 0;
@@ -113,7 +116,7 @@
         used.add(l); letter = l; ans = {}; votes = {}; sent = false; voted = false; stopAt = 0; phase = 'write';
         scoreLine(); ctx.turn(0, false); scoreLine();
         if (local) { writer = 0; ctx.handReset(); return nextWriter(); }
-        deadline = Date.now() + WRITE * 1000;
+        deadline = Date.now() + T * 1000;
         writeUI();
         // seats played by the computer (someone left) hand in empty answers, sent by the host
         if (ctx.amHost()) P.filter(p => ctx.isBot(p)).forEach(p => ctx.submit({ a: [], r: round, bot: 1 }, p));
@@ -124,8 +127,8 @@
         if (!p) return;
         // the answers of the one before disappear before the phone is passed on
         wrap.innerHTML = '';
-        ctx.handoff(p, `Buchstabe der Runde: gleich siehst du ihn. Du hast 60 Sekunden.`, () => {
-          writer = p; sent = false; deadline = Date.now() + 60000; stopAt = 0;
+        ctx.handoff(p, `Buchstabe der Runde: gleich siehst du ihn. Du hast ${T} Sekunden.`, () => {
+          writer = p; sent = false; deadline = Date.now() + T * 1000; stopAt = 0;
           writeUI();
         });
       }

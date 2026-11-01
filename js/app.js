@@ -1101,7 +1101,7 @@
       V.sfx.ui();
       if (g.dataset.k === 'haptic') V.buzz([40, 60, 40]);
       // every screen is drawn in German and translated on the way (js/i18n.js), so a reload switches everything at once
-      if (g.dataset.k === 'lang' && b.dataset.v !== V.lang) setTimeout(() => location.reload(), 150);
+      if (g.dataset.k === 'lang' && b.dataset.v !== V.lang) { S.set('lang', b.dataset.v); setTimeout(() => location.reload(), 150); }
       if (g.dataset.k === 'board') applyFxClass();
     }));
     // a long test pulse; if nothing is felt, the phone itself is muting web vibration (silent mode, do not disturb, intensity 0)
@@ -1644,7 +1644,7 @@
   };
   // what js/play.js needs from the shell
   Object.assign(P, {
-    mount, locked, guest, toast, home, setup, openModal, closeModal, nav, tutorial, showKeys, optsPopup,
+    mount, locked, guest, toast, home, setup, openModal, closeModal, nav, tutorial, showKeys, optsPopup, toggleSound,
     enterPlay(g) { destroyCurrent(); view = 'play'; lastGame = g; selected = g; document.querySelectorAll('.upbar:not(.note)').forEach(b => b.remove()); },
     updateBar,
     setCurrent(c) { current = c; },

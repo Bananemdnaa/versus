@@ -877,6 +877,19 @@
     'Ein {0} wird ausgelost. Schreib zu jeder Spalte etwas, das damit anfängt, zum Beispiel {1}. Welche Spalten es gibt, legt ihr vorher im Spiel-Panel fest, auch eigene.': 'A {0} is drawn. For each column write something that starts with it, for example {1}. You pick the columns in the game panel beforehand, your own ones too.'
   });
 
+  // game settings: Mau-Mau house rules, topics, round time; 3D Tic Tac Toe help; expired login
+  A({
+    'Startkarten': 'Starting cards', '7 zieht zwei': '7 draws two', 'Stapelbar': 'Stackable', 'Einzeln': 'Single', '8 setzt aus': '8 skips', 'Ass: nochmal legen': 'Ace: play again', 'An': 'On',
+    '7: Der Nächste zieht zwei': '7: the next player draws two', 'Ass: Du legst gleich noch eine Karte': 'Ace: you play another card right away',
+    'Zeit pro Runde': 'Time per round', '60 s': '60 s', '90 s': '90 s', '2 Min.': '2 min',
+    'Themen': 'Topics', 'Themen für das Zufallswort': 'Topics for the random word', '# gewählt': '# chosen', 'Alle Themen': 'All topics',
+    'Essen und Trinken': 'Food and drink', 'Tiere': 'Animals', 'Fahrzeuge': 'Vehicles', 'Orte und Gebäude': 'Places and buildings', 'Technik und Weltraum': 'Technology and space',
+    'Musik': 'Music', 'Natur': 'Nature', 'Fantasie': 'Fantasy', 'Berufe': 'Jobs', 'Alltag': 'Everyday life', 'Freizeit und Feste': 'Free time and holidays',
+    'Geografie': 'Geography', 'Wissenschaft und Natur': 'Science and nature', 'Spiele und Alltag': 'Games and everyday life', 'Geschichte': 'History',
+    'Hilfen': 'Help', 'Gefährliche Felder markieren': 'Mark dangerous cells',
+    'Deine Anmeldung ist abgelaufen. Bitte melde dich neu an.': 'Your login has expired. Please sign in again.'
+  });
+
   // ---------- patterns: text with names, moves and hands ----------
   const t = V.t;
   const PIECE = { Bauer: 'Pawn', Springer: 'Knight', Läufer: 'Bishop', Turm: 'Rook', Dame: 'Queen', König: 'King' };

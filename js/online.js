@@ -239,8 +239,11 @@
     (d.outgoing || []).forEach(n => fstate.set(n, 'outgoing'));
     (d.incoming || []).forEach(n => fstate.set(n, 'incoming'));
   }
-  async function fetchFriends() {
-    const d = await C().rpc('friends');
+  async function fetchFriends(again) {
+    let d;
+    // while the login is being renewed one request can go out without it: try once more a moment later
+    try { d = await C().rpc('friends'); }
+    catch (e) { if (again || !/permission denied|jwt/i.test(e.message)) throw e; await new Promise(r => setTimeout(r, 1500)); if (!ready()) throw e; return fetchFriends(true); }
     friendsData = d; remember(d);
     return d;
   }

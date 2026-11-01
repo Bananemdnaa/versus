@@ -47,7 +47,12 @@
     sides: { 1: 'Pink', 2: 'Gelb', 3: 'Cyan', 4: 'Grün' },
     levelInfo: ['Legt irgendeine Karte, die passt.', 'Legt passende Karten, plant aber nicht.', 'Hebt Buben auf, wünscht klug und ärgert dich mit 7 und 8.', 'Zählt Farben mit und spielt seine Sonderkarten im besten Moment.'],
     keys: [['Pfeile + Enter', 'Karte legen'], ['Leertaste', 'Karte ziehen'], ['W', 'Weiter nach dem Ziehen']],
-    options: [{ id: 'n', label: 'Spieler', def: 3, choices: [[2, '2'], [3, '3'], [4, '4']] }],
+    // house rules: every group plays Mau-Mau a little differently
+    options: [{ id: 'n', label: 'Spieler', def: 3, choices: [[2, '2'], [3, '3'], [4, '4']] },
+      { id: 'hand', label: 'Startkarten', def: 5, choices: [[5, '5'], [6, '6'], [7, '7']] },
+      { id: 'r7', label: '7 zieht zwei', def: 2, choices: [[2, 'Stapelbar'], [1, 'Einzeln'], [0, 'Aus']] },
+      { id: 'r8', label: '8 setzt aus', def: 1, choices: [[1, 'An'], [0, 'Aus']] },
+      { id: 'ra', label: 'Ass: nochmal legen', def: 0, choices: [[1, 'An'], [0, 'Aus']] }],
     localHint: 'Ihr spielt reihum am selben Gerät. Vor jedem Zug gebt ihr das Handy weiter, damit niemand fremde Karten sieht.',
     endDelay: 1200,
     icon: `<svg viewBox="0 0 48 48"><g transform="rotate(-14 20 26)"><rect x="8" y="10" width="22" height="31" rx="3" fill="#fff" stroke="#c9c2b2"/><text x="12" y="20" font-size="9" font-weight="800" fill="#d62b4d" font-family="Arial">7</text><text x="19" y="32" font-size="13" fill="#d62b4d" font-family="Arial">♥</text></g><g transform="rotate(10 30 24)"><rect x="19" y="7" width="22" height="31" rx="3" fill="#fff" stroke="#c9c2b2"/><text x="22" y="17" font-size="9" font-weight="800" fill="#15172a" font-family="Arial">B</text><text x="27" y="29" font-size="13" fill="#15172a" font-family="Arial">♣</text></g></svg>`,
@@ -55,14 +60,17 @@
       { t: 'Das Ziel', d: 'Jeder bekommt <b>5 Karten</b>. Wer zuerst keine Karten mehr hat, gewinnt. Gespielt wird mit 32 Karten von 7 bis Ass.' },
       { t: 'Legen', d: 'Du darfst eine Karte legen, die zur obersten Karte in der Mitte passt: <b>gleiche Farbe</b> (♠ ♥ ♦ ♣) oder <b>gleicher Wert</b>. Tippe die Karte in deiner Hand an.' },
       { t: 'Ziehen', d: 'Kannst oder willst du nicht legen, tippe auf den <b>Stapel</b> und zieh eine Karte. Passt sie, darfst du sie gleich legen, sonst tippst du auf <b>Weiter</b>.' },
-      { t: 'Sonderkarten', d: '<b>7</b>: Der Nächste muss zwei Karten ziehen, außer er legt selbst eine 7, dann muss der Übernächste vier ziehen usw. <b>8</b>: Der Nächste setzt aus. <b>Bube</b>: passt immer, und du <b>wünschst dir eine Farbe</b>.' },
+      { t: 'Sonderkarten', d: '<b>7</b>: Der Nächste muss zwei Karten ziehen, außer er legt selbst eine 7, dann muss der Übernächste vier ziehen usw. <b>8</b>: Der Nächste setzt aus. <b>Bube</b>: passt immer, und du <b>wünschst dir eine Farbe</b>. Im Spiel-Panel stellt ihr eure <b>Hausregeln</b> ein: 7 stapelbar oder nicht, 8 aus, Ass nochmal, 5 bis 7 Startkarten.' },
       { t: 'Am selben Handy', d: 'Spielt ihr zu mehreren an einem Gerät, erscheint vor jedem Zug <b>„Gib das Gerät an …“</b>. Erst wenn der Richtige tippt, werden seine Karten gezeigt.' }
     ],
     start(ctx) {
       const N = ctx.n, P = ctx.players, R = ctx.rng;
+      // house rules (older tables without them: the classic rules)
+      const o = ctx.opts || {}, num = (v, ok, d) => ok.includes(+v) ? +v : d;
+      const R7 = num(o.r7, [0, 1, 2], 2), R8 = num(o.r8, [0, 1], 1), RA = num(o.ra, [0, 1], 0), START = num(o.hand, [5, 6, 7], HAND);
       const hands = {}; P.forEach(p => { hands[p] = []; });
       let pile = V.deck(R, '789TJQKA'), disc = [], wish = null, pen = 0, skip = false, turn = 1, drew = null, over = false, viewer = 0;
-      for (let k = 0; k < HAND; k++) P.forEach(p => hands[p].push(pile.pop()));
+      for (let k = 0; k < START; k++) P.forEach(p => hands[p].push(pile.pop()));
       // the first card on the table is never a special card
       let first = pile.findIndex(c => !'78J'.includes(c[0])); disc.push(pile.splice(first, 1)[0]);
       const top = () => disc[disc.length - 1];
@@ -70,7 +78,7 @@
       wrap.append(opp, table, hand, acts); ctx.stage.appendChild(wrap);
       const CLR = { 1: 'var(--pink)', 2: 'var(--yellow)', 3: 'var(--cyan)', 4: 'var(--good)' };
       const ok = (p, c) => {
-        if (pen) return c[0] === '7';
+        if (pen) return R7 === 2 && c[0] === '7';
         if (c[0] === 'J') return true;
         if (wish) return c[1] === wish;
         return c[1] === top()[1] || c[0] === top()[0];
@@ -142,8 +150,9 @@
           function val(c) {
             let v = bySuit(c) * 2 + '789TJQKA'.indexOf(c[0]) * 0.1;
             if (c[0] === 'J') v -= h.length > 2 ? 8 : -5;
-            if (c[0] === '7') v += nextFew ? 6 : 1 + (L === 3 ? pen : 0);
-            if (c[0] === '8') v += nextFew ? 5 : 0.5;
+            if (c[0] === '7' && R7) v += nextFew ? 6 : 1 + (L === 3 ? pen : 0);
+            if (c[0] === '8' && R8) v += nextFew ? 5 : 0.5;
+            if (c[0] === 'A' && RA) v += h.length > 2 ? 1.5 : 0;
             return v;
           }
         }
@@ -171,23 +180,26 @@
           ctx.moved(p, m.w ? { p: m.p, w: m.w } : { p: m.p });
           hands[p].splice(hands[p].indexOf(m.p), 1); disc.push(m.p);
           wish = m.p[0] === 'J' ? m.w : null;
-          if (m.p[0] === '7') pen += 2;
-          skip = m.p[0] === '8';
+          if (m.p[0] === '7' && R7) pen += 2;
+          skip = !!R8 && m.p[0] === '8';
+          const again = !!RA && m.p[0] === 'A';
           // the card flies from the hand (or the other player's fan) onto the pile
           const src = hand.querySelector(`[data-c="${m.p}"]`) || opp.querySelector(`[data-p="${p}"] .fan`);
           const from = src && !ctx.fast() ? src.getBoundingClientRect() : null;
           if (ctx.isAI(p)) V.sfx.them(); else V.sfx.place();
           busy = true; draw();
           // the first time a special card shows up, a short note says what it does
-          const rule = { 7: '7: Der Nächste zieht zwei, außer er legt selbst eine 7', 8: '8: Der Nächste setzt aus', J: 'Bube passt immer und wünscht eine Farbe' }[m.p[0]];
+          const rule = { 7: R7 === 2 ? '7: Der Nächste zieht zwei, außer er legt selbst eine 7' : R7 ? '7: Der Nächste zieht zwei' : '', 8: R8 ? '8: Der Nächste setzt aus' : '', J: 'Bube passt immer und wünscht eine Farbe', A: RA ? 'Ass: Du legst gleich noch eine Karte' : '' }[m.p[0]];
           if (rule && !ctx.fast() && !ctx.auto) { const seen = V.store.get('mmRules', {}); if (!seen[m.p[0]]) { seen[m.p[0]] = 1; V.store.set('mmRules', seen); V.toast(rule, 3200); } }
           const tc = table.querySelector('.tp'); if (tc) { if (from) V.kit.fly(tc, from, 320); else V.fx.pop(tc, 'deal'); }
           if (!hands[p].length) { shout('Mau-Mau!'); over = true; draw(); return ctx.end(p, `${ctx.name(p)} hat keine Karten mehr`); }
           if (hands[p].length === 1) { shout('Mau!'); V.sfx.goal(); }
-          if (m.p[0] === '8') ctx.status(`${ctx.who(p)} legt eine 8, ${ctx.who(P[(P.indexOf(p) + 1) % N])} setzt aus`);
-          else if (m.p[0] === '7') ctx.status(`${ctx.who(p)} legt eine 7: +${pen}`);
+          if (m.p[0] === '8' && R8) ctx.status(`${ctx.who(p)} legt eine 8, ${ctx.who(P[(P.indexOf(p) + 1) % N])} setzt aus`);
+          else if (m.p[0] === '7' && R7) ctx.status(`${ctx.who(p)} legt eine 7: +${pen}`);
+          else if (again) ctx.status(`${ctx.who(p)} legt ein Ass und ist nochmal dran`);
           else if (wish) ctx.status(`${ctx.who(p)} wünscht sich ${V.suitSym(wish)} ${V.suitName(wish)}`);
-          return ctx.later(nextPlayer, ctx.fast() ? 30 : 520);
+          // an Ace (house rule): the same player goes again
+          return ctx.later(again ? () => begin(p) : nextPlayer, ctx.fast() ? 30 : 520);
         }
         if (m.d && !drew) {
           ctx.moved(p, { d: 1 });

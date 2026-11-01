@@ -15,7 +15,7 @@
   const NAME_RE = /^[a-z0-9_-]{3,16}$/;
   const KEYS = ['stats', 'seen', 'settings', 'setup', 'recent', 'recents', 'favs'];
 
-  let sb = null, user = null, info = null, timer = null, beat = null, busy = false, again = false;
+  let sb = null, user = null, info = null, timer = null, beat = null, busy = false, again = false, leaving = false;
   const state = { status: 'off', last: 0, error: '' };
   const listeners = new Set();
   const emit = () => listeners.forEach(f => { try { f(); } catch (e) { } });
@@ -229,6 +229,14 @@
         const r = await sb.auth.getSession();
         user = r.data && r.data.session ? r.data.session.user : null;
       } catch (e) { user = null; }
+      // The server can end a session on its own (login expired or revoked). Without this the app would keep the old
+      // user and send every request without a login ("permission denied"); now it shows the signed-out state.
+      sb.auth.onAuthStateChange(ev => {
+        if (ev !== 'SIGNED_OUT' || !user || leaving) return;
+        clearTimeout(timer); clearInterval(beat);
+        user = null; info = null; state.status = 'guest'; emit();
+        if (V.ui) V.ui.toast('Deine Anmeldung ist abgelaufen. Bitte melde dich neu an.', 3500);
+      });
       starting = false;
       if (user) await afterLogin(); else emit();
     },
@@ -288,7 +296,7 @@
       clearTimeout(timer);
       if (user) { try { await push(true); } catch (e) { } }
       clearInterval(beat);
-      try { await sb.auth.signOut(); } catch (e) { }
+      leaving = true; try { await sb.auth.signOut(); } catch (e) { } leaving = false;
       user = null; info = null; state.status = 'guest';
       // the account keeps its data; this browser goes back to a fresh guest
       ['stats', 'seen', 'setup', 'recent', 'recents', 'favs', 'cloudmeta'].forEach(k => { try { localStorage.removeItem('versus.' + k); } catch (e) { } });
@@ -307,7 +315,7 @@
       if (!u.anon) check(await sb.auth.signInWithPassword({ email: u.username + '@' + MAIL, password: pw, options: { captchaToken: await captcha() } }));
       clearTimeout(timer); clearInterval(beat);
       check(await sb.rpc('delete_account'));
-      try { await sb.auth.signOut(); } catch (e) { }
+      leaving = true; try { await sb.auth.signOut(); } catch (e) { } leaving = false;
       user = null; info = null; state.status = 'guest';
       ['stats', 'seen', 'setup', 'recent', 'recents', 'favs', 'cloudmeta'].forEach(k => { try { localStorage.removeItem('versus.' + k); } catch (e) { } });
       if (V.reloadLocal) V.reloadLocal();

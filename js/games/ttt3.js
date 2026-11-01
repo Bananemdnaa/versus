@@ -72,6 +72,8 @@
   .t3-views{display:flex;gap:4px;padding:4px;border-radius:12px;background:var(--panel);border:1px solid var(--line);flex-wrap:wrap;justify-content:center}
   .t3-views button{padding:7px 11px;border-radius:9px;font:800 italic 13px/1 var(--f-d);text-transform:uppercase;letter-spacing:.04em;color:var(--muted);background:none}
   .t3-views button.on{background:var(--cyan);color:var(--ink)}
+  .t3-views .t3-help{margin-left:6px;border:1px dashed var(--line2)}
+  .t3-views .t3-help.on{background:var(--yellow);color:var(--ink);border-color:var(--yellow)}
   .t3-hint{display:flex;align-items:center;justify-content:center;gap:10px;color:var(--muted);font-size:12.5px;text-align:center;min-height:34px;max-width:440px}
   .t3:not(.v-top) .t3-g{transform:none}
   /* 3D: the four layers stacked, tilted and turned; the stones always face the viewer */
@@ -111,6 +113,11 @@
       let view = V.store.get('ttt3view', 'top'), rz = V.store.get('ttt3rot', -35);
       if (!VIEWS.some(v => v[0] === view)) view = 'top';
       const box = V.el('div', 't3-box'), bar = V.el('div', 't3-views'), wrap = V.el('div', 't3'), hint = V.el('div', 't3-hint');
+      // marking the cells where the opponent would complete four: off unless you switch it on (stored on this device)
+      let help = !!V.store.get('ttt3help', false);
+      const helpBtn = V.el('button', 't3-help' + (help ? ' on' : ''), 'Hilfen');
+      helpBtn.setAttribute('aria-pressed', help); helpBtn.title = 'Gefährliche Felder markieren';
+      helpBtn.onclick = () => { help = !help; V.store.set('ttt3help', help); helpBtn.classList.toggle('on', help); helpBtn.setAttribute('aria-pressed', help); V.sfx.ui(); draw(); };
       box.append(bar, wrap, hint); ctx.stage.appendChild(box);
       let cells = [];
       // the cell at slice k, grid row g, grid column c (in the side views row 0 is the top layer)
@@ -125,6 +132,7 @@
       function build() {
         cells = []; wrap.className = 't3 v-' + view; wrap.innerHTML = '';
         bar.innerHTML = VIEWS.map(([v, l]) => `<button class="${v === view ? 'on' : ''}" data-v="${v}">${l}</button>`).join('');
+        bar.appendChild(helpBtn);
         if (view === 'cube') {
           const scene = V.el('div', 't3-scene'), stack = V.el('div', 't3-stack');
           stack.style.setProperty('--rz', rz + 'deg');
@@ -165,7 +173,7 @@
         cells.forEach((c, i) => {
           c.classList.toggle('e', !s.b[i]); c.classList.toggle('p1', s.b[i] === 1); c.classList.toggle('p2', s.b[i] === 2);
           c.classList.toggle('last', i === s.last && !over);
-          c.classList.toggle('th', human() && threat.has(i));
+          c.classList.toggle('th', help && human() && threat.has(i));
           c.classList.toggle('w', !!winLine && winLine.indexOf(i) >= 0 && winLine.indexOf(i) < winShown);
         });
         wrap.classList.toggle('can', human());

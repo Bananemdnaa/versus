@@ -11,7 +11,10 @@
   const auto = /^de\b/i.test(navigator.language || '') ? 'de' : 'en';
   // ?lang=de or ?lang=en in the address (embeds, links) wins over the setting for this visit, without saving it
   let ask = null; try { ask = new URLSearchParams(location.search).get('lang'); } catch (e) { }
-  V.lang = ask === 'de' || ask === 'en' ? ask : st.lang === 'de' || st.lang === 'en' ? st.lang : auto;
+  // the language chosen on this device (versus.lang, not synced: the account's settings from the server must not undo a
+  // switch that was made just before the reload)
+  let dev = null; try { dev = JSON.parse(localStorage.getItem('versus.lang')); } catch (e) { }
+  V.lang = ask === 'de' || ask === 'en' ? ask : dev === 'de' || dev === 'en' ? dev : st.lang === 'de' || st.lang === 'en' ? st.lang : auto;
   V.locale = () => (V.lang === 'en' ? 'en-GB' : 'de-DE');
   document.documentElement.lang = V.lang;
 
