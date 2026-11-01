@@ -7,9 +7,9 @@
   // the database protects itself with row level security and server-side checks.
   // (inside the Discord activity the project is reached through Discord's proxy, see js/discord.js)
   const CFG = { url: V.discord && V.discord.proxy ? location.origin + '/.proxy/supabase' : 'https://ygnngmtvncmdunsdnwtk.supabase.co', key: 'sb_publishable_DWz8MXxA0PM-rQOqnVMJGQ_FqadTjHg' };
-  // Cloudflare Turnstile site key (public). Empty = no captcha. Set it together with Supabase → Attack Protection → Captcha,
-  // because once the captcha is on there, every sign-up, login and guest login needs a token.
-  const TURNSTILE = '';
+  // Cloudflare Turnstile site key (public), widget "Versus" for bananemdnaa.github.io, localhost and the Discord activity.
+  // The captcha is only enforced once it is switched on in Supabase → Attack Protection (with the secret key).
+  const TURNSTILE = '0x4AAAAAAFv4ibMzTK6UzaN3';
   // Supabase needs an e-mail address internally; this domain is ours (GitHub Pages), no mails are sent.
   const MAIL = 'bananemdnaa.github.io';
   const NAME_RE = /^[a-z0-9_-]{3,16}$/;
@@ -173,10 +173,14 @@
   function captcha() {
     if (!TURNSTILE) return Promise.resolve(undefined);
     tsLib = tsLib || new Promise((res, rej) => {
-      const s = document.createElement('script'); s.src = 'https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit'; s.async = true;
+      // inside the Discord activity outside addresses are blocked: the script comes through the URL mapping /cf → challenges.cloudflare.com
+      const host = V.discord && V.discord.proxy ? location.origin + '/.proxy/cf' : 'https://challenges.cloudflare.com';
+      const s = document.createElement('script'); s.src = host + '/turnstile/v0/api.js?render=explicit'; s.async = true;
       s.onload = () => res(); s.onerror = () => { tsLib = null; rej(new Error('Die Sicherheitsprüfung lädt gerade nicht.')); };
       document.head.appendChild(s);
     });
+    // without a token the login is still tried: as long as Supabase does not ask for a captcha it goes through,
+    // otherwise Supabase answers with the captcha error (shown as "Die Sicherheitsprüfung …")
     return tsLib.then(() => new Promise((res, rej) => {
       const box = V.el('div', 'tsbox'); document.body.appendChild(box);
       let id = null;
@@ -187,7 +191,9 @@
         'error-callback': () => done(rej, new Error('Die Sicherheitsprüfung hat nicht geklappt. Versuch es nochmal.')),
         'timeout-callback': () => done(rej, new Error('Die Sicherheitsprüfung hat zu lange gedauert.'))
       });
-    }));
+      // a check that never answers (blocked frame) must not hold the login forever
+      setTimeout(() => { if (box.isConnected) done(res, undefined); }, 30000);
+    })).catch(() => undefined);
   }
 
   // ---------- realtime pokes ----------
