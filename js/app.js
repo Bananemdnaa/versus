@@ -85,14 +85,22 @@
   function appHead() {
     const u = V.cloud && V.cloud.available() ? V.cloud.user() : null, full = u && !u.anon;
     const name = u ? u.username : 'Gast';
+    const hr = new Date().getHours(), greet = hr < 11 ? 'Guten Morgen' : hr < 18 ? 'Guten Tag' : 'Guten Abend';
     return `<header class="ahd"><button class="ah-av${full ? '' : ' guest'}" id="ahav" aria-label="Konto"><span>${full ? escA(name.slice(0, 1).toUpperCase()) : '+'}</span></button>
-      <div class="ah-t"><b>${escA(name)}</b><div class="ah-c" id="ahc"></div></div>
+      <div class="ah-t"><small class="ah-g">${greet}</small><b>${escA(name)}</b><div class="ah-c" id="ahc"></div></div>
+      <button class="iconbtn" id="ahq" aria-label="Spiel suchen">${IC.search}</button>
       <button class="iconbtn snd" aria-label="Ton an oder aus">${settings.sound ? IC.sound : IC.mute}</button><button class="iconbtn" id="ahopt" aria-label="Optionen">${IC.gear}</button></header>`;
   }
   function wireHead(root) {
     const h = root.querySelector('.ahd'); if (!h) return;
     h.querySelector('#ahav').onclick = () => { V.sfx.ui(); home('profile'); };
     h.querySelector('#ahopt').onclick = () => { V.sfx.ui(); home('opts'); };
+    // the search: jump to the games and put the cursor in the search field
+    h.querySelector('#ahq').onclick = () => {
+      V.sfx.ui();
+      const fx = () => { const q = app.querySelector('#gq'); if (!q) return; scrollToEl(q.closest('.gfind')); setTimeout(() => q.focus(), 250); };
+      if (homeTab !== 'games') { home('games'); setTimeout(fx, 200); } else fx();
+    };
     h.querySelectorAll('.snd').forEach(s => s.onclick = toggleSound);
     // weekly place and streak come from the own profile (cached for a while in js/online.js)
     if (V.online && V.online.meStats) V.online.meStats().then(st => {
@@ -156,7 +164,7 @@
     }
     function render() {
       document.documentElement.classList.toggle('side-rail', rail());
-      if (!wide()) { el.innerHTML = ''; return; }
+      if (!wide()) { el.innerHTML = ''; friendsRefresh(); return; }
       const a = active(), u = V.cloud && V.cloud.available() ? V.cloud.user() : null, full = !!(u && !u.anon);
       const item = (id, label, ic, count) => `<button class="sd-item${a === id ? ' on' : ''}" data-go="${id}" title="${label}"${a === id ? ' aria-current="page"' : ''}>${ic}<span>${label}</span>${count ? `<small>${count}</small>` : ''}</button>`;
       const fav = favs().map(id => V.byId[id]);
@@ -305,7 +313,8 @@
       <section class="sel-main">
         ${W ? `<div id="gtop"${homeQuery.trim() ? ' hidden' : ''}>${heroCarousel()}${modeTiles()}<div id="gcont">${contRow()}</div>${installCard()}</div>
         <div class="lhead"><h2 class="lh">Bibliothek<small>${V.games.length}</small></h2>
-          <div class="lview" role="group" aria-label="Ansicht">${[['grid', 'Kacheln', IC.grid], ['list', 'Liste', IC.book]].map(([k, l, ic]) => `<button data-lv="${k}" class="${libView() === k ? 'on' : ''}" aria-pressed="${libView() === k}" title="${l}" aria-label="${l}">${ic}</button>`).join('')}</div></div>` : heroCarousel() + quickTiles()}
+          <div class="lview" role="group" aria-label="Ansicht">${[['grid', 'Kacheln', IC.grid], ['list', 'Liste', IC.book]].map(([k, l, ic]) => `<button data-lv="${k}" class="${libView() === k ? 'on' : ''}" aria-pressed="${libView() === k}" title="${l}" aria-label="${l}">${ic}</button>`).join('')}</div></div>`
+        : `<h1 class="ah-big">Bereit fürs Duell?</h1>${heroCarousel()}<div id="gcont">${contPhone()}</div>${quickTiles()}<div id="gfr">${friendsRow()}</div>${forYou()}`}
         <div class="gfind">
           <div class="gsrow">
             ${W ? '' : `<label class="gsearch">${IC.search}<input id="gq" type="search" placeholder="Spiel suchen" autocomplete="off" spellcheck="false" enterkeyhint="go" aria-label="Spiel suchen" value="${escA(homeQuery)}"><kbd class="only-fine">/</kbd><button class="gclear" id="gqx" aria-label="Suche löschen"${homeQuery ? '' : ' hidden'}>${IC.x}</button></label>`}<button class="iconbtn gsurp" id="gsurp" aria-label="Überrasch mich" title="Überrasch mich">${IC.dice}</button></div>
@@ -396,7 +405,38 @@
   }
   function contRefresh() {
     const c = app.querySelector('#gcont'); if (!c) return;
-    c.innerHTML = contRow(); wireCont(c);
+    c.innerHTML = wide() ? contRow() : contPhone(); wireCont(c);
+  }
+  // phone: one big card for the most urgent open match (diagonal yellow and dark)
+  function contPhone() {
+    contList = (V.online && V.online.resumables ? V.online.resumables() : []).slice(0, 1);
+    const r = contList[0]; if (!r) return '';
+    const g = V.byId[r.game], st = r.table ? (r.turn ? 'Tisch läuft' : 'Tisch wartet') : r.live ? 'Läuft gerade' : r.turn ? 'Du bist dran' : 'Wartet auf ' + escA(r.opp);
+    return `<button class="ccard-p" data-cont="0" style="--acc:${g.accent || 'var(--pink)'}"><span class="cp-tx"><em class="hc-k">Weiterspielen</em><b>${g.name}</b><small>${r.opp ? 'gegen ' + escA(r.opp) + ' · ' : ''}${st}</small></span><span class="cp-ic">${g.icon}</span></button>`;
+  }
+  // phone: friends as round avatars (online first), then a dashed circle to add more
+  function friendsRow() {
+    const u = V.cloud && V.cloud.available() && V.cloud.user();
+    if (!u || u.anon || !V.online || !V.online.sideFriends) return '';
+    const fr = V.online.sideFriends().slice().sort((a, b) => b.online - a.online).slice(0, 8);
+    const ring = ['var(--pink)', 'var(--yellow)', 'var(--cyan)', 'var(--good)'];
+    return `<section class="frs"><h2 class="gh">Freunde${fr.some(f => f.online) ? `<small class="good">${fr.filter(f => f.online).length} online</small>` : ''}</h2><div class="frs-l">
+      ${fr.map((f, k) => `<button class="frs-a${f.online ? ' on' : ''}" data-prof="${escA(f.name)}" style="--fc:${ring[k % 4]}"><span>${escA(f.name.slice(0, 2).toUpperCase())}<i></i></span><small>${escA(f.name)}</small></button>`).join('')}
+      <button class="frs-a add" id="frsadd"><span>${IC.plus}</span><small>Einladen</small></button></div></section>`;
+  }
+  function friendsRefresh() {
+    const c = app.querySelector('#gfr'); if (!c || wide() || view !== 'home' || homeTab !== 'games') return;
+    c.innerHTML = friendsRow(); wireFriends(c);
+  }
+  function wireFriends(c) {
+    c.querySelectorAll('[data-prof]').forEach(b => b.onclick = () => { V.sfx.ui(); V.online.profile(b.dataset.prof); });
+    const a = c.querySelector('#frsadd'); if (a) a.onclick = () => { V.sfx.ui(); V.online.addFriends(); };
+  }
+  // phone: "Für dich", a two-column grid of favourites, recently played and a few classics
+  function forYou() {
+    const ids = [...favs(), ...S.get('recents', []), 'c4', 'ttt', 'ships', 'dots', 'pong'];
+    const list = [...new Set(ids)].map(id => V.byId[id]).filter(g => g && !locked(g)).slice(0, 4);
+    return list.length ? `<section class="grow fy"><h2 class="gh">Für dich</h2><div class="tiles fy">${list.map((g, k) => tile(g, k)).join('')}</div></section>` : '';
   }
   function wireCont(c) {
     c.querySelectorAll('[data-cont]').forEach(b => b.onclick = () => { const r = contList[+b.dataset.cont]; if (!r) return; V.sfx.ui(); b.classList.add('busy'); V.online.resumeAny(r); });
@@ -571,6 +611,8 @@
       refreshList();
     });
     if (!wide()) wireSearch(v);
+    const fy = v.querySelector('.tiles.fy'); if (fy) wireTiles(fy);
+    const fr = v.querySelector('#gfr'); if (fr) wireFriends(fr);
     wireHero(v);
     if (wide()) renderPanel(v.querySelector('#panel'), selected, false);
   }
@@ -661,6 +703,8 @@
   }
   function saveCfg(g, cfg) { const all = S.get('setup', {}); all[g.id] = cfg; S.set('setup', all); }
   let panelApi = null;
+  // the AI levels in one line each (phone sheet)
+  const LV_SHORT = ['zum Lernen', 'fair', 'plant voraus', 'kaum zu schlagen'];
   function renderPanel(root, g, full) {
     const cfg = loadCfg(g), s = stat(g.id);
     // options can be limited to some modes (e.g. the chess clock makes no sense against the AI)
@@ -723,7 +767,8 @@
       </div>
       ${cfg.mode === 'ai' || cfg.mode === 'table' ? `<div class="gp-lvl">
         <div class="lv-top"><span>KI-Stärke</span><b class="l${lvl}">${V.LEVELS[lvl]}</b><em>Bilanz ${s.ai[lvl].w}:${s.ai[lvl].l}</em></div>
-        <div class="lv-bar l${lvl}" id="level">${V.LEVELS.map((l, i) => `<button data-v="${i}" class="${i <= lvl ? 'fill' : ''} ${i === lvl ? 'on' : ''}" aria-label="${l}" title="${l}"></button>`).join('')}</div>
+        ${full ? `<div class="lv-big" id="level">${V.LEVELS.map((l, i) => `<button data-v="${i}" class="lvb l${i}${i === lvl ? ' on' : ''}" aria-pressed="${i === lvl}"><b>${l}</b><small>${LV_SHORT[i]}</small></button>`).join('')}</div>`
+          : `<div class="lv-bar l${lvl}" id="level">${V.LEVELS.map((l, i) => `<button data-v="${i}" class="${i <= lvl ? 'fill' : ''} ${i === lvl ? 'on' : ''}" aria-label="${l}" title="${l}"></button>`).join('')}</div>`}
         <p class="hint">${cfg.mode === 'table' || vTable ? 'So stark spielt die KI auf freien Plätzen.' : (g.levelInfo || LEVEL_INFO)[lvl]}</p></div>` : cfg.mode === 'online' || cfg.mode === 'open' ? '<div class="gp-online" id="ofr"></div>' : voice ? '' : `<p class="hint local">${g.localHint || `Ihr spielt abwechselnd am selben Gerät${g.cat === 'Action' ? ', jeder auf seiner Hälfte' : ''}.`}</p>`}
       ${(cfg.mode === 'ai' && !g.noFirst) || optsHere.length ? `<div class="gp-more">
         ${cfg.mode === 'ai' && !g.noFirst ? chipRow('first', g.firstTitle || 'Wer fängt an?', [['me', firstLabel[0]], ['ai', firstLabel[1]], ['rand', firstLabel[2]]], cfg.first) : ''}
@@ -733,7 +778,8 @@
       ${dcNone ? '<p class="hint dch">Dieses Spiel spielt ihr zu zweit am selben Gerät. In Discord hat jeder sein eigenes, darum geht es hier nicht.</p>' : dc && cfg.mode === 'ai' ? '<p class="hint dch">Nur du siehst dieses Spiel. Zum Mitspielen mit den anderen wähl oben „Sprachkanal“.</p>' : ''}
       ${voice ? `<p class="hint dch">${vNeedAcc ? 'Für dieses Spiel braucht ihr beide ein kostenloses Versus-Konto. Als Gast gehen 4 Gewinnt, Tic Tac Toe, Schiffe versenken und Käsekästchen.' : g.table ? 'Du eröffnest einen Tisch. Alle in diesem Sprachkanal sehen ihn unten als Balken und spielen auf ihrem eigenen Gerät mit.' : 'Du lädst ein. Wer in diesem Sprachkanal zuerst auf „Mitspielen“ tippt, spielt auf seinem eigenen Gerät gegen dich.'}</p>` : ''}
       <div class="gp-go">${cfg.mode === 'online' || cfg.mode === 'open' || cfg.mode === 'table' || dcNone ? '' : vNeedAcc ? `<button class="btn primary big" id="acc"><span>${IC.user}Konto erstellen</span></button>` : `<button class="btn primary big" id="go"><span>${voice ? IC.users + (g.table ? 'Tisch eröffnen' : 'Einladen') : IC.play + 'Spielen'}</span><kbd class="only-fine">Enter</kbd></button>`}
-        <button class="btn ghost" id="tut"><span>${IC.book}Regeln${P.seen[g.id] ? '' : '<i class="dot"></i>'}</span></button></div>
+        <button class="btn ghost" id="tut"><span>${IC.book}Regeln${P.seen[g.id] ? '' : '<i class="dot"></i>'}</span></button>
+        ${full && g.online && cloudOk && !dc && (cfg.mode === 'ai' || cfg.mode === 'local') ? `<button class="btn finv" id="finv"><span>${IC.link}Freund einladen</span></button>` : ''}</div>
       ${full ? '' : '<p class="gp-keys only-fine"><span><kbd>Enter</kbd> spielen</span><span><kbd>F</kbd> Favorit</span><span><kbd>← →</kbd> Spiel wechseln</span></p>'}`;
     // the indicator glides from the old mode to the new one
     const seg = root.querySelector('#mode');
@@ -757,6 +803,8 @@
     if (cfg.mode === 'open' && V.online) V.online.openPanel(root.querySelector('#ofr'), g, cfg.opts);
     if (cfg.mode === 'table' && V.online) V.online.tablePanel(root.querySelector('#ofr'), g, cfg.opts, cfg.level);
     root.querySelector('#tut').onclick = tut;
+    // phone sheet: a game link for a friend (whoever opens it plays against you)
+    const fi = root.querySelector('#finv'); if (fi) fi.onclick = () => { V.sfx.ui(); saveCfg(g, cfg); closeModal(); V.online.linkInvite(g, cfg.opts); };
     panelApi = {
       g,
       go() { if (cfg.mode === 'online' || vNeedAcc || dcNone) return; if (voice) return voiceGo(); if (cfg.mode === 'table') return V.online && V.online.table(g, cfg.opts, cfg.level); if (cfg.mode === 'open') return V.online && V.online.seek(g, cfg.opts); saveCfg(g, cfg); play(g, cfg); },
