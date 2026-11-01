@@ -211,6 +211,8 @@
     fwd: svg('<path d="M9 6l6 6-6 6"/>'),
     home: svg('<path d="M4 11l8-7 8 7"/><path d="M6 9.5V20h4.5v-6h3v6H18V9.5"/>'),
     panel: svg('<rect x="3.5" y="4.5" width="17" height="15" rx="2.5"/><path d="M9.5 4.5v15"/>'),
+    full: svg('<path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/>'),
+    menu: svg('<path d="M4 7h16M4 12h16M4 17h16"/>'),
     help: svg('<circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 0 1 4.9.7c0 1.7-2.4 2.1-2.4 3.6"/><path d="M12 17h.01"/>'),
     redo: svg('<path d="M20 11a8 8 0 1 0-2.3 5.7"/><path d="M20 4v7h-7"/>'),
     sound: svg('<path d="M4 9v6h4l5 4V5L8 9z"/><path d="M16.5 8.5a5 5 0 0 1 0 7"/><path d="M19 6a8.5 8.5 0 0 1 0 12"/>'),

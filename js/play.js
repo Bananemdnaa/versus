@@ -118,21 +118,74 @@
     V.discord.status(g.name, table ? V.t('Online-Tisch') + ' · ' + V.t(N + ' Spieler') : ai ? V.t('Gegen die KI') + ' · ' + V.t(V.LEVELS[cfg.level]) : online ? V.t('Online-Duell') : watch ? V.t('Zuschauen') : V.t(party ? 'Am Gerät' : 'Zu zweit'), g.id);
     // two people at one phone, sitting opposite: player 2's card (and the status on their turn) is turned around
     const facing = cfg.mode === 'local' && settings.face && !party && g.cat !== 'Action';
+    // laptop (from 1280 px, see css): a panel on the right with the moves, the game's tips and the series
+    const pside = V.ui.wide() && g.cat !== 'Action' && !auto;
+    let plies = 0;
     const v = mount(`<div class="view play${online || table ? ' net' : ''}${watch ? ' watch' : ''}${facing ? ' facing' + (g.turnBoard ? ' rotboard' : '') : ''}" data-g="${g.id}" style="--acc:${g.accent || 'var(--pink)'}">
       <div class="pbar"><button class="iconbtn" id="pb" aria-label="Zurück">${IC.back}</button><div class="ttl"><b>${g.name}</b><small>${sublabel}</small></div>
-        <button class="iconbtn" id="ph" aria-label="Regeln" title="Regeln (T)">${IC.help}</button>
         <span class="watchn" id="pw" hidden title="Zuschauer">${IC.eye}<b></b></span>
         ${online || (watch && !M.admin) ? `<button class="iconbtn" id="pe" aria-label="Reaktion senden" title="Reaktion">${IC.smile}</button>` : ''}
-        ${canUndo ? `<button class="iconbtn" id="pu" aria-label="Zug zurück" title="Zug zurück" disabled>${IC.undo}</button>` : ''}
-        ${online ? `<button class="iconbtn" id="pr" aria-label="Aufgeben" title="Aufgeben">${IC.flag}</button>` : watch || table ? '' : `<button class="iconbtn" id="pr" aria-label="Neu starten" title="Neue Partie (N)">${IC.redo}</button>`}</div>
+        ${canUndo ? `<button class="iconbtn" id="pu" aria-label="Zug zurück" title="Zug zurück (Z)" disabled>${IC.undo}<kbd class="pk">Z</kbd></button>` : ''}
+        <button class="iconbtn" id="ph" aria-label="Regeln" title="Regeln (H)">${IC.help}<kbd class="pk">H</kbd></button>
+        ${online ? `<button class="iconbtn" id="pr" aria-label="Aufgeben" title="Aufgeben">${IC.flag}</button>` : watch || table ? '' : `<button class="iconbtn" id="pr" aria-label="Neu starten" title="Neue Partie (N)">${IC.redo}<kbd class="pk">N</kbd></button>`}
+        ${document.fullscreenEnabled ? `<button class="iconbtn only-fine" id="pfs" aria-label="Vollbild" title="Vollbild (F11)">${IC.full}<kbd class="pk">F11</kbd></button>` : ''}
+        ${watch ? '' : `<button class="iconbtn" id="pz" aria-label="Menü" title="Menü (Esc)">${IC.menu}<kbd class="pk">Esc</kbd></button>`}</div>
       <div class="duel${party ? ' party n' + N : ''}">
         ${party ? `<div class="pcol pcol-l">${SIDES.filter(s => s % 2).map(s => card(s, 'l')).join('')}</div><div class="pcol pcol-r">${SIDES.filter(s => !(s % 2)).map(s => card(s, 'r')).join('')}</div>` : `${card(L, 'l')}
         <div class="score" id="sc"><b class="sl">${series[L]}</b><i>:</i><b class="sr">${series[R]}</b></div>
         ${card(R, 'r')}`}
-        <div class="center"><div class="status" id="st" aria-live="polite"></div><div class="stage" id="stage"></div></div>
-      </div><i class="sglow t" aria-hidden="true"></i><i class="sglow b" aria-hidden="true"></i></div>`);
+        <div class="center"><div class="status" id="st" aria-live="polite"></div><div class="stage" id="stage"></div>
+          <div class="tpill" id="tpill" hidden><i></i><b></b>${g.keys && g.cat !== 'Action' ? `<small>${g.keys.slice(0, 2).map(([k, d]) => `<kbd>${k}</kbd> ${d}`).join(' · ')}</small>` : ''}</div></div>
+      </div>${pside ? `<aside class="pside" id="pside" aria-label="Partie">
+        <div class="ps-tabs" role="tablist"><button role="tab" class="on" data-pt="log" aria-selected="true">Verlauf</button><button role="tab" data-pt="tips" aria-selected="false">Tipps</button>
+          <button class="iconbtn ps-x" id="psx" aria-label="Seitenleiste schließen" title="Seitenleiste schließen">${IC.x}</button></div>
+        <ol class="ps-log ps-body" data-pb="log" id="pslog"><li class="ps-none">Noch keine Züge</li></ol>
+        <div class="ps-tips ps-body" data-pb="tips" hidden>${(g.tutorial || []).map(x => `<div><b>${x.t}</b><p>${x.d}</p></div>`).join('') || '<p class="ps-none">Keine Tipps für dieses Spiel.</p>'}</div>
+        <div class="ps-ser" id="psser"></div></aside>
+        <button class="iconbtn pso" id="pso" aria-label="Verlauf zeigen" title="Verlauf und Tipps">${IC.book}</button>` : ''}<i class="sglow t" aria-hidden="true"></i><i class="sglow b" aria-hidden="true"></i></div>`);
     const stEl = v.querySelector('#st'), pls = {};
     SIDES.forEach(s => { pls[s] = v.querySelector('#pl' + s); });
+    // laptop: whose turn it is under the board, with the game's main keys
+    const pill = v.querySelector('#tpill');
+    function turnPill(s) {
+      if (!pill) return;
+      pill.hidden = !s || ended;
+      if (pill.hidden) return;
+      pill.style.setProperty('--c', V.hex(s));
+      pill.querySelector('b').textContent = V.t(s === me ? 'Du bist dran' : names[s] === 'Du' ? 'Du bist dran' : sideLabel(s) + ' ist dran');
+    }
+    // the panel on the right: every move with the player's colour (and the note of AI and online moves), the series
+    const psLog = v.querySelector('#pslog');
+    function logMove(s) {
+      if (!psLog || !alive) return;
+      const none = psLog.querySelector('.ps-none'); if (none) none.remove();
+      const li = document.createElement('li');
+      li.innerHTML = `<i style="--c:${V.hex(s)}"></i><span><b>${esc(shown(s))}</b>${ctx.isAI(s) && lastNote ? ' · ' + lastNote : ''}</span>`;
+      psLog.appendChild(li);
+      while (psLog.children.length > 200) psLog.firstElementChild.remove();
+      if (!ctx.fast()) psLog.scrollTop = psLog.scrollHeight;
+    }
+    function serCard() {
+      const el = v.querySelector('#psser'); if (!el) return;
+      // from your own view: S won, N lost, U draw, ? still open (best of three)
+      const mine = me || L, won = series[mine] || 0, lost = SIDES.reduce((n, k) => n + (k === mine ? 0 : series[k] || 0), 0), d = series.d || 0;
+      const fields = [...Array(won).fill('w'), ...Array(lost).fill('l'), ...Array(d).fill('d')];
+      while (fields.length < 3) fields.push('o');
+      el.innerHTML = `<h4>Serie <small>${me ? 'aus deiner Sicht' : esc(names[L])}</small></h4><div class="ps-f">${fields.slice(-7).map(f => `<i class="${f}">${{ w: 'S', l: 'N', d: 'U', o: '?' }[f]}</i>`).join('')}</div>
+        <p>${ended && !watch ? 'Revanche mit <kbd>R</kbd>' : 'Best of 3'}</p>`;
+    }
+    if (pside) {
+      const ps = v.querySelector('#pside'), open = on => { S.set('pside', on ? 'open' : 'closed'); document.documentElement.classList.toggle('pside-on', on); ps.hidden = !on; v.querySelector('#pso').hidden = on; };
+      open(S.get('pside', 'open') !== 'closed');
+      v.querySelector('#psx').onclick = () => { V.sfx.ui(); open(false); };
+      v.querySelector('#pso').onclick = () => { V.sfx.ui(); open(true); };
+      ps.querySelectorAll('[data-pt]').forEach(b => b.onclick = () => {
+        V.sfx.ui();
+        ps.querySelectorAll('[data-pt]').forEach(x => { x.classList.toggle('on', x === b); x.setAttribute('aria-selected', x === b); });
+        ps.querySelectorAll('[data-pb]').forEach(x => { x.hidden = x.dataset.pb !== b.dataset.pt; });
+      });
+      queueMicrotask(serCard);   // (after the match state below is set up)
+    }
     const timers = new Set(), cleanups = [];
     let alive = true, ended = false, keyFn = null, lastTurn = 0, lastNote = '', moodBand = 0, bubbleT = null;
     const LINES = {
@@ -281,6 +334,7 @@
       status: setStatus,
       turn(s, html) {
         if (clock) clock.turn(s);
+        turnPill(s);
         SIDES.forEach(k => pls[k].classList.toggle('on', s === k));
         v.classList.toggle('turn-r', s === R); v.classList.toggle('turn-l', !!s && s === L);
         const fresh = s && s !== lastTurn;
@@ -295,7 +349,7 @@
         nav.refresh();
       },
       // Every move goes through here (all modes). Online, your own moves are sent to the server.
-      moved(s, m) { if (net) net.moved(s, m); if (tnet) tnet.moved(s, m); if (canUndo) { hist.push({ s, m: JSON.parse(JSON.stringify(m ?? null)) }); undoBtn(); } },
+      moved(s, m) { plies++; logMove(s); if (net) net.moved(s, m); if (tnet) tnet.moved(s, m); if (canUndo) { hist.push({ s, m: JSON.parse(JSON.stringify(m ?? null)) }); undoBtn(); } },
       // One AI move with a bit of theatre: think (min. time per level), let the crosshair hover over
       // a couple of alternatives, lock on the real target(s), then move and comment in the bubble.
       // o.think() -> { move, mood? }, o.targets(move) -> [elements], o.decoys(move) -> [elements],
@@ -338,6 +392,7 @@
           S.set('stats', P.stats);
         }
         if (off) { } else if (winner === 0) series.d++; else series[winner]++;
+        turnPill(0); serCard();
         const sc = v.querySelector('#sc'); if (sc) { sc.innerHTML = `<b class="sl">${series[L]}</b><i>:</i><b class="sr">${series[R]}</b>`; V.fx.pop(sc, 'fx-pop'); }
         SIDES.forEach(k => { const b = pls[k].querySelector('.wins b'); if (b.textContent !== String(series[k])) { b.textContent = series[k]; V.fx.pop(b, 'fx-pop'); } });
         const meWon = me && winner === me;
@@ -361,8 +416,8 @@
             ${online && V.online.friendOf(M.opp) === false && !(V.cloud.user() && V.cloud.user().anon) ? `<button class="btn ghost sm efr" id="efr"><span>${IC.plus}${esc(M.opp)} als Freund hinzufügen</span></button>` : ''}
             ${watch ? '' : `<button class="btn ${meWon && !off ? '' : 'ghost '}sm eshare" id="es"><span>${IC.share}${meWon && !off ? 'Freund herausfordern' : 'Ergebnis teilen'}</span></button>`}
             ${online && V.online.report ? `<button class="link erep" id="erep">${esc(M.opp)} melden</button>` : ''}
-            <div class="actions">${watch ? '' : `<button class="btn primary" id="er"><span>${IC.redo}${online ? 'Revanche anfragen' : table ? 'Neuer Tisch' : 'Revanche'}</span><kbd class="only-fine">Enter</kbd></button>`}<button class="btn" id="eb"><span>Brett ansehen</span></button><button class="btn ghost" id="em"><span>${watch ? 'Zurück' : 'Menü'}</span></button></div></div>`, 'endm', null, false, e => {
-            if ((e.key === 'Enter' || e.key === 'n' || e.key === 'N') && !watch) { again(); return true; }
+            <div class="actions">${watch ? '' : `<button class="btn primary" id="er"><span>${IC.redo}${online ? 'Revanche anfragen' : table ? 'Neuer Tisch' : 'Revanche'}</span><kbd class="only-fine">R</kbd></button>`}<button class="btn" id="eb"><span>Brett ansehen</span></button><button class="btn ghost" id="em"><span>${watch ? 'Zurück' : 'Menü'}</span></button></div></div>`, 'endm', null, false, e => {
+            if ((e.key === 'Enter' || e.key === 'n' || e.key === 'N' || e.key === 'r' || e.key === 'R') && !watch) { again(); return true; }
             if (e.key === 'Escape') { closeModal(); return true; }
             if (e.key === 'm' || e.key === 'M') { menu(); return true; }
             return false;
@@ -823,6 +878,7 @@
     P.setCurrent({
       destroy() {
         alive = false; timers.forEach(clearTimeout); timers.clear();
+        document.documentElement.classList.remove('pside-on');
         cleanups.forEach(f => { try { f(); } catch (e) { } });
         if (inst && inst.destroy) try { inst.destroy(); } catch (e) { }
       }
@@ -851,13 +907,71 @@
       };
     }
     const tut = () => { if (inst && inst.pause) inst.pause(); tutorial(g, () => { if (inst && inst.resume && alive) inst.resume(); }); };
-    v.querySelector('#pb').onclick = () => leave(() => watch ? (M.admin ? V.account.admin('matches') : V.ui.home('online')) : setup(g));
+    const back = () => leave(() => watch ? (M.admin ? V.account.admin('matches') : V.ui.home('online')) : setup(g));
+    // ---------- pause menu (Esc, the back button) ----------
+    // Local matches and against the AI: the game holds still (action games pause their loop). Online it keeps running,
+    // so it is called "Menü" there and offers resigning instead of a new start. Leaving still asks once more.
+    function pauseMenu() {
+      if (watch || ended) return back();
+      const netGame = online || table, title = netGame ? 'Menü' : 'Pause';
+      if (inst && inst.pause) inst.pause();
+      const row = (id, ic, l, k) => `<button class="pz-row" id="${id}">${ic}<span>${l}</span>${k ? `<kbd class="only-fine">${k}</kbd>` : ''}</button>`;
+      const sw = (k, on, l) => `<button class="pz-sw" data-pzs="${k}" role="switch" aria-checked="${on}"><span>${l}</span><i class="sw${on ? ' on' : ''}"></i></button>`;
+      const sl = (k, l, off) => `<label class="pz-sl${off ? ' off' : ''}"><span>${l}</span><input type="range" min="0" max="100" step="5" value="${settings[k]}" data-pzv="${k}" style="--p:${settings[k]}%" aria-label="${l}"></label>`;
+      const score = party ? SIDES.map(s => series[s]).join(':') : series[L] + ':' + series[R];
+      const m = openModal(`<div class="pause">
+        <div class="pz-l"><span class="pz-k">${netGame ? 'Die Partie läuft weiter' : 'Partie angehalten'}</span><h2>${title}</h2>
+          <p class="pz-info">${esc(g.name)} · ${sublabel} · Zug ${plies + 1} · ${score}</p>
+          <button class="btn primary big" id="pz_go"><span>${IC.play}Weiterspielen</span><kbd class="only-fine">Esc</kbd></button>
+          <div class="pz-list">${canUndo ? row('pz_undo', IC.undo, 'Zug zurück', 'Z') : ''}
+            ${online ? row('pz_res', IC.flag, 'Aufgeben', '') : table ? '' : row('pz_new', IC.redo, 'Neu starten', 'N')}
+            ${row('pz_rules', IC.help, 'Regeln', 'H')}${V.coarse ? '' : row('pz_keys', IC.kbd, 'Tastenkürzel', '?')}</div>
+          <button class="pz-leave" id="pz_leave">${IC.x}<span><b>${table ? 'Tisch verlassen' : 'Partie verlassen'}</b><small>${online ? 'zählt als Niederlage' : table ? 'Die KI übernimmt deinen Platz' : 'zählt nicht in der Bilanz'}</small></span></button></div>
+        <div class="pz-r"><h3>Schnell-Einstellungen</h3>
+          ${sl('vol', 'Effekte', !settings.sound)}${sl('mvol', 'Musik', !settings.sound || settings.music === false)}
+          ${sw('hints', settings.hints !== false, 'Zughilfen')}${ai ? sw('aiFast', !!settings.aiFast, 'Schnelle KI') : ''}${sw('cb', !!settings.cb, 'Farbenblind-Modus')}
+          <button class="pz-row pz-opts" id="pz_opts">${IC.gear}<span>Alle Optionen öffnen</span></button></div></div>`,
+        'pausem', () => { if (inst && inst.resume && alive) inst.resume(); }, false, e => {
+          const k = e.key;
+          if ((k === 'z' || k === 'Z') && canUndo) { closeModal(); undo(); return true; }
+          if ((k === 'n' || k === 'N') && !netGame) { P.closeModalQuiet(); leave(() => play(g, cfg, series)); return true; }
+          if (k === 'h' || k === 'H') { P.closeModalQuiet(); tut(); return true; }
+          if (k === '?') { P.closeModalQuiet(); P.showKeys(); return true; }
+          return false;
+        });
+      const on = (id, fn) => { const b = m.querySelector('#' + id); if (b) b.onclick = () => { V.sfx.ui(); fn(); }; };
+      on('pz_go', closeModal);
+      on('pz_undo', () => { closeModal(); undo(); });
+      on('pz_new', () => { P.closeModalQuiet(); leave(() => play(g, cfg, series)); });
+      on('pz_res', () => { P.closeModalQuiet(); leave(null); });
+      on('pz_rules', () => { P.closeModalQuiet(); tut(); });
+      on('pz_keys', () => { P.closeModalQuiet(); P.showKeys(); });
+      on('pz_leave', () => { P.closeModalQuiet(); back(); });
+      on('pz_opts', () => { P.closeModalQuiet(); leave(() => V.ui.home('opts')); });
+      m.querySelectorAll('[data-pzs]').forEach(b => b.onclick = () => {
+        const k = b.dataset.pzs, val = k === 'hints' ? settings.hints === false : !settings[k];
+        settings[k] = val; P.saveSettings(); P.applyFxClass(); V.sfx.ui();
+        b.setAttribute('aria-checked', val); b.querySelector('.sw').classList.toggle('on', val);
+      });
+      m.querySelectorAll('[data-pzv]').forEach(r => r.oninput = () => {
+        const k = r.dataset.pzv; settings[k] = +r.value; r.style.setProperty('--p', r.value + '%'); P.saveSettings();
+        if (k === 'mvol') V.music.apply(); else V.sfx.tick();
+      });
+    }
+    v.querySelector('#pb').onclick = () => { V.sfx.ui(); pauseMenu(); };
+    const pz = v.querySelector('#pz'); if (pz) pz.onclick = () => { V.sfx.ui(); pauseMenu(); };
+    const pfs = v.querySelector('#pfs');
+    if (pfs) pfs.onclick = () => { V.sfx.ui(); if (document.fullscreenElement) document.exitFullscreen().catch(() => { }); else document.documentElement.requestFullscreen().catch(() => { }); };
     const pr = v.querySelector('#pr');
     if (pr) pr.onclick = () => online ? leave(null) : leave(() => play(g, cfg, series));
     v.querySelector('#ph').onclick = tut;
     P.playApi = {
       key(e) { return keyFn ? keyFn(e) : false; },
-      back() { leave(() => watch ? (M.admin ? V.account.admin('matches') : V.ui.home('online')) : setup(g)); },
+      back,
+      menu: pauseMenu,
+      // the laptop sidebar during a match: leave (with the usual question), then go there
+      leaveTo(fn) { leave(fn); },
+      undo() { if (canUndo && !ended) undo(); },
       restart() { if (!online && !watch) leave(() => play(g, cfg, series)); },
       tut
     };
@@ -875,7 +989,9 @@
     const fit = () => {
       fitF = 0;
       if (!alive) return;
-      const de = document.documentElement, over = () => de.scrollHeight - innerHeight > 2;
+      // the page scrolls on the phone, the main area (#app) on the laptop
+      const sc = V.ui.wide() ? document.getElementById('app') : document.documentElement, extra = () => sc.scrollHeight - (sc === document.documentElement ? innerHeight : sc.clientHeight);
+      const over = () => extra() > 2;
       // the entrance animation moves everything down a little; measure once it is over
       if (v.classList.contains('enter')) { fitF = setTimeout(fit, 120); return; }
       v.classList.remove('tight', 'tight2', 'tight3');
@@ -888,15 +1004,15 @@
       }
       const b = ctx.stage.firstElementChild; if (!b) return;
       b.style.zoom = '';
-      let miss = de.scrollHeight - innerHeight;
+      let miss = extra();
       if (miss > 2 && b.offsetWidth > 280) ctx.stage.style.setProperty('--bw', Math.max(260, b.offsetWidth - miss - 4) + 'px');
       // boards that do not follow --bw (Poker table, Würfelblock sheet) are scaled down, at most to 72 %;
       // not Schiffe versenken, whose own fleet sits below the sea on purpose and whose ships are dragged
-      miss = de.scrollHeight - innerHeight;
+      miss = extra();
       for (let k = 0; k < 2 && miss > 2 && g.id !== 'ships' && b.offsetHeight > 200; k++) {
         const z = +b.style.zoom || 1, h = b.getBoundingClientRect().height;
         b.style.zoom = Math.max(0.72, z * (h - miss - 4) / h).toFixed(3);
-        miss = de.scrollHeight - innerHeight;
+        miss = extra();
       }
     };
     const askFit = () => { if (!fitF) fitF = setTimeout(fit, 40); };

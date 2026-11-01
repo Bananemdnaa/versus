@@ -183,11 +183,11 @@
       if (V.online && V.online.badge) V.online.badge();
       wire();
     }
-    function go(id) {
+    function go(id, left) {
       V.sfx.ui();
-      if (id === 'quick') return quickGo();
       // during a match the areas are reached through the usual "leave the match?" question
-      if (view === 'play') { if (P.playApi) P.playApi.back(); return; }
+      if (view === 'play' && !left) { if (P.playApi) P.playApi.leaveTo(() => go(id, true)); return; }
+      if (id === 'quick') return quickGo();
       if (id === 'start' || id === 'lib') {
         const before = view === 'home' && homeTab === 'games';
         homeSpot = id; home('games');
@@ -202,7 +202,7 @@
       el.querySelector('#sdtog').onclick = () => toggle();
       el.querySelectorAll('[data-game]').forEach(b => b.onclick = () => {
         const g = V.byId[b.dataset.game]; V.sfx.ui();
-        if (view === 'play') { if (P.playApi) P.playApi.back(); return; }
+        if (view === 'play') { if (P.playApi) P.playApi.leaveTo(() => { homeSpot = 'lib'; home('games', g); }); return; }
         homeSpot = 'lib'; home('games', g);
         setTimeout(() => { selectTile(g); const t = app.querySelector(`.tile[data-id="${g.id}"]`); if (t) t.scrollIntoView({ block: 'nearest', behavior: V.fxOn() ? 'smooth' : 'auto' }); }, 180);
       });
@@ -1244,9 +1244,10 @@
     if (view === 'admin') { if (k === 'Escape') { e.preventDefault(); home('profile'); } return; }
     if (view === 'play' && P.playApi) {
       if (P.playApi.key(e)) { e.preventDefault(); return; }
-      if (k === 'Escape') { e.preventDefault(); P.playApi.back(); return; }
+      if (k === 'Escape') { e.preventDefault(); P.playApi.menu(); return; }
       if ((k === 'n' || k === 'N') && !e.repeat) { P.playApi.restart(); return; }
-      if ((k === 't' || k === 'T') && !e.repeat) { P.playApi.tut(); return; }
+      if ((k === 't' || k === 'T' || k === 'h' || k === 'H') && !e.repeat) { P.playApi.tut(); return; }
+      if ((k === 'z' || k === 'Z') && !e.repeat) { P.playApi.undo(); return; }
       if (DIRS[k] && nav.has) { e.preventDefault(); nav.move(...DIRS[k]); return; }
       if ((k === 'Enter' || k === ' ') && !e.repeat) {
         if (nav.active && nav.activate()) { e.preventDefault(); return; }
@@ -1395,7 +1396,7 @@
   const queueGuard = () => { clearTimeout(guardT); guardT = setTimeout(syncGuard, 60); };
   function backAction() {
     if (modalEl) { closeModal(); return true; }
-    if (view === 'play' && P.playApi) { P.playApi.back(); return true; }
+    if (view === 'play' && P.playApi) { P.playApi.menu(); return true; }
     if (view === 'admin') { home('profile'); return true; }
     if (view !== 'home') { home(); return true; }
     if (homeTab !== 'games') { home('games'); return true; }
@@ -1427,7 +1428,7 @@
   };
   // what js/play.js needs from the shell
   Object.assign(P, {
-    mount, locked, guest, toast, home, setup, openModal, closeModal, nav, tutorial,
+    mount, locked, guest, toast, home, setup, openModal, closeModal, nav, tutorial, showKeys,
     enterPlay(g) { destroyCurrent(); view = 'play'; lastGame = g; selected = g; document.querySelectorAll('.upbar:not(.note)').forEach(b => b.remove()); },
     updateBar,
     setCurrent(c) { current = c; },
