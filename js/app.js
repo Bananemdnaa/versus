@@ -121,6 +121,7 @@
     placeInd(v, false);
     if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => placeInd(v, false));
     wireBody(v.querySelector('.hbody'));
+    updateBar();
   }
   // the raised button in the tab bar: same search as "Schnelles Spiel" in the Online tab
   function quickGo() {
@@ -1086,8 +1087,9 @@
       <div class="actions"><button class="btn primary" id="cy"><span>Alles klar</span></button></div></div>`);
     m.querySelector('#cy').onclick = closeModal;
   }
-  function updateBar() {
-    if (!swWaiting || document.querySelector('.upbar')) return;
+  // never during a match (a tap would reload and drop it): it waits for the menu or the result screen (atEnd)
+  function updateBar(atEnd) {
+    if (!swWaiting || document.querySelector('.upbar') || (view === 'play' && !atEnd)) return;
     const bar = V.el('div', 'upbar', `${IC.sync}<span><b>Neue Version da</b><small>Kurz neu laden, dann ist sie aktiv</small></span><button class="btn primary sm"><span>Neu laden</span></button><button class="x" aria-label="Später">${IC.x}</button>`);
     document.body.appendChild(bar);
     bar.querySelector('.btn').onclick = () => {
@@ -1219,7 +1221,8 @@
   // what js/play.js needs from the shell
   Object.assign(P, {
     mount, locked, guest, toast, home, setup, openModal, closeModal, nav, tutorial,
-    enterPlay(g) { destroyCurrent(); view = 'play'; lastGame = g; selected = g; },
+    enterPlay(g) { destroyCurrent(); view = 'play'; lastGame = g; selected = g; document.querySelectorAll('.upbar:not(.note)').forEach(b => b.remove()); },
+    updateBar,
     setCurrent(c) { current = c; },
     modalOpen: () => !!modalEl,
     // closes the dialog without running its onClose callback

@@ -376,6 +376,8 @@
           const erep = m.querySelector('#erep'); if (erep) erep.onclick = () => V.online.report(M.opp, M.id);
           if (online && net) net.rematchUI();
           if (V.night && V.night.active() && winner && !watch && !off) V.night.endPick(m, g.id, shown(winner));
+          // a new version that came in during the match may offer itself now
+          P.updateBar(true);
           const es = m.querySelector('#es'); if (es) es.onclick = () => { V.sfx.ui(); shareCard(winner); };
           m.querySelector('#eb').onclick = closeModal;
           m.querySelector('#em').onclick = menu;
