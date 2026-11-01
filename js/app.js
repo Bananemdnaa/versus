@@ -17,7 +17,8 @@
     app.innerHTML = html;
     const v = app.firstElementChild;
     if (v && V.fxOn()) { v.classList.add('enter'); setTimeout(() => v.classList.remove('enter'), 900); }
-    window.scrollTo(0, 0);
+    toTop();
+    side.render();
     queueGuard();
     if (V.music) V.music.play(view === 'play' && lastGame ? musicFor(lastGame) : 'menu');
     return v;
@@ -35,18 +36,50 @@
     return { total, aiWins, aiGames, proWins, draws, onWins, onGames, rate: rated ? Math.round((aiWins + onWins) / rated * 100) : 0 };
   }
   const TABS = [['games', 'Spiele', IC.grid], ['online', 'Online', IC.globe], ['stats', 'Bilanz', IC.chart], ['profile', 'Konto', IC.user], ['opts', 'Optionen', IC.gear]];
-  const logo = '<button class="logo" id="logo" aria-label="Versus Startseite"><span class="l1">VER</span><i class="slash"></i><span class="l2">SUS</span></button>';
-  function header(extra = '') {
-    return `<header class="top">${logo}${extra}
-      <div class="top-r">${acctChip()}<button class="iconbtn only-fine" id="kbd" aria-label="Tastenkürzel" title="Tastenkürzel (?)">${IC.kbd}</button>
-      <button class="iconbtn" id="snd" aria-label="Ton an oder aus" title="Ton (M)">${settings.sound ? IC.sound : IC.mute}</button></div></header>`;
+  // Laptop: the app bar above the main area (back/forward through the areas, the game search, lobby, alerts, sound,
+  // keys). The areas themselves are in the sidebar (#side). Phone: no bar, the profile head (.ahd) is used instead.
+  function header() {
+    if (!wide()) return '';
+    const net = V.cloud && V.cloud.available();
+    return `<header class="top abar">
+      <div class="ab-nav"><button class="iconbtn" id="hback" aria-label="Zurück" title="Zurück (Alt ←)">${IC.back}</button><button class="iconbtn" id="hfwd" aria-label="Vor" title="Vor (Alt →)">${IC.fwd}</button></div>
+      <label class="ab-search">${IC.search}<input id="gq" type="search" placeholder="Spiel suchen" autocomplete="off" spellcheck="false" enterkeyhint="go" aria-label="Spiel suchen" value="${escA(homeQuery)}"><kbd>Strg K</kbd><button class="gclear" id="gqx" aria-label="Suche löschen"${homeQuery ? '' : ' hidden'}>${IC.x}</button></label>
+      <div class="top-r">${net ? `<button class="ab-lobby" id="hlobby"><i class="ldot"></i><span>Online-Lobby</span></button>
+        <button class="iconbtn" id="hbell" aria-label="Einladungen und Züge" title="Einladungen und Züge">${IC.bell}<i class="pdot" hidden></i></button>` : ''}
+        <button class="iconbtn" id="snd" aria-label="Ton an oder aus" title="Ton (M)">${settings.sound ? IC.sound : IC.mute}</button>
+        <button class="iconbtn only-fine" id="kbd" aria-label="Tastenkürzel" title="Tastenkürzel (?)">${IC.kbd}</button></div></header>`;
   }
   function wireHeader(root) {
     root.querySelectorAll('#snd, .snd').forEach(s => s.onclick = toggleSound);
     const k = root.querySelector('#kbd'); if (k) k.onclick = showKeys;
-    const a = root.querySelector('#acct'); if (a) a.onclick = () => { V.sfx.ui(); home('profile'); };
-    const l = root.querySelector('#logo'); if (l) l.onclick = () => home('games');
+    const on = (id, fn) => { const b = root.querySelector('#' + id); if (b) b.onclick = () => { V.sfx.ui(); fn(); }; };
+    on('hback', () => histGo(-1)); on('hfwd', () => histGo(1));
+    on('hlobby', () => home('online')); on('hbell', () => home('online'));
+    if (root.querySelector('.abar #gq')) wireSearch(root);
+    navBtns();
+    if (V.online && V.online.badge) V.online.badge();
     wireHead(root);
+  }
+  // back and forward through the areas (laptop app bar, Alt + arrows)
+  const hist = { back: [], fwd: [], moving: false };
+  function histGo(d) {
+    const from = d < 0 ? hist.back : hist.fwd, to = d < 0 ? hist.fwd : hist.back;
+    if (!from.length) return;
+    to.push([homeTab, homeSpot]);
+    const [t, s] = from.pop();
+    hist.moving = true; homeSpot = s; home(t); hist.moving = false;
+  }
+  function navBtns() {
+    const b = app.querySelector('#hback'), f = app.querySelector('#hfwd');
+    if (b) b.disabled = !hist.back.length; if (f) f.disabled = !hist.fwd.length;
+  }
+  // scrolling: the window on the phone, the main area (#app) on the laptop
+  function toTop() { window.scrollTo(0, 0); app.scrollTop = 0; }
+  function scrollToEl(el) {
+    if (!el) return;
+    const behavior = V.fxOn() ? 'smooth' : 'auto';
+    if (wide()) app.scrollTo({ top: Math.max(0, el.getBoundingClientRect().top - app.getBoundingClientRect().top + app.scrollTop - 84), behavior });
+    else window.scrollTo({ top: Math.max(0, el.offsetTop - 70), behavior });
   }
   // phone: profile head instead of the logo bar (avatar, name, weekly place and win streak, sound and options)
   function appHead() {
@@ -84,6 +117,7 @@
     return `<button class="acct${u && !u.anon ? ' in' : ' guest'}" id="acct" title="Konto">${IC.user}<span>${u ? u.username : 'Gast'}</span>${u && !u.anon ? '' : `<em>${u ? 'Konto behalten' : 'Anmelden'}</em>`}</button>`;
   }
   function refreshAcct() {
+    side.render();
     const h = app.querySelector('.ahd');
     if (h) { const t = document.createElement('div'); t.innerHTML = appHead(); h.replaceWith(t.firstElementChild); wireHead(app); }
     const a = document.getElementById('acct'); if (!a) return;
@@ -98,23 +132,111 @@
     toast(settings.sound ? 'Ton an' : 'Ton aus');
   }
 
+  // ---------- laptop sidebar (#side) ----------
+  // One block next to every view: logo with the collapse button, quick match, the areas, favourites, friends and the
+  // profile card. Collapsed (setting side 'rail', Ctrl B) it is a strip of icons; during a match it collapses by itself
+  // and comes back as it was afterwards. Start and Bibliothek are the same screen (top / the game list).
+  let homeSpot = 'start';
+  const side = (() => {
+    const el = document.createElement('nav');
+    el.className = 'side'; el.id = 'side'; el.setAttribute('aria-label', 'Seitenleiste');
+    document.body.insertBefore(el, app);
+    // small laptop screens (under 1100 px) always get the icon strip, so the library and the panel keep their room
+    const narrowMQ = window.matchMedia('(max-width: 1099px)');
+    narrowMQ.addEventListener && narrowMQ.addEventListener('change', () => render());
+    const forced = () => view === 'play' || narrowMQ.matches;
+    const rail = () => settings.side === 'rail' || forced();
+    const active = () => view === 'play' || view === 'setup' ? 'lib' : view === 'admin' ? 'profile' : view !== 'home' ? '' : homeTab === 'games' ? homeSpot : homeTab;
+    // wins and losses against the AI and online, for the favourites
+    function rec(id) {
+      const s = P.stats[id]; if (!s) return '';
+      let w = s.on ? s.on.w : 0, l = s.on ? s.on.l : 0;
+      s.ai.forEach(r => { w += r.w; l += r.l; });
+      return w + l ? w + ':' + l : '';
+    }
+    function render() {
+      document.documentElement.classList.toggle('side-rail', rail());
+      if (!wide()) { el.innerHTML = ''; return; }
+      const a = active(), u = V.cloud && V.cloud.available() ? V.cloud.user() : null, full = !!(u && !u.anon);
+      const item = (id, label, ic, count) => `<button class="sd-item${a === id ? ' on' : ''}" data-go="${id}" title="${label}"${a === id ? ' aria-current="page"' : ''}>${ic}<span>${label}</span>${count ? `<small>${count}</small>` : ''}</button>`;
+      const fav = favs().map(id => V.byId[id]);
+      const fr = full && V.online && V.online.sideFriends ? V.online.sideFriends() : null;
+      const onl = fr ? fr.filter(f => f.online) : [];
+      const frRows = fr ? fr.slice().sort((x, y) => y.online - x.online).slice(0, 6).map(f => `<div class="sd-fr${f.online ? ' on' : ''}">
+          <button class="sd-fav" data-prof="${escA(f.name)}" aria-label="Profil von ${escA(f.name)}"><span>${escA(f.name.slice(0, 2).toUpperCase())}</span><i></i></button>
+          <span class="sd-ft"><b>${escA(f.name)}</b><small>${f.status}</small></span>
+          ${f.match ? `<button class="sd-mini" data-watchf="${escA(f.match)}">Zuschauen</button>` : f.online && !f.busy ? `<button class="sd-mini" data-play="${escA(f.name)}">Einladen</button>` : ''}</div>`).join('') : '';
+      el.innerHTML = `<div class="sd-top">
+          <button class="sd-logo" data-go="start" aria-label="Versus Startseite"><span class="l1">VER</span><i class="slash"></i><span class="l2">SUS</span><b class="sd-vs">VS</b></button>
+          <button class="iconbtn sd-tog" id="sdtog" aria-label="${rail() ? 'Seitenleiste ausklappen' : 'Seitenleiste einklappen'}" title="Seitenleiste (Strg B)"${forced() ? ' disabled' : ''}>${IC.panel}</button></div>
+        <button class="sd-quick" data-go="quick" title="Schnell spielen">${IC.boltf}<span>Schnell spielen</span></button>
+        <div class="sd-nav" role="list">
+          ${item('start', 'Start', IC.home)}${item('lib', 'Bibliothek', IC.grid, V.games.length)}${item('online', 'Online', IC.globe)}${item('stats', 'Bilanz', IC.chart)}${item('profile', 'Konto', IC.user)}</div>
+        <section class="sd-sec"><h4>Favoriten</h4>
+          ${fav.length ? fav.map(g => `<button class="sd-game" data-game="${g.id}" title="${g.name}"><span class="ic">${g.icon}</span><span class="nm">${g.name}</span><small>${rec(g.id)}</small></button>`).join('') : '<p class="sd-hint">Spiel auswählen und mit <kbd>F</kbd> markieren</p>'}</section>
+        ${fr ? `<section class="sd-sec"><h4>Freunde${onl.length ? `<em>${onl.length} online</em>` : ''}</h4>${frRows || '<p class="sd-hint">Noch keine Freunde. Füg sie unter Online hinzu.</p>'}</section>` : ''}
+        <div class="sd-bot">
+          ${item('opts', 'Optionen', IC.gear)}
+          <div class="sd-me"><button class="sd-av${full ? '' : ' guest'}" data-go="profile" aria-label="Konto"><span>${full ? escA(u.username.slice(0, 1).toUpperCase()) : '+'}</span></button>
+            <span class="sd-mt"><b>${full ? escA(u.username) : 'Gast'}</b>${full ? '<small>Konto</small>' : `<button class="sd-login" data-go="profile">${u ? 'Konto behalten' : 'Anmelden'}</button>`}</span>
+            <button class="iconbtn sd-gear" data-go="opts" aria-label="Optionen" title="Optionen">${IC.gear}</button></div></div>`;
+      if (V.online && V.online.badge) V.online.badge();
+      wire();
+    }
+    function go(id) {
+      V.sfx.ui();
+      if (id === 'quick') return quickGo();
+      // during a match the areas are reached through the usual "leave the match?" question
+      if (view === 'play') { if (P.playApi) P.playApi.back(); return; }
+      if (id === 'start' || id === 'lib') {
+        const before = view === 'home' && homeTab === 'games';
+        homeSpot = id; home('games');
+        const spot = () => id === 'lib' ? scrollToEl(app.querySelector('.gfind')) : app.scrollTo({ top: 0, behavior: V.fxOn() ? 'smooth' : 'auto' });
+        before ? spot() : setTimeout(spot, 180);
+        return;
+      }
+      home(id);
+    }
+    function wire() {
+      el.querySelectorAll('[data-go]').forEach(b => b.onclick = () => go(b.dataset.go));
+      el.querySelector('#sdtog').onclick = () => toggle();
+      el.querySelectorAll('[data-game]').forEach(b => b.onclick = () => {
+        const g = V.byId[b.dataset.game]; V.sfx.ui();
+        if (view === 'play') { if (P.playApi) P.playApi.back(); return; }
+        homeSpot = 'lib'; home('games', g);
+        setTimeout(() => { selectTile(g); const t = app.querySelector(`.tile[data-id="${g.id}"]`); if (t) t.scrollIntoView({ block: 'nearest', behavior: V.fxOn() ? 'smooth' : 'auto' }); }, 180);
+      });
+      el.querySelectorAll('[data-prof]').forEach(b => b.onclick = () => { V.sfx.ui(); V.online.profile(b.dataset.prof); });
+      el.querySelectorAll('[data-play]').forEach(b => b.onclick = () => { V.sfx.ui(); V.online.challenge(b.dataset.play); });
+      el.querySelectorAll('[data-watchf]').forEach(b => b.onclick = () => { V.sfx.ui(); V.online.watch(b.dataset.watchf); });
+    }
+    function toggle() {
+      if (!wide() || forced()) return;
+      settings.side = settings.side === 'rail' ? 'open' : 'rail'; saveSettings(); V.sfx.ui();
+      render();
+    }
+    return { render, toggle };
+  })();
+
   // ---------- home ----------
   // The home shell (header + tab bar) stays on screen; switching tabs only swaps the content below it.
   function home(tab, sel) {
     V.discord.status(V.t('Im Menü'), V.t('Sucht ein Spiel aus'), null);
     if (sel) selected = sel;
     if (!selected) selected = V.byId[S.get('recent')] || V.games[0];
-    const prev = homeTab; if (tab) homeTab = tab;
+    const prev = homeTab;
+    if (tab && tab !== homeTab && view === 'home' && !hist.moving) { hist.back.push([homeTab, homeSpot]); hist.back.splice(0, hist.back.length - 30); hist.fwd.length = 0; }
+    if (tab) homeTab = tab;
     const shell = view === 'home' && !current && app.querySelector('.view.home');
-    if (shell) return swapTab(shell, prev);
+    if (shell) { swapTab(shell, prev); navBtns(); side.render(); return; }
     destroyCurrent(); view = 'home';
     if (V.cloud) V.cloud.touch(null);
     const tb = ([id, l, ic]) => `<button data-tab="${id}" class="${homeTab === id ? 'on' : ''}">${ic}<span>${l}</span></button>`;
-    const desk = `<nav class="tabs desk" aria-label="Bereiche"><i class="tab-ind"></i>${TABS.map(tb).join('')}</nav>`;
-    // phone: a floating bar with four tabs and the raised quick match button in the middle (options sit in the head)
+    // phone: a floating bar with four tabs and the raised quick match button in the middle (options sit in the head);
+    // laptop: the areas are in the sidebar
     const bar = TABS.filter(t => t[0] !== 'opts').map(tb);
     bar.splice(2, 0, `<button class="qbtn" id="qbtn" aria-label="Schnelles Spiel"><span>${IC.boltf}</span></button>`);
-    const v = mount(`<div class="view home">${appHead()}${header(desk)}<div class="hbody">${tabBody()}</div><nav class="tabs bar" aria-label="Bereiche"><i class="tab-ind"></i>${bar.join('')}</nav><i class="fade-t" aria-hidden="true"></i><i class="fade-b" aria-hidden="true"></i></div>`);
+    const v = mount(`<div class="view home">${appHead()}${header()}<div class="hbody">${tabBody()}</div><nav class="tabs bar" aria-label="Bereiche"><i class="tab-ind"></i>${bar.join('')}</nav><i class="fade-t" aria-hidden="true"></i><i class="fade-b" aria-hidden="true"></i></div>`);
     wireHeader(v);
     v.querySelectorAll('.tabs [data-tab]').forEach(b => b.onclick = () => { if (b.dataset.tab !== homeTab) { V.sfx.ui(); home(b.dataset.tab); } });
     v.querySelector('#qbtn').onclick = () => { V.sfx.ui(); quickGo(); };
@@ -172,7 +294,7 @@
     if (!dir || !V.fxOn()) return put();
     body.style.setProperty('--dir', dir);
     body.classList.remove('tab-in'); body.classList.add('leave');
-    setTimeout(() => { window.scrollTo(0, 0); put(); }, 130);
+    setTimeout(() => { toTop(); put(); }, 130);
   }
 
   function gamesTab() {
@@ -187,7 +309,7 @@
         ${installCard()}` : heroCarousel() + quickTiles()}
         <div class="gfind">
           <div class="gsrow">
-            <label class="gsearch">${IC.search}<input id="gq" type="search" placeholder="Spiel suchen" autocomplete="off" spellcheck="false" enterkeyhint="go" aria-label="Spiel suchen" value="${escA(homeQuery)}"><kbd class="only-fine">/</kbd><button class="gclear" id="gqx" aria-label="Suche löschen"${homeQuery ? '' : ' hidden'}>${IC.x}</button></label><button class="iconbtn gsurp" id="gsurp" aria-label="Überrasch mich" title="Überrasch mich">${IC.dice}</button></div>
+            ${W ? '' : `<label class="gsearch">${IC.search}<input id="gq" type="search" placeholder="Spiel suchen" autocomplete="off" spellcheck="false" enterkeyhint="go" aria-label="Spiel suchen" value="${escA(homeQuery)}"><kbd class="only-fine">/</kbd><button class="gclear" id="gqx" aria-label="Suche löschen"${homeQuery ? '' : ' hidden'}>${IC.x}</button></label>`}<button class="iconbtn gsurp" id="gsurp" aria-label="Überrasch mich" title="Überrasch mich">${IC.dice}</button></div>
           <div class="chips" role="tablist">${['Alle', ...V.CATS].map(c => `<button role="tab" data-f="${c}" class="${homeFilter === c && !homeQuery ? 'on' : ''}">${c}<small>${count(c)}</small></button>`).join('')}</div>
         </div>
         <div id="glist">${gameList()}</div>
@@ -300,7 +422,7 @@
     const on = !isFav(g);
     S.set('favs', on ? [...favs(), g.id] : favs().filter(id => id !== g.id));
     V.sfx.ui(); toast(on ? g.name + ' ist jetzt ein Favorit' : g.name + ' aus Favoriten entfernt');
-    refreshList();
+    refreshList(); side.render();
   }
   const escA = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
   // other names people search for
@@ -383,24 +505,30 @@
   }
   function wireGames(v) {
     wireList(v.querySelector('#glist'));
-    const q = v.querySelector('#gq'), qx = v.querySelector('#gqx');
     v.querySelectorAll('.chips button').forEach(b => b.onclick = () => { V.sfx.ui(); pickFilter(b.dataset.f); });
-    // a search looks through all categories; Enter picks the first hit, Esc clears
+    v.querySelector('#gsurp').onclick = () => surprise();
+    if (!wide()) wireSearch(v);
+    wireHero(v);
+    if (wide()) renderPanel(v.querySelector('#panel'), selected, false);
+  }
+  // the game search: in the Spiele tab on the phone, in the app bar on the laptop (typing there from another area
+  // jumps to the games). It looks through all categories; Enter picks the first hit, Esc clears.
+  function wireSearch(root) {
+    const q = root.querySelector('#gq'), qx = root.querySelector('#gqx');
+    if (!q) return;
     q.oninput = () => {
       homeQuery = q.value; qx.hidden = !q.value;
-      v.querySelectorAll('.chips button').forEach(x => x.classList.toggle('on', !homeQuery.trim() && x.dataset.f === homeFilter));
+      if (view === 'home' && homeTab !== 'games') { homeSpot = 'lib'; return home('games'); }
+      app.querySelectorAll('.gfind .chips button').forEach(x => x.classList.toggle('on', !homeQuery.trim() && x.dataset.f === homeFilter));
       refreshList();
     };
     qx.onclick = e => { e.preventDefault(); V.sfx.ui(); q.value = ''; q.oninput(); q.focus(); };
-    v.querySelector('#gsurp').onclick = () => surprise();
     q.onkeydown = e => {
-      const first = v.querySelector('#glist .tile, #glist .lkg');
+      const first = app.querySelector('#glist .tile, #glist .lkg');
       if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); if (q.value) { q.value = ''; q.oninput(); } else q.blur(); }
       else if (e.key === 'Enter' && first) { e.preventDefault(); q.blur(); if (wide()) { first.focus(); first.click(); } else first.click(); }
       else if (e.key === 'ArrowDown' && first) { e.preventDefault(); first.focus(); }
     };
-    wireHero(v);
-    if (wide()) renderPanel(v.querySelector('#panel'), selected, false);
   }
   function selectTile(g) {
     selected = g;
@@ -858,7 +986,8 @@
   }
   addEventListener('offline', () => netState(true));
   // the soft edge at the top of the phone screen only shows once the page has moved
-  addEventListener('scroll', () => document.documentElement.classList.toggle('scrolled', scrollY > 8), { passive: true });
+  const onScroll = () => document.documentElement.classList.toggle('scrolled', (wide() ? app.scrollTop : scrollY) > 8);
+  addEventListener('scroll', onScroll, { passive: true }); app.addEventListener('scroll', onScroll, { passive: true });
   addEventListener('online', () => netState(true));
 
   function tutorial(g, onDone) {
@@ -958,6 +1087,7 @@
     window.addEventListener('pointerdown', () => { if (active) { active = false; apply(); } }, true);
     window.addEventListener('resize', () => apply(false));
     window.addEventListener('scroll', () => apply(false), { passive: true });
+    app.addEventListener('scroll', () => apply(false), { passive: true });
     return {
       set(fn, o = {}) { getItems = fn; opts = o; idx = -1; apply(); },
       reset() { getItems = null; active = false; idx = -1; opts = {}; if (cur) cur.classList.remove('on'); },
@@ -996,7 +1126,18 @@
   }
   const DIRS = { ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, -1], ArrowDown: [0, 1] };
 
+  // laptop: focus the search in the app bar (from any area)
+  function focusSearch() {
+    if (view !== 'home') home('games');
+    const q = app.querySelector('#gq'); if (q) { q.focus(); q.select(); }
+  }
   document.addEventListener('keydown', e => {
+    // laptop shell: Ctrl K search, Ctrl B sidebar, Alt ← → back and forward through the areas
+    if (wide() && !modalEl && (e.ctrlKey || e.metaKey) && !e.altKey && !e.shiftKey) {
+      if (e.key === 'k' || e.key === 'K') { if (view !== 'play') { e.preventDefault(); focusSearch(); } return; }
+      if (e.key === 'b' || e.key === 'B') { e.preventDefault(); side.toggle(); return; }
+    }
+    if (wide() && e.altKey && !e.ctrlKey && view === 'home' && (e.key === 'ArrowLeft' || e.key === 'ArrowRight')) { e.preventDefault(); histGo(e.key === 'ArrowLeft' ? -1 : 1); return; }
     if (e.ctrlKey || e.metaKey || e.altKey) return;
     if (e.target && e.target.matches && e.target.matches('input,textarea,select')) return;
     const k = e.key;
@@ -1016,6 +1157,7 @@
       return false;
     };
     if (view === 'home') {
+      if (k === '/' && wide()) { e.preventDefault(); focusSearch(); return; }
       if (homeTab !== 'games') return;
       if (k === '/') { const q = app.querySelector('#gq'); if (q) { e.preventDefault(); q.focus(); q.select(); } return; }
       if (DIRS[k]) { e.preventDefault(); spatial([...app.querySelectorAll('.tile, .lkg')], ...DIRS[k]); return; }
@@ -1053,7 +1195,8 @@
   // switching between phone and laptop layout re-renders the menus
   wideMQ.addEventListener && wideMQ.addEventListener('change', () => {
     if (sheetRoot && wide()) closeModal();
-    if (view === 'home') home();
+    // (a full rebuild: the header differs between the two layouts)
+    if (view === 'home') { view = ''; home(); } else side.render();
   });
 
   // ---------- app: install, updates, back button ----------
@@ -1216,7 +1359,7 @@
     play: (g, cfg, series) => play(g, cfg, series), setup: g => setup(g), wide: () => wide(),
     // full-screen view outside the home tabs (admin panel)
     show(name, html) { destroyCurrent(); view = name; const v = mount(html); wireHeader(v); return v; },
-    view: () => view, tab: () => homeTab
+    view: () => view, tab: () => homeTab, side: () => side.render()
   };
   // what js/play.js needs from the shell
   Object.assign(P, {

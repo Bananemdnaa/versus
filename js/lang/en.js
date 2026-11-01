@@ -829,6 +829,14 @@
     'Kein offenes Feedback.': 'No open feedback.', 'Noch kein Feedback.': 'No feedback yet.', 'ohne Konto': 'no account', 'Handy': 'Phone', 'Computer': 'Computer', 'Erledigt.': 'Done.',
     'Kommt über „Feedback senden“ auf der Startseite und in den Optionen. Version und Gerät helfen beim Nachstellen von Fehlern.': 'Comes from "Send feedback" on the home screen and in the options. Version and device help to reproduce bugs.'
   });
+  // laptop shell: sidebar and app bar
+  A({
+    'Vor': 'Forward', 'Bibliothek': 'Library', 'Schnell spielen': 'Quick match', 'Online-Lobby': 'Online lobby', 'Strg K': 'Ctrl K', 'Seitenleiste': 'Sidebar',
+    'Seitenleiste ausklappen': 'Expand sidebar', 'Seitenleiste einklappen': 'Collapse sidebar', 'Seitenleiste (Strg B)': 'Sidebar (Ctrl B)', 'Einladungen und Züge': 'Invitations and moves',
+    'Zurück (Alt ←)': 'Back (Alt ←)', 'Vor (Alt →)': 'Forward (Alt →)', 'Spiel auswählen und mit {0} markieren': 'Select a game and mark it with {0}',
+    'Noch keine Freunde. Füg sie unter Online hinzu.': 'No friends yet. Add them under Online.'
+  });
+
   // ---------- patterns: text with names, moves and hands ----------
   const t = V.t;
   const PIECE = { Bauer: 'Pawn', Springer: 'Knight', Läufer: 'Bishop', Turm: 'Rook', Dame: 'Queen', König: 'King' };
