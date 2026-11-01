@@ -184,6 +184,7 @@
           ${fav.length ? fav.map(g => `<button class="sd-game" data-game="${g.id}" title="${g.name}"><span class="ic">${g.icon}</span><span class="nm">${g.name}</span><small>${rec(g.id)}</small></button>`).join('') : '<p class="sd-hint">Spiel auswählen und mit <kbd>F</kbd> markieren</p>'}</section>
         ${fr ? `<section class="sd-sec"><h4>Freunde${onl.length ? `<em>${onl.length} online</em>` : ''}</h4>${frRows || '<p class="sd-hint">Noch keine Freunde. Füg sie unter Online hinzu.</p>'}</section>` : ''}
         <div class="sd-bot">
+          ${installOffer() ? `<button class="sd-item sd-inst" data-go="install" title="Als App installieren">${IC.dl}<span>Als App installieren</span></button>` : ''}
           ${item('opts', 'Optionen', IC.gear)}
           <div class="sd-me"><button class="sd-av${full ? '' : ' guest'}" data-go="profile" aria-label="Konto"><span>${full ? escA(u.username.slice(0, 1).toUpperCase()) : '+'}</span></button>
             <span class="sd-mt"><b>${full ? escA(u.username) : 'Gast'}</b>${full ? '<small>Konto</small>' : `<button class="sd-login" data-go="profile">${u ? 'Konto behalten' : 'Anmelden'}</button>`}</span>
@@ -196,6 +197,7 @@
       // during a match the areas are reached through the usual "leave the match?" question
       if (view === 'play' && !left) { if (P.playApi) P.playApi.leaveTo(() => go(id, true)); return; }
       if (id === 'quick') return quickGo();
+      if (id === 'install') return install();
       if (id === 'start' || id === 'lib') {
         const before = view === 'home' && homeTab === 'games';
         homeSpot = id; home('games');
@@ -646,12 +648,56 @@
       // Laptop: a click only selects the game; the round starts with the Spielen button or Enter.
       t.onclick = e => {
         if (t._held) { t._held = false; e.preventDefault(); return; }
-        if (!wide()) { V.sfx.ui(); return setup(g); }
+        if (!wide()) { V.sfx.ui(); V.buzz(8); return morph(t, () => setup(g)); }
         if (selected === g && t.classList.contains('sel')) return;
-        V.sfx.ui(); selectTile(g);
+        V.sfx.ui(); morph(t, () => selectTile(g));
       };
       t.addEventListener('focus', () => { if (wide() && selected !== g) selectTile(g); });
       holdToPlay(t, g);
+      // laptop: right click for a small menu
+      t.addEventListener('contextmenu', e => { if (!wide() || V.coarse) return; e.preventDefault(); ctxMenu(g, e.clientX, e.clientY); });
+    });
+  }
+  // The card's picture grows into the panel (laptop) or the sheet (phone): View Transitions API where the
+  // browser has it, otherwise the usual fade. Not with reduced effects.
+  function morph(t, fn) {
+    const art = t.querySelector('.art');
+    if (!document.startViewTransition || !V.fxOn() || !art) return fn();
+    art.style.viewTransitionName = 'gart';
+    const vt = document.startViewTransition(() => {
+      art.style.viewTransitionName = '';
+      fn();
+      const to = document.querySelector('.gp-art'); if (to) to.style.viewTransitionName = 'gart';
+    });
+    vt.finished.finally(() => { const to = document.querySelector('.gp-art'); if (to) to.style.viewTransitionName = ''; });
+  }
+  // right-click menu on a game card (laptop)
+  function ctxMenu(g, x, y) {
+    document.querySelectorAll('.ctxm').forEach(m => m.remove());
+    const net = (g.online || g.table) && V.cloud && V.cloud.available() && !locked(g);
+    const items = [['play', IC.play, 'Spielen'], ['fav', IC.star, isFav(g) ? 'Aus Favoriten entfernen' : 'Zu Favoriten'], ['rules', IC.book, 'Regeln'],
+      net && g.online ? ['room', IC.globe, 'Online-Raum öffnen'] : null, ['link', IC.link, 'Link kopieren']].filter(Boolean);
+    const m = V.el('div', 'ctxm', items.map(([k, ic, l]) => `<button data-c="${k}" role="menuitem">${ic}<span>${l}</span></button>`).join(''));
+    m.setAttribute('role', 'menu');
+    document.body.appendChild(m);
+    const r = m.getBoundingClientRect();
+    m.style.left = Math.min(x, innerWidth - r.width - 8) + 'px'; m.style.top = Math.min(y, innerHeight - r.height - 8) + 'px';
+    const close = () => { m.remove(); removeEventListener('pointerdown', out, true); removeEventListener('keydown', esc, true); };
+    const out = e => { if (!m.contains(e.target)) close(); };
+    const esc = e => { if (e.key === 'Escape') { e.stopPropagation(); close(); } };
+    addEventListener('pointerdown', out, true); addEventListener('keydown', esc, true);
+    m.querySelector('button').focus();
+    m.querySelectorAll('[data-c]').forEach(b => b.onclick = () => {
+      close(); V.sfx.ui();
+      const k = b.dataset.c;
+      if (k === 'play') { if (locked(g)) return selectTile(g); const c = loadCfg(g); if (c.mode === 'ai' || c.mode === 'local') return play(g, c); return selectTile(g); }
+      if (k === 'fav') return toggleFav(g);
+      if (k === 'rules') return tutorial(g);
+      if (k === 'room') return V.online.linkInvite(g, loadCfg(g).opts);
+      if (k === 'link') {
+        const url = location.origin + location.pathname + '?game=' + g.id;
+        (navigator.clipboard ? navigator.clipboard.writeText(url) : Promise.reject()).then(() => toast('Link kopiert'), () => toast(url, 3000));
+      }
     });
   }
   // Holding a tile for half a second starts the game at once with its last settings (against the AI or at one
@@ -1181,6 +1227,26 @@
   // the soft edge at the top of the phone screen only shows once the page has moved
   const onScroll = () => document.documentElement.classList.toggle('scrolled', (wide() ? app.scrollTop : scrollY) > 8);
   addEventListener('scroll', onScroll, { passive: true }); app.addEventListener('scroll', onScroll, { passive: true });
+  // phone: a quick sideways swipe over the page moves to the next or previous tab (not over rows that scroll sideways)
+  {
+    const ORDER = ['games', 'online', 'stats', 'profile'];
+    let sw = null;
+    // touch events (pointer events get cancelled as soon as the browser starts panning)
+    app.addEventListener('touchstart', e => {
+      sw = null;
+      if (e.touches.length !== 1 || wide() || view !== 'home' || modalEl) return;
+      if (e.target.closest('.tiles.row, .hero, .chips, .frs-l, .onav-l, .qtiles, input, textarea, select, .tabs')) return;
+      const p = e.touches[0]; sw = { x: p.clientX, y: p.clientY, t: performance.now() };
+    }, { passive: true });
+    app.addEventListener('touchend', e => {
+      if (!sw) return;
+      const p = e.changedTouches[0], dx = p.clientX - sw.x, dy = p.clientY - sw.y, quick = performance.now() - sw.t < 600; sw = null;
+      if (!quick || Math.abs(dx) < 70 || Math.abs(dy) > 45) return;
+      const k = ORDER.indexOf(homeTab), next = ORDER[k + (dx < 0 ? 1 : -1)];
+      if (k < 0 || !next) return;
+      V.sfx.tick(); V.buzz(6); home(next);
+    }, { passive: true });
+  }
   addEventListener('online', () => netState(true));
 
   function tutorial(g, onDone) {

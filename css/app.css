@@ -2352,3 +2352,13 @@ textarea.inp{height:auto}
   .sel-panel.solo .gp-go .finv{flex:1;height:52px}
 }
 @media (max-width:959px){.sel-panel.solo .gp-go #tut{flex:1 1 0;height:52px}.sel-panel.solo .gp-go .finv{flex:1 1 0}}
+
+/* right-click menu on game cards, view transition of the card picture */
+.ctxm{position:fixed;z-index:95;min-width:220px;padding:6px;border-radius:14px;background:var(--panel2);border:1px solid var(--line2);box-shadow:0 20px 50px rgba(0,0,0,.55);animation:pop .16s var(--ease)}
+.ctxm button{display:flex;align-items:center;gap:10px;width:100%;height:38px;padding:0 10px;border-radius:9px;font-size:14px;font-weight:600;text-align:left}
+.ctxm button:hover,.ctxm button:focus-visible{background:var(--panel3);outline:none}
+.ctxm svg{width:17px;height:17px;flex:none;color:var(--muted)}
+::view-transition-group(gart){animation-duration:.32s;animation-timing-function:var(--ease)}
+html.lowfx::view-transition-group(*),html.lowfx::view-transition-old(*),html.lowfx::view-transition-new(*){animation:none!important}
+@media (prefers-reduced-motion:reduce){::view-transition-group(*),::view-transition-old(*),::view-transition-new(*){animation:none!important}}
+.sd-inst{color:var(--cyan)}
