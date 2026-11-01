@@ -361,6 +361,8 @@
           if (ai || online || table) { if (winner === 0) dd.d++; else if (winner === me) dd.w++; else dd.l++; } else dd.n++;
           Object.keys(daily).sort().slice(0, -60).forEach(k => delete daily[k]);
           S.set('daily', daily);
+          // inside the Discord activity: which game was played there (counted per player in the admin panel)
+          if (V.discord && V.discord.on && V.cloud && V.cloud.user()) V.cloud.rpc('discord_game', { gm: g.id, md: cfg.mode }).catch(() => { });
         }
         if (off) { } else if (winner === 0) series.d++; else series[winner]++;
         turnPill(0);

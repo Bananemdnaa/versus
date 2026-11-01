@@ -358,9 +358,12 @@
         <div class="apanel"><h3>Beliebte Spiele</h3>
           ${games.length ? games.map(([id, n]) => `<div class="abar"><span>${esc(gameName(id))}</span><i style="--w:${Math.round(n / max * 100)}%"></i><b>${n}</b></div>`).join('') : '<p class="muted">Noch keine Partien.</p>'}</div>
         ${dcs ? `<div class="apanel"><h3>Discord <small>${dcs.total}</small></h3>
-          <div class="abar2"><span><b>${dcs.active1}</b> heute</span><span><b>${dcs.active7}</b> in 7 Tagen</span><span><b>+${dcs.new7}</b> neu</span><span><b>${dcs.rooms1}</b> Räume (24 Std.)</span></div>
+          <h4 class="dch">Spieler</h4><div class="abar2"><span><b>${dcs.active1}</b> heute</span><span><b>${dcs.active7}</b> in 7 Tagen</span><span><b>+${dcs.new7}</b> neu</span><span><b>${dcs.rooms1}</b> Räume (24 Std.)</span></div>
+          <h4 class="dch">Partien</h4><div class="abar2"><span><b>${dcs.games1 ?? 0}</b> heute</span><span><b>${dcs.games7 ?? 0}</b> in 7 Tagen</span><span><b>${dcs.ai7 ?? 0}</b> davon gegen KI</span></div>
+          ${(dcs.top7 || []).map(x => `<div class="abar"><span>${esc(gameName(x.game))}</span><i style="--w:${Math.round(x.n / dcs.top7[0].n * 100)}%"></i><b>${x.n}</b></div>`).join('')}
+          <h4 class="dch">Zuletzt dabei</h4>
           ${(dcs.recent || []).map(p => `<div class="aline"><button class="link" data-p="${esc(p.username)}">${esc(p.username)}</button>${p.guest ? '<em class="rtag">Gast</em>' : ''}<small>${ago(p.at)}</small></div>`).join('') || '<p class="muted">Noch niemand über Discord.</p>'}
-          <p class="fine">Wer die Versus-Aktivität in Discord startet (Gäste und Konten). ${dcs.guests} davon spielen als Gast. Gezählt seit diesem Update.</p></div>` : ''}
+          <p class="fine">Wer die Versus-Aktivität in Discord startet (Gäste und Konten). ${dcs.guests} davon spielen als Gast. Partien zählen pro Spieler: eine Partie zu zweit in Discord sind zwei. Gezählt seit diesem Update.</p></div>` : ''}
         <div class="apanel"><h3>Neue Spieler</h3>
           ${(S.recent || []).map(p => `<div class="aline"><button class="link" data-p="${esc(p.username)}">${esc(p.username)}</button>${p.lang ? `<em class="rtag">${LANG[p.lang]}</em>` : ''}<small>${day(p.joined)}</small></div>`).join('') || '<p class="muted">Noch niemand.</p>'}</div>
         ${langs.length ? `<div class="apanel"><h3>Sprachen</h3>

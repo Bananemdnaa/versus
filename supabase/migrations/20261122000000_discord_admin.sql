@@ -1,8 +1,10 @@
 -- Versus: Discord-Spieler im Admin-Panel
 -- 1. profiles.discord_first / discord_at: wann jemand die Discord-Aktivität zuerst und zuletzt genutzt hat (Gäste und Konten);
 --    die App ruft mark_discord() einmal pro Start in der Aktivität auf
--- 2. admin_discord(): Zahlen für die Übersicht (Spieler gesamt, heute, 7 Tage, Räume der letzten 24 Std., letzte Spieler)
--- 3. admin_players: Feld "discord" und Filter 'discord'
+-- 2. discord_games: jede Partie, die jemand in der Aktivität zu Ende spielt (Spiel, Modus), über discord_game();
+--    pro Spieler gezählt, eine Partie zu zweit in Discord ergibt also zwei Einträge. Älter als 90 Tage wird gelöscht.
+-- 3. admin_discord(): Zahlen für die Übersicht (Spieler, Partien heute und in 7 Tagen, beliebte Spiele, Räume, letzte Spieler)
+-- 4. admin_players: Feld "discord" und Filter 'discord'
 
 alter table public.profiles add column if not exists discord_first timestamptz;
 alter table public.profiles add column if not exists discord_at timestamptz;
@@ -15,6 +17,31 @@ $$;
 revoke all on function public.mark_discord() from public, anon;
 grant execute on function public.mark_discord() to authenticated;
 
+create table if not exists public.discord_games (
+  id bigint generated always as identity primary key,
+  user_id uuid not null references auth.users (id) on delete cascade,
+  game text not null check (char_length(game) <= 20),
+  mode text not null check (mode in ('ai', 'voice', 'table', 'online', 'local')),
+  at timestamptz not null default now()
+);
+create index if not exists discord_games_at_idx on public.discord_games (at desc);
+alter table public.discord_games enable row level security;   -- nur über die Funktionen
+
+-- höchstens ein Eintrag alle 15 Sekunden pro Spieler (gegen Spam); dabei auch "zuletzt in Discord" aktualisieren
+create or replace function public.discord_game(gm text, md text)
+returns void language plpgsql security definer set search_path = '' as $$
+declare u uuid := auth.uid();
+begin
+  if u is null or md not in ('ai', 'voice', 'table', 'online', 'local') or char_length(coalesce(gm, '')) not between 1 and 20 then return; end if;
+  if exists (select 1 from public.discord_games where user_id = u and at > now() - interval '15 seconds') then return; end if;
+  insert into public.discord_games (user_id, game, mode) values (u, gm, md);
+  update public.profiles set discord_at = now(), discord_first = coalesce(discord_first, now()) where id = u;
+  delete from public.discord_games where at < now() - interval '90 days';
+end;
+$$;
+revoke all on function public.discord_game(text, text) from public, anon;
+grant execute on function public.discord_game(text, text) to authenticated;
+
 create or replace function public.admin_discord()
 returns jsonb language plpgsql stable security definer set search_path = '' as $$
 begin
@@ -26,6 +53,11 @@ begin
     'active7', (select count(*) from public.profiles where discord_at > now() - interval '7 days'),
     'new7', (select count(*) from public.profiles where discord_first > now() - interval '7 days'),
     'rooms1', (select count(*) from public.discord_rooms where at > now() - interval '1 day'),
+    'games1', (select count(*) from public.discord_games where at > now() - interval '1 day'),
+    'games7', (select count(*) from public.discord_games where at > now() - interval '7 days'),
+    'ai7', (select count(*) from public.discord_games where at > now() - interval '7 days' and mode = 'ai'),
+    'top7', coalesce((select jsonb_agg(jsonb_build_object('game', x.game, 'n', x.n) order by x.n desc)
+      from (select game, count(*) as n from public.discord_games where at > now() - interval '7 days' group by game order by count(*) desc limit 6) x), '[]'::jsonb),
     'recent', coalesce((select jsonb_agg(jsonb_build_object('username', x.username, 'at', x.discord_at, 'guest', x.guest) order by x.discord_at desc)
       from (select username, discord_at, guest from public.profiles where discord_at is not null order by discord_at desc limit 8) x), '[]'::jsonb));
 end;

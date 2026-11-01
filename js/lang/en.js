@@ -898,6 +898,12 @@
     'Wer die Versus-Aktivität in Discord startet (Gäste und Konten). # davon spielen als Gast. Gezählt seit diesem Update.': 'Who starts the Versus activity in Discord (guests and accounts). # of them play as guests. Counted since this update.'
   });
 
+  // Discord games in the admin panel
+  A({
+    '# davon gegen KI': '# of them vs. AI', 'Zuletzt dabei': 'Latest players',
+    'Wer die Versus-Aktivität in Discord startet (Gäste und Konten). # davon spielen als Gast. Partien zählen pro Spieler: eine Partie zu zweit in Discord sind zwei. Gezählt seit diesem Update.': 'Who starts the Versus activity in Discord (guests and accounts). # of them play as guests. Games count per player: one game for two in Discord counts twice. Counted since this update.'
+  });
+
   // ---------- patterns: text with names, moves and hands ----------
   const t = V.t;
   const PIECE = { Bauer: 'Pawn', Springer: 'Knight', Läufer: 'Bishop', Turm: 'Rook', Dame: 'Queen', König: 'King' };
