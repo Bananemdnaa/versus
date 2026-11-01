@@ -28,7 +28,7 @@
     const n = get();
     return active()
       ? `<button class="opt night-on" data-night="1">${IC().trophy}<span><b>Spieleabend läuft</b><small>${esc(leadText(n))} · ${n.rounds.length} ${n.rounds.length === 1 ? 'Partie' : 'Partien'}</small></span><em class="rtag live">Tabelle</em></button>`
-      : `<button class="opt" data-night="1">${IC().trophy}<span><b>Spieleabend</b><small>Eine Tabelle für heute: wer gewinnt die meisten Spiele?</small></span></button>`;
+      : `<button class="opt" data-night="1">${IC().trophy}<span><b>Spieleabend</b><small>Punkte über mehrere Spiele sammeln. Wer gewinnt den Abend?</small></span></button>`;
   }
   function wire(b) { b.querySelectorAll('[data-night]').forEach(x => x.onclick = () => { V.sfx.ui(); open(); }); }
   function refreshHome() { document.querySelectorAll('[data-night]').forEach(x => { const t = document.createElement('div'); t.innerHTML = row(); const nx = t.firstElementChild; x.replaceWith(nx); wire(nx.parentNode); }); }
@@ -44,7 +44,7 @@
     const field = (v, k) => `<div class="nt-in"><input class="inp" maxlength="12" data-i="${k}" value="${esc(v)}" placeholder="Name ${k + 1}" autocomplete="off" spellcheck="false" enterkeyhint="next"><button class="iconbtn" type="button" data-del="${k}" aria-label="Entfernen">${IC().x}</button></div>`;
     const m = V.ui.openModal(`<form class="fadd night" id="ntf">
       <div class="fadd-h"><h3>${adding ? 'Mitspieler dazu' : 'Spieleabend'}</h3><button class="iconbtn" type="button" id="fclose" aria-label="Schließen">${IC().x}</button></div>
-      ${adding ? '' : '<p class="fhint">Tragt eure Namen ein. Nach jeder Partie tippt ihr an, wer gewonnen hat, egal welches Spiel. Am Ende steht fest, wer den Abend gewinnt.</p>'}
+      ${adding ? '' : `<ol class="nt-how"><li><b>Namen eintragen</b><span>Alle, die heute mitspielen, 2 bis 8 Personen.</span></li><li><b>Spielen, was ihr wollt</b><span>Jedes Spiel zählt: zu zweit am Gerät, online oder gegen die KI.</span></li><li><b>Punkt vergeben</b><span>Nach jeder Partie tippt ihr auf dem Ergebnis-Bildschirm an, wer gewonnen hat. Online-Gegner mit gleichem Namen bekommen den Punkt automatisch.</span></li><li><b>Sieger des Abends</b><span>Wer am Ende die meisten Punkte hat, gewinnt. Die Tabelle bleibt nur auf diesem Gerät.</span></li></ol>`}
       <div class="nt-list" id="ntl">${names.map(field).join('')}</div>
       ${adding ? '' : `<button class="btn ghost sm" type="button" id="ntadd"><span>${IC().plus}Person dazu</span></button>`}
       <p class="aerr" id="nte"></p>
@@ -88,7 +88,7 @@
       <div class="fadd-h"><h3>Spieleabend</h3><button class="iconbtn" type="button" id="fclose" aria-label="Schließen">${IC().x}</button></div>
       <p class="fhint">Seit ${since} · ${n.rounds.length} ${n.rounds.length === 1 ? 'Partie' : 'Partien'} · ${esc(leadText(n))}</p>
       <div class="nt-tab">${t.map((r, k) => `<div class="nt-row${r.n === top && top ? ' lead' : ''}"><b class="nt-rk">${k && r.n === t[k - 1].n ? '' : k + 1}</b><span class="nt-nm">${esc(r.p)}</span><i class="nt-bar" style="--w:${Math.round(r.n / max * 100)}%"></i><b class="nt-pt">${r.n}</b></div>`).join('')}</div>
-      ${n.rounds.length ? `<h4 class="nt-h">Zuletzt</h4><div class="nt-log">${n.rounds.slice(-6).reverse().map(r => `<div><span>${V.byId[r.g] ? esc(V.byId[r.g].name) : 'Partie'}</span><b>${r.w ? esc(r.w) : 'kein Punkt'}</b></div>`).join('')}</div>` : '<p class="muted nt-empty">Spielt eine Partie. Danach tippt ihr auf dem Ergebnis-Bildschirm an, wer den Punkt bekommt.</p>'}
+      ${n.rounds.length ? `<h4 class="nt-h">Zuletzt</h4><div class="nt-log">${n.rounds.slice(-6).reverse().map(r => `<div><span>${V.byId[r.g] ? esc(V.byId[r.g].name) : 'Partie'}</span><b>${r.w ? esc(r.w) : 'kein Punkt'}</b></div>`).join('')}</div>` : '<p class="muted nt-empty">Noch kein Punkt. Spielt eine beliebige Partie. Danach erscheinen auf dem Ergebnis-Bildschirm eure Namen: einfach antippen, wer gewonnen hat. Ein zweiter Tipp nimmt den Punkt zurück.</p>'}
       <div class="nt-btns">
         ${n.rounds.length ? `<button class="btn ghost sm" id="ntundo"><span>${IC().undo}Letzte löschen</span></button>` : ''}
         ${n.people.length < MAX ? `<button class="btn ghost sm" id="ntmore"><span>${IC().plus}Mitspieler</span></button>` : ''}

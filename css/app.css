@@ -1779,3 +1779,8 @@ textarea.inp{height:auto}
 .nt-end .nt-pick{display:flex;flex-wrap:wrap;justify-content:center;gap:6px}
 .nt-end .nt-pick button{min-height:36px;padding:0 14px;border:1px solid var(--line2);border-radius:18px;background:var(--panel2);color:var(--fg);font-weight:700;font-size:14px;transition:all .15s}
 .nt-end .nt-pick button.on{color:var(--ink);background:var(--yellow,#ffd84f);border-color:var(--yellow,#ffd84f)}
+.night .nt-how{margin:0;padding:0;list-style:none;counter-reset:nt;display:flex;flex-direction:column;gap:10px}
+.night .nt-how li{counter-increment:nt;display:grid;grid-template-columns:28px 1fr;column-gap:10px;align-items:start}
+.night .nt-how li::before{content:counter(nt);grid-row:span 2;width:28px;height:28px;display:grid;place-items:center;transform:skewX(var(--sk));background:var(--pink);color:var(--ink);font:800 italic 16px/1 var(--f-d)}
+.night .nt-how b{font-size:15px}
+.night .nt-how span{color:var(--muted);font-size:13.5px;line-height:1.4}
