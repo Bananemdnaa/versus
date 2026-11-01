@@ -2359,3 +2359,13 @@ html.lowfx::view-transition-group(*),html.lowfx::view-transition-old(*),html.low
 @media (min-width:960px){.bprev{max-width:440px}}
 /* sidebar: options sit in the profile card (gear); the separate row only in the icon strip */
 @media (min-width:960px){html:not(.side-rail) .sd-bot>[data-go="opts"]{display:none}}
+/* admin: Discord numbers and tag */
+.abar2{display:flex;flex-wrap:wrap;gap:6px 14px;margin:2px 0 8px;font-size:13px;color:var(--muted)}
+.abar2 b{color:var(--fg);font:800 italic 18px/1 var(--f-d)}
+.rtag.dc{color:#fff;background:#5865f2;border-color:#5865f2}
+/* sidebar: the quick match button names its game */
+@media (min-width:960px){
+  .sd-quick{height:56px}
+  .sd-quick span{display:flex;flex-direction:column;align-items:flex-start;line-height:1.05;min-width:0}
+  .sd-quick small{font:600 12px/1.2 var(--f-b);text-transform:none;letter-spacing:0;opacity:.75;max-width:150px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+}

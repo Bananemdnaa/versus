@@ -336,7 +336,7 @@
         if (m.promo) ctx.later(() => { V.fx.ringAt(cells[m.t], '#ffd84f'); V.fx.floatAt(cells[m.t], NAME[m.promo] + '!', '#ffd84f'); }, 220);
         const chk = inCheck(P, P.turn);
         if (chk) ctx.later(() => { V.fx.ringAt(cells[P.kings[P.turn]], '#ff5d73'); V.fx.shake(board, true); }, 220);
-        if (!moves.length) { over = true; if (chk) ctx.end(numOf[mover], 'Schachmatt'); else ctx.end(0, 'Patt'); return; }
+        if (!moves.length) { over = true; if (chk) ctx.end(numOf[mover], 'Schachmatt'); else ctx.end(0, 'Patt: kein Zug möglich, aber kein Schach. Zählt als Remis'); return; }
         if (rep >= 3) { over = true; ctx.end(0, 'Dreifache Stellungswiederholung'); return; }
         if (P.half >= 100) { over = true; ctx.end(0, '50-Züge-Regel'); return; }
         if (insufficient()) { over = true; ctx.end(0, 'Kein Matt mehr möglich'); return; }

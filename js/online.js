@@ -633,7 +633,7 @@
     const u = C().user(), me = u && !u.anon ? u.username.slice(0, 1).toUpperCase() : '+';
     const m = V.ui.openModal(`<div class="radar-v">
       <div class="radar"><i class="rr"></i><i class="rr"></i><i class="rr"></i><i class="rc"></i><span class="r-av">${esc(me)}</span></div>
-      <h3 id="qwh">Gegner suchen</h3><p class="qw-g">${g ? `<span class="ic">${g.icon}</span>${esc(g.name)} · ` : ''}<span id="qws">0 s</span></p>
+      <h3 id="qwh">Gegner suchen</h3><p class="qw-g">${g ? `<span class="ic">${g.icon}</span>${esc(g.name)} · ` : 'Beliebiges Spiel · '}<span id="qws">0 s</span></p>
       <p class="qw-t" id="qwt">Wer jetzt auch sucht, landet bei dir.</p>
       <div class="actions" id="qwa"><button class="btn ghost" id="wc"><span>Abbrechen</span></button></div></div>`, 'radarm', () => { if (!done) { stop(); cancel(); } });
     m.querySelector('#wc').onclick = () => V.ui.closeModal();
@@ -686,7 +686,11 @@
       <span class="qh-t"><small>Ein Tipp, ein Gegner</small><b>Schnelles Spiel</b><em id="qstat"></em></span>
       <span class="qh-go">${IC().boltf}</span></button>`;
   }
+  // the game of the quick match as text (sidebar, search button): "4 Gewinnt" or "Beliebiges Spiel"
+  const quickName = () => qGame && V.byId[qGame] ? gname(qGame) : 'Beliebiges Spiel';
+  const goLabel = () => (C().user() ? 'Suchen' : 'Als Gast suchen') + ' · ' + quickName();
   function quickSheet() {
+    if (!C() || !C().available()) return V.ui.toast('Online-Spiele sind gleich da');
     const anon = !C().user() || isAnon();
     const ids = ONLINE.filter(id => V.byId[id]).sort((a, b) => guestOk(b) - guestOk(a));
     if (anon && !guestOk(qGame)) qGame = '';
@@ -695,7 +699,7 @@
         const lock = anon && !guestOk(id);
         return `<button data-q="${id}" class="${qGame === id ? 'on' : ''}${lock ? ' lockd' : ''}" title="${esc(id ? gname(id) : 'Egal')}">${id ? `<span class="ic">${V.byId[id].icon}</span>` : `<span class="ic all">${IC().spark}</span>`}<small>${esc(id ? gname(id) : 'Egal')}</small>${lock ? `<i class="ql">${IC().lock}</i>` : ''}</button>`;
       }).join('')}</div>
-      <div class="actions"><button class="btn primary big" id="qgo"><span>${IC().globe}${C().user() ? 'Suchen' : 'Als Gast suchen'}</span></button></div>
+      <div class="actions"><button class="btn primary big" id="qgo"><span>${IC().globe}<b id="qgol">${goLabel()}</b></span></button></div>
       ${C().user() ? '' : '<button class="btn ghost sm" data-tab-go="profile"><span>Konto erstellen</span></button>'}
       <p class="fine">${anon ? 'Als Gast gehen 4 Spiele. Mit Konto alle, dazu Freunde und Rangliste.' : 'Ist gerade niemand frei, kannst du solange gegen die KI spielen.'}</p></div>`, 'qsm');
     m.querySelectorAll('#qg [data-q]').forEach(x => x.onclick = () => {
@@ -703,6 +707,8 @@
       if (x.classList.contains('lockd')) { V.sfx.bad(); return V.ui.toast('Dafür brauchst du ein Konto'); }
       qGame = id; V.store.set('quick', id); V.sfx.ui();
       m.querySelectorAll('#qg [data-q]').forEach(y => y.classList.toggle('on', y === x));
+      m.querySelector('#qgol').textContent = goLabel();
+      if (V.ui.side) V.ui.side();
     });
     m.querySelector('#qgo').onclick = () => { V.sfx.ui(); V.ui.closeModal(); quick(qGame ? V.byId[qGame] : null); };
     const tg = m.querySelector('[data-tab-go]'); if (tg) tg.onclick = () => { V.ui.closeModal(); V.ui.home('profile'); };
@@ -1143,7 +1149,7 @@
     return meCache;
   }
   const quickGo = () => quick(qGame ? V.byId[qGame] : null);
-  V.online = { badge, sideFriends, resumables, resumeAny, tab, wire, picker, openPanel, seek, quick, quickGo, meStats, invite, linkInvite, pushState, pushOn, pushOff, consumeJoin, consumeMatch, resume, watch, start, check, profile, addFriends, challenge, friendOf, request, table, tablePanel, resumeTable, report, block, isBlocked, loadBlocks, blocks: () => blocked };
+  V.online = { badge, sideFriends, resumables, resumeAny, quickSheet, quickName, tab, wire, picker, openPanel, seek, quick, quickGo, meStats, invite, linkInvite, pushState, pushOn, pushOff, consumeJoin, consumeMatch, resume, watch, start, check, profile, addFriends, challenge, friendOf, request, table, tablePanel, resumeTable, report, block, isBlocked, loadBlocks, blocks: () => blocked };
   let blocksFor = null;
   if (C()) C().on(() => {
     if (ready()) {

@@ -270,7 +270,7 @@
 
   // ---------- admin panel ----------
   let aTab = 'overview', mFilter = 'live', mQuery = '', matches = null, stats = null, online = null, players = null, logs = null, query = '', aErr = '', box = null, sure = null, liveT = null, busy = false, reports = null, rFilter = 'open';
-  let pFilter = '', site = null, purge = null, fb = null, fFilter = 'open';
+  let pFilter = '', site = null, purge = null, fb = null, fFilter = 'open', dcs = null;
   // warning templates: the player sees them in their own language (js/lang/en.js has the English text)
   const WARN = {
     '@name': 'Dein Benutzername verstößt gegen die Regeln. Bitte ändere ihn, sonst wird das Konto gesperrt.',
@@ -307,7 +307,9 @@
   function stopLive() { clearInterval(liveT); liveT = null; }
   async function load() {
     try {
-      if (aTab === 'overview') { const [s, o] = await Promise.all([C().rpc('admin_stats'), C().rpc('admin_online')]); stats = s; online = o || []; }
+      if (aTab === 'overview') {
+        const [s, o, d] = await Promise.all([C().rpc('admin_stats'), C().rpc('admin_online'), C().rpc('admin_discord').catch(() => null)]); stats = s; online = o || []; dcs = d;
+      }
       if (aTab === 'players') players = await C().rpc('admin_players', { q: query, lim: 40, f: pFilter });
       if (aTab === 'log') logs = await C().rpc('admin_log_list', { lim: 80 });
       if (aTab === 'reports') reports = await C().rpc('admin_reports', { st: rFilter, lim: 80 });
@@ -355,6 +357,10 @@
           <p class="fine">Aktualisiert sich alle 20 Sekunden.</p></div>
         <div class="apanel"><h3>Beliebte Spiele</h3>
           ${games.length ? games.map(([id, n]) => `<div class="abar"><span>${esc(gameName(id))}</span><i style="--w:${Math.round(n / max * 100)}%"></i><b>${n}</b></div>`).join('') : '<p class="muted">Noch keine Partien.</p>'}</div>
+        ${dcs ? `<div class="apanel"><h3>Discord <small>${dcs.total}</small></h3>
+          <div class="abar2"><span><b>${dcs.active1}</b> heute</span><span><b>${dcs.active7}</b> in 7 Tagen</span><span><b>+${dcs.new7}</b> neu</span><span><b>${dcs.rooms1}</b> Räume (24 Std.)</span></div>
+          ${(dcs.recent || []).map(p => `<div class="aline"><button class="link" data-p="${esc(p.username)}">${esc(p.username)}</button>${p.guest ? '<em class="rtag">Gast</em>' : ''}<small>${ago(p.at)}</small></div>`).join('') || '<p class="muted">Noch niemand über Discord.</p>'}
+          <p class="fine">Wer die Versus-Aktivität in Discord startet (Gäste und Konten). ${dcs.guests} davon spielen als Gast. Gezählt seit diesem Update.</p></div>` : ''}
         <div class="apanel"><h3>Neue Spieler</h3>
           ${(S.recent || []).map(p => `<div class="aline"><button class="link" data-p="${esc(p.username)}">${esc(p.username)}</button>${p.lang ? `<em class="rtag">${LANG[p.lang]}</em>` : ''}<small>${day(p.joined)}</small></div>`).join('') || '<p class="muted">Noch niemand.</p>'}</div>
         ${langs.length ? `<div class="apanel"><h3>Sprachen</h3>
@@ -372,7 +378,7 @@
       const n = esc(p.username), st = p.stats || {};
       const canEdit = owner || !p.role || p.me;
       const tags = [p.role ? `<em class="rtag ${p.role}">${ROLE[p.role]}</em>` : '', p.dev ? '<em class="rtag dev">Dev</em>' : '',
-        p.guest ? '<em class="rtag">Gast</em>' : '', p.lang ? `<em class="rtag">${LANG[p.lang]}</em>` : '',
+        p.guest ? '<em class="rtag">Gast</em>' : '', p.discord ? `<em class="rtag dc" title="Zuletzt in Discord ${when(p.discord)}">Discord</em>` : '', p.lang ? `<em class="rtag">${LANG[p.lang]}</em>` : '',
         p.hidden && !p.guest ? '<em class="rtag muted">Ausgeblendet</em>' : '', p.banned_until ? `<em class="rtag bad">Gesperrt bis ${day(p.banned_until)}</em>` : '',
         p.reports ? `<em class="rtag${p.reports_open ? ' bad' : ''}">${p.reports}× gemeldet${p.reports_open ? ` · ${p.reports_open} offen` : ''}</em>` : '',
         p.warns ? `<em class="rtag">${p.warns}× verwarnt</em>` : '',
@@ -409,7 +415,7 @@
       </div>`;
     }).join('');
     return `<div class="asearch"><input class="inp" id="aq" placeholder="Spieler suchen (Namensanfang)" value="${esc(query)}" autocapitalize="none" spellcheck="false"><button class="btn ghost sm" id="reload"><span>${IC().redo}</span></button></div>
-      <div class="chips mini" id="pf">${[['', 'Zuletzt aktiv'], ['new', 'Neu'], ['reported', 'Gemeldet'], ['banned', 'Gesperrt'], ['hidden', 'Ausgeblendet'], ['guest', 'Gäste'], ['warned', 'Verwarnt'], ['noted', 'Mit Notiz'], ['en', 'Englisch']].map(([k, l]) => `<button data-pf="${k}" class="${pFilter === k ? 'on' : ''}">${l}</button>`).join('')}</div>
+      <div class="chips mini" id="pf">${[['', 'Zuletzt aktiv'], ['new', 'Neu'], ['reported', 'Gemeldet'], ['banned', 'Gesperrt'], ['hidden', 'Ausgeblendet'], ['guest', 'Gäste'], ['warned', 'Verwarnt'], ['noted', 'Mit Notiz'], ['discord', 'Discord'], ['en', 'Englisch']].map(([k, l]) => `<button data-pf="${k}" class="${pFilter === k ? 'on' : ''}">${l}</button>`).join('')}</div>
       ${players ? cards || '<p class="muted">Niemand gefunden.</p>' : V.skel()}`;
   }
   // match log: running and finished online matches; each one can be watched live or replayed move by move

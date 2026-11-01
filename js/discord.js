@@ -53,4 +53,9 @@
       V.discord.sdk.commands.setActivity({ activity }).catch(e => console.warn('Discord status:', e));
     });
   };
+
+  // the admin panel counts who plays in the activity: one note per start, as soon as someone is signed in (guests too)
+  let marked = false;
+  const mark = () => { const u = V.cloud && V.cloud.user(); if (marked || !u) return; marked = true; V.cloud.rpc('mark_discord').catch(() => { }); };
+  addEventListener('load', () => { if (V.cloud) { V.cloud.on(mark); mark(); } });
 })();

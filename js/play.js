@@ -371,8 +371,8 @@
         if (good) { V.sfx.win(); setTimeout(() => V.fx.confetti(), 250); setTimeout(() => V.fx.win(), g.endDelay ?? 1150); }
         else if (winner) { V.sfx.lose(); V.fx.shake(ctx.stage); }
         // V.t: the letters are animated one by one, so the translation has to happen before the split
-        const big = V.t(off ? 'Abgebrochen' : winner === 0 ? 'Remis' : me ? (meWon ? 'Sieg!' : 'Niederlage') : `${names[winner]} gewinnt`);
-        setStatus(off ? esc(note || 'Partie abgebrochen') : winner === 0 ? 'Unentschieden' :me ? (meWon ? '<span class="c' + winner + '">Du hast gewonnen</span>' : `${ctx.who(winner)} hat gewonnen`) : `${ctx.who(winner)} gewinnt`);
+        const big = V.t(off ? 'Abgebrochen' : winner === 0 ? (/^Patt/.test(note || '') ? 'Patt' : 'Remis') : me ? (meWon ? 'Sieg!' : 'Niederlage') : `${names[winner]} gewinnt`);
+        setStatus(off ? esc(note || 'Partie abgebrochen') : winner === 0 ? (/^Patt/.test(note || '') ? 'Patt, unentschieden' : 'Unentschieden') :me ? (meWon ? '<span class="c' + winner + '">Du hast gewonnen</span>' : `${ctx.who(winner)} hat gewonnen`) : `${ctx.who(winner)} gewinnt`);
         const tone = winner === 0 ? 'draw' : me ? (meWon ? 'win' : 'lose') : party ? 'w' + winner : (winner === L ? 'left' : 'right');
         const again = () => online ? net.rematch(series) : table ? (closeModal(), V.online.table(g, cfg.opts, cfg.level)) : play(g, cfg, series);
         const menu = () => watch ? (M.admin ? V.account.admin('matches') : V.ui.home('online')) : setup(g);

@@ -166,6 +166,7 @@
       document.documentElement.classList.toggle('side-rail', rail());
       if (!wide()) { el.innerHTML = ''; friendsRefresh(); return; }
       const a = active(), u = V.cloud && V.cloud.available() ? V.cloud.user() : null, full = !!(u && !u.anon);
+      const qn = V.online && V.online.quickName ? V.online.quickName() : '';
       const item = (id, label, ic, count) => `<button class="sd-item${a === id ? ' on' : ''}" data-go="${id}" title="${label}"${a === id ? ' aria-current="page"' : ''}>${ic}<span>${label}</span>${count ? `<small>${count}</small>` : ''}</button>`;
       const fav = favs().map(id => V.byId[id]);
       const fr = full && V.online && V.online.sideFriends ? V.online.sideFriends() : null;
@@ -177,7 +178,7 @@
       el.innerHTML = `<div class="sd-top">
           <button class="sd-logo" data-go="start" aria-label="Versus Startseite"><span class="l1">VER</span><i class="slash"></i><span class="l2">SUS</span><b class="sd-vs">VS</b></button>
           <button class="iconbtn sd-tog" id="sdtog" aria-label="${rail() ? 'Seitenleiste ausklappen' : 'Seitenleiste einklappen'}" title="Seitenleiste (Strg B)"${forced() ? ' disabled' : ''}>${IC.panel}</button></div>
-        <button class="sd-quick" data-go="quick" title="Schnell spielen">${IC.boltf}<span>Schnell spielen</span></button>
+        <button class="sd-quick" data-go="quick" title="Schnell spielen: ${escA(qn)}">${IC.boltf}<span>Schnell spielen<small>${escA(qn)}</small></span></button>
         <div class="sd-nav" role="list">
           ${item('start', 'Start', IC.home)}${item('lib', 'Bibliothek', IC.grid, V.games.length)}${item('online', 'Online', IC.globe)}${item('stats', 'Bilanz', IC.chart)}${item('profile', 'Konto', IC.user)}</div>
         <section class="sd-sec"><h4>Favoriten</h4>
@@ -259,7 +260,8 @@
   function quickGo() {
     if (!V.cloud || !V.cloud.available() || !V.online) return toast('Online-Spiele sind gleich da');
     if (navigator.onLine === false) return toast('Du bist offline');
-    V.online.quickGo();
+    // first the choice of game (with the last one picked), then the search
+    V.online.quickSheet();
   }
   function offlineTab() {
     return `<section class="page"><div class="empty">${IC.wifioff}<b>Du bist offline</b><p>Freunde, Herausforderungen und Ranglisten brauchen Internet. Gegen die KI oder zu zweit an einem Gerät kannst du trotzdem spielen.</p><button class="btn primary" data-tab="games"><span>Zu den Spielen</span></button></div></section>`;

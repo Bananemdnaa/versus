@@ -890,6 +890,14 @@
     'Deine Anmeldung ist abgelaufen. Bitte melde dich neu an.': 'Your login has expired. Please sign in again.'
   });
 
+  // stalemate, quick match choice, Discord in the admin panel
+  A({
+    'Patt': 'Stalemate', 'Patt, unentschieden': 'Stalemate, a draw', 'Patt: kein Zug möglich, aber kein Schach. Zählt als Remis': 'Stalemate: no legal move, but not in check. Counts as a draw',
+    'Beliebiges Spiel': 'Any game', 'Beliebiges Spiel · {0}': 'Any game · {0}',
+    '# heute': '# today', '+# neu': '+# new', '# Räume (# Std.)': '# rooms (# h)', 'Noch niemand über Discord.': 'Nobody through Discord yet.',
+    'Wer die Versus-Aktivität in Discord startet (Gäste und Konten). # davon spielen als Gast. Gezählt seit diesem Update.': 'Who starts the Versus activity in Discord (guests and accounts). # of them play as guests. Counted since this update.'
+  });
+
   // ---------- patterns: text with names, moves and hands ----------
   const t = V.t;
   const PIECE = { Bauer: 'Pawn', Springer: 'Knight', Läufer: 'Bishop', Turm: 'Rook', Dame: 'Queen', König: 'King' };
@@ -912,6 +920,7 @@
   V.i18n.pat([
     // laptop home and phone cards: open matches
     [/^online · wartet auf (.+)$/, 'online · waiting for $1'], [/^gegen (.+) · (.+)$/, (m, a, b) => 'vs. ' + a + ' · ' + t(b)], [/^Zug (\d+)$/, 'Move $1'],
+    [/^(Suchen|Als Gast suchen) · (.+)$/, (m, a, b) => (a === 'Suchen' ? 'Search' : 'Search as guest') + ' · ' + t(b)], [/^Schnell spielen: (.+)$/, (m, a) => 'Quick match: ' + t(a)],
     // game night and the connection bar
     [/^(.+) führt mit (\d+)$/, '$1 leads with $2'], [/^Gleichstand mit (\d+)$/, 'Tied at $1'], [/^(.+) gewinnt den Abend!$/, '$1 wins the night!'], [/^Es geht um (.+)$/, 'It is about $1'], [/^Seit (\S+) · (\d+) Partien? · (.+)$/, (m, a, b, c) => 'Since ' + a + ' · ' + b + (b === '1' ? ' game' : ' games') + ' · ' + t(c)],
     [/^(.+) · (\d+) Partien?$/, (m, a, b) => t(a) + ' · ' + b + (b === '1' ? ' game' : ' games')], [/^Versuche es wieder( · seit (\d+) s)?( · nach (\d+) s endet die Partie ohne Sieger)?$/, (m, a, s, b, n) => 'Trying again' + (a ? ' · for ' + s + ' s' : '') + (b ? ' · after ' + n + ' s the game ends without a winner' : '')],
