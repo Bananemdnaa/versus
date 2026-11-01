@@ -123,7 +123,7 @@
       else if (tOpen.length && !busy && V.settings.openCards !== false) showInvite(Object.assign({ table: true, open: true }, tOpen[0]));
       else hideInvite();
       if (typeof p.friend_n === 'number') { if (lastFriendN >= 0 && p.friend_n > lastFriendN) newFriends(); lastFriendN = p.friend_n; }
-      if (JSON.stringify([p, tpending]) !== before && V.ui.view() === 'home' && V.ui.tab() === 'online') refreshTab();
+      if (JSON.stringify([p, tpending]) !== before && V.ui.view() === 'home') { if (V.ui.tab() === 'online') refreshTab(); else if (V.ui.tab() === 'games' && V.ui.cont) V.ui.cont(); }
       badge();
     } catch (e) { }
   }
@@ -137,6 +137,15 @@
     // laptop app bar: a pink dot on the bell
     const d = document.querySelector('#hbell .pdot'); if (d) d.hidden = !n;
   }
+  // "Weiterspielen" on the home screen: the running match, my table and matches over days (yours to move first)
+  function resumables() {
+    const p = pending || {}, tp = tpending || {}, out = [];
+    if (p.active) out.push({ id: p.active.id, game: p.active.game, opp: p.active.opponent, turn: true, live: true });
+    if (tp.mine) out.push({ id: tp.mine.id, game: tp.mine.game, table: true, turn: tp.mine.status === 'live', live: true });
+    (p.async || []).slice().sort((a, b) => b.my_turn - a.my_turn).forEach(a => out.push({ id: a.id, game: a.game, opp: a.opponent, turn: !!a.my_turn, moves: a.moves, at: a.at }));
+    return out.filter(r => V.byId[r.game]);
+  }
+  function resumeAny(r) { return r.table ? resumeTable(r.id) : resume(r.id); }
   // friends for the laptop sidebar: the last loaded list, refreshed in the background at most once a minute
   let sideAt = 0;
   function sideFriends() {
@@ -1132,7 +1141,7 @@
     return meCache;
   }
   const quickGo = () => quick(qGame ? V.byId[qGame] : null);
-  V.online = { badge, sideFriends, tab, wire, picker, openPanel, seek, quick, quickGo, meStats, invite, linkInvite, pushState, pushOn, pushOff, consumeJoin, consumeMatch, resume, watch, start, check, profile, addFriends, challenge, friendOf, request, table, tablePanel, resumeTable, report, block, isBlocked, loadBlocks, blocks: () => blocked };
+  V.online = { badge, sideFriends, resumables, resumeAny, tab, wire, picker, openPanel, seek, quick, quickGo, meStats, invite, linkInvite, pushState, pushOn, pushOff, consumeJoin, consumeMatch, resume, watch, start, check, profile, addFriends, challenge, friendOf, request, table, tablePanel, resumeTable, report, block, isBlocked, loadBlocks, blocks: () => blocked };
   let blocksFor = null;
   if (C()) C().on(() => {
     if (ready()) {

@@ -1906,3 +1906,121 @@ textarea.inp{height:auto}
   .select{grid-template-columns:minmax(0,1fr) 320px;gap:24px}
 }
 @media (min-width:960px){.ab-search{min-width:150px}.abar .top-r{flex:none}}
+
+/* ---------- laptop home: hero, mode tiles, "Weiterspielen", library cards, game panel ---------- */
+.tile .pc{display:none}
+#gtop[hidden]{display:none}
+@media (min-width:960px){
+  /* wide hero: pink on the left, the panel colour on the right, the game picture turned a little */
+  .hero.hwide{margin:0 0 18px;padding:0;border-radius:var(--r-l);outline:none}
+  .hero.hwide:focus-visible{box-shadow:0 0 0 2px var(--cyan)}
+  .hero.hwide .hero-tr{gap:16px;transform:translateX(calc(var(--i) * -1 * (100% + 16px) + var(--dx)))}
+  .hcard.hw{flex:0 0 100%;height:auto;min-height:270px;border-radius:var(--r-l);color:var(--ink);opacity:.5;transform:scale(.96);
+    background:linear-gradient(105deg,var(--acc) 0 57%,var(--panel) 57.2%);box-shadow:var(--depth),0 26px 50px -24px var(--acc)}
+  .hcard.hw.on{opacity:1;transform:none}
+  .hcard.hw:active{transform:none}
+  .hcard.hw .hc-st{background:repeating-linear-gradient(-60deg,rgba(8,9,15,.08) 0 10px,transparent 10px 22px)}
+  .hcard.hw .hc-tx{position:relative;left:auto;top:auto;bottom:auto;width:52%;padding:30px 34px;gap:10px;min-height:270px}
+  .hcard.hw .hc-tx b{font-size:64px;line-height:.86;margin-top:8px}
+  .hcard.hw .hc-tx small{font-size:15px;max-width:42ch;opacity:.8}
+  .hc-btns{margin-top:auto;display:flex;gap:12px;flex-wrap:wrap;padding-top:10px}
+  .hc-btns button{display:inline-flex;align-items:center;gap:9px;height:46px;padding:0 18px;transform:skewX(var(--sk));font:800 italic 16px/1 var(--f-d);letter-spacing:.07em;text-transform:uppercase;
+    transition:transform var(--t-fast) var(--ease),box-shadow var(--t-fast) var(--ease)}
+  .hc-btns button>*{transform:skewX(10deg)}
+  .hc-btns svg{width:17px;height:17px}
+  .hb-play{background:var(--ink);color:var(--fg);box-shadow:4px 4px 0 rgba(255,255,255,.5)}
+  .hb-play kbd{background:var(--panel2);height:19px;font-size:11px}
+  .hb-on{border:2px solid var(--ink);color:var(--ink)}
+  .hc-btns button:hover{transform:skewX(var(--sk)) translate(-2px,-2px)}
+  .hc-btns button:active{transform:skewX(var(--sk)) translate(2px,2px)}
+  .hc-btns button:focus-visible{outline:2px solid var(--cyan);outline-offset:3px}
+  .hcard.hw .hc-ic{right:7%;top:50%;width:210px;height:210px;margin-top:-105px;transform:rotate(-6deg);animation:none;filter:drop-shadow(0 22px 26px rgba(0,0,0,.6))}
+  .hero.hwide .hero-dots{justify-content:flex-end;margin:-26px 26px 0 0;position:relative;z-index:2;gap:6px}
+  .hero.hwide .hero-dots button{height:6px;width:14px;background:var(--line2);transform:skewX(-30deg);transition:width .35s var(--ease),background .35s}
+  .hero.hwide .hero-dots button.on{width:34px;background:var(--pink)}
+  .hero.hwide{padding-bottom:6px}
+
+  /* mode tiles */
+  .mtiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:14px;margin:18px 0 26px}
+  .mtile{--c:var(--cyan);display:flex;align-items:center;gap:14px;min-height:84px;padding:14px 16px;text-align:left;border-radius:var(--r-m);background:var(--panel);border:1px solid var(--line);
+    box-shadow:var(--depth);transition:transform var(--t-fast) var(--ease),box-shadow var(--t-fast) var(--ease),border-color var(--t-fast)}
+  .mtile.y{--c:var(--yellow)} .mtile.p{--c:var(--pink)} .mtile.g{--c:var(--good)}
+  .mtile:hover{transform:translateY(-2px);border-color:color-mix(in srgb,var(--c) 50%,var(--line));box-shadow:0 7px 0 #05060c}
+  .mtile:active{transform:translateY(var(--press-y));box-shadow:var(--depth-press)}
+  .mt-ic{width:44px;height:44px;flex:none;display:grid;place-items:center;transform:skewX(var(--sk));background:var(--c);color:var(--ink)}
+  .mt-ic svg{width:21px;height:21px;transform:skewX(10deg)}
+  .mt-tx{display:flex;flex-direction:column;min-width:0;line-height:1.2}
+  .mt-tx b{font:800 italic 18px/1.05 var(--f-d);text-transform:uppercase;letter-spacing:.02em}
+  .mt-tx small{color:var(--muted);font-size:13px;margin-top:3px}
+
+  /* Weiterspielen */
+  .cont-w{margin-bottom:26px}
+  .crow-w{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:14px}
+  .ccard{--acc:var(--pink);display:flex;align-items:center;gap:14px;padding:12px 14px;text-align:left;border-radius:var(--r-m);background:var(--panel);border:1px solid var(--line);
+    box-shadow:var(--depth);transition:transform var(--t-fast) var(--ease),border-color var(--t-fast)}
+  .ccard:hover{transform:translateY(-2px);border-color:var(--line2)}
+  .ccard.turn{border-color:color-mix(in srgb,var(--good) 55%,var(--line))}
+  .cc-ic{width:54px;height:54px;flex:none}
+  .cc-ic svg{width:100%;height:100%}
+  .cc-tx{flex:1;min-width:0;display:flex;flex-direction:column;gap:3px}
+  .cc-tx b{font:800 italic 18px/1.05 var(--f-d);text-transform:uppercase;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+  .cc-tx b i{font-style:normal;font-family:var(--f-b);font-weight:600;font-size:13px;text-transform:none;color:var(--muted)}
+  .cc-tx small{color:var(--muted);font-size:12.5px}
+  .ccard.turn .cc-tx small{color:var(--good)}
+  .cc-bar{display:block;height:4px;border-radius:2px;background:var(--panel3);overflow:hidden;margin-top:4px}
+  .cc-bar i{display:block;height:100%;width:var(--w);background:var(--acc)}
+
+  /* library head: title, view switch; the chips row keeps the dice */
+  .lhead{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;margin:4px 0 10px}
+  .lh{font:800 italic 30px/1 var(--f-d);text-transform:uppercase;margin:0;display:flex;align-items:baseline;gap:10px}
+  .lh small{font-size:15px;color:var(--dim)}
+  .lview{display:flex;gap:4px;padding:4px;border-radius:12px;background:var(--panel);border:1px solid var(--line)}
+  .lview button{width:36px;height:32px;display:grid;place-items:center;border-radius:9px;color:var(--dim);transition:background var(--t-fast),color var(--t-fast)}
+  .lview button svg{width:17px;height:17px}
+  .lview button:hover{color:var(--fg)}
+  .lview button.on{background:var(--panel3);color:var(--fg)}
+  .gfind .chips button.on{color:var(--ink);background:var(--fg);border-color:var(--fg)}
+
+  /* library cards */
+  .tiles.cards{grid-template-columns:repeat(auto-fill,minmax(168px,1fr));gap:14px}
+  .tiles.cards .tile{border-radius:18px;overflow:hidden;transition:transform var(--t-base) var(--spring-soft),box-shadow var(--t-base),border-color var(--t-fast)}
+  .tiles.cards .tile .art{height:118px;background:repeating-linear-gradient(-60deg,rgba(255,255,255,.03) 0 9px,transparent 9px 20px),
+    radial-gradient(70% 90% at 50% 60%,color-mix(in srgb,var(--acc) 26%,transparent),transparent 70%),var(--panel2)}
+  .tiles.cards .tile .art .ic{width:84px;height:84px;transition:transform .35s var(--spring)}
+  .tiles.cards .tile .tx{padding:10px 12px 12px}
+  .tiles.cards .tile b{font-size:17px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .tiles.cards .tile .tx>small:not(.pc){display:none}
+  .tiles.cards .tile .pc{display:block;font-size:12.5px}
+  .tiles.cards .tile .meta{position:absolute;top:8px;left:8px;padding:0}
+  .tiles.cards .tile .meta em:not(.new){display:none}
+  .tiles.cards .tile .bdg.n{top:auto;bottom:8px;left:8px}
+  .tiles.cards .tile .meta:has(em.new)~.art .bdg.n,.tiles.cards .tile:has(.meta em.new) .bdg.n{display:none}
+  .tiles.cards .tile .meta em.new{font-size:10px;padding:3px 6px}
+  .tiles.cards .tile:hover{transform:translateY(-4px)}
+  .tiles.cards .tile:hover .art .ic{transform:scale(1.08) rotate(-3deg)}
+  .tiles.cards .tile.sel{border:2px solid var(--pink);box-shadow:6px 6px 0 color-mix(in srgb,var(--pink) 35%,transparent);transform:translateY(-4px)}
+  .tiles.cards .tile.sel::after{display:none}
+  .tiles.cards .tile:focus-visible{border-color:var(--cyan);box-shadow:6px 6px 0 color-mix(in srgb,var(--cyan) 35%,transparent)}
+  .lockc .tiles.cards{margin-top:2px}
+
+  /* game panel: its own scroll area next to the library, the play button stays at the bottom */
+  .sel-panel{max-height:calc(100dvh - var(--abar-h) - 36px);overflow-y:auto;overflow-x:hidden;border-radius:var(--r-l);scrollbar-width:thin;scrollbar-color:var(--line2) transparent}
+  .sel-panel .gp{border-radius:var(--r-l);min-height:100%}
+  .sel-panel .gp-art{height:210px;background:repeating-linear-gradient(-60deg,rgba(255,255,255,.035) 0 10px,transparent 10px 22px),
+    radial-gradient(70% 90% at 50% 60%,color-mix(in srgb,var(--acc) 30%,transparent),transparent 70%),var(--panel2)}
+  .sel-panel .gp-art .ic{width:140px;height:140px}
+  .sel-panel .gp-art .cat{top:16px;left:0;padding:6px 12px 6px 16px;background:var(--pink);color:var(--ink);transform:none;clip-path:polygon(0 0,100% 0,calc(100% - 8px) 100%,0 100%)}
+  .sel-panel .gp-txt h2{font-size:36px}
+  .sel-panel .gp-mode .seg-ind{box-shadow:inset 0 -3px 0 var(--pink)}
+  .sel-panel .gp-lvl .lv-top b{color:var(--cyan)}
+  .sel-panel .gp-go{position:sticky;bottom:0;z-index:2;margin-top:auto;background:linear-gradient(transparent,var(--panel) 22%);padding-top:26px}
+  .sel-panel .gp-go .btn.primary.big{height:56px}
+  .gp-keys{display:flex!important;flex-wrap:wrap;gap:6px 14px;justify-content:center;margin:-6px 18px 16px;color:var(--dim);font-size:12px}
+  .gp-keys span{display:inline-flex;align-items:center;gap:5px}
+  .gp-keys kbd{height:19px;min-width:19px;font-size:11px}
+  .gp.gp-sw .gp-body{animation:gpfade .15s var(--ease)}
+  @keyframes gpfade{from{opacity:0;transform:translateY(6px)}}
+}
+.lowfx .tiles.cards .tile,.lowfx .tiles.cards .tile .art .ic,.lowfx .mtile,.lowfx .ccard{transition:none}
+.lowfx .tiles.cards .tile:hover,.lowfx .tiles.cards .tile:hover .art .ic,.lowfx .mtile:hover,.lowfx .ccard:hover{transform:none}
+.lowfx .gp.gp-sw .gp-body{animation:none}

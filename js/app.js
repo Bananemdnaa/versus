@@ -300,13 +300,12 @@
   function gamesTab() {
     const count = c => V.games.filter(g => c === 'Alle' || g.cat === c).length;
     const W = wide();
+    // laptop: hero, mode tiles and "Weiterspielen" above the library; a search hides them and shows the hits
     return `<div class="select">
       <section class="sel-main">
-        ${W ? `<div class="sel-head">
-          <h1 class="title"><span>Wähl dein</span> Duell</h1>
-          <p class="tagline">${V.games.length} Spiele für zwei bis vier an einem Gerät. Oder du gegen die KI in vier Stufen.</p>
-        </div>
-        ${installCard()}` : heroCarousel() + quickTiles()}
+        ${W ? `<div id="gtop"${homeQuery.trim() ? ' hidden' : ''}>${heroCarousel()}${modeTiles()}<div id="gcont">${contRow()}</div>${installCard()}</div>
+        <div class="lhead"><h2 class="lh">Bibliothek<small>${V.games.length}</small></h2>
+          <div class="lview" role="group" aria-label="Ansicht">${[['grid', 'Kacheln', IC.grid], ['list', 'Liste', IC.book]].map(([k, l, ic]) => `<button data-lv="${k}" class="${libView() === k ? 'on' : ''}" aria-pressed="${libView() === k}" title="${l}" aria-label="${l}">${ic}</button>`).join('')}</div></div>` : heroCarousel() + quickTiles()}
         <div class="gfind">
           <div class="gsrow">
             ${W ? '' : `<label class="gsearch">${IC.search}<input id="gq" type="search" placeholder="Spiel suchen" autocomplete="off" spellcheck="false" enterkeyhint="go" aria-label="Spiel suchen" value="${escA(homeQuery)}"><kbd class="only-fine">/</kbd><button class="gclear" id="gqx" aria-label="Suche löschen"${homeQuery ? '' : ' hidden'}>${IC.x}</button></label>`}<button class="iconbtn gsurp" id="gsurp" aria-label="Überrasch mich" title="Überrasch mich">${IC.dice}</button></div>
@@ -345,6 +344,17 @@
   function heroCarousel() {
     const cards = heroCards(); if (!cards.length) return '';
     homeHero = Math.min(homeHero, cards.length - 1);
+    // laptop: a wide card with its own buttons (Spielen, Online suchen), the game picture turned a bit on the right
+    const wideCard = (c, k) => {
+      const name = c.inst ? c.name : c.g.name, net = !c.inst && (c.g.online || c.g.table) && V.cloud && V.cloud.available() && !inDiscord();
+      return `<div class="hcard hw${k === homeHero ? ' on' : ''}" data-k="${k}" ${c.inst ? 'data-do="install"' : `data-id="${c.g.id}" data-act="${c.act}"`} style="--acc:${c.inst ? 'var(--cyan)' : c.g.accent || 'var(--pink)'}" role="group" aria-roledescription="Karte" aria-label="${escA(name)}">
+        <i class="hc-st"></i>
+        <span class="hc-tx"><em class="hc-k">${c.kick}</em><b>${name}</b><small>${c.inst ? c.sub : c.g.short}</small>
+          <span class="hc-btns"><button class="hb-play" data-hb="play" tabindex="${k === homeHero ? 0 : -1}">${c.inst ? IC.dl + 'Installieren' : IC.play + 'Spielen'}<kbd>Enter</kbd></button>${net ? `<button class="hb-on" data-hb="online" tabindex="${k === homeHero ? 0 : -1}">${IC.globe}Online suchen</button>` : ''}</span></span>
+        <span class="hc-ic">${c.inst ? IC.dl : c.g.icon}</span></div>`;
+    };
+    if (wide()) return `<div class="hero hwide" id="hero" tabindex="0" aria-label="Empfehlungen, Pfeiltasten wechseln"><div class="hero-tr" style="--i:${homeHero}">${cards.map(wideCard).join('')}</div>
+      ${cards.length > 1 ? `<div class="hero-dots">${cards.map((_, k) => `<button class="${k === homeHero ? 'on' : ''}" data-dot="${k}" aria-label="Karte ${k + 1}"></button>`).join('')}</div>` : ''}</div>`;
     const card = (c, k) => {
       const acc = c.inst ? 'var(--cyan)' : c.g.accent || 'var(--pink)', name = c.inst ? c.name : c.g.name;
       return `<button class="hcard${k === homeHero ? ' on' : ''}" data-k="${k}" ${c.inst ? 'data-do="install"' : `data-id="${c.g.id}" data-act="${c.act}"`} style="--acc:${acc}" tabindex="${k === homeHero ? 0 : -1}">
@@ -361,6 +371,38 @@
     // in Discord the middle tile plays with the voice channel instead of two players on one device
     return `<div class="qtiles">${qt('qt_quick', 'c', IC.boltf, 'Schnelles Spiel', true)}${inDiscord() ? qt('qt_voice', 'y', IC.users, 'Sprachkanal') : qt('qt_local', 'y', IC.users, 'Zu zweit')}${qt('qt_ai', 'p', IC.robot, 'Gegen KI')}</div>`;
   }
+  // laptop: four mode tiles under the hero (same actions as the phone tiles, plus a game link to share)
+  function modeTiles() {
+    const mt = (id, cls, ic, label, sub) => `<button class="mtile ${cls}" id="${id}"><span class="mt-ic">${ic}</span><span class="mt-tx"><b>${label}</b><small>${sub}</small></span></button>`;
+    const net = V.cloud && V.cloud.available();
+    return `<div class="mtiles">${mt('qt_quick', 'c', IC.boltf, 'Schnelles Spiel', net ? 'Gegen echte Gegner' : 'Gleich da')}
+      ${inDiscord() ? mt('qt_voice', 'y', IC.users, 'Sprachkanal', 'Mit allen im Kanal') : mt('qt_local', 'y', IC.users, 'Zu zweit', 'Ein PC, zwei Tastaturseiten')}
+      ${mt('qt_ai', 'p', IC.robot, 'Gegen KI', 'Vier Stufen')}
+      ${net && !inDiscord() ? mt('qt_room', 'g', IC.link, 'Raum erstellen', 'Code oder Link teilen') : ''}</div>`;
+  }
+  // laptop: the running match, my table and matches over days, with a bar for how far it is
+  let contList = [];
+  function contRow() {
+    const list = V.online && V.online.resumables ? V.online.resumables() : [];
+    const q = norm(homeQuery.trim());
+    const rows = contList = list.filter(r => !q || norm(V.byId[r.game].name).includes(q)).slice(0, 4);
+    if (!rows.length) return '';
+    return `<section class="cont-w"><h2 class="gh">Weiterspielen<small>${rows.length}</small></h2><div class="crow-w">${rows.map((r, k) => {
+      const g = V.byId[r.game], st = r.table ? (r.turn ? 'Tisch läuft' : 'Tisch wartet') : r.live ? 'online · läuft' : r.turn ? 'online · du bist dran' : 'online · wartet auf ' + escA(r.opp);
+      return `<button class="ccard${r.turn ? ' turn' : ''}" data-cont="${k}" style="--acc:${g.accent || 'var(--pink)'}"><span class="cc-ic">${g.icon}</span>
+        <span class="cc-tx"><b>${g.name}${r.opp ? ` <i>gegen ${escA(r.opp)}</i>` : ''}</b><small>${st}${r.moves ? ' · Zug ' + r.moves : ''}</small>
+          <i class="cc-bar"><i style="--w:${Math.min(100, Math.round(((r.moves || 0) + 4) / 44 * 100))}%"></i></i></span></button>`;
+    }).join('')}</div></section>`;
+  }
+  function contRefresh() {
+    const c = app.querySelector('#gcont'); if (!c) return;
+    c.innerHTML = contRow(); wireCont(c);
+  }
+  function wireCont(c) {
+    c.querySelectorAll('[data-cont]').forEach(b => b.onclick = () => { const r = contList[+b.dataset.cont]; if (!r) return; V.sfx.ui(); b.classList.add('busy'); V.online.resumeAny(r); });
+  }
+  // library view on the laptop: big cards or the compact list
+  const libView = () => S.get('libView', 'grid');
   // the game for "Zu zweit" and "Gegen KI": the last one played if it fits, otherwise 4 Gewinnt
   function lastFor(mode) {
     const g = V.byId[S.get('recent')];
@@ -373,19 +415,26 @@
     v.querySelector('#qt_local') && (v.querySelector('#qt_local').onclick = () => { const g = lastFor('local'); V.sfx.ui(); setMode(g, 'local'); setup(g); });
     v.querySelector('#qt_ai') && (v.querySelector('#qt_ai').onclick = () => { const g = lastFor('ai'); V.sfx.ui(); setMode(g, 'ai'); setup(g); });
     v.querySelector('#qt_voice') && (v.querySelector('#qt_voice').onclick = () => { const r = lastFor('voice'), g = r.table || r.online ? r : V.byId.ludo; V.sfx.ui(); setMode(g, 'voice'); setup(g); });
+    // a game link for the last online game (or 4 Gewinnt): whoever opens it plays against you
+    v.querySelector('#qt_room') && (v.querySelector('#qt_room').onclick = () => { const r = V.byId[S.get('recent')], g = r && r.online && !locked(r) ? r : V.byId.c4; V.sfx.ui(); if (V.online) V.online.linkInvite(g, loadCfg(g).opts); });
+    const gc = v.querySelector('#gcont'); if (gc) wireCont(gc);
     if (!h) return;
-    const tr = h.querySelector('.hero-tr'), cards = [...h.querySelectorAll('.hcard')], dots = [...h.querySelectorAll('.hero-dots i')];
+    const tr = h.querySelector('.hero-tr'), cards = [...h.querySelectorAll('.hcard')], dots = [...h.querySelectorAll('.hero-dots > *')];
     const go = (k, sound) => {
       homeHero = (k + cards.length) % cards.length;
       tr.style.setProperty('--i', homeHero);
-      cards.forEach((c, j) => { c.classList.toggle('on', j === homeHero); c.tabIndex = j === homeHero ? 0 : -1; });
+      cards.forEach((c, j) => { c.classList.toggle('on', j === homeHero); if (c.tagName === 'BUTTON') c.tabIndex = j === homeHero ? 0 : -1; c.querySelectorAll('[data-hb]').forEach(b => b.tabIndex = j === homeHero ? 0 : -1); });
       dots.forEach((d, j) => d.classList.toggle('on', j === homeHero));
       if (sound) V.sfx.tick();
     };
-    cards.forEach(c => c.onclick = () => {
+    cards.forEach(c => c.onclick = e => {
       if (+c.dataset.k !== homeHero) return go(+c.dataset.k, true);
+      // the wide laptop card acts only through its buttons
+      const hb = e.target.closest('[data-hb]');
+      if (c.classList.contains('hw') && !hb) return;
       if (c.dataset.do === 'install') { V.sfx.ui(); return install(); }
       const g = V.byId[c.dataset.id]; V.sfx.ui();
+      if (hb && hb.dataset.hb === 'online') { setMode(g, 'open'); return setup(g); }
       if (c.dataset.act === 'cont') { const cf = loadCfg(g); if (cf.mode !== 'voice' && !(cf.mode === 'ai' && g.noAI)) return play(g, cf); }
       if (c.dataset.act === 'open' && g.online && V.cloud && V.cloud.available()) setMode(g, inDiscord() ? 'voice' : 'open');
       if (c.dataset.act === 'local' || c.dataset.act === 'voice') setMode(g, c.dataset.act);
@@ -406,13 +455,20 @@
     };
     h.addEventListener('pointerup', up); h.addEventListener('pointercancel', up);
     h.addEventListener('click', e => { if (performance.now() - swiped < 400) { e.stopPropagation(); e.preventDefault(); } }, true);
-    // turns on its own every 4.3 s, but not while a sheet is open, in a match, in another tab or with reduced effects
+    // laptop: dots to click, arrow keys and Enter while the hero has the focus
+    h.querySelectorAll('[data-dot]').forEach(d => d.onclick = e => { e.stopPropagation(); go(+d.dataset.dot, true); });
+    h.addEventListener('keydown', e => {
+      if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') { e.preventDefault(); e.stopPropagation(); go(homeHero + (e.key === 'ArrowLeft' ? -1 : 1), true); }
+      else if (e.key === 'Enter' && e.target === h) { e.preventDefault(); e.stopPropagation(); const b = cards[homeHero].querySelector('[data-hb]'); (b || cards[homeHero]).click(); }
+    });
+    // turns on its own (phone every 4.3 s, laptop every 6 s), but not while a sheet is open, in a match, in another tab,
+    // with reduced effects or while the mouse is over it
     clearInterval(heroT);
     if (cards.length > 1) heroT = setInterval(() => {
       if (!h.isConnected) return clearInterval(heroT);
-      if (modalEl || view !== 'home' || homeTab !== 'games' || !V.fxOn() || document.hidden || h.classList.contains('drag')) return;
+      if (modalEl || view !== 'home' || homeTab !== 'games' || !V.fxOn() || document.hidden || h.classList.contains('drag') || h.matches(':hover') || h.contains(document.activeElement)) return;
       go(homeHero + 1);
-    }, 4300);
+    }, wide() ? 6000 : 4300);
   }
 
   // ---------- favourites, recently played, search ----------
@@ -451,7 +507,7 @@
   // games first and the others collected in one "Mit Konto" box.
   // A chosen category shows a grid, a search shows the hits from all categories.
   function gameList() {
-    const W = wide(), cmp = W ? ' cmp' : '';
+    const W = wide(), cmp = W ? (libView() === 'list' ? ' cmp' : ' cards') : '';
     // the entrance stagger restarts in every section, so lower ones do not wait for the ones above
     let i = 0;
     const tiles = (games, cls = cmp) => `<div class="tiles${cls}">${games.map(g => tile(g, i++)).join('')}</div>`;
@@ -482,6 +538,8 @@
     const tl = app.querySelector('#glist'); if (!tl || view !== 'home' || homeTab !== 'games') return;
     tl.innerHTML = gameList();
     wireList(tl);
+    // laptop: a search hides the hero and the mode tiles, "Weiterspielen" follows the search
+    const top = app.querySelector('#gtop'); if (top) { top.hidden = !!homeQuery.trim(); if (!top.hidden) contRefresh(); }
   }
   function wireList(tl) {
     wireTiles(tl);
@@ -493,7 +551,7 @@
   function lockBox(games) {
     if (!games.length) return '';
     return `<div class="lockc"><div class="lk-h"><span class="lki">${IC.lock}</span><div><b>Mit Konto: ${games.length} weitere Spiele</b><small>Kostenlos. Dazu Online-Partien, Freunde und die Rangliste.</small></div></div>
-      <div class="lk-ics">${games.map(g => `<button class="lkg" data-id="${g.id}" style="--acc:${g.accent || 'var(--pink)'}" aria-label="${g.name} (mit Konto)"><span class="ic">${g.icon}</span><small>${g.name}</small></button>`).join('')}</div>
+      ${wide() && libView() !== 'list' ? `<div class="tiles cards">${games.map((g, k) => tile(g, k)).join('')}</div>` : `<div class="lk-ics">${games.map(g => `<button class="lkg" data-id="${g.id}" style="--acc:${g.accent || 'var(--pink)'}" aria-label="${g.name} (mit Konto)"><span class="ic">${g.icon}</span><small>${g.name}</small></button>`).join('')}</div>`}
       <button class="btn primary sm" data-tab="profile"><span>${IC.user}Konto erstellen</span></button></div>`;
   }
   function pickFilter(f) {
@@ -507,6 +565,11 @@
     wireList(v.querySelector('#glist'));
     v.querySelectorAll('.chips button').forEach(b => b.onclick = () => { V.sfx.ui(); pickFilter(b.dataset.f); });
     v.querySelector('#gsurp').onclick = () => surprise();
+    v.querySelectorAll('[data-lv]').forEach(b => b.onclick = () => {
+      S.set('libView', b.dataset.lv); V.sfx.ui();
+      v.querySelectorAll('[data-lv]').forEach(x => { x.classList.toggle('on', x === b); x.setAttribute('aria-pressed', x === b); });
+      refreshList();
+    });
     if (!wide()) wireSearch(v);
     wireHero(v);
     if (wide()) renderPanel(v.querySelector('#panel'), selected, false);
@@ -582,7 +645,7 @@
     // badges: "2–4" for party games, a globe for games you can play online; the record lives in the sheet
     return `<button class="tile${isSel ? ' sel' : ''}${lock ? ' locked' : ''}" data-id="${g.id}" style="--acc:${g.accent || 'var(--pink)'};--i:${i}">
       <span class="art"><span class="ic">${g.icon}</span>${g.party ? `<em class="bdg n">${IC.users}2–4</em>` : ''}${g.online || g.table ? `<em class="bdg on" title="Online">${IC.globe}</em>` : ''}${lock ? `<span class="lk">${IC.lock}</span>` : ''}</span>
-      <span class="tx"><b>${g.name}</b><small>${g.short}</small></span>
+      <span class="tx"><b>${g.name}</b><small>${g.short}</small><small class="pc">${g.party ? '2–4 Spieler' : '2 Spieler'}${g.noAI ? '' : ' · KI'}</small></span>
       <span class="meta">${news && !lock ? '<em class="new">Neu</em>' : ''}</span></button>`;
   }
 
@@ -670,7 +733,8 @@
       ${dcNone ? '<p class="hint dch">Dieses Spiel spielt ihr zu zweit am selben Gerät. In Discord hat jeder sein eigenes, darum geht es hier nicht.</p>' : dc && cfg.mode === 'ai' ? '<p class="hint dch">Nur du siehst dieses Spiel. Zum Mitspielen mit den anderen wähl oben „Sprachkanal“.</p>' : ''}
       ${voice ? `<p class="hint dch">${vNeedAcc ? 'Für dieses Spiel braucht ihr beide ein kostenloses Versus-Konto. Als Gast gehen 4 Gewinnt, Tic Tac Toe, Schiffe versenken und Käsekästchen.' : g.table ? 'Du eröffnest einen Tisch. Alle in diesem Sprachkanal sehen ihn unten als Balken und spielen auf ihrem eigenen Gerät mit.' : 'Du lädst ein. Wer in diesem Sprachkanal zuerst auf „Mitspielen“ tippt, spielt auf seinem eigenen Gerät gegen dich.'}</p>` : ''}
       <div class="gp-go">${cfg.mode === 'online' || cfg.mode === 'open' || cfg.mode === 'table' || dcNone ? '' : vNeedAcc ? `<button class="btn primary big" id="acc"><span>${IC.user}Konto erstellen</span></button>` : `<button class="btn primary big" id="go"><span>${voice ? IC.users + (g.table ? 'Tisch eröffnen' : 'Einladen') : IC.play + 'Spielen'}</span><kbd class="only-fine">Enter</kbd></button>`}
-        <button class="btn ghost" id="tut"><span>${IC.book}Regeln${P.seen[g.id] ? '' : '<i class="dot"></i>'}</span></button></div>`;
+        <button class="btn ghost" id="tut"><span>${IC.book}Regeln${P.seen[g.id] ? '' : '<i class="dot"></i>'}</span></button></div>
+      ${full ? '' : '<p class="gp-keys only-fine"><span><kbd>Enter</kbd> spielen</span><span><kbd>F</kbd> Favorit</span><span><kbd>← →</kbd> Spiel wechseln</span></p>'}`;
     // the indicator glides from the old mode to the new one
     const seg = root.querySelector('#mode');
     if (root._mi != null && root._mi !== mi && V.fxOn()) void seg.offsetWidth;
@@ -1359,7 +1423,7 @@
     play: (g, cfg, series) => play(g, cfg, series), setup: g => setup(g), wide: () => wide(),
     // full-screen view outside the home tabs (admin panel)
     show(name, html) { destroyCurrent(); view = name; const v = mount(html); wireHeader(v); return v; },
-    view: () => view, tab: () => homeTab, side: () => side.render()
+    view: () => view, tab: () => homeTab, side: () => side.render(), cont: () => contRefresh()
   };
   // what js/play.js needs from the shell
   Object.assign(P, {
