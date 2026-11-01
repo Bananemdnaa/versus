@@ -809,6 +809,26 @@
     'Der Gast-Zugang ist gerade pausiert. Versuch es später nochmal.': 'Guest access is paused right now. Please try again later.'
   });
 
+  // game night, feedback, connection bar, feedback tab in the admin panel
+  A({
+    'Spieleabend': 'Game night', 'Spieleabend läuft': 'Game night is on', 'Eine Tabelle für heute: wer gewinnt die meisten Spiele?': 'A table for tonight: who wins the most games?',
+    'Tabelle': 'Table', 'Noch keine Partie eingetragen': 'No game entered yet', 'Mitspieler dazu': 'Add players', 'Person dazu': 'Add person', 'Los geht’s': 'Let’s go',
+    'Tragt eure Namen ein. Nach jeder Partie tippt ihr an, wer gewonnen hat, egal welches Spiel. Am Ende steht fest, wer den Abend gewinnt.': 'Enter your names. After every game, tap who won, whatever the game. At the end you know who wins the night.',
+    'Jeder Name nur einmal.': 'Each name only once.', 'Schreib einen Namen.': 'Write a name.', 'Mindestens zwei Namen.': 'At least two names.', 'Höchstens # Personen.': 'At most # people.', 'Name #': 'Name #',
+    'Zuletzt': 'Latest', 'kein Punkt': 'no point', 'Letzte löschen': 'Delete last', 'Mitspieler': 'Players', 'Punkt von Hand': 'Point by hand', 'Weiterspielen': 'Keep playing', 'Abend beenden': 'End the night', 'Wirklich beenden?': 'Really end?',
+    'Spielt eine Partie. Danach tippt ihr auf dem Ergebnis-Bildschirm an, wer den Punkt bekommt.': 'Play a game. Then tap on the result screen who gets the point.',
+    'Wer bekommt den Punkt?': 'Who gets the point?', 'Unentschieden an der Spitze!': 'A tie at the top!', 'Spieleabend beendet': 'Game night over', 'Kopiert': 'Copied', 'Spieleabend · Punkt für': 'Game night · point for',
+    'Feedback': 'Feedback', 'Feedback senden': 'Send feedback', 'Fehler gefunden oder eine Idee? Direkt ans Team': 'Found a bug or have an idea? Straight to the team', 'Fehler melden oder eine Idee schicken': 'Report a bug or send an idea',
+    'Problem': 'Bug', 'Idee': 'Idea', 'Sonstiges': 'Other', 'Senden': 'Send', 'Was ist passiert, oder was wünschst du dir?': 'What happened, or what would you like?',
+    'Ein Fehler, eine Idee oder etwas anderes? Das Team liest alles. Für Antworten schau auf Discord vorbei.': 'A bug, an idea or something else? The team reads everything. For answers, drop by on Discord.',
+    'Mit geschickt werden die Version, die Sprache und ob Handy oder Computer. Keine Namen, keine Adressen.': 'The version, the language and phone or computer are sent along. No names, no addresses.',
+    'Wähl bitte, worum es geht.': 'Please pick what it is about.', 'Schreib bitte ein paar Worte mehr.': 'Please write a few more words.', 'Danke! Dein Feedback ist beim Team': 'Thanks! Your feedback is with the team',
+    'Feedback kommt nach dem nächsten Server-Update.': 'Feedback comes with the next server update.', 'Feedback braucht eine Verbindung zum Server': 'Feedback needs a connection to the server', 'Wähl bitte eine Art.': 'Please pick a kind.',
+    'Zu viele Nachrichten. Warte kurz und versuch es dann nochmal.': 'Too many messages. Wait a moment and try again.',
+    'Verbindung unterbrochen': 'Connection lost', 'Versuche es wieder': 'Trying again', 'Wieder verbunden': 'Connected again',
+    'Kein offenes Feedback.': 'No open feedback.', 'Noch kein Feedback.': 'No feedback yet.', 'ohne Konto': 'no account', 'Handy': 'Phone', 'Computer': 'Computer', 'Erledigt.': 'Done.',
+    'Kommt über „Feedback senden“ auf der Startseite und in den Optionen. Version und Gerät helfen beim Nachstellen von Fehlern.': 'Comes from "Send feedback" on the home screen and in the options. Version and device help to reproduce bugs.'
+  });
   // ---------- patterns: text with names, moves and hands ----------
   const t = V.t;
   const PIECE = { Bauer: 'Pawn', Springer: 'Knight', Läufer: 'Bishop', Turm: 'Rook', Dame: 'Queen', König: 'King' };
@@ -829,6 +849,9 @@
   }
   const who = s => (s === 'Du' ? 'You' : s.replace(/^KI\b/, 'AI').replace(/^Spieler (\d)/, 'Player $1'));
   V.i18n.pat([
+    // game night and the connection bar
+    [/^(.+) führt mit (\d+)$/, '$1 leads with $2'], [/^Gleichstand mit (\d+)$/, 'Tied at $1'], [/^(.+) gewinnt den Abend!$/, '$1 wins the night!'], [/^Es geht um (.+)$/, 'It is about $1'], [/^Seit (\S+) · (\d+) Partien? · (.+)$/, (m, a, b, c) => 'Since ' + a + ' · ' + b + (b === '1' ? ' game' : ' games') + ' · ' + t(c)],
+    [/^(.+) · (\d+) Partien?$/, (m, a, b) => t(a) + ' · ' + b + (b === '1' ? ' game' : ' games')], [/^Versuche es wieder( · seit (\d+) s)?( · nach (\d+) s endet die Partie ohne Sieger)?$/, (m, a, s, b, n) => 'Trying again' + (a ? ' · for ' + s + ' s' : '') + (b ? ' · after ' + n + ' s the game ends without a winner' : '')],
     // chess moves and notes
     [/^(Bauer|Springer|Läufer|Turm|Dame|König) (schlägt )?([a-h][1-8])(?: wird (Dame|Turm|Läufer|Springer))?$/, (m, p, x, sq, pr) => PIECE[p] + (x ? ' takes ' : ' ') + sq + (pr ? ', becomes ' + PIECE[pr].toLowerCase() : '')],
     [/^(.+) · Schach!$/, (m, a) => t(a) + ' · Check!'],
@@ -1096,7 +1119,7 @@
     'Tipp für die Revanche': 'Tip for the rematch',
     '7: Der Nächste zieht zwei, außer er legt selbst eine 7': '7: the next player draws two, unless they play a 7 too',
     '8: Der Nächste setzt aus': '8: the next player skips a turn', 'Bube passt immer und wünscht eine Farbe': 'A jack always fits and calls a suit',
-    'Farbenblind-Modus': 'Colour-blind mode', 'Muster auf den Steinen, Nummern auf den Figuren': 'Patterns on the pieces, numbers on the pawns',
+    'Farbenblind-Modus': 'Colour-blind mode', 'Muster auf den Steinen, Formen an den Namen, Nummern auf den Figuren': 'Patterns on the pieces, shapes by the names, numbers on the pawns',
     'Spiel mit mir': 'Play with me', 'Du kannst den Link in Ruhe verschicken, er gilt 15 Minuten.': 'Take your time sending the link, it stays valid for 15 minutes.', '{0} ist beigetreten': '{0} joined', 'Link teilen': 'Share link', 'Kopieren': 'Copy', 'Warte, bis jemand beitritt …': 'Waiting for someone to join …',
     '{0} · schick den Link oder lass den Code scannen. Wer ihn öffnet, spielt sofort gegen dich, auch ohne Freundschaft und ohne Konto (bei den Gast-Spielen).': '{0} · send the link or let them scan the code. Whoever opens it plays you right away, no friendship needed and, for the guest games, no account.',
     'Per Link einladen': 'Invite with a link', 'Freund per Link einladen': 'Invite a friend with a link', 'Der Link ist abgelaufen': 'The link has expired',

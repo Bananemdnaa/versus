@@ -140,6 +140,8 @@
     if (homeTab === 'profile' && V.account) V.account.wire(b);
     if (homeTab === 'online' && V.online) V.online.wire(b);
     b.querySelectorAll('[data-tab]').forEach(x => x.onclick = () => { V.sfx.ui(); home(x.dataset.tab); });
+    b.querySelectorAll('[data-fb]').forEach(x => x.onclick = () => { V.sfx.ui(); V.feedback.open(); });
+    if (V.night) V.night.wire(b);
   }
   // slide the highlight of the active tab to its new place
   function placeInd(root, anim) {
@@ -188,7 +190,9 @@
           <div class="chips" role="tablist">${['Alle', ...V.CATS].map(c => `<button role="tab" data-f="${c}" class="${homeFilter === c && !homeQuery ? 'on' : ''}">${c}<small>${count(c)}</small></button>`).join('')}</div>
         </div>
         <div id="glist">${gameList()}</div>
-        ${inDiscord() ? '' : `<div class="optlist small dcom"><a class="opt" href="${V.DISCORD}" target="_blank" rel="noopener">${IC.chat}<span><b>Community auf Discord</b><small>Mitspieler finden, Ideen teilen und Bugs melden</small></span></a></div>`}
+        <div class="optlist small dcom">${V.night ? V.night.row() : ''}
+          ${inDiscord() ? '' : `<a class="opt" href="${V.DISCORD}" target="_blank" rel="noopener">${IC.chat}<span><b>Community auf Discord</b><small>Mitspieler finden, Ideen teilen und Bugs melden</small></span></a>`}
+          <button class="opt" data-fb="1">${IC.bulb}<span><b>Feedback senden</b><small>Fehler gefunden oder eine Idee? Direkt ans Team</small></span></button></div>
       </section>
       <aside class="sel-panel" id="panel"></aside>
     </div>`;
@@ -660,7 +664,7 @@
         ${sw('o_intro', settings.intro !== false, 'Intros', 'Start-Animation und VS-Einblendung vor jeder Partie', IC.film)}
         ${sw('o_coords', settings.coords !== false, 'Koordinaten', 'Buchstaben und Zahlen am Schachbrett', IC.hash)}
         ${sw('o_hints', settings.hints !== false, 'Zughilfen', 'Zeigt, wohin du ziehen kannst (Schach, Dame, Reversi, Mühle)', IC.bulb)}
-        ${sw('o_cb', !!settings.cb, 'Farbenblind-Modus', 'Muster auf den Steinen, Nummern auf den Figuren', IC.eye)}
+        ${sw('o_cb', !!settings.cb, 'Farbenblind-Modus', 'Muster auf den Steinen, Formen an den Namen, Nummern auf den Figuren', IC.eye)}
         <div class="opt orow">${IC.globe}<span><b>Sprache</b><small>Language · Deutsch oder Englisch</small></span>${seg('lang', V.lang, [['de', 'Deutsch'], ['en', 'English']])}</div>
         <div class="opt orow">${IC.grid}<span><b>Spielbrett</b><small>Schach, Dame und Reversi</small></span>${seg('board', settings.board || 'std', [['std', 'Standard'], ['neon', 'Neon'], ['wood', 'Holz']])}</div>
       </div></div>
@@ -679,6 +683,7 @@
       <div class="optlist small">
         ${appRow}
         <button class="opt" id="o_upd">${IC.sync}<span><b>Nach Updates suchen</b><small>Version ${V.VERSION || ''}</small></span></button>
+        <button class="opt" data-fb="1">${IC.bulb}<span><b>Feedback senden</b><small>Fehler melden oder eine Idee schicken</small></span></button>
       </div></div>
       <div class="ogroup"><h2 class="oh">Daten</h2>
       <div class="optlist small">

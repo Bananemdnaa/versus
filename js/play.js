@@ -181,7 +181,7 @@
     function pollOnce(o, fetch, every) {
       if (o.stopped || !alive) return;
       clearTimeout(o.timer); o.busy = true;
-      fetch().then(st => { if (alive) o.feed(st); }, () => { }).then(() => {
+      fetch().then(st => { conn.ok(); if (alive) o.feed(st); }, e => conn.fail(e)).then(() => {
         o.busy = false;
         if (o.stopped || !alive) return;
         if (o.again) { o.again = false; return o.poll(); }
@@ -190,6 +190,53 @@
       });
     }
     const kick = o => { if (!o || o.stopped || !alive) return; if (o.busy) o.again = true; else o.poll(); };
+    // our own connection (online duels, tables, watching): a bar over the board after two failed requests in a row
+    // or when the browser says it is offline, "Wieder verbunden" once it works again. Moves that could not be sent
+    // wait and go out again instead of reloading the match.
+    const netErr = e => navigator.onLine === false || /Keine Verbindung zum Server|failed to fetch|network|load failed/i.test(String(e && e.message));
+    const conn = {
+      fails: 0, since: 0, el: null, t: null,
+      fail(e) {
+        if (!alive || !(online || table || watch) || !netErr(e)) return;
+        this.fails++;
+        if (this.fails >= 2 || navigator.onLine === false) this.show();
+      },
+      ok() {
+        this.fails = 0;
+        if (!this.el || this.el.classList.contains('back')) return;
+        clearInterval(this.t); this.since = 0;
+        this.el.classList.add('back'); this.el.innerHTML = `${IC.globe}<span><b>Wieder verbunden</b></span>`;
+        V.sfx.ui(); const el = this.el;
+        setTimeout(() => { el.classList.add('out'); setTimeout(() => { el.remove(); if (conn.el === el) conn.el = null; }, 260); }, 1600);
+      },
+      show() {
+        if (this.el && !this.el.classList.contains('back')) return;
+        if (this.el) this.el.remove();
+        this.since = Date.now();
+        this.el = V.el('div', 'connbar'); v.appendChild(this.el);
+        const tick = () => {
+          if (!this.el || this.el.classList.contains('back')) return;
+          const s = Math.round((Date.now() - this.since) / 1000);
+          // a live duel is called off by the server after 75 s without a sign of life
+          const warn = online && !slow && !ended ? ` · nach ${OFF_AFTER} s endet die Partie ohne Sieger` : '';
+          this.el.innerHTML = `<i class="cspin"></i><span><b>Verbindung unterbrochen</b><small>Versuche es wieder${s >= 3 ? ' · seit ' + s + ' s' : ''}${warn}</small></span>`;
+        };
+        tick(); clearInterval(this.t); this.t = setInterval(tick, 1000);
+      }
+    };
+    if (online || table || watch) {
+      const offE = () => conn.show(), onE = () => { kick(net); kick(tnet); };
+      window.addEventListener('offline', offE); window.addEventListener('online', onE);
+      cleanups.push(() => { window.removeEventListener('offline', offE); window.removeEventListener('online', onE); clearInterval(conn.t); });
+    }
+    // send an action; network errors are retried every 2 s while the match is open, other errors go to onErr
+    const sendRetry = (call, onErr) => {
+      const go = () => call().then(r => { conn.ok(); return r; }, e => {
+        if (alive && netErr(e)) { conn.fail(e); conn.show(); return new Promise(res => ctx.later(res, 2000)).then(go); }
+        throw e;
+      });
+      return go().catch(onErr);
+    };
     // a few seconds of grace, so the poke of a last action (resign, leaving the table) still goes out
     const closeChan = () => { const c = chan; if (c) setTimeout(() => c.close(), 3000); };
     let clock = null, listener = null, handSeen = 0;
@@ -328,6 +375,7 @@
           if (efr) efr.onclick = () => V.online.request(M.opp).then(r => { efr.disabled = true; efr.querySelector('span').textContent = r === 'accepted' || r === 'friends' ? 'Ihr seid jetzt Freunde' : 'Anfrage gesendet'; }, e => toast(e.message));
           const erep = m.querySelector('#erep'); if (erep) erep.onclick = () => V.online.report(M.opp, M.id);
           if (online && net) net.rematchUI();
+          if (V.night && V.night.active() && winner && !watch && !off) V.night.endPick(m, g.id, shown(winner));
           const es = m.querySelector('#es'); if (es) es.onclick = () => { V.sfx.ui(); shareCard(winner); };
           m.querySelector('#eb').onclick = closeModal;
           m.querySelector('#em').onclick = menu;
@@ -475,9 +523,8 @@
           if (online && s === mySide && this.applied > this.known) this.send(m, this.applied - 1);
         },
         send(m, ply) {
-          this.chain = this.chain.then(() => rpc('match_move', { mid: M.id, ply, mv: m }))
-            .then(n => { this.known = Math.max(this.known, n); })
-            .catch(e => { if (!alive) return; toast(/desync/.test(e.message) ? 'Partie wird neu geladen' : 'Zug nicht gesendet: ' + e.message); ctx.later(() => V.online.resume(M.id), 900); });
+          this.chain = this.chain.then(() => sendRetry(() => rpc('match_move', { mid: M.id, ply, mv: m })
+            .then(n => { this.known = Math.max(this.known, n); }), e => { if (!alive) return; toast(/desync/.test(e.message) ? 'Partie wird neu geladen' : 'Zug nicht gesendet: ' + e.message); ctx.later(() => V.online.resume(M.id), 900); }));
         },
         finish(w) {
           const n = this.applied;
@@ -593,8 +640,7 @@
         take(o) { this.waiting = o; if (pls[o.side]) pls[o.side].classList.add('thinking'); this.pump(); },
         // simultaneous games: actions are only applied once they come back from the server, so all see one order
         submit(s, m) {
-          this.chain = this.chain.then(() => rpc('party_move', { tid: M.id, ply: -1, s, mv: m }))
-            .catch(e => { if (alive) toast('Nicht gesendet: ' + e.message); });
+          this.chain = this.chain.then(() => sendRetry(() => rpc('party_move', { tid: M.id, ply: -1, s, mv: m }), e => { if (alive) toast('Nicht gesendet: ' + e.message); }));
         },
         pump() {
           if (listener) {
@@ -613,9 +659,8 @@
           if ((s === mySide || (tbots.has(s) && amHost())) && this.applied > this.known) this.send(s, m, this.applied - 1);
         },
         send(s, m, ply) {
-          this.chain = this.chain.then(() => rpc('party_move', { tid: M.id, ply, s, mv: m }))
-            .then(n => { this.known = Math.max(this.known, n); })
-            .catch(e => { if (!alive) return; toast(/desync/.test(e.message) ? 'Tisch wird neu geladen' : 'Zug nicht gesendet: ' + e.message); ctx.later(() => V.online.resumeTable(M.id), 900); });
+          this.chain = this.chain.then(() => sendRetry(() => rpc('party_move', { tid: M.id, ply, s, mv: m })
+            .then(n => { this.known = Math.max(this.known, n); }), e => { if (!alive) return; toast(/desync/.test(e.message) ? 'Tisch wird neu geladen' : 'Zug nicht gesendet: ' + e.message); ctx.later(() => V.online.resumeTable(M.id), 900); }));
         },
         finish(w) { const n = this.applied; this.chain = this.chain.then(() => rpc('party_finish', { tid: M.id, ply: n, w })).catch(() => { }); },
         broken() { toast('Der Spielstand passt nicht zusammen, lade neu …'); ctx.later(() => V.online.resumeTable(M.id), 600); },

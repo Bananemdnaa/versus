@@ -247,7 +247,7 @@
 
   // ---------- admin panel ----------
   let aTab = 'overview', mFilter = 'live', mQuery = '', matches = null, stats = null, online = null, players = null, logs = null, query = '', aErr = '', box = null, sure = null, liveT = null, busy = false, reports = null, rFilter = 'open';
-  let pFilter = '', site = null, purge = null;
+  let pFilter = '', site = null, purge = null, fb = null, fFilter = 'open';
   // warning templates: the player sees them in their own language (js/lang/en.js has the English text)
   const WARN = {
     '@name': 'Dein Benutzername verstößt gegen die Regeln. Bitte ändere ihn, sonst wird das Konto gesperrt.',
@@ -262,16 +262,17 @@
     const v = V.ui.show('admin', `<div class="view admin">
       <div class="sbar"><button class="iconbtn" id="bk" aria-label="Zurück">${IC().back}</button><span class="crumb">Admin-Panel</span>
         ${C().role() ? `<em class="rtag ${C().role()}">${ROLE[C().role()]}</em>` : ''}</div>
-      <div class="chips" id="atabs">${[['overview', 'Übersicht'], ['matches', 'Partien'], ['players', 'Spieler'], ['reports', 'Meldungen'], ['site', 'Seite'], ['log', 'Protokoll']].map(([k, l]) => `<button data-t="${k}" class="${aTab === k ? 'on' : ''}">${l}${k === 'reports' && reports && reports.open ? ` <small class="nb">${reports.open}</small>` : ''}</button>`).join('')}</div>
+      <div class="chips" id="atabs">${[['overview', 'Übersicht'], ['matches', 'Partien'], ['players', 'Spieler'], ['reports', 'Meldungen'], ['feedback', 'Feedback'], ['site', 'Seite'], ['log', 'Protokoll']].map(([k, l]) => `<button data-t="${k}" class="${aTab === k ? 'on' : ''}">${l}${k === 'reports' && reports && reports.open ? ` <small class="nb">${reports.open}</small>` : ''}${k === 'feedback' && fb && fb.open ? ` <small class="nb">${fb.open}</small>` : ''}</button>`).join('')}</div>
       <div id="abody" class="abody"></div></div>`);
     v.querySelector('#bk').onclick = () => { stopLive(); V.ui.home('profile'); };
     v.querySelectorAll('#atabs button').forEach(x => x.onclick = () => { aTab = x.dataset.t; aErr = ''; box = null; sure = null; V.sfx.ui(); v.querySelectorAll('#atabs button').forEach(y => y.classList.toggle('on', y === x)); draw(); load(); });
     draw(); load();
-    // number of open reports on the tab, whichever tab is open
-    if (aTab !== 'reports') C().rpc('admin_reports', { st: 'open', lim: 1 }).then(r => {
-      const b = v.querySelector('#atabs [data-t=reports]');
+    // number of open reports and feedback on the tabs, whichever tab is open
+    const badge = (t, rpc) => { if (aTab !== t) C().rpc(rpc, { st: 'open', lim: 1 }).then(r => {
+      const b = v.querySelector(`#atabs [data-t=${t}]`);
       if (b && r && r.open && !b.querySelector('.nb')) b.insertAdjacentHTML('beforeend', ` <small class="nb">${r.open}</small>`);
-    }, () => { });
+    }, () => { }); };
+    badge('reports', 'admin_reports'); badge('feedback', 'admin_feedback');
     stopLive();
     liveT = setInterval(() => {
       if (V.ui.view() !== 'admin') return stopLive();
@@ -287,6 +288,7 @@
       if (aTab === 'players') players = await C().rpc('admin_players', { q: query, lim: 40, f: pFilter });
       if (aTab === 'log') logs = await C().rpc('admin_log_list', { lim: 80 });
       if (aTab === 'reports') reports = await C().rpc('admin_reports', { st: rFilter, lim: 80 });
+      if (aTab === 'feedback') fb = await C().rpc('admin_feedback', { st: fFilter, lim: 80 });
       if (aTab === 'matches') matches = mFilter === 'tables' ? await C().rpc('admin_tables', { st: 'all', q: mQuery, lim: 80 }) : await C().rpc('admin_matches', { st: mFilter, q: mQuery, lim: 80 });
       if (aTab === 'site') { const [s, p] = await Promise.all([C().rpc('admin_stats'), C().role() === 'owner' ? C().rpc('admin_purge_guests', { days: 30, dry: true }) : null]); stats = s; site = s.site || {}; purge = p; }
       aErr = '';
@@ -304,7 +306,7 @@
     const host = document.getElementById('abody'); if (!host) return;
     const keep = document.activeElement && host.contains(document.activeElement) && /INPUT|TEXTAREA/.test(document.activeElement.tagName);
     if (keep && !force) return;
-    host.innerHTML = (aErr ? `<p class="aerr big">${esc(aErr)}</p>` : '') + (aTab === 'overview' ? overview() : aTab === 'matches' ? matchList() : aTab === 'players' ? playerList() : aTab === 'reports' ? reportList() : aTab === 'site' ? sitePage() : logList());
+    host.innerHTML = (aErr ? `<p class="aerr big">${esc(aErr)}</p>` : '') + (aTab === 'overview' ? overview() : aTab === 'matches' ? matchList() : aTab === 'players' ? playerList() : aTab === 'reports' ? reportList() : aTab === 'feedback' ? feedbackList() : aTab === 'site' ? sitePage() : logList());
     wireAdmin(host);
   }
   function overview() {
@@ -490,8 +492,26 @@
       <p class="fine">Verwarnen oder Sperren setzt die Meldung gleich auf „Erledigt“. Tipp auf den Namen für alles andere (ausblenden, umbenennen, Notiz).</p>
       ${reports ? rows || `<p class="muted">${rFilter === 'open' ? 'Keine offenen Meldungen.' : 'Noch keine Meldungen.'}</p>` : V.skel()}`;
   }
+  // feedback from the app: bugs, ideas, other; the name opens the player card (guests and players without an account show no name)
+  function feedbackList() {
+    const KIND = { bug: 'Problem', idea: 'Idee', other: 'Sonstiges' };
+    const rows = ((fb && fb.list) || []).map(f => {
+      const mt = f.meta || {};
+      const info = [mt.v ? 'v' + esc(mt.v) : '', mt.lang ? esc(mt.lang.toUpperCase()) : '', mt.dev === 'touch' ? 'Handy' : mt.dev ? 'Computer' : '', mt.mode === 'app' ? 'App' : '', mt.discord ? 'Discord' : ''].filter(Boolean).join(' · ');
+      return `<div class="mrow rep${f.status === 'open' ? ' live' : ''}">
+        <div class="m-t"><b><em class="rtag${f.kind === 'bug' ? ' bad' : ''}">${KIND[f.kind] || esc(f.kind)}</em>${f.game ? ' ' + esc(gameName(f.game)) : ''}</b>
+          <small>${f.name ? `<button class="link" data-p="${esc(f.name)}">${esc(f.name)}</button>${f.guest ? ' (Gast)' : ''}` : 'ohne Konto'} · ${when(f.at)}${info ? ' · ' + info : ''}${f.status === 'done' ? ' · erledigt' + (f.by ? ' von ' + esc(f.by) : '') : ''}</small>
+          <span class="m-r fbtxt">${esc(f.txt)}</span></div>
+        <div class="m-a"><button class="btn ghost sm" data-fdone="${f.id}" data-v="${f.status === 'open' ? 1 : 0}"><span>${f.status === 'open' ? 'Erledigt' : 'Wieder öffnen'}</span></button></div></div>`;
+    }).join('');
+    return `<div class="asearch"><div class="chips mini" id="ff">${[['open', 'Offen'], ['all', 'Alle']].map(([k, l]) => `<button data-ff="${k}" class="${fFilter === k ? 'on' : ''}">${l}</button>`).join('')}</div><button class="btn ghost sm" id="reload"><span>${IC().redo}</span></button></div>
+      <p class="fine">Kommt über „Feedback senden“ auf der Startseite und in den Optionen. Version und Gerät helfen beim Nachstellen von Fehlern.</p>
+      ${fb ? rows || `<p class="muted">${fFilter === 'open' ? 'Kein offenes Feedback.' : 'Noch kein Feedback.'}</p>` : V.skel()}`;
+  }
   let qTimer = null;
   function wireAdmin(h) {
+    h.querySelectorAll('[data-ff]').forEach(x => x.onclick = () => { fFilter = x.dataset.ff; fb = null; V.sfx.ui(); draw(); load(); });
+    h.querySelectorAll('[data-fdone]').forEach(x => x.onclick = () => act('admin_feedback_done', { fid: +x.dataset.fdone, done: x.dataset.v === '1' }, x.dataset.v === '1' ? 'Erledigt.' : 'Wieder offen.'));
     const r = h.querySelector('#reload'); if (r) r.onclick = () => { V.sfx.ui(); load(); };
     h.querySelectorAll('[data-rf]').forEach(x => x.onclick = () => { rFilter = x.dataset.rf; reports = null; V.sfx.ui(); draw(); load(); });
     h.querySelectorAll('[data-rdone]').forEach(x => x.onclick = () => act('admin_report_done', { rid: +x.dataset.rdone, done: x.dataset.v === '1' }, x.dataset.v === '1' ? 'Meldung erledigt.' : 'Meldung wieder offen.'));

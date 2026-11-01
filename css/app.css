@@ -1725,3 +1725,57 @@ textarea.inp{height:auto}
 
 .dcom{margin-top:18px}
 .dcom .opt>svg{color:var(--cyan)}
+
+/* colour-blind mode, SVG boards (Mühle, Backgammon, Hex): the yellow side gets a dashed dark ring */
+.cb:not(.swap) .mill .stn.s2,.cb.swap .mill .stn.s1,.cb:not(.swap) .bg .ck.s2,.cb.swap .bg .ck.s1{stroke:rgba(8,9,15,.85);stroke-width:.09;stroke-dasharray:.13 .09}
+.cb:not(.swap) .bg .ck.s2,.cb.swap .bg .ck.s1{stroke-width:.07;stroke-dasharray:.1 .07}
+.cb:not(.swap) .hx .cl.p2,.cb.swap .hx .cl.p1{stroke:rgba(8,9,15,.9);stroke-width:.16;stroke-dasharray:.12 .08}
+.cb:not(.swap) .hx .ed2,.cb.swap .hx .ed1{stroke:rgba(8,9,15,.9);stroke-width:.08;stroke-dasharray:.09 .07}
+/* player cards: a shape next to the name (circle, triangle, square, diamond) so seats differ without colour */
+.cb .pcard .nm b::before{display:inline-block;margin-right:6px;font-size:.8em;vertical-align:.08em;color:var(--sc,currentColor)}
+.cb .pcard.ps1 .nm b::before{content:'●'}.cb .pcard.ps2 .nm b::before{content:'▲'}.cb .pcard.ps3 .nm b::before{content:'■'}.cb .pcard.ps4 .nm b::before{content:'◆'}
+
+/* ---------- connection bar in online games ---------- */
+.connbar{position:fixed;left:50%;top:calc(env(safe-area-inset-top,0px) + 62px);transform:translateX(-50%);z-index:40;display:flex;align-items:center;gap:10px;max-width:calc(100% - 32px);padding:9px 14px;border-radius:10px;border:1px solid color-mix(in srgb,var(--warn) 55%,var(--line));background:color-mix(in srgb,var(--warn) 14%,var(--panel));color:var(--fg);box-shadow:0 10px 30px rgba(0,0,0,.45);animation:fadein .25s}
+.connbar span{display:flex;flex-direction:column;gap:2px;min-width:0}
+.connbar b{font-size:14px}
+.connbar small{font-size:12.5px;color:var(--muted)}
+.connbar .cspin{width:16px;height:16px;flex:none;border-radius:50%;border:2px solid var(--warn);border-right-color:transparent;animation:radarSpin .8s linear infinite}
+.connbar svg{width:18px;height:18px;flex:none;color:var(--good,#4ade80)}
+.connbar.back{border-color:color-mix(in srgb,var(--good,#4ade80) 55%,var(--line));background:color-mix(in srgb,var(--good,#4ade80) 12%,var(--panel))}
+.connbar.out{opacity:0;transition:opacity .25s}
+
+/* ---------- feedback ---------- */
+.fbf .repr{grid-template-columns:repeat(3,1fr)}
+.fbf .repr button{text-align:center}
+.mrow .fbtxt{white-space:pre-wrap;word-break:break-word;color:var(--fg)}
+
+/* ---------- game night ---------- */
+.night-on{border-color:color-mix(in srgb,var(--yellow,#ffd84f) 45%,var(--line))}
+.night-on svg{color:var(--yellow,#ffd84f)}
+.night .nt-list{display:flex;flex-direction:column;gap:8px}
+.night .nt-in{display:flex;gap:6px;align-items:center}
+.night .nt-in .inp{flex:1;min-width:0}
+.night .nt-tab{display:flex;flex-direction:column;gap:6px}
+.night .nt-row{position:relative;display:flex;align-items:center;gap:10px;padding:10px 12px;border:1px solid var(--line);border-radius:8px;background:var(--panel2);overflow:hidden}
+.night .nt-row.lead{border-color:color-mix(in srgb,var(--yellow,#ffd84f) 60%,var(--line))}
+.night .nt-rk{width:18px;text-align:center;color:var(--muted);font:800 italic 16px/1 var(--f-d)}
+.night .nt-row.lead .nt-rk{color:var(--yellow,#ffd84f)}
+.night .nt-nm{flex:1;min-width:0;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;z-index:1}
+.night .nt-bar{position:absolute;left:0;top:0;bottom:0;width:var(--w);background:color-mix(in srgb,var(--yellow,#ffd84f) 12%,transparent);transition:width .4s var(--ease)}
+.night .nt-pt{font:800 italic 22px/1 var(--f-d);z-index:1}
+.night .nt-h{margin:4px 0 0;font-size:13px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em}
+.night .nt-log{display:flex;flex-direction:column;gap:4px;font-size:14px}
+.night .nt-log div{display:flex;justify-content:space-between;gap:10px;color:var(--muted)}
+.night .nt-log b{color:var(--fg)}
+.night .nt-btns{display:flex;flex-wrap:wrap;gap:8px}
+.night .nt-pick{display:flex;flex-wrap:wrap;gap:8px}
+.night.fin{align-items:center;text-align:center}
+.night.fin .nt-tab{width:100%}
+.night .nt-crown svg{width:54px;height:54px;color:var(--yellow,#ffd84f);filter:drop-shadow(0 0 14px color-mix(in srgb,var(--yellow,#ffd84f) 60%,transparent))}
+.nt-end{display:flex;flex-direction:column;align-items:center;gap:8px;margin:2px 0 4px}
+.nt-end .nt-k{display:flex;align-items:center;gap:6px;font-size:12.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em}
+.nt-end .nt-k svg{width:15px;height:15px;color:var(--yellow,#ffd84f)}
+.nt-end .nt-pick{display:flex;flex-wrap:wrap;justify-content:center;gap:6px}
+.nt-end .nt-pick button{min-height:36px;padding:0 14px;border:1px solid var(--line2);border-radius:18px;background:var(--panel2);color:var(--fg);font-weight:700;font-size:14px;transition:all .15s}
+.nt-end .nt-pick button.on{color:var(--ink);background:var(--yellow,#ffd84f);border-color:var(--yellow,#ffd84f)}
