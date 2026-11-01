@@ -196,6 +196,23 @@
     })).catch(() => undefined);
   }
 
+  // Inside the Discord activity the captcha cannot run (Discord blocks its frame). There the login goes through the
+  // Edge Function "discord-auth", which checks the player's Discord token and signs in without a captcha.
+  // null: not in Discord, no Discord login, or the function is not there yet (then the normal way is tried).
+  async function viaDiscord(kind, email, password) {
+    if (!V.discord || !V.discord.on) return null;
+    const a = await V.discord.auth.catch(() => null);
+    if (!a || !a.token) return null;
+    let r;
+    try { r = await fetch(CFG.url + '/functions/v1/discord-auth', { method: 'POST', headers: { apikey: CFG.key, Authorization: 'Bearer ' + CFG.key, 'Content-Type': 'application/json' }, body: JSON.stringify({ kind, access_token: a.token, email, password }) }); }
+    catch (e) { return null; }
+    if (r.status === 404) return null;
+    const d = await r.json().catch(() => ({}));
+    if (!r.ok || !d.access_token) throw new Error(errText({ message: d.error || 'Anmeldung über Discord: ' + r.status }));
+    const s = check(await sb.auth.setSession({ access_token: d.access_token, refresh_token: d.refresh_token }));
+    return s.user || (s.session && s.session.user) || null;
+  }
+
   // ---------- realtime pokes ----------
   // After a move the other browsers get a short signal on a shared channel and fetch the new state at once,
   // instead of waiting for their next poll. No game data goes over the channel; the server stays the only source.
@@ -252,12 +269,16 @@
       if (!NAME_RE.test(u)) throw new Error('Benutzername: 3 bis 16 Zeichen, nur a–z, 0–9, _ und -.');
       if (String(pw).length < 6) throw new Error('Das Passwort ist zu kurz (mindestens 6 Zeichen).');
       await paused('signups');
+      const du = await viaDiscord('signup', u + '@' + MAIL, pw);
+      if (du) { user = du; return afterLogin(); }
       const d = check(await sb.auth.signUp({ email: u + '@' + MAIL, password: pw, options: { data: { username: u }, captchaToken: await captcha() } }));
       if (!d.session) throw new Error('Konto angelegt, aber auf dem Server ist „Confirm email“ noch an.');
       user = d.user; await afterLogin();
     },
     async signIn(name, pw) {
       await need();
+      const du = await viaDiscord('login', clean(name) + '@' + MAIL, pw);
+      if (du) { user = du; return afterLogin(); }
       const d = check(await sb.auth.signInWithPassword({ email: clean(name) + '@' + MAIL, password: pw, options: { captchaToken: await captcha() } }));
       user = d.user; await afterLogin();
     },
@@ -273,6 +294,8 @@
       await need();
       if (user) return;
       await paused('guests');
+      const du = await viaDiscord('guest');
+      if (du) { user = du; return afterLogin(); }
       const d = check(await sb.auth.signInAnonymously({ options: { captchaToken: await captcha() } }));
       user = d.user; await afterLogin();
     },
