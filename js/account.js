@@ -350,7 +350,10 @@
         p.guest ? '<em class="rtag">Gast</em>' : '', p.lang ? `<em class="rtag">${LANG[p.lang]}</em>` : '',
         p.hidden && !p.guest ? '<em class="rtag muted">Ausgeblendet</em>' : '', p.banned_until ? `<em class="rtag bad">Gesperrt bis ${day(p.banned_until)}</em>` : '',
         p.reports ? `<em class="rtag${p.reports_open ? ' bad' : ''}">${p.reports}× gemeldet${p.reports_open ? ` · ${p.reports_open} offen` : ''}</em>` : '',
-        p.warns ? `<em class="rtag">${p.warns}× verwarnt</em>` : ''].join('');
+        p.warns ? `<em class="rtag">${p.warns}× verwarnt</em>` : '',
+        // leaving a lost game on purpose: worth a look from 3 on, red when it is a large share of their online games
+        p.online_quits >= 3 ? `<em class="rtag${p.online_quits * 4 >= (p.online_games || 0) ? ' bad' : ''}">${p.online_quits}× verlassen</em>` : '',
+        Date.now() - new Date(p.joined).getTime() < 864e5 ? '<em class="rtag">Neu</em>' : ''].join('');
       const online = p.seen && Date.now() - new Date(p.seen).getTime() < 120000;
       const btn = (a, l, cls = '') => `<button class="btn ghost sm ${cls}" data-a="${a}" data-n="${n}"${busy ? ' disabled' : ''}><span>${l}</span></button>`;
       const confirmBtn = (key, l, l2, a) => sure === key + n ? btn(a, l2, 'danger') : `<button class="btn ghost sm" data-sure="${key + n}"><span>${l}</span></button>`;
@@ -361,7 +364,8 @@
       if (box === 'ren:' + n) boxHtml = `<div class="abox"><input class="inp" id="ren_n" maxlength="16" value="${n}" autocapitalize="none" spellcheck="false"><button class="btn sm" data-a="ren_save" data-n="${n}"><span>Umbenennen</span></button></div>`;
       return `<div class="pcard-a${online ? ' on' : ''}">
         <div class="pa-top"><span class="adot"></span><b>${n}</b>${tags}</div>
-        <div class="pa-info">Dabei seit ${day(p.joined)} · ${online ? '<b class="good">online</b> · ' + esc(gameName(p.game)) : 'zuletzt ' + ago(p.seen)} · ${st.played || 0} Partien · KI ${st.ai_wins || 0}:${(st.ai_games || 0) - (st.ai_wins || 0)}${p.online_games != null ? ` · ${p.online_games} online · ${p.friends || 0} Freunde` : ''}${p.invited_by ? ` · eingeladen von <button class="link" data-p="${esc(p.invited_by)}">${esc(p.invited_by)}</button>` : ''}</div>
+        <div class="pa-info">Dabei seit ${day(p.joined)} · ${online ? '<b class="good">online</b> · ' + esc(gameName(p.game)) : 'zuletzt ' + ago(p.seen)} · ${st.played || 0} Partien · KI ${st.ai_wins || 0}:${(st.ai_games || 0) - (st.ai_wins || 0)}${p.online_games != null ? ` · online ${p.online_wins || 0}:${p.online_losses || 0} · ${p.friends || 0} Freunde` : ''}${p.reports_made ? ` · ${p.reports_made} Meldungen abgeschickt` : ''}${p.invited_by ? ` · eingeladen von <button class="link" data-p="${esc(p.invited_by)}">${esc(p.invited_by)}</button>` : ''}</div>
+        ${p.old_names && p.old_names.length ? `<div class="pa-note">Früher: ${p.old_names.map(esc).join(', ')}</div>` : ''}
         ${p.last_warn ? `<div class="pa-note">Letzte Verwarnung: ${esc(WARN_L[p.last_warn] || p.last_warn)}</div>` : ''}
         ${p.ban_reason ? `<div class="pa-note bad">Sperrgrund: ${esc(p.ban_reason)}</div>` : ''}
         ${p.note ? `<div class="pa-note">Notiz${p.note_by ? ' von ' + esc(p.note_by) : ''}: ${esc(p.note)}</div>` : ''}
@@ -371,6 +375,8 @@
           ${p.banned_until ? btn('unban', 'Entsperren') : p.role === 'owner' || p.me ? '' : `<button class="btn ghost sm" data-box="ban:${n}"><span>Sperren …</span></button>`}
           <button class="btn ghost sm" data-box="note:${n}"><span>${p.note ? 'Notiz ändern' : 'Notiz'}</span></button>
           <button class="btn ghost sm" data-box="ren:${n}"><span>Umbenennen</span></button>
+          ${p.me ? '' : confirmBtn('rn:', 'Name zurücksetzen', 'Neutralen Namen geben?', 'ren_reset')}
+          <button class="btn ghost sm" data-games="${n}"><span>Partien</span></button>
           ${confirmBtn('reset:', 'Bilanz zurücksetzen', 'Wirklich alles auf 0?', 'reset')}
           ${owner && !p.me && p.role !== 'owner' ? confirmBtn('adm:', p.role ? 'Admin entziehen' : 'Zum Admin machen', p.role ? 'Wirklich entziehen?' : 'Wirklich Admin?', p.role ? 'admin_off' : 'admin_on') : ''}
           ${owner ? confirmBtn('dev:', p.dev ? 'Dev aufheben' : 'Zum Dev-Konto', 'Wirklich?', p.dev ? 'dev_off' : 'dev_on') : ''}
@@ -378,7 +384,7 @@
       </div>`;
     }).join('');
     return `<div class="asearch"><input class="inp" id="aq" placeholder="Spieler suchen (Namensanfang)" value="${esc(query)}" autocapitalize="none" spellcheck="false"><button class="btn ghost sm" id="reload"><span>${IC().redo}</span></button></div>
-      <div class="chips mini" id="pf">${[['', 'Zuletzt aktiv'], ['new', 'Neu'], ['reported', 'Gemeldet'], ['banned', 'Gesperrt'], ['hidden', 'Ausgeblendet'], ['guest', 'Gäste'], ['en', 'Englisch']].map(([k, l]) => `<button data-pf="${k}" class="${pFilter === k ? 'on' : ''}">${l}</button>`).join('')}</div>
+      <div class="chips mini" id="pf">${[['', 'Zuletzt aktiv'], ['new', 'Neu'], ['reported', 'Gemeldet'], ['banned', 'Gesperrt'], ['hidden', 'Ausgeblendet'], ['guest', 'Gäste'], ['warned', 'Verwarnt'], ['noted', 'Mit Notiz'], ['en', 'Englisch']].map(([k, l]) => `<button data-pf="${k}" class="${pFilter === k ? 'on' : ''}">${l}</button>`).join('')}</div>
       ${players ? cards || '<p class="muted">Niemand gefunden.</p>' : V.skel()}`;
   }
   // match log: running and finished online matches; each one can be watched live or replayed move by move
@@ -512,6 +518,7 @@
       const n = x.dataset.n, txt = x.dataset.warn || (h.querySelector('#warn_t') || {}).value || '';
       act2(() => C().rpc('admin_warn', { name: n, txt }).then(() => thenDone(x)), n + ' ist verwarnt. Die Verwarnung erscheint beim nächsten Öffnen.');
     });
+    h.querySelectorAll('[data-games]').forEach(x => x.onclick = () => { mQuery = x.dataset.games; mFilter = 'all'; matches = null; sure = null; aTab = 'matches'; V.sfx.ui(); admin(); });
     h.querySelectorAll('[data-pf]').forEach(x => x.onclick = () => { pFilter = x.dataset.pf; players = null; V.sfx.ui(); draw(); load(); });
     h.querySelectorAll('[data-t2]').forEach(x => x.onclick = () => { aTab = x.dataset.t2; V.sfx.ui(); admin(); });
     h.querySelectorAll('[data-vtab]').forEach(x => x.onclick = () => act('admin_void_table', { tid: x.dataset.vtab, why: null }, 'Tisch annulliert.'));
@@ -542,7 +549,9 @@
         dev_on: () => act('admin_set_dev', { name: n, make: true }, n + ' ist jetzt ein Dev-Konto.'),
         dev_off: () => act('admin_set_dev', { name: n, make: false }, n + ' ist kein Dev-Konto mehr.'),
         note_save: () => act('admin_set_note', { name: n, txt: h.querySelector('#note_t').value }, 'Notiz gespeichert.'),
-        ren_save: () => { const nn = h.querySelector('#ren_n').value.trim().toLowerCase(); act('admin_rename_user', { name: n, new_name: nn }, n + ' heißt jetzt ' + nn + '.'); query = nn; }
+        ren_save: () => { const nn = h.querySelector('#ren_n').value.trim().toLowerCase(); act('admin_rename_user', { name: n, new_name: nn }, n + ' heißt jetzt ' + nn + '.'); query = nn; },
+        // one tap for a bad name: a neutral name; the player can pick a new one later, the old one stays under "Früher"
+        ren_reset: () => { const nn = 'player' + (1000 + Math.floor(Math.random() * 9000)); query = nn; act('admin_rename_user', { name: n, new_name: nn }, n + ' heißt jetzt ' + nn + '.'); }
       };
       if (A[x.dataset.a]) A[x.dataset.a]();
     });

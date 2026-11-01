@@ -645,7 +645,7 @@ input::-ms-reveal,input::-ms-clear{display:none}
 .obanner.inv{background:linear-gradient(100deg,rgba(255,216,79,.16),var(--panel) 70%);border-color:var(--yellow);box-shadow:4px 4px 0 var(--pink)}
 .obanner small{display:block;font:700 italic 11px/1.4 var(--f-d);letter-spacing:.16em;text-transform:uppercase;color:var(--muted)}
 .obanner b{font:800 italic 19px/1.1 var(--f-d);text-transform:uppercase}
-.chips.mini{gap:6px;margin:0;padding:2px 2px 8px}
+.chips.mini{display:flex;gap:6px;margin:0;width:auto;padding:2px 2px 8px}
 .chips.mini button{height:30px;padding:0 11px;font-size:13px}
 .brow{display:grid;grid-template-columns:2.4em minmax(0,1fr) 4em 4.4em 4em;align-items:center;gap:8px;padding:7px 4px;border-bottom:1px solid var(--line);font-variant-numeric:tabular-nums;font-size:14px}
 .brow.head{font:700 italic 11px/1 var(--f-d);letter-spacing:.14em;text-transform:uppercase;color:var(--dim)}

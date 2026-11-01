@@ -798,6 +798,7 @@
     'Ankündigung ist sichtbar.': 'Announcement is live.', 'Ankündigung entfernt.': 'Announcement removed.', 'Wieder offen.': 'Open again.', 'Pausiert.': 'Paused.', 'Gespeichert.': 'Saved.',
     'Schreib einen Text auf Deutsch.': 'Write a text in German.', 'Schreib kurz, worum es geht.': 'Write briefly what it is about.',
     'verwarnt': 'warned', 'automatisch ausgeblendet': 'hidden automatically', 'Tisch annulliert': 'table voided', 'Ankündigung entfernt': 'announcement removed', 'Seiteneinstellungen': 'site settings', 'Gäste aufgeräumt': 'guests cleaned up',
+    'Verwarnt': 'Warned', 'Mit Notiz': 'With note', 'Neu': 'New', '#× verlassen': 'left #×', 'Früher: {0}': 'Formerly: {0}', 'Name zurücksetzen': 'Reset name', 'Neutralen Namen geben?': 'Give a neutral name?',
     // what players see
     'Verwarnung vom Team': 'Warning from the team',
     'Dein Benutzername verstößt gegen die Regeln. Bitte ändere ihn, sonst wird das Konto gesperrt.': 'Your username breaks the rules. Please change it, or the account will be banned.',
