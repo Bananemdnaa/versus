@@ -927,6 +927,7 @@
     // laptop home and phone cards: open matches
     [/^online · wartet auf (.+)$/, 'online · waiting for $1'], [/^gegen (.+) · (.+)$/, (m, a, b) => 'vs. ' + a + ' · ' + t(b)], [/^Zug (\d+)$/, 'Move $1'],
     [/^(Suchen|Als Gast suchen) · (.+)$/, (m, a, b) => (a === 'Suchen' ? 'Search' : 'Search as guest') + ' · ' + t(b)], [/^Schnell spielen: (.+)$/, (m, a) => 'Quick match: ' + t(a)],
+    [/^(.+) an einem Gerät$/, (m, a) => t(a) + ' on one device'], [/^Link für (.+)$/, (m, a) => 'Link for ' + t(a)],
     // game night and the connection bar
     [/^(.+) führt mit (\d+)$/, '$1 leads with $2'], [/^Gleichstand mit (\d+)$/, 'Tied at $1'], [/^(.+) gewinnt den Abend!$/, '$1 wins the night!'], [/^Es geht um (.+)$/, 'It is about $1'], [/^Seit (\S+) · (\d+) Partien? · (.+)$/, (m, a, b, c) => 'Since ' + a + ' · ' + b + (b === '1' ? ' game' : ' games') + ' · ' + t(c)],
     [/^(.+) · (\d+) Partien?$/, (m, a, b) => t(a) + ' · ' + b + (b === '1' ? ' game' : ' games')], [/^Versuche es wieder( · seit (\d+) s)?( · nach (\d+) s endet die Partie ohne Sieger)?$/, (m, a, s, b, n) => 'Trying again' + (a ? ' · for ' + s + ' s' : '') + (b ? ' · after ' + n + ' s the game ends without a winner' : '')],

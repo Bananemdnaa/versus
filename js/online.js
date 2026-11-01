@@ -786,29 +786,29 @@
       : p.friend === 'outgoing' ? `<button class="btn" disabled><span>Anfrage gesendet</span></button><button class="btn ghost" id="pwd"><span>Zurückziehen</span></button>`
       : p.friend === 'incoming' ? `<button class="btn primary" id="pyes"><span>Anfrage annehmen</span></button><button class="btn ghost" id="pno"><span>Ablehnen</span></button>`
       : `<button class="btn primary" id="padd"><span>${IC().plus}Als Freund hinzufügen</span></button>`;
-    m.innerHTML = `<div class="prof">
-      <div class="phead"><span class="abig">${esc(p.username.slice(0, 2).toUpperCase())}</span>
-        <div><b>${esc(p.username)}</b>${p.dev ? '<em class="rtag dev">Dev</em>' : ''}<small>${status} · dabei seit ${new Date(p.since).toLocaleDateString('de-DE', { month: 'long', year: 'numeric' })}</small></div>
-        <button class="iconbtn" id="pc" aria-label="Schließen">${V.ui.wide() ? IC().x : IC().back}</button></div>
-      <div class="kpis pk">
-        <div class="kpi"><b>${t.wins || 0}</b><span>Siege</span></div>
-        <div class="kpi"><b>${t.losses || 0}</b><span>Niederlagen</span></div>
-        <div class="kpi"><b>${pct(t.wins, t.played)} %</b><span>Siegquote</span></div>
-        <div class="kpi"><b>${p.week ? '#' + p.week.pos : '–'}</b><span>Diese Woche</span></div>
+    const stat = (v, l, c) => `<div class="p2-s ${c}"><b>${v}</b><span>${l}</span></div>`;
+    m.innerHTML = `<div class="prof p2">
+      <div class="p2-top"><i class="p2-st" aria-hidden="true"></i>
+        <span class="p2-av">${esc(p.username.slice(0, 2).toUpperCase())}</span>
+        <div class="p2-id"><b>${esc(p.username)}</b><div class="p2-tags" id="ptags">${p.dev ? '<em class="p2-b dev">Dev</em>' : ''}</div>
+          <small>${status} · dabei seit ${new Date(p.since).toLocaleDateString(V.locale(), { month: 'long', year: 'numeric' })}</small></div>
+        <button class="iconbtn p2-x" id="pc" aria-label="Schließen">${IC().x}</button></div>
+      <div class="p2-stats">${stat(t.wins || 0, 'Siege', 'p')}${stat(t.losses || 0, 'Niederlagen', 'y')}${stat(pct(t.wins, t.played) + ' %', 'Siegquote', 'c')}${stat(p.week ? '#' + p.week.pos : '–', 'Diese Woche', 'g')}</div>
+      ${p.streak >= 2 || vs ? `<div class="p2-row">${p.streak >= 2 ? `<div class="pstreak">${IC().bolt}<b>${p.streak} Siege in Folge</b></div>` : ''}${vs}</div>` : ''}
+      <div class="p2-cols">
+        <section><h4>Spiele</h4>${games ? `<div class="pgames">${games}</div>` : '<p class="muted">Noch keine Online-Partien.</p>'}</section>
+        <section><h4>Letzte Partien</h4><div class="precs">${recent || '<p class="muted">Noch keine Online-Partien.</p>'}</div></section>
       </div>
-      ${p.streak >= 2 ? `<div class="pstreak">${IC().bolt}<b>${p.streak} Siege in Folge</b></div>` : ''}
-      ${vs}
-      ${games ? `<h4>Spiele</h4><div class="pgames">${games}</div>` : ''}
-      <h4>Letzte Partien</h4>
-      <div class="precs">${recent || '<p class="muted">Noch keine Online-Partien.</p>'}</div>
-      ${act ? `<div class="actions">${act}</div>` : ''}
-      ${p.me ? '' : `<div class="psafe">${blk ? '' : `<button class="link" id="pblk">Blockieren</button>`}<button class="link" id="prep">Melden</button></div>`}
+      ${act || !p.me ? `<div class="p2-foot">${act ? `<div class="actions">${act}</div>` : ''}
+        ${p.me ? '' : `<div class="psafe">${blk ? '' : `<button class="link" id="pblk">Blockieren</button>`}<button class="link" id="prep">Melden</button></div>`}</div>` : ''}
     </div>`;
     m.querySelector('#pc').onclick = V.ui.closeModal;
-    // inviter badge: how many players joined through this player's link
+    // badges next to the name: the team role (Owner, Admin), Dev, and how many players joined through this player's link
     C().rpc('player_badges', { name: p.username }).then(b => {
-      const h = m.querySelector('.phead > div'); if (!h || !b || !b.invited) return;
-      h.querySelector('b').insertAdjacentHTML('afterend', `<em class="rtag badge" title="Hat ${b.invited} Spieler zu Versus eingeladen">${IC().users}Werber · ${b.invited}</em>`);
+      const h = m.querySelector('#ptags'); if (!h || !b) return;
+      const ROLE = { owner: 'Owner', admin: 'Admin' };
+      h.insertAdjacentHTML('afterbegin', b.role && ROLE[b.role] ? `<em class="p2-b ${b.role}">${IC().shield}${ROLE[b.role]}</em>` : '');
+      if (b.invited) h.insertAdjacentHTML('beforeend', `<em class="p2-b inv" title="Hat ${b.invited} Spieler zu Versus eingeladen">${IC().users}Werber · ${b.invited}</em>`);
     }, () => { });
     m.querySelectorAll('[data-prof]').forEach(x => x.onclick = () => { V.sfx.ui(); profile(x.dataset.prof); });
     const on = (id, fn) => { const x = m.querySelector('#' + id); if (x) x.onclick = () => fn(x); };

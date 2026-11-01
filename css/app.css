@@ -2370,3 +2370,68 @@ html.lowfx::view-transition-group(*),html.lowfx::view-transition-old(*),html.low
   .sd-quick small{font:600 12px/1.2 var(--f-b);text-transform:none;letter-spacing:0;opacity:.75;max-width:150px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
 }
 .apanel h4.dch{margin:8px 0 2px;font:700 italic 12px/1 var(--f-d);letter-spacing:.14em;text-transform:uppercase;color:var(--dim)}
+
+/* ---------- player profile: banner with avatar and badges, stats in one row, games and latest matches side by side ---------- */
+.modal.profm:has(.p2){padding:0}
+@media (min-width:960px){.modal.profm:has(.p2){width:min(100%,780px)}}
+.p2{display:flex;flex-direction:column}
+.p2-top{position:relative;display:flex;align-items:center;gap:18px;padding:26px 26px 22px;overflow:hidden;
+  background:linear-gradient(110deg,color-mix(in srgb,var(--pink) 32%,var(--panel)) 0 46%,var(--panel2) 46.3%)}
+.p2-st{position:absolute;inset:0;pointer-events:none;background:repeating-linear-gradient(-60deg,rgba(255,255,255,.035) 0 10px,transparent 10px 22px)}
+.p2-av{position:relative;width:84px;height:84px;flex:none;display:grid;place-items:center;transform:skewX(var(--sk));background:var(--pink);color:var(--ink);
+  font:800 italic 34px/1 var(--f-d);box-shadow:6px 6px 0 var(--yellow)}
+.p2-id{position:relative;flex:1;min-width:0;display:flex;flex-direction:column;gap:6px}
+.p2-id>b{font:800 italic 40px/.95 var(--f-d);text-transform:uppercase;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.p2-id>small{color:var(--muted);font-size:14px}
+.p2-id .good{color:var(--good)}
+.p2-tags{display:flex;flex-wrap:wrap;gap:6px}
+.p2-tags:empty{display:none}
+.p2-b{display:inline-flex;align-items:center;gap:5px;height:24px;padding:0 10px;transform:skewX(var(--sk));font:800 italic 12px/1 var(--f-d);font-style:normal;letter-spacing:.1em;text-transform:uppercase;
+  background:var(--panel3);color:var(--fg)}
+.p2-b svg{width:13px;height:13px}
+.p2-b.owner{background:var(--yellow);color:var(--ink)} .p2-b.admin{background:var(--pink);color:var(--ink)} .p2-b.dev{background:var(--cyan);color:var(--ink)}
+.p2-b.inv{background:color-mix(in srgb,var(--good) 18%,var(--panel3));color:var(--good)}
+.p2-x{position:absolute;top:16px;right:16px}
+.p2-stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;padding:18px 26px 0}
+.p2-s{--c:var(--pink);padding:14px 16px;border-radius:var(--r-m);background:var(--panel2);border:1px solid var(--line);border-top:3px solid var(--c)}
+.p2-s.y{--c:var(--yellow)} .p2-s.c{--c:var(--cyan)} .p2-s.g{--c:var(--good)}
+.p2-s b{display:block;font:800 italic 30px/1 var(--f-d);color:var(--c)}
+.p2-s span{display:block;margin-top:6px;font:700 italic 12px/1 var(--f-d);letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+.p2-row{display:flex;gap:10px;flex-wrap:wrap;padding:12px 26px 0}
+.p2-row>*{flex:1;margin:0}
+.p2-cols{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:20px;padding:6px 26px 0}
+.p2-cols h4{margin:16px 0 10px}
+.p2 .precs{max-height:330px}
+.p2-foot{display:flex;flex-direction:column;align-items:center;gap:10px;padding:18px 26px 22px}
+.p2-foot .actions{margin:0;width:100%}
+@media (max-width:959px){
+  .p2-top{padding:max(20px,env(safe-area-inset-top,0px)) 18px 18px;gap:14px}
+  .p2-av{width:64px;height:64px;font-size:26px}
+  .p2-id>b{font-size:30px}
+  .p2-stats{grid-template-columns:repeat(2,minmax(0,1fr));padding:14px 16px 0}
+  .p2-row,.p2-foot{padding-left:16px;padding-right:16px}
+  .p2-cols{grid-template-columns:1fr;gap:0;padding:0 16px}
+  .p2 .precs{max-height:none}
+}
+
+/* laptop game panel, calmer: shorter head, three lines of description, the modes as plain buttons (two rows for four) */
+@media (min-width:960px){
+  .sel-panel .gp-art{height:150px}
+  .sel-panel .gp-art .ic{width:100px;height:100px}
+  .sel-panel .gp-txt h2{font-size:32px}
+  .sel-panel .gp-txt p{display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+  .sel-panel .gp-mode{height:auto;gap:6px}
+  .sel-panel .gp-mode[style*="--n:4"]{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .sel-panel .gp-mode .seg-ind{display:none}
+  .sel-panel .gp-mode button{height:42px;font-size:14px;gap:7px;letter-spacing:.02em}
+  .sel-panel .gp-mode button.on{background:var(--panel3);box-shadow:inset 0 -3px 0 var(--pink)}
+  .sel-panel .gp-mode[style*="--n:4"] button{font-size:14px}
+  .sel-panel .gp-mode[style*="--n:4"] button svg{width:17px;height:17px}
+  .sel-panel .gp-go{padding-bottom:20px}
+}
+/* room for the hard offset shadows, so buttons next to each other do not run into each other */
+.gp-go{gap:18px}
+.hero-dots{margin-top:18px}
+@media (min-width:960px){.mtiles{gap:16px}.hc-btns{gap:16px}}
+@media (min-width:960px){.mtiles{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (min-width:1360px){.mtiles{grid-template-columns:repeat(4,minmax(0,1fr))}.mtile{padding:14px 12px;gap:12px}}

@@ -5,6 +5,7 @@
 --    pro Spieler gezählt, eine Partie zu zweit in Discord ergibt also zwei Einträge. Älter als 90 Tage wird gelöscht.
 -- 3. admin_discord(): Zahlen für die Übersicht (Spieler, Partien heute und in 7 Tagen, beliebte Spiele, Räume, letzte Spieler)
 -- 4. admin_players: Feld "discord" und Filter 'discord'
+-- 5. player_badges: dazu die Rolle (owner/admin) für die Abzeichen im Profil
 
 alter table public.profiles add column if not exists discord_first timestamptz;
 alter table public.profiles add column if not exists discord_at timestamptz;
@@ -117,3 +118,15 @@ end;
 $$;
 revoke all on function public.admin_players(text, integer, text) from public, anon;
 grant execute on function public.admin_players(text, integer, text) to authenticated;
+
+-- ---------- 5. Abzeichen im Profil: Rolle des Teams ----------
+create or replace function public.player_badges(name text)
+returns jsonb language sql stable security definer set search_path = '' as $$
+  select jsonb_build_object(
+    'invited', (select count(*) from public.profiles r
+      where r.referred_by = (select id from public.profiles where username = lower(trim(name)))
+        and not r.guest and not r.dev and not r.hidden),
+    'role', (select public.role_of(p.id) from public.profiles p where p.username = lower(trim(name))));
+$$;
+revoke all on function public.player_badges(text) from public, anon;
+grant execute on function public.player_badges(text) to authenticated;

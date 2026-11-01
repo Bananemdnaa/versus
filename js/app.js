@@ -388,10 +388,12 @@
   function modeTiles() {
     const mt = (id, cls, ic, label, sub) => `<button class="mtile ${cls}" id="${id}"><span class="mt-ic">${ic}</span><span class="mt-tx"><b>${label}</b><small>${sub}</small></span></button>`;
     const net = V.cloud && V.cloud.available();
-    return `<div class="mtiles">${mt('qt_quick', 'c', IC.boltf, 'Schnelles Spiel', net ? 'Gegen echte Gegner' : 'Gleich da')}
-      ${inDiscord() ? mt('qt_voice', 'y', IC.users, 'Sprachkanal', 'Mit allen im Kanal') : mt('qt_local', 'y', IC.users, 'Zu zweit', 'Ein PC, zwei Tastaturseiten')}
-      ${mt('qt_ai', 'p', IC.robot, 'Gegen KI', 'Vier Stufen')}
-      ${net && !inDiscord() ? mt('qt_room', 'g', IC.link, 'Raum erstellen', 'Code oder Link teilen') : ''}</div>`;
+    // every tile says which game it starts (the last one played that fits, otherwise 4 Gewinnt)
+    const roomG = (r => r && r.online && !locked(r) ? r : V.byId.c4)(V.byId[S.get('recent')]);
+    return `<div class="mtiles">${mt('qt_quick', 'c', IC.boltf, 'Schnelles Spiel', net && V.online && V.online.quickName ? V.online.quickName() : 'Gleich da')}
+      ${inDiscord() ? mt('qt_voice', 'y', IC.users, 'Sprachkanal', 'Mit allen im Kanal') : mt('qt_local', 'y', IC.users, 'Zu zweit', lastFor('local').name + ' an einem Gerät')}
+      ${mt('qt_ai', 'p', IC.robot, 'Gegen KI', lastFor('ai').name)}
+      ${net && !inDiscord() ? mt('qt_room', 'g', IC.link, 'Raum erstellen', 'Link für ' + roomG.name) : ''}</div>`;
   }
   // laptop: the running match, my table and matches over days, with a bar for how far it is
   let contList = [];
@@ -828,10 +830,9 @@
       ${cfg.mode === 'table' ? '<div class="gp-online" id="ofr"></div>' : ''}
       ${dcNone ? '<p class="hint dch">Dieses Spiel spielt ihr zu zweit am selben Gerät. In Discord hat jeder sein eigenes, darum geht es hier nicht.</p>' : dc && cfg.mode === 'ai' ? '<p class="hint dch">Nur du siehst dieses Spiel. Zum Mitspielen mit den anderen wähl oben „Sprachkanal“.</p>' : ''}
       ${voice ? `<p class="hint dch">${vNeedAcc ? 'Für dieses Spiel braucht ihr beide ein kostenloses Versus-Konto. Als Gast gehen 4 Gewinnt, Tic Tac Toe, Schiffe versenken und Käsekästchen.' : g.table ? 'Du eröffnest einen Tisch. Alle in diesem Sprachkanal sehen ihn unten als Balken und spielen auf ihrem eigenen Gerät mit.' : 'Du lädst ein. Wer in diesem Sprachkanal zuerst auf „Mitspielen“ tippt, spielt auf seinem eigenen Gerät gegen dich.'}</p>` : ''}
-      <div class="gp-go">${cfg.mode === 'online' || cfg.mode === 'open' || cfg.mode === 'table' || dcNone ? '' : vNeedAcc ? `<button class="btn primary big" id="acc"><span>${IC.user}Konto erstellen</span></button>` : `<button class="btn primary big" id="go"><span>${voice ? IC.users + (g.table ? 'Tisch eröffnen' : 'Einladen') : IC.play + 'Spielen'}</span><kbd class="only-fine">Enter</kbd></button>`}
+      <div class="gp-go">${cfg.mode === 'online' || cfg.mode === 'open' || cfg.mode === 'table' || dcNone ? '' : vNeedAcc ? `<button class="btn primary big" id="acc"><span>${IC.user}Konto erstellen</span></button>` : `<button class="btn primary big" id="go"><span>${voice ? IC.users + (g.table ? 'Tisch eröffnen' : 'Einladen') : IC.play + 'Spielen'}</span></button>`}
         <button class="btn ghost" id="tut"><span>${IC.book}Regeln${P.seen[g.id] ? '' : '<i class="dot"></i>'}</span></button>
-        ${full && g.online && cloudOk && !dc && (cfg.mode === 'ai' || cfg.mode === 'local') ? `<button class="btn finv" id="finv"><span>${IC.link}Freund einladen</span></button>` : ''}</div>
-      ${full ? '' : '<p class="gp-keys only-fine"><span><kbd>Enter</kbd> spielen</span><span><kbd>F</kbd> Favorit</span><span><kbd>← →</kbd> Spiel wechseln</span></p>'}`;
+        ${full && g.online && cloudOk && !dc && (cfg.mode === 'ai' || cfg.mode === 'local') ? `<button class="btn finv" id="finv"><span>${IC.link}Freund einladen</span></button>` : ''}</div>`;
     // the indicator glides from the old mode to the new one
     const seg = root.querySelector('#mode');
     if (root._mi != null && root._mi !== mi && V.fxOn()) void seg.offsetWidth;
