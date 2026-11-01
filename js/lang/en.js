@@ -837,6 +837,38 @@
     'Noch keine Freunde. Füg sie unter Online hinzu.': 'No friends yet. Add them under Online.'
   });
 
+  // app redesign: laptop home, match view, pause menu, areas, phone polish
+  A({
+    'Guten Morgen': 'Good morning', 'Guten Tag': 'Good afternoon', 'Guten Abend': 'Good evening', 'Bereit fürs Duell?': 'Ready for a duel?', 'Für dich': 'For you',
+    'Empfehlungen, Pfeiltasten wechseln': 'Suggestions, arrow keys switch', 'Karte': 'Card', 'Karte #': 'Card #', 'Online suchen': 'Find online',
+    'Ein PC, zwei Tastaturseiten': 'One PC, two sides of the keyboard', 'Vier Stufen': 'Four levels', 'Raum erstellen': 'Create a room', 'Code oder Link teilen': 'Share a code or link',
+    'Gleich da': 'Coming soon', 'Mit allen im Kanal': 'With everyone in the channel', 'Bibliothek{0}': 'Library{0}', 'Ansicht': 'View', 'Kacheln': 'Cards', 'Liste': 'List',
+    '# Spieler · KI': '# players · AI', '#–# Spieler · KI': '#–# players · AI', '{0} spielen': '{0} play', '{0} Favorit': '{0} favourite', '{0} Spiel wechseln': '{0} switch game', 'Spiel wechseln': 'Switch game',
+    'Tisch läuft': 'Table running', 'Tisch wartet': 'Table waiting', 'online · läuft': 'online · running', 'online · du bist dran': 'online · your turn', 'Läuft gerade': 'Running now',
+    'zum Lernen': 'for learning', 'fair': 'fair', 'plant voraus': 'plans ahead', 'kaum zu schlagen': 'hard to beat', 'Freund einladen': 'Invite a friend',
+    'Verbunden': 'Connected', '{0}Verbunden': '{0}Connected', 'Verbinde …': 'Connecting …', '{0}Verbinde …': '{0}Connecting …', '{0}Offline': '{0}Offline',
+    'Raum-Code eingeben': 'Enter a room code', 'Beitreten': 'Join', 'Spiel für die Rangliste': 'Game for the ranking',
+    'Online ist gerade nicht erreichbar': 'Online is not reachable right now', 'KI und Zu zweit gehen weiter. Versuch es gleich nochmal.': 'AI and two-player games still work. Try again in a moment.', 'Erneut versuchen': 'Try again',
+    'Mit Konto: Freunde, Herausforderungen, Rangliste': 'With an account: friends, challenges, ranking',
+    'Mit einem kostenlosen Konto kannst du Freunde hinzufügen, sie herausfordern und in die Rangliste kommen.': 'With a free account you can add friends, challenge them and get into the ranking.',
+    'Ab jetzt zählt Versus deine Partien pro Tag. Spiel eine Runde, dann wächst hier das Diagramm.': 'From now on Versus counts your games per day. Play a round and the chart grows here.',
+    'Quote': 'Rate', 'Beste KI': 'Best AI', 'Meilensteine': 'Milestones', 'Spiele ausprobiert': 'Games tried', '# von #': '# of #', 'Stärkste geschlagene KI': 'Strongest AI beaten', 'Noch keine': 'None yet',
+    'Siege gegen Profi': 'Wins against Pro', '+# diese Woche': '+# this week', 'In diesem Modus noch keine Partie.': 'No game in this mode yet.', 'Siege': 'Wins',
+    'Niederlagen, Remis und zu zweit': 'losses, draws and two-player games', 'Zu zweit: S = Spieler 1 gewinnt, N = Spieler 2 gewinnt.': 'Two players: W = player 1 wins, L = player 2 wins.',
+    'Kategorien': 'Categories', 'Option suchen': 'Search options', 'Tastatur': 'Keyboard', 'Änderungen gelten sofort': 'Changes apply right away', 'Keine Option gefunden.': 'No option found.',
+    'Strg': 'Ctrl', 'Seitenleiste ein- oder ausklappen': 'Expand or collapse the sidebar', 'Zurück und vor zwischen den Bereichen': 'Back and forward between areas', 'Pause-Menü': 'Pause menu',
+    'Revanche nach der Partie': 'Rematch after the game', 'Vollbild': 'Fullscreen', 'In den Action-Spielen hat jeder Spieler seine eigenen Tasten, sie stehen in den Regeln des Spiels.': 'In the action games every player has their own keys; they are in the rules of the game.',
+    'Kostenlos': 'Free', 'Ein Konto für alles': 'One account for everything', 'Bilanz auf jedem Gerät': 'Stats on every device', 'Freunde und Herausforderungen': 'Friends and challenges',
+    'Rangliste jede Woche': 'A ranking every week', 'Keine E-Mail nötig': 'No e-mail needed', 'Online-Partien': 'Online games', 'Rang diese Woche': 'Rank this week', 'Letzte Partien': 'Latest games',
+    'Ganzer Verlauf': 'Full history', 'Konto und Sicherheit': 'Account and security', 'Noch keine Online-Partie. Über „Online“ findest du einen Gegner.': 'No online game yet. Find an opponent under "Online".', 'Gerade nicht erreichbar.': 'Not reachable right now.',
+    'Zug zurück (Z)': 'Take back (Z)', 'Regeln (H)': 'Rules (H)', 'Vollbild (F11)': 'Fullscreen (F11)', 'Menü (Esc)': 'Menu (Esc)', 'Menü': 'Menu',
+    'Verlauf': 'Moves', 'Seitenleiste schließen': 'Close the side panel', 'Noch keine Züge': 'No moves yet', 'Verlauf und Tipps': 'Moves and tips', 'Verlauf zeigen': 'Show moves', 'Tipps': 'Tips',
+    'Keine Tipps für dieses Spiel.': 'No tips for this game.', 'Serie': 'Series', 'Serie {0}': 'Series {0}', 'aus deiner Sicht': 'from your side', 'Best of 3': 'Best of 3', 'Revanche mit {0}': 'Rematch with {0}',
+    'Partie angehalten': 'Game paused', 'Die Partie läuft weiter': 'The game keeps running', 'Pause': 'Pause', 'Zug #': 'Move #', 'Partie verlassen': 'Leave the game', 'zählt nicht in der Bilanz': 'does not count in your stats',
+    'zählt als Niederlage': 'counts as a loss', 'Die KI übernimmt deinen Platz': 'The AI takes your seat', 'Schnell-Einstellungen': 'Quick settings', 'Alle Optionen öffnen': 'Open all options',
+    'Zu Favoriten': 'Add to favourites', 'Online-Raum öffnen': 'Open an online room', 'Link kopiert': 'Link copied', 'Als App installieren': 'Install as app'
+  });
+
   // ---------- patterns: text with names, moves and hands ----------
   const t = V.t;
   const PIECE = { Bauer: 'Pawn', Springer: 'Knight', Läufer: 'Bishop', Turm: 'Rook', Dame: 'Queen', König: 'King' };
@@ -857,6 +889,8 @@
   }
   const who = s => (s === 'Du' ? 'You' : s.replace(/^KI\b/, 'AI').replace(/^Spieler (\d)/, 'Player $1'));
   V.i18n.pat([
+    // laptop home and phone cards: open matches
+    [/^online · wartet auf (.+)$/, 'online · waiting for $1'], [/^gegen (.+) · (.+)$/, (m, a, b) => 'vs. ' + a + ' · ' + t(b)], [/^Zug (\d+)$/, 'Move $1'],
     // game night and the connection bar
     [/^(.+) führt mit (\d+)$/, '$1 leads with $2'], [/^Gleichstand mit (\d+)$/, 'Tied at $1'], [/^(.+) gewinnt den Abend!$/, '$1 wins the night!'], [/^Es geht um (.+)$/, 'It is about $1'], [/^Seit (\S+) · (\d+) Partien? · (.+)$/, (m, a, b, c) => 'Since ' + a + ' · ' + b + (b === '1' ? ' game' : ' games') + ' · ' + t(c)],
     [/^(.+) · (\d+) Partien?$/, (m, a, b) => t(a) + ' · ' + b + (b === '1' ? ' game' : ' games')], [/^Versuche es wieder( · seit (\d+) s)?( · nach (\d+) s endet die Partie ohne Sieger)?$/, (m, a, s, b, n) => 'Trying again' + (a ? ' · for ' + s + ' s' : '') + (b ? ' · after ' + n + ' s the game ends without a winner' : '')],

@@ -889,6 +889,8 @@
   // Laptop: filter, numbers with this week's change, the last 14 days, a sortable table per game and milestones.
   // Phone: the same parts in one column. Days are counted locally since this version (js/play.js, versus.daily).
   let statMode = 'all', statSort = { k: 'n', d: -1 };
+  // win, loss, draw as one letter each (in English W L D)
+  const SNU = V.lang === 'en' ? ['W', 'L', 'D'] : ['S', 'N', 'U'];
   const STAT_MODES = [['all', 'Alle'], ['ai', 'Gegen KI'], ['on', 'Online'], ['local', 'Zu zweit']];
   const LVL_CLS = ['l0', 'l1', 'l2', 'l3'];
   function gameRec(g, mode) {
@@ -930,7 +932,7 @@
             ${days.some(x => x.w + x.l + x.d + x.n) ? `<div class="sbars">${days.map(x => `<div class="sb" title="${x.date.toLocaleDateString(V.locale())}: ${x.w} Siege, ${x.l} Niederlagen${x.n ? ', ' + x.n + ' zu zweit' : ''}">
               <i class="n" style="--h:${(x.l + x.d + x.n) / dmax * 100}%"></i><i class="w" style="--h:${x.w / dmax * 100}%"></i><small>${x.date.getDate()}</small></div>`).join('')}</div>
               <p class="fine"><i class="lg w"></i> Siege · <i class="lg n"></i> Niederlagen, Remis und zu zweit</p>` : '<p class="muted">Ab jetzt zählt Versus deine Partien pro Tag. Spiel eine Runde, dann wächst hier das Diagramm.</p>'}</div>
-          <div class="apanel stable"><div class="st-row st-head">${th('name', 'Spiel')}${th('w', 'S')}${th('l', 'N')}${th('d', 'U')}${th('rate', 'Quote')}${statMode === 'local' ? '' : th('best', 'Beste KI')}</div>
+          <div class="apanel stable"><div class="st-row st-head">${th('name', 'Spiel')}${th('w', SNU[0])}${th('l', SNU[1])}${th('d', SNU[2])}${th('rate', 'Quote')}${statMode === 'local' ? '' : th('best', 'Beste KI')}</div>
             ${sorted.length ? sorted.map(r => `<button class="st-row" data-sg="${r.g.id}" style="--acc:${r.g.accent || 'var(--pink)'}"><span class="st-g"><span class="ic">${r.g.icon}</span><b>${r.g.name}</b></span>
               <span class="good">${r.w}</span><span class="bad">${r.l}</span><span class="dim">${r.d}</span>
               <span class="st-q">${r.n ? `<i class="qbar"><i style="--w:${r.rate}%"></i></i>${r.rate} %` : '–'}</span>

@@ -58,6 +58,14 @@ Regeln im Detail:
 - **Mühle:** Setzen, Ziehen und Springen ab drei Steinen; Remis nach 30 Zügen pro Spieler ohne Mühle.
 - **Schiffe versenken:** 10×10, fünf Schiffe, die sich nicht berühren dürfen; ein Treffer heißt nochmal schießen. Platzieren: Schiffe aus dem Dock unter dem Brett aufs Meer ziehen (grüne Vorschau = passt), Antippen dreht, Ziehen verschiebt, zurück ins Dock ziehen nimmt weg; am PC auch Schiff wählen und Feld anklicken, `R` dreht.
 
+## Startseite und Layout
+
+- **PC (ab 960 px):** feste Seitenleiste links (Schnell spielen, Start, Bibliothek, Online, Bilanz, Konto, Favoriten, Freunde, Profil, Optionen). `Strg B` klappt sie zur Icon-Leiste ein, unter 1100 px und in einer Partie ist sie das automatisch. Oben eine App-Leiste mit Zurück/Vor (`Alt ← →`), Suche (`Strg K` oder `/`), Online-Lobby und Glocke. Nur der Hauptbereich (`#app`) und das Detail-Panel scrollen.
+- **Startseite PC:** großer Hero, vier Modus-Kacheln, „Weiterspielen“ (laufende Online-Partien), Bibliothek als Karten oder Liste, Detail-Panel rechts. Rechtsklick auf eine Karte öffnet ein Menü.
+- **Im Spiel:** Spiel-Leiste mit `Z` (Zug zurück), `H` (Regeln), `F11`, `Esc` (Pause-Menü mit Schnell-Einstellungen), Zug-Pille unter dem Brett, ab 1280 px rechts Verlauf, Tipps und Serie. `R` startet nach der Partie die Revanche.
+- **Bereiche PC:** Online-Lobby in zwei Spalten mit Raum-Code, Bilanz mit Filter, 14-Tage-Diagramm (Partien pro Tag lokal in `versus.daily`), sortierbarer Tabelle und Meilensteinen, Konto mit Kennzahlen und letzten Partien, Optionen mit Kategorien, Suche und Tastatur-Übersicht, Admin-Panel mit Navigation links.
+- **Handy (unter 960 px):** Begrüßungs-Kopf mit Suche, Karte für die offene Partie, Freunde als runde Avatare, „Für dich“, Spiel-Sheet mit großen KI-Stufen und „Freund einladen“, Zurück im Spiel öffnet das Pause-Menü, Wischen wechselt die Tabs.
+
 ## Steuerung
 
 Alles geht mit Finger oder Maus. Am PC zusätzlich mit der Tastatur, `?` zeigt alle Kürzel:

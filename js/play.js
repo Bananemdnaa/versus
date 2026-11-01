@@ -135,7 +135,7 @@
         <div class="score" id="sc"><b class="sl">${series[L]}</b><i>:</i><b class="sr">${series[R]}</b></div>
         ${card(R, 'r')}`}
         <div class="center"><div class="status" id="st" aria-live="polite"></div><div class="stage" id="stage"></div>
-          <div class="tpill" id="tpill" hidden><i></i><b></b>${g.keys && g.cat !== 'Action' ? `<small>${g.keys.slice(0, 2).map(([k, d]) => `<kbd>${k}</kbd> ${d}`).join(' · ')}</small>` : ''}</div></div>
+          <div class="tpill" id="tpill" hidden><i></i><b></b>${g.keys && g.cat !== 'Action' ? `<small>${g.keys.slice(0, 2).map(([k, d]) => `<kbd>${k}</kbd> ${V.t(d)}`).join(' · ')}</small>` : ''}</div></div>
       </div>${pside ? `<aside class="pside" id="pside" aria-label="Partie">
         <div class="ps-tabs" role="tablist"><button role="tab" class="on" data-pt="log" aria-selected="true">Verlauf</button><button role="tab" data-pt="tips" aria-selected="false">Tipps</button>
           <button class="iconbtn ps-x" id="psx" aria-label="Seitenleiste schließen" title="Seitenleiste schließen">${IC.x}</button></div>
@@ -171,7 +171,7 @@
       const mine = me || L, won = series[mine] || 0, lost = SIDES.reduce((n, k) => n + (k === mine ? 0 : series[k] || 0), 0), d = series.d || 0;
       const fields = [...Array(won).fill('w'), ...Array(lost).fill('l'), ...Array(d).fill('d')];
       while (fields.length < 3) fields.push('o');
-      el.innerHTML = `<h4>Serie <small>${me ? 'aus deiner Sicht' : esc(names[L])}</small></h4><div class="ps-f">${fields.slice(-7).map(f => `<i class="${f}">${{ w: 'S', l: 'N', d: 'U', o: '?' }[f]}</i>`).join('')}</div>
+      el.innerHTML = `<h4>Serie <small>${me ? 'aus deiner Sicht' : esc(names[L])}</small></h4><div class="ps-f">${fields.slice(-7).map(f => `<i class="${f}">${(V.lang === 'en' ? { w: 'W', l: 'L', d: 'D', o: '?' } : { w: 'S', l: 'N', d: 'U', o: '?' })[f]}</i>`).join('')}</div>
         <p>${ended && !watch ? 'Revanche mit <kbd>R</kbd>' : 'Best of 3'}</p>`;
     }
     if (pside) {
@@ -926,7 +926,7 @@
       const score = party ? SIDES.map(s => series[s]).join(':') : series[L] + ':' + series[R];
       const m = openModal(`<div class="pause">
         <div class="pz-l"><span class="pz-k">${netGame ? 'Die Partie läuft weiter' : 'Partie angehalten'}</span><h2>${title}</h2>
-          <p class="pz-info">${esc(g.name)} · ${sublabel} · Zug ${plies + 1} · ${score}</p>
+          <p class="pz-info"><span>${esc(g.name)}</span> · <span>${sublabel}</span> · <span>Zug ${plies + 1}</span> · <span>${score}</span></p>
           <button class="btn primary big" id="pz_go"><span>${IC.play}Weiterspielen</span><kbd class="only-fine">Esc</kbd></button>
           <div class="pz-list">${canUndo ? row('pz_undo', IC.undo, 'Zug zurück', 'Z') : ''}
             ${online ? row('pz_res', IC.flag, 'Aufgeben', '') : table ? '' : row('pz_new', IC.redo, 'Neu starten', 'N')}

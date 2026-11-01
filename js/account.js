@@ -101,7 +101,7 @@
       const t = p.total || {}, fr = V.online && V.online.sideFriends ? V.online.sideFriends().length : 0;
       const kp = (v, l) => `<div class="kpi"><b>${v}</b><span>${l}</span></div>`;
       k.innerHTML = kp(t.played || 0, 'Online-Partien') + kp((t.played ? Math.round((t.wins || 0) / t.played * 100) : 0) + ' %', 'Siegquote') + kp(p.week && p.week.pos ? '#' + p.week.pos : '–', 'Rang diese Woche') + kp(fr, 'Freunde');
-      const RES = { win: 'S', loss: 'N', draw: 'U', void: '–' };
+      const RES = V.lang === 'en' ? { win: 'W', loss: 'L', draw: 'D', void: '–' } : { win: 'S', loss: 'N', draw: 'U', void: '–' };
       const rows = (p.recent || []).slice(0, 6).map(x => `<div class="prec ${x.res}"><span class="pr-r">${RES[x.res] || '–'}</span><span class="ic">${V.byId[x.game] ? V.byId[x.game].icon : ''}</span>
         <span class="pr-t"><b>${esc(gameName(x.game))}</b><small>gegen ${esc(x.opp || '?')}</small></span><span class="pr-d">${ago(x.at)}</span></div>`).join('');
       r.innerHTML = rows || `<p class="muted">Noch keine Online-Partie. Über „Online“ findest du einen Gegner.</p>`;
