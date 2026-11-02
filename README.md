@@ -6,7 +6,7 @@ Spiele für zwei bis vier Spieler an einem Gerät, online oder allein gegen die 
 
 ## Spiele
 
-- **Klassiker:** 4 Gewinnt, Schiffe versenken, Tic Tac Toe, Fünf in einer Reihe, Ultimate Tic Tac Toe, Käsekästchen, Galgenmännchen (2–4), Stadt Land Fluss (2–4), Schätzfragen (2–4), Zeichnen & Raten (2–4), 3D Tic Tac Toe, Zahlencode knacken
+- **Klassiker:** 4 Gewinnt, Schiffe versenken, Tic Tac Toe, Fünf in einer Reihe, Ultimate Tic Tac Toe, Hardcore Tic Tac Toe, Käsekästchen, Galgenmännchen (2–4), Stadt Land Fluss (2–4), Schätzfragen (2–4), Zeichnen & Raten (2–4), 3D Tic Tac Toe, Zahlencode knacken
 - **Brettspiele:** Ludo (wie Mensch ärgere dich nicht, 2–4), Leiterspiel (2–4), Dame, Mühle, Würfelblock (wie Kniffel, 2–4), Mau-Mau (2–4), Memory (2–4), Poker (Texas Hold'em, 2–4), Schnapsen, Domino (2–4); mit Holzbrett-Look, Spielfiguren, 3D-Würfeln und Karten
 - **Strategie:** Schach, Reversi, Kalaha, Go (9×9 oder 13×13), Backgammon, Hex (7×7, 9×9 oder 11×11)
 - **Action:** Reaktionsduell, Pong, Air Hockey (beide spielen gleichzeitig am selben Handy, jeder auf seiner Hälfte), Billard (8-Ball, abwechselnd am selben Gerät), Lichtrenner (2–4), Sumo-Arena (2–4)
@@ -235,3 +235,7 @@ Versus läuft als Activity direkt im Discord-Sprachkanal (`js/discord.js`, SDK 2
 ## Zeichnen & Raten
 
 2–4 Spieler, ohne KI (`js/games/draw.js`), am Gerät oder an einem Online-Tisch. Reihum wählt einer von drei Wörtern (Deutsch oder Englisch, je nach Sprache, rund 140 Wörter) und zeichnet es in der eingestellten Zeit (60, 80 oder 100 s); jeder zeichnet 1–3 Mal. Am Gerät schauen die anderen beim Wählen weg, rufen ihre Antworten, und der Zeichner tippt an, wer es hatte (10 Punkte, Zeichner 5); „Wort ansehen“ zeigt es nur, solange man drückt. Online gehen die Striche als kleine Tisch-Züge an alle (Koordinaten als Base64, ein Stück etwa jede Sekunde), Antworten werden getippt und mit einem Hash des Wortes verglichen; das Wort selbst kommt erst am Ende der Runde. Punkte online: 10, 8, 6 nach Reihenfolge, der Zeichner 4 pro Treffer. Fällt ein Zeichner raus, überspringt der Gastgeber seine Runde. Migration: `supabase/migrations/20261124000000_draw.sql`.
+
+## Hardcore Tic Tac Toe
+
+Ultimate Tic Tac Toe eine Ebene tiefer (`js/games/hardcore.js`): 9 Bereiche, jeder ein Ultimate-Brett, 729 Felder. Drei in einer Reihe gewinnen ein kleines Brett, drei kleine Bretter einen Bereich, drei Bereiche das Spiel; entschiedene Bretter ohne Sieger zählen für niemanden. Wer im Bereich a, Brett b, Feld c setzt, schickt den Gegner in Bereich b, Brett c; ist das Brett entschieden, darf er überall in Bereich b spielen, ist der Bereich entschieden, überall. Groß steht immer ein Bereich, daneben eine Karte aller neun (antippen oder `1`–`9` wie der Ziffernblock), nach jedem Zug springt die Ansicht in den Bereich, in dem gespielt werden muss. KI mit Monte-Carlo-Baumsuche; noch nicht online.

@@ -249,6 +249,34 @@
     'Na los, du bist dran!': 'Come on, your turn!', 'Upps!': 'Oops!', 'Glück gehabt!': 'Lucky!', 'Danke!': 'Thanks!', 'Sorry!': 'Sorry!', 'Revanche?': 'Rematch?', 'Bis gleich!': 'See you soon!'
   });
 
+  // ---------- Hardcore Tic Tac Toe ----------
+  A({
+    'Ultimate Tic Tac Toe, nochmal verschachtelt.': 'Ultimate Tic Tac Toe, nested once more.',
+    'Neun Ultimate-Bretter in einem großen, 729 Felder. Dein Feld schickt den Gegner in ein Brett, dein Brett in einen Bereich.': 'Nine Ultimate boards in one big board, 729 cells. Your cell sends your opponent to a board, your board sends them to an area.',
+    'Cursor im Bereich bewegen': 'Move the cursor in the area', 'Bereich ansehen (Ziffernblock)': 'View an area (number pad)',
+    'Anfänger: rechnet kaum und schickt dich oft, wohin du willst.': 'Beginner: barely calculates and often sends you wherever you like.',
+    'Spielt pro Zug ein paar hundert Partien durch.': 'Plays a few hundred games through per move.', 'Spielt pro Zug tausende Partien durch.': 'Plays thousands of games through per move.', 'Nutzt die volle Bedenkzeit.': 'Uses the full thinking time.',
+    'Drei Ebenen': 'Three levels', 'Gewinnen von unten nach oben': 'Winning from the bottom up', 'Die Karte': 'The map',
+    'Das Spielfeld hat {0}. Jeder Bereich ist ein ganzes Ultimate-Tic-Tac-Toe-Brett mit 9 kleinen Brettern, also 729 Felder.': 'The board has {0}. Every area is a whole Ultimate Tic Tac Toe board with 9 small boards, so 729 cells.',
+    '9 Bereiche': '9 areas',
+    'Drei in einer Reihe gewinnt ein {0}. Drei kleine Bretter in einer Reihe gewinnen einen {1}. Drei Bereiche in einer Reihe gewinnen das {2}.': 'Three in a row wins a {0}. Three small boards in a row win an {1}. Three areas in a row win the {2}.',
+    'kleines Brett': 'small board', 'Bereich': 'area', 'ganze Spiel': 'whole game',
+    'Setzt du im kleinen Brett zum Beispiel {0}, muss der Gegner im Brett oben rechts weiterspielen. Und weil dein kleines Brett selbst eine Position im Bereich hat, bestimmt es den {1}: Liegt es in der Mitte, geht es im mittleren Bereich weiter.': 'If you play, say, {0} in a small board, your opponent has to play in the top right board. And because your small board has a position in its area too, it picks the {1}: if it is in the middle, play continues in the middle area.',
+    'oben rechts': 'top right',
+    'Ist das Ziel-Brett schon entschieden, darfst du überall in diesem Bereich spielen. Ist der ganze Bereich entschieden, darfst du {0} spielen.': 'If the target board is already decided, you may play anywhere in that area. If the whole area is decided, you may play {0}.',
+    'überall': 'anywhere',
+    'Groß siehst du immer einen Bereich. Die {0} daneben zeigt alle neun, der leuchtende ist der, in dem gespielt werden muss. Tipp auf einen Bereich der Karte, um ihn anzusehen. Am PC gehen dafür die Ziffern 1–9 wie auf dem Ziffernblock.': 'The big view always shows one area. The {0} next to it shows all nine; the glowing one is where you have to play. Tap an area on the map to look at it. On a computer the keys 1–9 work like a number pad.',
+    'Karte': 'map',
+    'Freie Wahl: du darfst in jedem offenen Bereich spielen. Andere Bereiche tippst du auf der Karte an.': 'Free choice: you may play in any open area. Tap the map for other areas.',
+    'Freie Wahl: tipp auf der Karte einen offenen Bereich an.': 'Free choice: tap an open area on the map.',
+    'Freie Wahl in diesem Bereich.': 'Free choice in this area.', 'Hier musst du spielen.': 'You have to play here.'
+  });
+  {
+    const AR = { 'oben links': 'top left', 'oben': 'top', 'oben rechts': 'top right', 'links': 'left', 'Mitte': 'middle', 'rechts': 'right', 'unten links': 'bottom left', 'unten': 'bottom', 'unten rechts': 'bottom right' };
+    const a = k => AR[k] || k;
+    V.i18n.pat([[/^Bereich (.+), Brett (.+)$/, (m, x, y) => `Area ${a(x)}, board ${a(y)}`], [/^Gespielt wird im Bereich (.+)\.$/, (m, x) => `Play is in the ${a(x)} area.`], [/^Bereich (oben links|oben|oben rechts|links|Mitte|rechts|unten links|unten|unten rechts)$/, (m, x) => `Area ${a(x)}`]]);
+  }
+
   // ---------- games: names by id ----------
   V.i18n.names({
     c4: 'Connect 4', ships: 'Battleship', ttt: 'Tic Tac Toe', gomoku: 'Five in a Row', uttt: 'Ultimate Tic Tac Toe', dots: 'Dots and Boxes',
