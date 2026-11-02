@@ -2,7 +2,7 @@
 (function () {
   'use strict';
   const C = () => V.cloud, IC = () => V.ui.IC;
-  const ONLINE = ['c4', 'ships', 'ttt', 'uttt', 'gomoku', 'chess', 'checkers', 'reversi', 'mill', 'kalaha', 'go', 'backgammon', 'dots', 'hex', 'ttt3'];
+  const ONLINE = ['c4', 'ships', 'ttt', 'uttt', 'gomoku', 'chess', 'checkers', 'reversi', 'mill', 'kalaha', 'go', 'backgammon', 'dots', 'hex', 'ttt3', 'hardcore'];
   ONLINE.forEach(id => { if (V.byId[id]) V.byId[id].online = true; });
   const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const gname = id => (V.byId[id] ? V.byId[id].name : id || '');
@@ -563,7 +563,7 @@
 
   // ---------- game panel: pick a friend to invite ----------
   // games where a match can go over days (the turn always alternates, so the server knows who is to move)
-  const ASYNC = ['c4', 'ttt', 'uttt', 'gomoku', 'chess', 'checkers', 'mill', 'go', 'backgammon', 'hex', 'ttt3'];
+  const ASYNC = ['c4', 'ttt', 'uttt', 'gomoku', 'chess', 'checkers', 'mill', 'go', 'backgammon', 'hex', 'ttt3', 'hardcore'];
   let pickAsync = V.store.get('async', false);
   // The online parts of the game panel (js/app.js renderPanel). The main action of each mode (link, search, open a table)
   // is the big button at the bottom of the panel; these lists stay short so nothing has to scroll.

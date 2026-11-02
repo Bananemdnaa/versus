@@ -50,9 +50,9 @@
     p_oops: 'Upps!', p_lucky: 'Glück gehabt!', p_ty: 'Danke!', p_sorry: 'Sorry!', p_rev: 'Revanche?', p_bye: 'Bis gleich!' };
   const say = e => EMO[e] || PHR[e];
   // duels where the turn always alternates and side 1 begins (same list as match_move on the server)
-  const ALTERNATE = ['c4', 'ttt', 'uttt', 'gomoku', 'chess', 'checkers', 'mill', 'go', 'backgammon', 'hex', 'ttt3'];
+  const ALTERNATE = ['c4', 'ttt', 'uttt', 'gomoku', 'chess', 'checkers', 'mill', 'go', 'backgammon', 'hex', 'ttt3', 'hardcore'];
   // games without luck where you may take a move back against the AI on Leicht and Mittel
-  const UNDO = ['c4', 'ttt', 'uttt', 'gomoku', 'dots', 'checkers', 'mill', 'chess', 'reversi', 'kalaha', 'go', 'hex', 'ttt3'];
+  const UNDO = ['c4', 'ttt', 'uttt', 'gomoku', 'dots', 'checkers', 'mill', 'chess', 'reversi', 'kalaha', 'go', 'hex', 'ttt3', 'hardcore'];
   // Modes: 'ai' (vs. computer), 'local' (two players, one device), 'online' (vs. a friend over the server),
   // 'watch' (admins follow or replay a match). A remote player is handled like the AI: the game calls
   // ctx.aiTurn() and gets the move from the network instead of from a search.

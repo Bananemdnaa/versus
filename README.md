@@ -238,7 +238,7 @@ Versus läuft als Activity direkt im Discord-Sprachkanal (`js/discord.js`, SDK 2
 
 ## Hardcore Tic Tac Toe
 
-Ultimate Tic Tac Toe eine Ebene tiefer (`js/games/hardcore.js`): 9 Bereiche, jeder ein Ultimate-Brett, 729 Felder. Drei in einer Reihe gewinnen ein kleines Brett, drei kleine Bretter einen Bereich, drei Bereiche das Spiel; entschiedene Bretter ohne Sieger zählen für niemanden. Wer im Bereich a, Brett b, Feld c setzt, schickt den Gegner in Bereich b, Brett c; ist das Brett entschieden, darf er überall in Bereich b spielen, ist der Bereich entschieden, überall. Groß steht immer ein Bereich, daneben eine Karte aller neun (antippen oder `1`–`9` wie der Ziffernblock), nach jedem Zug springt die Ansicht in den Bereich, in dem gespielt werden muss. KI mit Monte-Carlo-Baumsuche; noch nicht online.
+Ultimate Tic Tac Toe eine Ebene tiefer (`js/games/hardcore.js`): 9 Bereiche, jeder ein Ultimate-Brett, 729 Felder. Drei in einer Reihe gewinnen ein kleines Brett, drei kleine Bretter einen Bereich, drei Bereiche das Spiel; entschiedene Bretter ohne Sieger zählen für niemanden. Wer im Bereich a, Brett b, Feld c setzt, schickt den Gegner in Bereich b, Brett c; ist das Brett entschieden, darf er überall in Bereich b spielen, ist der Bereich entschieden, überall. Groß steht immer ein Bereich, daneben eine Karte aller neun (antippen oder `1`–`9` wie der Ziffernblock), nach jedem Zug springt die Ansicht in den Bereich, in dem gespielt werden muss. KI mit Monte-Carlo-Baumsuche. Online als Duell, auch über Tage (Migration `20261125000000_hardcore_online.sql`).
 
 ## Saison-Looks
 
