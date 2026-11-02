@@ -1487,9 +1487,10 @@
   addEventListener('offline', () => netState(true));
   // the soft edge at the top of the phone screen only shows once the page has moved
   const onScroll = () => document.documentElement.classList.toggle('scrolled', (wide() ? app.scrollTop : scrollY) > 8);
-  addEventListener('scroll', onScroll, { passive: true }); app.addEventListener('scroll', onScroll, { passive: true });
+  addEventListener('scroll', onScroll, { passive: true }); if (app) app.addEventListener('scroll', onScroll, { passive: true });
   // phone: a quick sideways swipe over the page moves to the next or previous tab (not over rows that scroll sideways)
-  {
+  // (pages without the app, like the page builder in tools/pages.ps1, have no #app)
+  if (app) {
     const ORDER = ['games', 'online', 'stats', 'profile'];
     let sw = null;
     // touch events (pointer events get cancelled as soon as the browser starts panning)

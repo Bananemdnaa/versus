@@ -32,7 +32,7 @@ $extract = @'
   }, 400);
 </script>
 '@
-[IO.File]::WriteAllText($probe, "<!doctype html><html><head><meta charset=`"utf-8`"><style id=`"game-css`"></style></head><body><div id=`"box`"></div><pre id=`"out`"></pre>`n" + ($scripts -join "`n") + "`n" + $extract + '</body></html>', $utf8)
+[IO.File]::WriteAllText($probe, "<!doctype html><html><head><meta charset=`"utf-8`"><style id=`"game-css`"></style></head><body><div id=`"app`" hidden></div><div id=`"box`"></div><pre id=`"out`"></pre>`n" + ($scripts -join "`n") + "`n" + $extract + '</body></html>', $utf8)
 $prof = Join-Path $env:TEMP 'versus-pages-chrome'
 function Read-Games($lang) {
   $ErrorActionPreference = 'Continue'  # Chrome writes harmless warnings to stderr
@@ -58,8 +58,8 @@ $TX = @{
     play = 'Play now'; how = 'How to play'; ways = 'Ways to play'; more = 'More games'; free = 'Free · no ads'
     ai = 'Against the AI · 4 levels'; local = 'Two players on one device'; localAction = 'Both players on the same screen'; online = 'Online with friends'
     noDl = 'Runs in the browser on phones and computers, no download and no sign-up needed to start.'
-    allTitle = 'All games – play free online for 2 to 4 players | Versus'; allH = 'All 32 games'
-    allMeta = '32 quick games for 2 to 4 players: Chess, Connect 4, Poker, Ludo, Battleship and more. Free, no ads, in your browser.'
+    allTitle = 'All games – play free online for 2 to 4 players | Versus'; allH = "All 35 games"
+    allMeta = '35 quick games for 2 to 4 players: Chess, Connect 4, Poker, Ludo, Battleship and more. Free, no ads, in your browser.'
     allLead = 'Quick games for two to four players: on one device, against the AI or online with friends. Free and without ads.'
     other = 'Deutsch'; legal = 'Legal notice'; terms = 'Terms of service'; home = 'Open Versus'
   }
@@ -71,8 +71,8 @@ $TX = @{
     play = 'Jetzt spielen'; how = 'So wird gespielt'; ways = 'So kannst du spielen'; more = 'Weitere Spiele'; free = 'Gratis · ohne Werbung'
     ai = 'Gegen die KI · 4 Stufen'; local = 'Zu zweit an einem Gerät'; localAction = 'Beide am selben Bildschirm'; online = 'Online mit Freunden'
     noDl = 'Läuft im Browser am Handy und am Computer, ohne Download und ohne Anmeldung zum Loslegen.'
-    allTitle = 'Alle Spiele – kostenlos online für 2 bis 4 Spieler | Versus'; allH = 'Alle 32 Spiele'
-    allMeta = '32 schnelle Spiele für 2 bis 4: Schach, 4 Gewinnt, Poker, Ludo, Schiffe versenken und mehr. Gratis, ohne Werbung, im Browser.'
+    allTitle = 'Alle Spiele – kostenlos online für 2 bis 4 Spieler | Versus'; allH = "Alle 35 Spiele"
+    allMeta = '35 schnelle Spiele für 2 bis 4: Schach, 4 Gewinnt, Poker, Ludo, Schiffe versenken und mehr. Gratis, ohne Werbung, im Browser.'
     allLead = 'Schnelle Spiele für zwei bis vier: am selben Handy, gegen die KI oder online mit Freunden. Kostenlos und ohne Werbung.'
     other = 'English'; legal = 'Impressum & Datenschutz'; terms = 'Nutzungsbedingungen'; home = 'Versus öffnen'
   }
