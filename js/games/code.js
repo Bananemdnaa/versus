@@ -36,7 +36,7 @@
   .cd-pad{display:grid;grid-template-columns:repeat(6,1fr);gap:6px;width:min(100%,380px)}
   .cd-pad button{height:46px;border-radius:10px;background:var(--panel2);border:1px solid var(--line2);font:800 italic 22px/1 var(--f-d);color:var(--fg)}
   .cd-pad button:disabled{opacity:.3}
-  .cd-pad button.ok{background:var(--pink);color:var(--ink);grid-column:span 2}
+  .cd-pad button.ok{background:var(--pink);color:var(--ink);grid-column:1/-1;font-size:18px;letter-spacing:.04em;text-transform:uppercase}
   .cd-pad button.ok:disabled{background:var(--panel2);color:var(--fg)}
   .cd-note{color:var(--muted);font-size:13px;text-align:center;margin:0;min-height:18px}
   .cd-legend{display:flex;gap:14px;color:var(--muted);font-size:12px} .cd-legend span{display:flex;gap:5px;align-items:center}`);

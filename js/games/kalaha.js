@@ -66,7 +66,11 @@
   @keyframes klhit{40%{transform:scale(1.12)}}
   .klh .src{box-shadow:inset 0 4px 10px rgba(0,0,0,.75),0 0 0 3px var(--sc)}
   .klh.lock .pit{cursor:default}
-  .klh-lab{display:flex;justify-content:space-between;width:min(var(--bw),640px);font:700 italic 12px/1 var(--f-d);letter-spacing:.14em;text-transform:uppercase;color:var(--muted);padding:0 14px}`);
+  .klh-lab{display:flex;justify-content:space-between;width:min(var(--bw),640px);font:700 italic 12px/1 var(--f-d);letter-spacing:.14em;text-transform:uppercase;color:var(--muted);padding:0 14px}
+  .klh.vert{grid-template-columns:repeat(2,1fr);grid-template-rows:1.1fr repeat(6,1fr) 1.1fr;height:min(calc(100dvh - 330px),600px);width:auto;aspect-ratio:2.2/8.6;border-radius:40%/999px}
+  .klh.vert .store{grid-row:auto;grid-column:1/3}
+  .klh.vert .pit{height:100%;width:auto;max-width:100%;justify-self:center}
+  .klh.vert+.klh-lab,.klh-lab:has(+.klh.vert){justify-content:center}`);
   const COLORS = ['#ff6fa8', '#62f0ff', '#ffd84f', '#5dff9d', '#c39bff', '#ff9f43'];
 
   V.register({
@@ -89,19 +93,26 @@
       let s = { b: [per, per, per, per, per, per, 0, per, per, per, per, per, per, 0], turn: 1, done: false }, busy = false, over = false;
       // side 2 (against the AI or online) sees the board turned around: own pits at the bottom, own store on the right
       const flip = (ctx.mode === 'ai' && ctx.aiSide === 1) || ctx.mySide === 2;
-      const lab = V.el('div', 'klh-lab', `<span>${ctx.name(flip ? 1 : 2)}</span><span>${ctx.name(flip ? 2 : 1)}</span>`);
-      const board = V.el('div', 'klh'), cells = [];
+      // narrow phones in portrait: the board stands upright (turned clockwise: the left store on top, your pits on the left)
+      const vert = (ctx.stage.clientWidth || innerWidth) < 520 && innerHeight > innerWidth;
+      const nTop = ctx.name(flip ? 1 : 2), nBot = ctx.name(flip ? 2 : 1);
+      const lab = V.el('div', 'klh-lab', vert ? `<span>${nTop}</span>` : `<span>${nTop}</span><span>${nBot}</span>`);
+      const board = V.el('div', 'klh' + (vert ? ' vert' : '')), cells = [];
       // grid positions: top row = pits 12..7 from left to right, bottom row = 0..5 (turned: top 5..0, bottom 7..12)
       for (let i = 0; i < 14; i++) {
         const store = i === 6 || i === 13;
         const el = V.el('div', store ? 'store ' + (i === 6 ? 's1' : 's2') : 'pit p' + (i < 6 ? 1 : 2));
         const j = flip ? (i + 7) % 14 : i;
-        if (store) el.style.gridColumn = j === 6 ? 8 : 1;
-        else { el.style.gridColumn = j < 6 ? j + 2 : 14 - j; el.style.gridRow = j < 6 ? 2 : 1; }
+        // column c (1..8) and row r (1..2) of the lying board; upright, the column becomes the row
+        const c = store ? (j === 6 ? 8 : 1) : j < 6 ? j + 2 : 14 - j, r = j < 6 ? 2 : 1;
+        if (vert) { el.style.gridRow = c; if (!store) el.style.gridColumn = 3 - r; }
+        else if (store) el.style.gridColumn = c;
+        else { el.style.gridColumn = c; el.style.gridRow = r; }
         el.innerHTML = '<div class="seeds"></div><b class="n"></b>'; el.dataset.i = i;
         cells[i] = el; board.appendChild(el);
       }
       ctx.stage.append(lab, board);
+      if (vert) ctx.stage.append(V.el('div', 'klh-lab', `<span>${nBot}</span>`));
       // every seed keeps a colour and a resting spot so the pits look like real piles
       const seedPos = () => ({ x: 22 + Math.random() * 56, y: 22 + Math.random() * 56, c: V.pick(COLORS) });
       const piles = s.b.map(n => Array.from({ length: n }, seedPos));

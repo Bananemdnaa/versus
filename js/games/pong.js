@@ -12,7 +12,7 @@
   V.arenaSize = function (stage, ratio) {
     const maxW = Math.min(stage.clientWidth || 480, 480);
     // the phone layout has a player card above and below the arena
-    const maxH = Math.max(320, window.innerHeight - (window.innerWidth < 960 ? 290 : 230));
+    const maxH = Math.max(320, window.innerHeight - (window.innerWidth < 960 ? 322 : 230));
     let w = maxW, h = w * ratio;
     if (h > maxH) { h = maxH; w = h / ratio; }
     return { w: Math.floor(w), h: Math.floor(h) };

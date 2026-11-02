@@ -2853,3 +2853,8 @@ body:has(.view.play) .season.halloween .bat{display:none}
 .ss-winter .hcard.hw{box-shadow:0 0 0 1px rgba(160,220,255,.5),0 0 40px -12px rgba(140,210,255,.7)}
 body:has(.view.play) .season.front{opacity:.35}
 body:has(.view.play) .season.halloween .spider{display:none}
+/* phone game bar: rules and restart are in the pause menu (the back arrow), so the game's name has room */
+@media (max-width:959px){
+  .view.play>.pbar #ph,.view.play:not(.net)>.pbar #pr{display:none}
+  .pbar .ttl small{letter-spacing:.06em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding-right:.15em}
+}

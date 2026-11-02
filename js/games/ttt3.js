@@ -74,6 +74,7 @@
   .t3-views button.on{background:var(--cyan);color:var(--ink)}
   .t3-views .t3-help{margin-left:6px;border:1px dashed var(--line2)}
   .t3-views .t3-help.on{background:var(--yellow);color:var(--ink);border-color:var(--yellow)}
+  @media (max-width:420px){.t3-views{flex-wrap:nowrap;gap:2px}.t3-views button{padding:7px 7px;font-size:12px;letter-spacing:0}.t3-views .t3-help{margin-left:3px}}
   .t3-hint{display:flex;align-items:center;justify-content:center;gap:10px;color:var(--muted);font-size:12.5px;text-align:center;min-height:34px;max-width:440px}
   .t3:not(.v-top) .t3-g{transform:none}
   /* 3D: the four layers stacked, tilted and turned; the stones always face the viewer */
