@@ -2785,3 +2785,8 @@ html.lowfx::view-transition-group(*),html.lowfx::view-transition-old(*),html.low
 .acard.lkc .abig.sym{font-size:30px;font-style:normal}
 .acard.lkc .ahead small.p2-m{color:var(--fg);font-size:14.5px;font-style:italic}
 .acard.lkc .ahead .p2-fav{margin-top:2px}
+
+/* Italic display text leans past its own box, so a clipped box (ellipsis) cuts off the last letter: give it room on the right */
+.gp-mode button span,.gp-mode2 button span,.pbar .ttl b,.pcard .nm b,.rgames small,.pod b,.rrow .who b,.phead b,.frow .ft b,.lb-seat b,
+.tiles .tile b,.ah-t b,.fcard b,.cc-tx b,.p2-id>b,.lv-row .lvb b,.gp .gp-go .btn.primary.big>span,.sd-mt b{padding-right:.18em}
+.rv-pre button,.rv-row.wide .mini-seg button{padding-left:.4em;padding-right:.5em}
