@@ -525,7 +525,7 @@
             pls[oppSide].classList.toggle('off', !oppOn && !slow);
             // the server calls the match off after 75 seconds without a sign of life (no winner, it doesn't count)
             const idle = st.role === 'a' ? st.b_idle : st.a_idle;
-            offNote(!slow && !oppOn && !ended && st.status === 'live' ? `${esc(names[oppSide])} ist offline · ohne Rückkehr endet die Partie in ${Math.max(0, OFF_AFTER - (idle || 0))} s ohne Sieger` : '');
+            offNote(!slow && !oppOn && !ended && st.status === 'live' ? `${esc(names[oppSide])} ist offline · ohne Rückkehr endet die Partie in ${Math.max(0, OFF_AFTER - (idle || 0))} s ohne Sieger · du kannst auch jetzt ohne Wertung gehen` : '');
           }
           const wn = v.querySelector('#pw');
           if (wn) { wn.hidden = !st.watchers; wn.querySelector('b').textContent = st.watchers || ''; }
@@ -865,9 +865,13 @@
         if (inst && inst.destroy) try { inst.destroy(); } catch (e) { }
       }
     });
+    // the opponent is offline right now (their card is greyed out): leaving ends the match without a result,
+    // as if they had been gone for good (server: match_drop checks it again)
+    const oppGone = () => online && !slow && !ended && !!pls[oppSide] && pls[oppSide].classList.contains('off');
     function leave(to) {
       if (ended || watch) return to();
       if (slow && to !== null) return V.ui.home('online');
+      if (oppGone()) return dropOut(to);
       if (inst && inst.pause) inst.pause();
       const m = openModal(online
         ? `<div class="confirm"><h3>Aufgeben?</h3><p>Wenn du die Partie verlässt, gewinnt ${esc(M.opp)}.</p>
@@ -886,6 +890,25 @@
         if (online) { rpc('match_resign', { mid: M.id }).catch(() => { }); if (to === null) return ctx.end(oppSide, 'Du hast aufgegeben', true); }
         if (table) rpc('party_leave', { tid: M.id }).catch(() => { });
         if (to) to();
+      };
+    }
+    function dropOut(to) {
+      if (inst && inst.pause) inst.pause();
+      const m = openModal(`<div class="confirm"><h3>Partie beenden?</h3><p>${esc(M.opp)} ist offline. Die Partie endet ohne Wertung, niemand gewinnt oder verliert.</p>
+        <div class="actions"><button class="btn primary" id="cy"><span>Weiter warten</span></button><button class="btn ghost" id="cn"><span>Beenden</span></button></div></div>`,
+        '', () => { if (inst && inst.resume && alive) inst.resume(); }, false, e => { if (e.key === 'Enter') { closeModal(); return true; } return false; });
+      m.querySelector('#cy').onclick = closeModal;
+      m.querySelector('#cn').onclick = async () => {
+        P.closeModalQuiet();
+        let ok = false, err = '';
+        try { ok = await rpc('match_drop', { mid: M.id }); } catch (e) { err = e.message; }
+        if (!alive) return;
+        if (err) return toast(/match_drop|function/i.test(err) ? 'Das geht nach dem nächsten Server-Update. Bis dahin endet die Partie nach 75 Sekunden von selbst.' : err);
+        // the opponent came back in the meantime: the normal question (giving up) instead
+        if (!ok) { toast(`${M.opp} ist wieder da`); pls[oppSide].classList.remove('off'); return leave(to); }
+        offNote('');
+        if (to) return to();
+        else ctx.end(0, `${M.opp} war offline, ohne Wertung`, true, true);
       };
     }
     const tut = () => { if (inst && inst.pause) inst.pause(); tutorial(g, () => { if (inst && inst.resume && alive) inst.resume(); }); };
@@ -913,7 +936,7 @@
           <div class="pz-list">${canUndo ? row('pz_undo', IC.undo, 'Zug zurück', 'Z') : ''}
             ${online ? row('pz_res', IC.flag, 'Aufgeben', '') : table ? '' : row('pz_new', IC.redo, 'Neu starten', 'N')}
             ${row('pz_rules', IC.help, 'Regeln', 'H')}${hasSet ? row('pz_set', IC.sliders, netGame ? 'So wird gespielt' : 'Einstellungen der Partie', 'R') : ''}${V.coarse ? '' : row('pz_keys', IC.kbd, 'Tastenkürzel', '?')}</div>
-          <button class="pz-leave" id="pz_leave">${IC.x}<span><b>${table ? 'Tisch verlassen' : 'Partie verlassen'}</b><small>${online ? 'zählt als Niederlage' : table ? 'Die KI übernimmt deinen Platz' : 'zählt nicht in der Bilanz'}</small></span></button></div>
+          <button class="pz-leave" id="pz_leave">${IC.x}<span><b>${table ? 'Tisch verlassen' : 'Partie verlassen'}</b><small>${online ? (oppGone() ? 'Gegner offline, zählt nicht' : 'zählt als Niederlage') : table ? 'Die KI übernimmt deinen Platz' : 'zählt nicht in der Bilanz'}</small></span></button></div>
         <div class="pz-r"><h3>Schnell-Einstellungen</h3>
           ${sl('vol', 'Effekte', !settings.sound)}${sl('mvol', 'Musik', !settings.sound || settings.music === false)}
           ${sw('hints', settings.hints !== false, 'Zughilfen')}${ai ? sw('aiFast', !!settings.aiFast, 'Schnelle KI') : ''}${sw('cb', !!settings.cb, 'Farbenblind-Modus')}

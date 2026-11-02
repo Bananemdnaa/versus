@@ -233,6 +233,8 @@
     'Einzeln': 'Single', 'Säulen': 'Columns',
     'Eine Ebene groß, oben die vier Ebenen klein zum Umschalten. Zieht der Gegner in einer anderen Ebene, springt die Ansicht dorthin.': 'One layer big, the four layers small on top to switch. When your opponent plays in another layer, the view jumps there.',
     'Jedes Feld ist eine Säule durch alle Ebenen: unten links 1, unten rechts 2, oben links 3, oben rechts 4. Reihen durch die Ebenen liegen hier in einer Säule oder schräg.': 'Every cell is a column through all layers: bottom left 1, bottom right 2, top left 3, top right 4. Lines through the layers lie inside one column or run diagonally.',
+    'Partie beenden?': 'End the match?', 'Weiter warten': 'Keep waiting', 'Beenden': 'End', 'Gegner offline, zählt nicht': 'Opponent offline, does not count',
+    'Das geht nach dem nächsten Server-Update. Bis dahin endet die Partie nach 75 Sekunden von selbst.': 'This works after the next server update. Until then the match ends by itself after 75 seconds.',
     'Rückgängig': 'Undo', 'Leeren': 'Clear', 'Radiergummi': 'Eraser', 'Farbe': 'Colour', 'Stiftstärke': 'Pen size',
     'Die anderen schauen weg. Du suchst dir gleich ein Wort aus.': 'The others look away. You are about to pick a word.',
     '{0} ist nicht mehr da': '{0} has left', '{0} sucht sich ein Wort aus …': '{0} is picking a word …',
@@ -1162,7 +1164,9 @@
     'Ein Spieler war zu lange offline': 'A player was offline for too long', 'Zuschauen': 'Watch', 'offline': 'offline'
   });
   V.i18n.pat([
-    [/^(\S+) ist offline · ohne Rückkehr endet die Partie in (\d+) s ohne Sieger$/, "$1 is offline · if they don't come back, the match ends in $2 s with no winner"],
+    [/^(\S+) ist offline · ohne Rückkehr endet die Partie in (\d+) s ohne Sieger · du kannst auch jetzt ohne Wertung gehen$/, "$1 is offline · if they don't come back, the match ends in $2 s with no winner · you can also leave now without a result"],
+    [/^(\S+) ist offline. Die Partie endet ohne Wertung, niemand gewinnt oder verliert.$/, '$1 is offline. The match ends without a result, nobody wins or loses.'],
+    [/^(\S+) ist wieder da$/, '$1 is back'], [/^(\S+) war offline, ohne Wertung$/, '$1 was offline, no result'],
     [/^(\S+) war zu lange offline$/, '$1 was offline for too long'],
     [/^spielt (.+) gegen ([a-z0-9_-]{3,16})$/, (m, g, n) => 'playing ' + g + ' vs. ' + n]
   ]);

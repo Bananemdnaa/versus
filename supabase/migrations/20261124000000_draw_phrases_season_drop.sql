@@ -1,4 +1,5 @@
--- Versus: Zeichnen & Raten (draw) an Online-Tischen, schnelle Sätze in Online-Partien (match_react) und der Saison-Look (site_state.season).
+-- Versus: Zeichnen & Raten (draw) an Online-Tischen, schnelle Sätze in Online-Partien (match_react), der Saison-Look (site_state.season)
+-- und Gehen ohne Wertung, wenn der Gegner offline ist (match_drop).
 -- Einmal im Supabase SQL-Editor ausführen. Baut auf allen bisherigen Migrationen auf.
 
 alter table public.party_tables drop constraint if exists party_tables_game_check;
@@ -73,3 +74,23 @@ end;
 $$;
 revoke all on function public.admin_set_season(text) from public, anon;
 grant execute on function public.admin_set_season(text) to authenticated;
+
+-- Gegner offline (seit 15 Sekunden kein Abruf): wer geht, beendet die Partie ohne Wertung, als wäre der andere ganz weg.
+-- Gibt false zurück, wenn der Gegner (wieder) da ist; dann gilt Gehen weiter als Aufgeben (match_resign).
+create or replace function public.match_drop(mid uuid)
+returns boolean language plpgsql security definer set search_path = '' as $$
+declare u uuid := public.me(); m public.matches; other timestamptz;
+begin
+  select * into m from public.matches where id = mid for update;
+  if m.id is null or not (u = m.a or u = m.b) then raise exception 'Partie nicht gefunden.'; end if;
+  if m.status <> 'live' or m.async then return false; end if;
+  other := case when u = m.a then m.b_seen else m.a_seen end;
+  if other is not null and other > now() - interval '15 seconds' then return false; end if;
+  update public.matches set status = 'void', finished_at = now(), winner = null, result = 'offline',
+    a_seen = case when u = m.a then now() else a_seen end, b_seen = case when u = m.b then now() else b_seen end
+    where id = mid;
+  return true;
+end;
+$$;
+revoke all on function public.match_drop(uuid) from public, anon;
+grant execute on function public.match_drop(uuid) to authenticated;
