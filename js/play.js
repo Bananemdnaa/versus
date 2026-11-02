@@ -44,6 +44,11 @@
   let rematchCarry = null;
   // quick reactions in online matches (ids are checked by the server)
   const EMO = { gg: 'GG', wow: '😮', haha: '😂', oops: '🙈', think: '🤔', fire: '🔥', clap: '👏', sweat: '😅' };
+  // quick phrases: fixed sentences instead of a free chat (nothing to moderate); sent as ids, so everybody reads them
+  // in their own language
+  const PHR = { p_gl: 'Viel Glück!', p_nice: 'Guter Zug!', p_wp: 'Gut gespielt!', p_close: 'Das war knapp!', p_think: 'Moment, ich überlege …', p_hurry: 'Na los, du bist dran!',
+    p_oops: 'Upps!', p_lucky: 'Glück gehabt!', p_ty: 'Danke!', p_sorry: 'Sorry!', p_rev: 'Revanche?', p_bye: 'Bis gleich!' };
+  const say = e => EMO[e] || PHR[e];
   // duels where the turn always alternates and side 1 begins (same list as match_move on the server)
   const ALTERNATE = ['c4', 'ttt', 'uttt', 'gomoku', 'chess', 'checkers', 'mill', 'go', 'backgammon', 'hex', 'ttt3'];
   // games without luck where you may take a move back against the AI on Leicht and Mittel
@@ -385,7 +390,7 @@
             ${party ? `<div class="eparty">${SIDES.map(k => `<span class="ep c${k}"><b>${series[k]}</b><small>${esc(names[k])}</small></span>`).join('')}</div>` : `<div class="eseries"><span class="nl">${esc(names[L])}</span><b class="sl${winner === L && !off ? ' up' : ''}" data-n="${series[L]}">${winner === L && !off ? series[L] - 1 : series[L]}</b><i>:</i><b class="sr${winner === R && !off ? ' up' : ''}" data-n="${series[R]}">${winner === R && !off ? series[R] - 1 : series[R]}</b><span class="nr">${esc(names[R])}</span></div>`}
             ${ai && winner && winner !== me && !off && tipFor() ? `<div class="ktip">${IC.bulb}<div><b>Tipp für die Revanche</b><p>${tipFor()}</p></div></div>` : ''}
             ${series.d ? `<p class="small">${series.d}× unentschieden</p>` : ''}
-            ${online ? `<div class="kemo" id="kemo"></div><div class="kquick">${['gg', 'clap', 'haha', 'sweat'].map(e => `<button data-emo="${e}">${EMO[e]}</button>`).join('')}</div>` : ''}
+            ${online ? `<div class="kemo" id="kemo"></div><div class="kquick">${['gg', 'clap', 'haha', 'sweat'].map(e => `<button data-emo="${e}">${EMO[e]}</button>`).join('')}${['p_wp', 'p_rev'].map(e => `<button class="ph" data-emo="${e}">${PHR[e]}</button>`).join('')}</div>` : ''}
             ${online && V.online.friendOf(M.opp) === false && !(V.cloud.user() && V.cloud.user().anon) ? `<button class="btn ghost sm efr" id="efr"><span>${IC.plus}${esc(M.opp)} als Freund hinzufügen</span></button>` : ''}
             ${watch ? '' : `<button class="btn ${meWon && !off ? '' : 'ghost '}sm eshare" id="es"><span>${IC.share}${meWon && !off ? 'Freund herausfordern' : 'Ergebnis teilen'}</span></button>`}
             ${online && V.online.report ? `<button class="link erep" id="erep">${esc(M.opp)} melden</button>` : ''}
@@ -773,19 +778,22 @@
 
     // ---------- reactions ----------
     function showEmote(s, e, who) {
-      if (!EMO[e]) return;
+      if (!say(e)) return;
+      const phr = !!PHR[e], ms = phr ? 3400 : 2600;
       // a friend watching: a chip that floats up over the board, with the name
       if (s === 0) {
         const c = v.querySelector('.center'); if (!c) return;
-        const b = V.el('span', 'emo-w', `<b>${EMO[e]}</b><small>${esc(who === myName ? 'Du' : who || 'Zuschauer')}</small>`);
+        const b = V.el('span', 'emo-w' + (phr ? ' phr' : ''), `<b>${say(e)}</b><small>${esc(who === myName ? 'Du' : who || 'Zuschauer')}</small>`);
         b.style.setProperty('--x', (15 + Math.random() * 70).toFixed(0) + '%');
-        c.appendChild(b); setTimeout(() => b.remove(), 2600); V.sfx.tick();
+        c.appendChild(b); setTimeout(() => b.remove(), ms); V.sfx.tick();
         return;
       }
       if (!pls[s]) return;
-      const b = V.el('span', 'emo' + (e === 'gg' ? ' txt' : ''), EMO[e]); pls[s].appendChild(b); setTimeout(() => b.remove(), 2600);
+      // a phrase is a speech bubble on the player's card; a new one replaces the last
+      if (phr) pls[s].querySelectorAll('.emo.phr').forEach(x => x.remove());
+      const b = V.el('span', 'emo' + (e === 'gg' ? ' txt' : phr ? ' phr' : ''), say(e)); pls[s].appendChild(b); setTimeout(() => b.remove(), ms);
       const k = document.querySelector('.ko #kemo');
-      if (k) { const t = V.el('span', 'kemo-i', `<b>${EMO[e]}</b><small>${esc(names[s])}</small>`); k.appendChild(t); setTimeout(() => t.remove(), 2600); }
+      if (k) { const t = V.el('span', 'kemo-i' + (phr ? ' phr' : ''), `<b>${say(e)}</b><small>${esc(names[s])}</small>`); k.appendChild(t); setTimeout(() => t.remove(), ms); }
       V.sfx.tick();
     }
     let emoT = 0;
@@ -801,7 +809,9 @@
       pe.onclick = ev => {
         ev.stopPropagation(); V.sfx.ui();
         if (pick) return close();
-        pick = V.el('div', 'emopick', Object.keys(EMO).map(e => `<button data-e="${e}">${EMO[e]}</button>`).join(''));
+        // watching friends only send emojis; the players also get the phrases
+        pick = V.el('div', 'emopick', Object.keys(EMO).map(e => `<button data-e="${e}">${EMO[e]}</button>`).join('')
+          + (watch ? '' : `<div class="phr">${Object.keys(PHR).map(e => `<button data-e="${e}">${PHR[e]}</button>`).join('')}</div>`));
         v.querySelector('.pbar').appendChild(pick);
         pick.querySelectorAll('button').forEach(b => b.onclick = x => { x.stopPropagation(); sendEmote(b.dataset.e); close(); });
       };

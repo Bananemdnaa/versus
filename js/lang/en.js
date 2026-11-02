@@ -243,6 +243,12 @@
   });
   V.i18n.pat([[/^(.+), du zeichnest$/, (m, n) => V.t(n) + ', you draw']]);
 
+  // ---------- quick phrases in online matches ----------
+  A({
+    'Viel Glück!': 'Good luck!', 'Guter Zug!': 'Nice move!', 'Gut gespielt!': 'Well played!', 'Das war knapp!': 'That was close!', 'Moment, ich überlege …': 'Hold on, thinking …',
+    'Na los, du bist dran!': 'Come on, your turn!', 'Upps!': 'Oops!', 'Glück gehabt!': 'Lucky!', 'Danke!': 'Thanks!', 'Sorry!': 'Sorry!', 'Revanche?': 'Rematch?', 'Bis gleich!': 'See you soon!'
+  });
+
   // ---------- games: names by id ----------
   V.i18n.names({
     c4: 'Connect 4', ships: 'Battleship', ttt: 'Tic Tac Toe', gomoku: 'Five in a Row', uttt: 'Ultimate Tic Tac Toe', dots: 'Dots and Boxes',
