@@ -1,8 +1,8 @@
 (function () {
   // Hardcore Tic Tac Toe: Ultimate Tic Tac Toe one level deeper. 9 areas, each an Ultimate board (9 boards of 9 cells),
   // 729 cells. Cell m: area a = m/81, board b = m/9 % 9, cell c = m % 9. Inside an area it is plain Ultimate (cell c sends
-  // the other player to board c of the same area). Play stays in one area until it is decided; then the next player
-  // picks any open area. Three areas in a row win.
+  // the other player to board c of the same area). When a move wins a small board, play jumps to the area at that board's
+  // place (board b), and cell c picks the board there. The first to win three areas (anywhere) wins.
   const LINES = [[0, 1, 2], [3, 4, 5], [6, 7, 8], [0, 3, 6], [1, 4, 7], [2, 5, 8], [0, 4, 8], [2, 4, 6]];
   // result of 9 values from offset o: 1 or 2 won, 3 decided without winner, 0 open (3 counts for nobody in a line)
   function res9(v, o) {
@@ -28,9 +28,15 @@
       const c = s.c.slice(), mid = s.mid.slice(), top = s.top.slice();
       c[m] = s.turn;
       const a = (m / 81) | 0, bi = (m / 9) | 0, ci = m % 9;
+      const was = mid[bi];
       if (!mid[bi]) { mid[bi] = res9(c, bi * 9); if (mid[bi] && !top[a]) top[a] = res9(mid, a * 9); }
-      const t = res9(top, 0);
-      const na = top[a] ? -1 : a, nb = na < 0 || mid[a * 9 + ci] ? -1 : ci;
+      // the first to win three areas (anywhere) wins; all areas decided without that: more areas wins, else a draw
+      const n1 = top.filter(v => v === 1).length, n2 = top.filter(v => v === 2).length;
+      const t = n1 >= 3 ? 1 : n2 >= 3 ? 2 : top.every(v => v) ? (n1 > n2 ? 1 : n2 > n1 ? 2 : 3) : 0;
+      // a small board just won: play jumps to the area at that board's place (board b), else it stays in area a;
+      // there the cell c of this move picks the board
+      const won = !was && (mid[bi] === 1 || mid[bi] === 2), to = won ? bi % 9 : a;
+      const na = top[to] ? -1 : to, nb = na < 0 || mid[na * 9 + ci] ? -1 : ci;
       return { c, mid, top, na, nb, turn: 3 - s.turn, res: t === 0 ? null : t === 3 ? 0 : t, last: m };
     }
   };
@@ -66,24 +72,24 @@
   const AREA = ['oben links', 'oben', 'oben rechts', 'links', 'Mitte', 'rechts', 'unten links', 'unten', 'unten rechts'];
 
   V.register({
-    id: 'hardcore', name: 'Hardcore Tic Tac Toe', cat: 'Klassiker', order: 5, accent: '#ff5d73',
+    id: 'hardcore', name: 'Hardcore Tic Tac Toe', cat: 'Klassiker', order: 5, accent: '#ff5d73', G,
     short: 'Ultimate Tic Tac Toe, nochmal verschachtelt.',
-    desc: 'Neun Ultimate-Bretter in einem großen, 729 Felder. Ihr spielt einen Bereich zu Ende, dann wählt der Nächste den neuen. Drei Bereiche in einer Reihe gewinnen.',
+    desc: 'Neun Ultimate-Bretter in einem großen, 729 Felder. Wer ein kleines Brett gewinnt, schickt das Spiel in den Bereich an dessen Stelle. Wer zuerst drei Bereiche gewinnt, gewinnt das Spiel.',
     sides: { 1: 'X', 2: 'O' },
     keys: [['Pfeile', 'Cursor bewegen'], ['Enter', 'Setzen'], ['1–9', 'Bereich wählen (Ziffernblock)']],
     icon: `<svg viewBox="0 0 48 48">${[0, 1, 2].map(r => [0, 1, 2].map(c => `<g transform="translate(${3 + c * 14.6} ${3 + r * 14.6})"><rect width="12.6" height="12.6" rx="2.4" fill="#1e2238" stroke="${r === 1 && c === 1 ? '#ff5d73' : '#2a2f4f'}" stroke-width="1.2"/>${[0, 1, 2].map(y => [0, 1, 2].map(x => `<rect x="${1.6 + x * 3.3}" y="${1.6 + y * 3.3}" width="2.6" height="2.6" rx=".6" fill="${(r * 3 + c + y * 3 + x) % 5 === 0 ? '#ff4fd8' : (r * 3 + c + y + x) % 7 === 0 ? '#ffd84f' : '#2f3556'}"/>`).join('')).join('')}</g>`).join('')).join('')}</svg>`,
     levelInfo: ['Anfänger: rechnet kaum und schickt dich oft, wohin du willst.', 'Spielt pro Zug ein paar hundert Partien durch.', 'Spielt pro Zug tausende Partien durch.', 'Nutzt die volle Bedenkzeit.'],
     tutorial: [
       { t: 'Drei Ebenen', d: 'Das Spielfeld hat <b>9 Bereiche</b>. Jeder Bereich ist ein ganzes Ultimate-Tic-Tac-Toe-Brett mit 9 kleinen Brettern, also 729 Felder.' },
-      { t: 'Gewinnen von unten nach oben', d: 'Drei in einer Reihe gewinnt ein <b>kleines Brett</b>. Drei kleine Bretter in einer Reihe gewinnen einen <b>Bereich</b>. Drei Bereiche in einer Reihe gewinnen das <b>ganze Spiel</b>.' },
-      { t: 'Ein Bereich nach dem anderen', d: 'Im Bereich spielt ihr ganz normales Ultimate: Setzt du im kleinen Brett <b>oben rechts</b>, muss der Gegner im Brett oben rechts weiterspielen. Ist dieses Brett schon entschieden, darf er überall im Bereich setzen.' },
-      { t: 'Neuer Bereich', d: 'Ihr bleibt im Bereich, bis er <b>entschieden</b> ist (gewonnen oder voll). Dann sucht sich der Nächste einen offenen Bereich aus, und dort geht es weiter. Zu Beginn wählt der Erste.' },
+      { t: 'Gewinnen von unten nach oben', d: 'Drei in einer Reihe gewinnt ein <b>kleines Brett</b>. Drei kleine Bretter in einer Reihe gewinnen einen <b>Bereich</b>. Wer zuerst <b>drei Bereiche</b> gewinnt, egal wo, gewinnt das ganze Spiel.' },
+      { t: 'Im Bereich', d: 'Im Bereich spielt ihr ganz normales Ultimate: Setzt du im kleinen Brett <b>oben rechts</b>, muss der Gegner im Brett oben rechts weiterspielen. Ist dieses Brett schon entschieden, darf er überall im Bereich setzen.' },
+      { t: 'Der Sprung', d: 'Gewinnt ein Zug ein kleines Brett, geht es im <b>Bereich an dessen Stelle</b> weiter: Wer das Brett oben rechts gewinnt, schickt den Gegner in den Bereich oben rechts. Das <b>Feld des letzten Zugs</b> bestimmt dort das Brett. Ist der Bereich schon entschieden, sucht sich der Gegner einen offenen aus. Zu Beginn wählt der Erste.' },
       { t: 'Die Übersicht', d: 'Oben siehst du alle neun Bereiche mit ihren Brettern und wer sie gewonnen hat. Der leuchtende ist der, in dem gerade gespielt wird.' }
     ],
     start(ctx) {
       let s = { c: Array(729).fill(0), mid: Array(81).fill(0), top: Array(9).fill(0), na: -1, nb: -1, turn: 1, res: null, last: -1 };
       // the area on screen; while a player picks (na < 0), picking shows the big choice until an area is chosen
-      let view = 4, picking = false;
+      let view = 4, picking = false, jumped = '';
       const root = V.el('div', 'hc'), top = V.el('div', 'hc-top'), ov = V.el('div', 'hc-ov'), info = V.el('div', 'hc-info'), el = V.el('div', 'ut'), pick = V.el('div', 'hc-pick');
       const tile = a => { const t = V.el('div', 'ar'); t.dataset.a = a; for (let k = 0; k < 9; k++) t.appendChild(V.el('i')); return t; };
       for (let a = 0; a < 9; a++) { ov.appendChild(tile(a)); const p = tile(a); p.setAttribute('role', 'button'); p.setAttribute('aria-label', 'Bereich ' + AREA[a]); pick.appendChild(p); }
@@ -139,8 +145,8 @@
         const won = k => s.top.filter(v => v === k).length;
         const sc = `<span class="sc"><span class="c1">X ${won(1)}</span><span>:</span><span class="c2">${won(2)} O</span></span>`;
         const first = s.c.every(v => !v);
-        info.innerHTML = picking ? `<b>${first ? 'Wo geht es los?' : 'Neuer Bereich'}</b>${first ? 'Such dir einen Bereich aus.' : 'Der letzte ist entschieden. Such dir einen offenen Bereich aus.'}${sc}`
-          : `<b>Bereich ${AREA[view]}</b>${s.res !== null || !human() ? '' : s.na < 0 ? 'Freie Wahl in diesem Bereich.' : boards.size > 1 ? 'Freie Wahl in diesem Bereich. Ihr bleibt hier, bis er entschieden ist.' : 'Ihr bleibt hier, bis der Bereich entschieden ist.'}${sc}`
+        info.innerHTML = picking ? `<b>${first ? 'Wo geht es los?' : 'Neuer Bereich'}</b>${first ? 'Such dir einen Bereich aus.' : 'Dieser Bereich ist schon entschieden. Such dir einen offenen aus.'}${sc}`
+          : `<b>Bereich ${AREA[view]}</b>${s.res !== null || !human() ? '' : jumped ? jumped : s.na < 0 || boards.size > 1 ? 'Freie Wahl in diesem Bereich.' : 'Gewinnst du ein Brett, geht es im Bereich an dessen Stelle weiter.'}${sc}`
           + (!picking && human() && s.na < 0 ? '<br><button class="btn ghost sm" id="hcp"><span>Anderen Bereich wählen</span></button>' : '');
         const bp = info.querySelector('#hcp'); if (bp) bp.onclick = () => { picking = true; V.sfx.ui(); render(); };
       }
@@ -156,10 +162,13 @@
           if (v === before[i] || v === 3 || ((i / 9) | 0) !== view) return;
           V.sfx.place(); V.fx.burstAt(el.children[i % 9], V.hex(v), 14, 90); V.fx.shake(el, true);
         });
-        const doneNow = s.top.some((v, a) => v !== beforeTop[a]);
+        // a board was won and play jumps to another area: say so on the next turn and give a moment to see the win
+        const wonBoard = s.mid.some((v, i) => v !== before[i] && v < 3), from = (m / 81) | 0;
+        jumped = wonBoard && s.na >= 0 && s.na !== from ? `Brett gewonnen: weiter im Bereich ${AREA[s.na]}.` : '';
+        const doneNow = s.top.some((v, a) => v !== beforeTop[a]) || !!jumped;
         s.top.forEach((v, a) => { if (v !== beforeTop[a] && v < 3) { V.sfx.goal(); V.fx.burstAt(ov.children[a], V.hex(v), 18, 70); V.fx.flash(V.hex(v)); } });
-        if (s.res !== null) { const ln = lineOf(s.top); if (ln) ln.forEach(a => ov.children[a].classList.add('wl')); return ctx.end(s.res); }
-        // an area was just decided: a moment to see it, then the next player picks
+        if (s.res !== null) { s.top.forEach((v, a) => { if (s.res && v === s.res) ov.children[a].classList.add('wl'); }); return ctx.end(s.res, `${s.top.filter(v => v === 1).length} : ${s.top.filter(v => v === 2).length} Bereiche`); }
+        // an area was decided or play jumps: a moment to see it, then the next turn
         ctx.later(next, doneNow ? 1100 : ctx.isAI(s.turn) ? 0 : 200);
       }
       function next() {

@@ -283,12 +283,18 @@
     'entschieden': 'decided',
     'Oben siehst du alle neun Bereiche mit ihren Brettern und wer sie gewonnen hat. Der leuchtende ist der, in dem gerade gespielt wird.': 'At the top you see all nine areas with their boards and who won them. The glowing one is where play is right now.',
     'Wo geht es los?': 'Where do we start?', 'Such dir einen Bereich aus.': 'Pick an area.', 'Der letzte ist entschieden. Such dir einen offenen Bereich aus.': 'The last one is decided. Pick an open area.',
-    'Freie Wahl in diesem Bereich. Ihr bleibt hier, bis er entschieden ist.': 'Free choice in this area. You stay here until it is decided.', 'Ihr bleibt hier, bis der Bereich entschieden ist.': 'You stay here until the area is decided.', 'Anderen Bereich wählen': 'Pick another area'
+    'Freie Wahl in diesem Bereich. Ihr bleibt hier, bis er entschieden ist.': 'Free choice in this area. You stay here until it is decided.', 'Ihr bleibt hier, bis der Bereich entschieden ist.': 'You stay here until the area is decided.', 'Anderen Bereich wählen': 'Pick another area',
+    'Neun Ultimate-Bretter in einem großen, 729 Felder. Wer ein kleines Brett gewinnt, schickt das Spiel in den Bereich an dessen Stelle. Wer zuerst drei Bereiche gewinnt, gewinnt das Spiel.': "Nine Ultimate boards in one big board, 729 cells. Winning a small board sends play to the area in that board's place. The first to win three areas wins the game.",
+    'Drei in einer Reihe gewinnt ein {0}. Drei kleine Bretter in einer Reihe gewinnen einen {1}. Wer zuerst {2} gewinnt, egal wo, gewinnt das ganze Spiel.': 'Three in a row wins a {0}. Three small boards in a row win an {1}. The first to win {2}, anywhere, wins the whole game.',
+    'drei Bereiche': 'three areas', 'Im Bereich': 'Inside an area', 'Der Sprung': 'The jump',
+    'Gewinnt ein Zug ein kleines Brett, geht es im {0} weiter: Wer das Brett oben rechts gewinnt, schickt den Gegner in den Bereich oben rechts. Das {1} bestimmt dort das Brett. Ist der Bereich schon entschieden, sucht sich der Gegner einen offenen aus. Zu Beginn wählt der Erste.': 'When a move wins a small board, play continues in the {0}: whoever wins the top right board sends the opponent to the top right area. The {1} picks the board there. If that area is already decided, the opponent picks an open one. At the start the first player picks.',
+    'Bereich an dessen Stelle': "area in that board's place", 'Feld des letzten Zugs': 'cell of the last move',
+    'Dieser Bereich ist schon entschieden. Such dir einen offenen aus.': 'That area is already decided. Pick an open one.', 'Gewinnst du ein Brett, geht es im Bereich an dessen Stelle weiter.': 'Win a board and play moves to the area in its place.', '# : # Bereiche': '# : # areas'
   });
   {
     const AR = { 'oben links': 'top left', 'oben': 'top', 'oben rechts': 'top right', 'links': 'left', 'Mitte': 'middle', 'rechts': 'right', 'unten links': 'bottom left', 'unten': 'bottom', 'unten rechts': 'bottom right' };
     const a = k => AR[k] || k;
-    V.i18n.pat([[/^Bereich (.+), Brett (.+)$/, (m, x, y) => `Area ${a(x)}, board ${a(y)}`], [/^Gespielt wird im Bereich (.+)\.$/, (m, x) => `Play is in the ${a(x)} area.`], [/^Bereich (oben links|oben|oben rechts|links|Mitte|rechts|unten links|unten|unten rechts)$/, (m, x) => `Area ${a(x)}`]]);
+    V.i18n.pat([[/^Bereich (.+), Brett (.+)$/, (m, x, y) => `Area ${a(x)}, board ${a(y)}`], [/^Gespielt wird im Bereich (.+)\.$/, (m, x) => `Play is in the ${a(x)} area.`], [/^Bereich (oben links|oben|oben rechts|links|Mitte|rechts|unten links|unten|unten rechts)$/, (m, x) => `Area ${a(x)}`], [/^Brett gewonnen: weiter im Bereich (.+).$/, (m, x) => `Board won: on to the ${a(x)} area.`]]);
   }
 
   // ---------- games: names by id ----------
