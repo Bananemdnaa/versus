@@ -58,14 +58,17 @@
         </form>
         ${guestNote()}
       </div></div></section>`;
-    const info = c.info() || {}, st = c.state(), role = c.role();
+    // the own look (js/look.js): banner pattern in the chosen colour, motto and favourite game in the head card
+    const info = c.info() || {}, st = c.state(), role = c.role(), lk = V.look.mine();
     const sync = st.status === 'sync' ? ['sync', 'Wird abgeglichen …'] : st.status === 'error' ? ['bad', 'Abgleich fehlgeschlagen: ' + esc(st.error)] : ['ok', 'Gespeichert ' + ago(st.last)];
     const next = info.next_rename && new Date(info.next_rename) > new Date() ? info.next_rename : null;
     return `<section class="page acctp">
       <h1 class="title"><span>Dein</span> Konto</h1>
-      <div class="acard me">
-        <div class="ahead"><span class="abig${V.look.isIcon(V.look.mine()) ? ' sym' : ''}" style="${V.look.style(V.look.mine())}">${V.look.text(u.username, V.look.mine())}</span>
-          <div><b>${esc(u.username)}</b>${role ? `<em class="rtag ${role}">${ROLE[role]}</em>` : ''}${info.dev ? '<em class="rtag dev">Dev</em>' : ''}<small>Dabei seit ${day(info.joined)}</small></div></div>
+      <div class="acard me lkc ${V.look.banner(lk)}" style="--lc:${V.look.color(lk)}">
+        <div class="ahead"><span class="abig${V.look.isIcon(lk) ? ' sym' : ''}" style="${V.look.style(lk)}">${V.look.text(u.username, lk)}</span>
+          <div><b>${esc(u.username)}</b>${role ? `<em class="rtag ${role}">${ROLE[role]}</em>` : ''}${info.dev ? '<em class="rtag dev">Dev</em>' : ''}
+            ${lk.m ? `<small class="p2-m">„${esc(lk.m)}“</small>` : ''}<small>Dabei seit ${day(info.joined)}</small>
+            ${lk.g && V.byId[lk.g] ? `<span class="p2-fav"><span class="ic">${V.byId[lk.g].icon}</span>${esc(V.byId[lk.g].name)}</span>` : ''}</div></div>
         <div class="sync ${sync[0]}"><i></i><span>${sync[1]}</span><button class="btn ghost sm" id="a_sync"><span>${IC().redo}Abgleichen</span></button></div>
         <div class="arow">
           ${role ? `<button class="btn primary" id="a_admin"><span>${IC().shield}Admin-Panel</span></button>` : ''}
@@ -367,18 +370,18 @@
           ${(online || []).length ? (online || []).map(o => `<div class="aline"><button class="link" data-p="${esc(o.username)}">${esc(o.username)}</button><span>${esc(gameName(o.game))}</span><small>${ago(o.seen)}</small></div>`).join('') : '<p class="muted">Gerade niemand.</p>'}
           <p class="fine">Aktualisiert sich alle 20 Sekunden.</p></div>
         <div class="apanel"><h3>Beliebte Spiele</h3>
-          ${games.length ? games.map(([id, n]) => `<div class="abar"><span>${esc(gameName(id))}</span><i style="--w:${Math.round(n / max * 100)}%"></i><b>${n}</b></div>`).join('') : '<p class="muted">Noch keine Partien.</p>'}</div>
+          ${games.length ? games.map(([id, n]) => `<div class="astat"><span>${esc(gameName(id))}</span><i style="--w:${Math.round(n / max * 100)}%"></i><b>${n}</b></div>`).join('') : '<p class="muted">Noch keine Partien.</p>'}</div>
         ${dcs ? `<div class="apanel"><h3>Discord <small>${dcs.total}</small></h3>
           <h4 class="dch">Spieler</h4><div class="abar2"><span><b>${dcs.active1}</b> heute</span><span><b>${dcs.active7}</b> in 7 Tagen</span><span><b>+${dcs.new7}</b> neu</span><span><b>${dcs.rooms1}</b> Räume (24 Std.)</span></div>
           <h4 class="dch">Partien</h4><div class="abar2"><span><b>${dcs.games1 ?? 0}</b> heute</span><span><b>${dcs.games7 ?? 0}</b> in 7 Tagen</span><span><b>${dcs.ai7 ?? 0}</b> davon gegen KI</span></div>
-          ${(dcs.top7 || []).map(x => `<div class="abar"><span>${esc(gameName(x.game))}</span><i style="--w:${Math.round(x.n / dcs.top7[0].n * 100)}%"></i><b>${x.n}</b></div>`).join('')}
+          ${(dcs.top7 || []).map(x => `<div class="astat"><span>${esc(gameName(x.game))}</span><i style="--w:${Math.round(x.n / dcs.top7[0].n * 100)}%"></i><b>${x.n}</b></div>`).join('')}
           <h4 class="dch">Zuletzt dabei</h4>
           ${(dcs.recent || []).map(p => `<div class="aline"><button class="link" data-p="${esc(p.username)}">${esc(p.username)}</button>${p.guest ? '<em class="rtag">Gast</em>' : ''}<small>${ago(p.at)}</small></div>`).join('') || '<p class="muted">Noch niemand über Discord.</p>'}
           <p class="fine">Wer die Versus-Aktivität in Discord startet (Gäste und Konten). ${dcs.guests} davon spielen als Gast. Partien zählen pro Spieler: eine Partie zu zweit in Discord sind zwei. Gezählt seit diesem Update.</p></div>` : ''}
         <div class="apanel"><h3>Neue Spieler</h3>
           ${(S.recent || []).map(p => `<div class="aline"><button class="link" data-p="${esc(p.username)}">${esc(p.username)}</button>${p.lang ? `<em class="rtag">${LANG[p.lang]}</em>` : ''}<small>${day(p.joined)}</small></div>`).join('') || '<p class="muted">Noch niemand.</p>'}</div>
         ${langs.length ? `<div class="apanel"><h3>Sprachen</h3>
-          ${langs.map(([l, n]) => `<div class="abar"><span>${LN[l] || l}</span><i style="--w:${Math.round(n / lsum * 100)}%"></i><b>${n}</b></div>`).join('')}
+          ${langs.map(([l, n]) => `<div class="astat"><span>${LN[l] || l}</span><i style="--w:${Math.round(n / lsum * 100)}%"></i><b>${n}</b></div>`).join('')}
           <p class="fine">Spieler der letzten 30 Tage, nach Sprache im Spiel.</p></div>` : ''}
         <div class="apanel"><h3>Team</h3>
           ${(S.team || []).map(t => `<div class="aline"><button class="link" data-p="${esc(t.username)}">${esc(t.username)}</button><em class="rtag ${t.role}">${ROLE[t.role]}</em></div>`).join('')}

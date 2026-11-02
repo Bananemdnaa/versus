@@ -601,11 +601,11 @@ textarea.inp{height:auto;padding:10px 14px;line-height:1.4;resize:vertical}
 .aline.log span{white-space:normal}
 .link{color:var(--fg);font-weight:600;text-decoration:underline;text-decoration-color:var(--line2);text-underline-offset:3px}
 .link:hover{text-decoration-color:var(--pink)}
-.abar{display:grid;grid-template-columns:minmax(0,9em) 1fr auto;align-items:center;gap:10px;font-size:13px;padding:3px 0}
-.abar span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--muted)}
-.abar i{height:8px;background:var(--panel3);position:relative;transform:skewX(-20deg)}
-.abar i::after{content:'';position:absolute;inset:0;width:var(--w);background:linear-gradient(90deg,var(--pink),var(--yellow))}
-.abar b{font-variant-numeric:tabular-nums}
+.astat{display:grid;grid-template-columns:minmax(0,9em) 1fr auto;align-items:center;gap:10px;font-size:13px;padding:3px 0}
+.astat span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--muted)}
+.astat i{height:8px;background:var(--panel3);position:relative;transform:skewX(-20deg)}
+.astat i::after{content:'';position:absolute;inset:0;width:var(--w);background:linear-gradient(90deg,var(--pink),var(--yellow))}
+.astat b{font-variant-numeric:tabular-nums}
 .asearch{display:flex;gap:8px}
 .pcard-a{background:var(--panel);border:1px solid var(--line);border-radius:10px;overflow:hidden}
 .pcard-a>.pa-top,.pcard-a>.pa-info,.pcard-a>.pa-note,.pcard-a>.arow{padding-inline:16px}
@@ -2772,3 +2772,16 @@ html.lowfx::view-transition-group(*),html.lowfx::view-transition-old(*),html.low
   .sel-panel .gp-tags{display:none}
   .sel-panel .gp-mode2 button{height:50px;gap:3px}
 }
+
+/* account head card in the own look: the banner pattern of the profile in the chosen colour */
+.acctp .acard.me.lkc{--lc:var(--pink)}
+.acctp .acard.me.lkc.lb-x{background:repeating-linear-gradient(-60deg,rgba(255,255,255,.025) 0 10px,transparent 10px 22px),linear-gradient(110deg,color-mix(in srgb,var(--lc) 24%,var(--panel)) 0 45%,var(--panel) 45.3%)}
+.acctp .acard.me.lkc.lb-s{background:repeating-linear-gradient(-55deg,color-mix(in srgb,var(--lc) 16%,var(--panel)) 0 14px,color-mix(in srgb,var(--lc) 6%,var(--panel)) 14px 28px)}
+.acctp .acard.me.lkc.lb-d{background:radial-gradient(circle,color-mix(in srgb,var(--lc) 40%,transparent) 0 2.5px,transparent 3px) 0 0/16px 16px,linear-gradient(120deg,color-mix(in srgb,var(--lc) 14%,var(--panel)),var(--panel))}
+.acctp .acard.me.lkc.lb-g{background:linear-gradient(color-mix(in srgb,var(--lc) 18%,transparent) 1px,transparent 1px) 0 0/22px 22px,linear-gradient(90deg,color-mix(in srgb,var(--lc) 18%,transparent) 1px,transparent 1px) 0 0/22px 22px,var(--panel)}
+.acctp .acard.me.lkc.lb-w{background:radial-gradient(120% 60% at 50% 125%,color-mix(in srgb,var(--lc) 30%,transparent) 0 30%,transparent 31%),radial-gradient(90% 50% at 20% 115%,color-mix(in srgb,var(--lc) 18%,transparent) 0 40%,transparent 41%),var(--panel)}
+.acctp .acard.me.lkc.lb-p{background:color-mix(in srgb,var(--lc) 10%,var(--panel))}
+.acard.lkc .abig{box-shadow:4px 4px 0 color-mix(in srgb,var(--lc) 45%,var(--ink))}
+.acard.lkc .abig.sym{font-size:30px;font-style:normal}
+.acard.lkc .ahead small.p2-m{color:var(--fg);font-size:14.5px;font-style:italic}
+.acard.lkc .ahead .p2-fav{margin-top:2px}
