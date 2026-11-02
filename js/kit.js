@@ -52,7 +52,7 @@
     },
     // full screen in the colour of the player who gets the device; the whole screen is the button
     pass(s, name, text, extra = '') {
-      return `<div class="pass" style="--hc:${V.hex(s)}" data-enter role="button" tabindex="0"><small class="ps-k">Gib das Gerät an</small><h3>${name}</h3>${text ? `<p>${text}</p>` : ''}${extra}<span class="ps-tap">Tippen zum Weiter</span></div>`;
+      return `<div class="pass" style="--hc:${V.hex(s)}" data-enter role="button" tabindex="0"><small class="ps-k">Gib das Gerät an</small><h3>${name}</h3>${text ? `<p>${text}</p>` : ''}${extra}<span class="ps-tap">Tippen und weiter</span></div>`;
     }
   };
 

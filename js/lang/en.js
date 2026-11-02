@@ -217,12 +217,38 @@
     'Die 8 ist beim Anstoß gefallen und wird wieder aufgesetzt': 'The 8 dropped on the break and is put back'
   });
 
+  // ---------- Zeichnen & Raten ----------
+  A({
+    'Einer zeichnet, die anderen raten.': 'One draws, the others guess.',
+    'Reihum zeichnet einer ein geheimes Wort, die anderen raten. Wer schnell errät, holt die meisten Punkte, der Zeichner bekommt Punkte für jeden Treffer. Für 2 bis 4, online oder an einem Gerät.': 'Take turns drawing a secret word while the others guess. Quick guessers score the most, and the drawer scores for every correct guess. For 2 to 4, online or on one device.',
+    'Antwort schicken': 'Send guess', 'Strich zurück': 'Undo stroke', 'Mitspieler': 'Players', 'Runden': 'Rounds', 'So oft zeichnet jeder.': 'How often everybody draws.', '#× zeichnen': 'draw #×',
+    'Zeit pro Bild': 'Time per drawing', '# s': '# s', 'Einer zeichnet am Gerät, die anderen rufen ihre Antworten.': 'One draws on the device, the others call out their guesses.',
+    'Reihum ist einer der {0}. Er sucht sich eins von drei Wörtern aus und zeichnet es, ohne Buchstaben oder Zahlen. Die anderen raten so schnell wie möglich.': 'Everybody takes a turn as the {0}. They pick one of three words and draw it, without letters or numbers. The others guess as fast as they can.',
+    'Zeichner': 'drawer', 'An einem Gerät': 'On one device', 'Zeichnen': 'Drawing',
+    'Die anderen schauen kurz weg, während der Zeichner sein Wort wählt. Dann zeichnet er, alle rufen ihre Antworten. Wer es hat, wird unten {0}: 10 Punkte für ihn, 5 für den Zeichner. Das Wort kann der Zeichner mit {1} nochmal ansehen.': 'The others look away while the drawer picks a word. Then they draw and everybody calls out guesses. Whoever gets it is {0} below: 10 points for them, 5 for the drawer. The drawer can see the word again by {1}.',
+    'angetippt': 'tapped', 'Gedrückt halten': 'holding the button',
+    'Alle sehen die Zeichnung live auf ihrem Gerät und {0} ihre Antworten. Groß- und Kleinschreibung ist egal. Der Erste bekommt 10 Punkte, der Zweite 8, dann 6. Der Zeichner bekommt 4 für jeden, der es errät.': 'Everybody sees the drawing live on their own device and {0} their guesses. Upper or lower case does not matter. The first gets 10 points, the second 8, then 6. The drawer gets 4 for everybody who guesses it.',
+    'tippen': 'types',
+    'Unten wählst du Farbe und Stiftstärke, {0} nimmt den letzten Strich weg, {1} wischt alles. Weiß ist der Radiergummi.': 'Pick a colour and pen size below, {0} removes the last stroke, {1} wipes everything. White is the eraser.',
+    'Rückgängig': 'Undo', 'Leeren': 'Clear', 'Radiergummi': 'Eraser', 'Farbe': 'Colour', 'Stiftstärke': 'Pen size',
+    'Die anderen schauen weg. Du suchst dir gleich ein Wort aus.': 'The others look away. You are about to pick a word.',
+    '{0} ist nicht mehr da': '{0} has left', '{0} sucht sich ein Wort aus …': '{0} is picking a word …',
+    'Du zeichnest': 'You draw', 'Wähl ein Wort': 'Pick a word',
+    'Ohne Buchstaben und Zahlen zeichnen. Nach 15 Sekunden wird das erste genommen.': 'Draw without letters or numbers. After 15 seconds the first word is taken.',
+    'Bild #': 'Drawing #', "Gleich geht's los": 'Starting soon', 'Wer hat es erraten?': 'Who guessed it?', 'Keiner': 'Nobody', 'Wort ansehen (gedrückt halten)': 'See the word (hold)',
+    'Die anderen tippen ihre Antworten.': 'The others type their guesses.', 'Deine Antwort …': 'Your guess …', 'Raten': 'Guess', 'Das Wort': 'The word',
+    '{0} zeichnet · # Buchstaben': '{0} draws · # letters', '{0} hat es erraten! +#': '{0} guessed it! +#', '{0} hat es erraten!': '{0} guessed it!',
+    'Du hast es! Warte auf die anderen …': 'You got it! Waiting for the others …', 'Keiner hat es erraten.': 'Nobody guessed it.', 'Das Wort war': 'The word was',
+    'Bild # von #': 'Drawing # of #', '· Bild # von #': '· drawing # of #', 'Tippen und weiter': 'Tap to continue', 'Spieler # zeichnet · # Buchstaben': 'Player # draws · # letters'
+  });
+  V.i18n.pat([[/^(.+), du zeichnest$/, (m, n) => V.t(n) + ', you draw']]);
+
   // ---------- games: names by id ----------
   V.i18n.names({
     c4: 'Connect 4', ships: 'Battleship', ttt: 'Tic Tac Toe', gomoku: 'Five in a Row', uttt: 'Ultimate Tic Tac Toe', dots: 'Dots and Boxes',
     hangman: 'Hangman', slf: 'City Country River', schnapsen: 'Schnapsen', guess: 'Estimation Quiz', hex: 'Hex', ttt3: '3D Tic Tac Toe', code: 'Code Breaker', domino: 'Dominoes', ludo: 'Ludo', ladder: 'Snakes and Ladders', checkers: 'Checkers', mill: "Nine Men's Morris",
     yacht: 'Dice Block', maumau: 'Mau-Mau', memory: 'Memory', poker: 'Poker', chess: 'Chess', reversi: 'Reversi', kalaha: 'Kalah', go: 'Go',
-    backgammon: 'Backgammon', reaction: 'Reaction Duel', pong: 'Pong', hockey: 'Air Hockey', billiard: 'Pool', tron: 'Light Racer', sumo: 'Sumo Arena'
+    backgammon: 'Backgammon', reaction: 'Reaction Duel', pong: 'Pong', hockey: 'Air Hockey', billiard: 'Pool', draw: 'Draw & Guess', tron: 'Light Racer', sumo: 'Sumo Arena'
   });
 
   // ---------- games: shared words ----------
@@ -1267,7 +1293,7 @@
     'Kostenloses Konto: # Spiele mehr': 'Free account: # more games', 'Dazu Online-Partien, Freunde und die Rangliste': 'Plus online matches, friends and the ranking',
     '#–# Spieler': '#–# players', '# Spieler': '# players', 'Ohne KI': 'No AI', 'KI · # Stufen': 'AI · # levels', 'KI': 'AI', 'KI-Stärke': 'AI strength', 'Wer fängt an?': 'Who starts?',
     'Nur zu zweit': 'Two players only', 'Dieses Spiel hat keine KI': 'This game has no AI', 'Einladungen': 'Invitations', 'Ein privater Tisch für 2 bis 4: deine Freunde sehen ihn, andere kommen per Code oder Link. Freie Plätze übernimmt die KI.': 'A private table for 2 to 4: your friends see it, others join with the code or link. The AI takes free seats.', 'Ein privater Tisch: deine Freunde sehen ihn, andere kommen per Code oder Link. Freie Plätze übernimmt die KI.': 'A private table: your friends see it, others join with the code or link. The AI takes free seats.', 'Ein privater Tisch für 2 bis 4: deine Freunde sehen ihn, andere kommen per Code oder Link.': 'A private table for 2 to 4: your friends see it, others join with the code or link.', 'Ein privater Tisch: deine Freunde sehen ihn, andere kommen per Code oder Link.': 'A private table: your friends see it, others join with the code or link.', 'Ein offener Tisch für 2 bis 4: jeder kann sich dazusetzen. Freie Plätze übernimmt die KI.': 'An open table for 2 to 4: anybody can sit down. The AI takes free seats.', 'Ein offener Tisch: jeder kann sich dazusetzen. Freie Plätze übernimmt die KI.': 'An open table: anybody can sit down. The AI takes free seats.', 'Ein offener Tisch für 2 bis 4: jeder kann sich dazusetzen.': 'An open table for 2 to 4: anybody can sit down.', 'Ein offener Tisch: jeder kann sich dazusetzen.': 'An open table: anybody can sit down.', 'Gerade ist kein offener Tisch frei. Eröffne einen, dann kann sich jeder dazusetzen.': 'No open table right now. Open one and anybody can sit down.', 'Nicht online spielbar': 'Not playable online', 'Online kommt gleich': 'Online is coming soon',
-    'Gib das Gerät an': 'Hand the device to', 'Tippen zum Weiter': 'Tap to continue',
+    'Gib das Gerät an': 'Hand the device to', 'Tippen und weiter': 'Tap to continue',
     'Live spielen': 'Play live', 'Ein Tipp, ein Gegner': 'One tap, one opponent', 'Suchen': 'Search', 'Als Gast suchen': 'Search as guest',
     'Welches Spiel? Bei „Egal“ nimmt Versus das, wofür gerade jemand wartet.': 'Which game? With “Any”, Versus picks whatever someone is waiting for.',
     'Gegner gefunden': 'Opponent found', 'Noch niemand da': 'Nobody here yet', '# s': '# s',
