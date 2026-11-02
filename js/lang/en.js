@@ -188,12 +188,41 @@
     'Das ist schon dein Name.': 'That is already your name.', 'Zu viele Züge.': 'Too many moves.', 'Diese Flotte ist nicht regelkonform.': "This fleet doesn't follow the rules.", 'Deine Flotte steht schon.': 'Your fleet is already set.'
   });
 
+  // ---------- Billard ----------
+  A({
+    'Volle oder Halbe versenken, dann die 8.': 'Pot solids or stripes, then the 8.',
+    'Klassisches 8-Ball: Versenke alle Kugeln deiner Gruppe und zum Schluss die schwarze 8.': 'Classic 8-ball: pot every ball of your group and the black 8 last.',
+    'Abwechselnd am selben Gerät: einer stößt, dann der andere.': 'Take turns on the same device: one shoots, then the other.',
+    'Zielen (mit Shift fein)': 'Aim (fine with Shift)', 'Halten für Kraft, loslassen stößt': 'Hold for power, release to shoot', 'Auf dem Tisch ziehen zum Zielen': 'Drag on the table to aim',
+    'Frames zum Sieg': 'Frames to win', 'Hilfslinie': 'Guide line', 'Zeigt, wohin die getroffene Kugel rollt.': 'Shows where the struck ball will roll.',
+    'Lang': 'Long', 'Kurz': 'Short', 'Aus': 'Off', 'bis # Frames': 'first to # frames', '# Frame': '# frame', 'ohne Hilfslinie': 'no guide line', 'kurze Hilfslinie': 'short guide line',
+    'Auf dem Tisch liegen 15 Kugeln: {0} (1–7), {1} (9–15) und die schwarze {2}. Wer zuerst eine Kugel versenkt, bekommt diese Gruppe. Versenk alle deine Kugeln und danach die 8, dann gewinnst du den Frame.': 'There are 15 balls on the table: {0} (1–7), {1} (9–15) and the black {2}. Whoever pots a ball first gets that group. Pot all your balls and then the 8 to win the frame.',
+    'Volle': 'Solids', 'Halbe': 'Stripes', 'Zielen und Stoßen': 'Aim and shoot', 'Weiterspielen': 'Continue', 'Fouls': 'Fouls', 'Die 8': 'The 8',
+    'Zieh den Finger über den Tisch, der Queue zeigt dorthin. Mit {0} zielst du ganz fein. Dann den Balken unten {1} und loslassen: je weiter, desto fester. Am PC geht das mit der Maus, oder mit ← → zielen und die Leertaste halten. Zurück an den Anfang ziehen bricht ab.': 'Drag your finger over the table and the cue points there. {0} aims very finely. Then {1} and let go: the further, the harder. On a computer use the mouse, or aim with ← → and hold the space bar. Dragging back to the start cancels.',
+    'nach rechts ziehen': 'pull the bar below to the right',
+    'Versenkst du eine eigene Kugel, bist du nochmal dran. Sonst ist der andere dran.': 'Pot one of your own balls and you go again. Otherwise it is the other player’s turn.',
+    'Ein Foul ist: die weiße Kugel fällt, du triffst gar nichts oder zuerst eine fremde Kugel (oder die 8, solange du noch eigene hast). Dann hat der andere die {0}: Er schiebt die Weiße irgendwohin und stößt von dort.': 'A foul is: the white ball drops, you hit nothing, or you hit one of the other balls first (or the 8 while you still have your own). Then the other player has {0}: they move the white ball anywhere and shoot from there.',
+    'Kugel in der Hand': 'ball in hand',
+    'Die 8 kommt ganz zum Schluss. Fällt sie zu früh oder mit einem Foul, hast du den Frame verloren. Fällt sie beim Anstoß, wird sie wieder aufgesetzt.': 'The 8 comes last. If it drops too early or with a foul, you lose the frame. If it drops on the break, it is put back.',
+    'Fein nach links': 'Fine left', 'Fein nach rechts': 'Fine right', 'Stoßkraft': 'Power', 'Ziehen zum Stoßen': 'Pull to shoot', 'offen': 'open',
+    'Foul': 'Foul', 'Frame!': 'Frame!', 'Frame verloren': 'Frame lost', 'Frame #': 'Frame #', 'Volle!': 'Solids!', 'Halbe!': 'Stripes!', 'Frames # : #': 'Frames # : #', '# : # Frames': '# : # frames',
+    '{0} stößt an · Weiße hinter der Linie verschieben': '{0} breaks · move the white ball behind the line',
+    '{0}: Kugel in der Hand, Weiße verschieben': '{0}: ball in hand, move the white ball',
+    '{0} spielt Volle · noch #': '{0} plays solids · # left', '{0} spielt Halbe · noch #': '{0} plays stripes · # left',
+    '{0} spielt jetzt die 8': '{0} now plays the 8', '{0} ist dran · Tisch noch offen': '{0} to play · table still open',
+    '{0} spielt Volle': '{0} plays solids', '{0} spielt Halbe': '{0} plays stripes',
+    'Foul: Die Weiße ist gefallen': 'Foul: the white ball dropped', 'Foul: Keine Kugel getroffen': 'Foul: no ball hit', 'Foul: Zuerst die 8 getroffen': 'Foul: hit the 8 first', 'Foul: Zuerst eine fremde Kugel getroffen': "Foul: hit the opponent's ball first",
+    '{0} hat die Kugel in der Hand': '{0} has ball in hand',
+    '{0} versenkt die 8': '{0} pots the 8', '{0} hat die 8 mit Foul versenkt': '{0} potted the 8 with a foul', '{0} hat die 8 zu früh versenkt': '{0} potted the 8 too early', 'Frame für {0}': 'Frame to {0}',
+    'Die 8 ist beim Anstoß gefallen und wird wieder aufgesetzt': 'The 8 dropped on the break and is put back'
+  });
+
   // ---------- games: names by id ----------
   V.i18n.names({
     c4: 'Connect 4', ships: 'Battleship', ttt: 'Tic Tac Toe', gomoku: 'Five in a Row', uttt: 'Ultimate Tic Tac Toe', dots: 'Dots and Boxes',
     hangman: 'Hangman', slf: 'City Country River', schnapsen: 'Schnapsen', guess: 'Estimation Quiz', hex: 'Hex', ttt3: '3D Tic Tac Toe', code: 'Code Breaker', domino: 'Dominoes', ludo: 'Ludo', ladder: 'Snakes and Ladders', checkers: 'Checkers', mill: "Nine Men's Morris",
     yacht: 'Dice Block', maumau: 'Mau-Mau', memory: 'Memory', poker: 'Poker', chess: 'Chess', reversi: 'Reversi', kalaha: 'Kalah', go: 'Go',
-    backgammon: 'Backgammon', reaction: 'Reaction Duel', pong: 'Pong', hockey: 'Air Hockey', tron: 'Light Racer', sumo: 'Sumo Arena'
+    backgammon: 'Backgammon', reaction: 'Reaction Duel', pong: 'Pong', hockey: 'Air Hockey', billiard: 'Pool', tron: 'Light Racer', sumo: 'Sumo Arena'
   });
 
   // ---------- games: shared words ----------

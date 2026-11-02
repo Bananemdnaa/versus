@@ -9,7 +9,7 @@ Spiele für zwei bis vier Spieler an einem Gerät, online oder allein gegen die 
 - **Klassiker:** 4 Gewinnt, Schiffe versenken, Tic Tac Toe, Fünf in einer Reihe, Ultimate Tic Tac Toe, Käsekästchen, Galgenmännchen (2–4), Stadt Land Fluss (2–4), Schätzfragen (2–4), 3D Tic Tac Toe, Zahlencode knacken
 - **Brettspiele:** Ludo (wie Mensch ärgere dich nicht, 2–4), Leiterspiel (2–4), Dame, Mühle, Würfelblock (wie Kniffel, 2–4), Mau-Mau (2–4), Memory (2–4), Poker (Texas Hold'em, 2–4), Schnapsen, Domino (2–4); mit Holzbrett-Look, Spielfiguren, 3D-Würfeln und Karten
 - **Strategie:** Schach, Reversi, Kalaha, Go (9×9 oder 13×13), Backgammon, Hex (7×7, 9×9 oder 11×11)
-- **Action:** Reaktionsduell, Pong, Air Hockey (beide spielen gleichzeitig am selben Handy, jeder auf seiner Hälfte), Lichtrenner (2–4), Sumo-Arena (2–4)
+- **Action:** Reaktionsduell, Pong, Air Hockey (beide spielen gleichzeitig am selben Handy, jeder auf seiner Hälfte), Billard (8-Ball, abwechselnd am selben Gerät), Lichtrenner (2–4), Sumo-Arena (2–4)
 
 ## Bis zu vier Spieler
 
@@ -227,3 +227,7 @@ Versus läuft als Activity direkt im Discord-Sprachkanal (`js/discord.js`, SDK 2
 - **Code:** `js/core.js` (Speicher, Einstellungen, Ton, Effekte, Icons), `js/ai.js` (KI-Suche), `js/kit.js` (Würfel, Figuren, Karten, Touch-Knöpfe), `js/app.js` (Menüs, Optionen, Dialoge, Tastatur, Installation), `js/play.js` (Partie, Online-Sync, Schachuhr), `js/cloud.js` (Konto und Supabase, lädt die Bibliothek im Hintergrund), `js/online.js` (Freunde, Einladungen, Tische, Rangliste), dazu eine Datei pro Spiel in `js/games/`.
 - **Neue Version:** `powershell -File bump.ps1` erhöht `?v=` in `index.html`, `V.VERSION` und den Cache-Namen in `sw.js` in einem Schritt.
 - **Test:** `test.html` lässt jedes Spiel mit KI auf allen Plätzen durchspielen und zeigt Fehler, hängende Spiele und Ergebnisse. Parameter: `?games=c4,chess`, `?level=0..3`, `?rounds=2`, `?timeout=90`. Action-Spiele laufen über Animationen und werden nur auf Fehler geprüft.
+
+## Billard
+
+8-Ball zu zweit an einem Gerät, ohne KI (`js/games/billiard.js`). Am Handy steht der Tisch hochkant, auf breiten Bildschirmen liegt er quer. Zielen: auf dem Tisch ziehen (Finger oder Maus), fein mit `‹ ›` oder `← →` (mit Shift feiner). Stoßen: den Balken unter dem Tisch nach rechts ziehen und loslassen, oder die Leertaste halten und loslassen. Regeln: Volle (1–7) und Halbe (9–15), der Tisch bleibt nach dem Anstoß offen, die erste versenkte Kugel danach bestimmt die Gruppe. Foul (Weiße fällt, nichts getroffen, zuerst eine fremde Kugel oder zu früh die 8): der andere hat die Kugel in der Hand. Die 8 zu früh oder mit Foul verliert den Frame, beim Anstoß wird sie wieder aufgesetzt. Einstellungen: Frames zum Sieg (1–3), Hilfslinie lang, kurz oder aus.
