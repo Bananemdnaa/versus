@@ -275,7 +275,15 @@
     'Karte': 'map',
     'Freie Wahl: du darfst in jedem offenen Bereich spielen. Andere Bereiche tippst du auf der Karte an.': 'Free choice: you may play in any open area. Tap the map for other areas.',
     'Freie Wahl: tipp auf der Karte einen offenen Bereich an.': 'Free choice: tap an open area on the map.',
-    'Freie Wahl in diesem Bereich.': 'Free choice in this area.', 'Hier musst du spielen.': 'You have to play here.'
+    'Freie Wahl in diesem Bereich.': 'Free choice in this area.', 'Hier musst du spielen.': 'You have to play here.',
+    'Neun Ultimate-Bretter in einem großen, 729 Felder. Ihr spielt einen Bereich zu Ende, dann wählt der Nächste den neuen. Drei Bereiche in einer Reihe gewinnen.': 'Nine Ultimate boards in one big board, 729 cells. You play one area to the end, then the next player picks the new one. Three areas in a row win.',
+    'Cursor bewegen': 'Move the cursor', 'Bereich wählen (Ziffernblock)': 'Pick an area (number pad)', 'Ein Bereich nach dem anderen': 'One area after the other', 'Neuer Bereich': 'New area', 'Die Übersicht': 'The overview',
+    'Im Bereich spielt ihr ganz normales Ultimate: Setzt du im kleinen Brett {0}, muss der Gegner im Brett oben rechts weiterspielen. Ist dieses Brett schon entschieden, darf er überall im Bereich setzen.': 'Inside an area you play normal Ultimate: if you play {0} in a small board, your opponent has to continue in the top right board. If that board is already decided, they may play anywhere in the area.',
+    'Ihr bleibt im Bereich, bis er {0} ist (gewonnen oder voll). Dann sucht sich der Nächste einen offenen Bereich aus, und dort geht es weiter. Zu Beginn wählt der Erste.': 'You stay in the area until it is {0} (won or full). Then the next player picks an open area, and play continues there. At the start the first player picks.',
+    'entschieden': 'decided',
+    'Oben siehst du alle neun Bereiche mit ihren Brettern und wer sie gewonnen hat. Der leuchtende ist der, in dem gerade gespielt wird.': 'At the top you see all nine areas with their boards and who won them. The glowing one is where play is right now.',
+    'Wo geht es los?': 'Where do we start?', 'Such dir einen Bereich aus.': 'Pick an area.', 'Der letzte ist entschieden. Such dir einen offenen Bereich aus.': 'The last one is decided. Pick an open area.',
+    'Freie Wahl in diesem Bereich. Ihr bleibt hier, bis er entschieden ist.': 'Free choice in this area. You stay here until it is decided.', 'Ihr bleibt hier, bis der Bereich entschieden ist.': 'You stay here until the area is decided.', 'Anderen Bereich wählen': 'Pick another area'
   });
   {
     const AR = { 'oben links': 'top left', 'oben': 'top', 'oben rechts': 'top right', 'links': 'left', 'Mitte': 'middle', 'rechts': 'right', 'unten links': 'bottom left', 'unten': 'bottom', 'unten rechts': 'bottom right' };
