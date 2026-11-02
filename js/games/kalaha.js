@@ -75,7 +75,7 @@
     desc: 'Nimm alle Steine aus einer Mulde und verteile sie einzeln weiter. Wer am Ende mehr Steine in seinem Speicher hat, gewinnt.',
     levelInfo: ['Anfänger: zieht fast zufällig.', 'Nimmt Extrazüge mit, übersieht aber Fänge.', 'Rechnet sechs Züge voraus.', 'Rechnet so tief wie möglich. Fast unschlagbar.'],
     keys: [['1–6', 'Mulde von links nach rechts'], ['Pfeile', 'Cursor bewegen'], ['Enter', 'Mulde spielen']],
-    options: [{ id: 'seeds', label: 'Steine pro Mulde', def: 4, choices: [[3, '3'], [4, '4'], [6, '6']] }],
+    options: [{ id: 'seeds', label: 'Steine pro Mulde', group: 'board', inline: 'local', short: v => `${v} Steine`, def: 4, choices: [[3, '3'], [4, '4'], [6, '6']] }],
     icon: `<svg viewBox="0 0 48 48"><rect x="2" y="12" width="44" height="24" rx="12" fill="#3a2615" stroke="#6b4423" stroke-width="2"/><ellipse cx="8" cy="24" rx="4" ry="8" fill="#1a1007"/><ellipse cx="40" cy="24" rx="4" ry="8" fill="#1a1007"/>${[0, 1, 2, 3].map(k => `<circle cx="${16 + k * 5.4}" cy="19" r="2.4" fill="#1a1007"/><circle cx="${16 + k * 5.4}" cy="29" r="2.4" fill="#1a1007"/>`).join('')}<circle cx="40" cy="22" r="1.6" fill="#ff4fd8"/><circle cx="40" cy="26.5" r="1.6" fill="#62f0ff"/><circle cx="8" cy="24" r="1.6" fill="#ffd84f"/><circle cx="21.4" cy="29" r="1.2" fill="#5dff9d"/></svg>`,
     tutorial: [
       { t: 'Das Brett', d: 'Jeder hat <b>sechs Mulden</b> auf seiner Seite und rechts davon einen großen <b>Speicher</b>. Du spielst die untere Reihe, dein Speicher ist rechts. Am Anfang liegen in jeder Mulde gleich viele Steine.' },

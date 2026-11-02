@@ -21,7 +21,7 @@
     sides: { 1: 'Pink', 2: 'Gelb', 3: 'Cyan', 4: 'Grün' },
     levelInfo: ['Reagiert langsam und zielt grob.', 'Zielt ordentlich, achtet aber kaum auf den Rand.', 'Zielt genau und bremst vor dem Rand.', 'Wartet auf den perfekten Moment.'],
     keys: [['A', 'Spieler 1 Schub'], ['←', 'Spieler 2'], ['C', 'Spieler 3'], ['J', 'Spieler 4'], ['Leertaste', 'Schub gegen die KI']],
-    options: [{ id: 'n', label: 'Spieler', def: 2, choices: [[2, '2'], [3, '3'], [4, '4']] }, { id: 'to', label: 'Punkte zum Sieg', def: 3, choices: [[3, '3'], [5, '5']] }],
+    options: [{ id: 'n', label: 'Spieler', group: 'players', inline: 'local', live: false, def: 2, choices: [[2, '2'], [3, '3'], [4, '4']] }, { id: 'to', label: 'Punkte zum Sieg', group: 'rules', short: v => `bis ${v}`, def: 3, choices: [[3, '3'], [5, '5']] }],
     localHint: 'Alle spielen gleichzeitig am selben Gerät. Jeder hat einen Knopf in seiner Ecke, am PC eine eigene Taste.',
     endDelay: 900,
     icon: `<svg viewBox="0 0 48 48" fill="none"><circle cx="24" cy="24" r="20" fill="#1a1426" stroke="#ff9f43" stroke-width="2.5"/><circle cx="18" cy="27" r="6" fill="#ff4fd8"/><circle cx="31" cy="19" r="6" fill="#ffd84f"/><path d="M18 27l7-6" stroke="#fff" stroke-width="2.4" stroke-linecap="round"/><path d="M36 13l4-4M38 17l5-1" stroke="#ffd84f" stroke-width="2" stroke-linecap="round"/></svg>`,

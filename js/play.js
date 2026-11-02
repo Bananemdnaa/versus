@@ -882,6 +882,8 @@
     const back = () => leave(() => watch ? (M.admin ? V.account.admin('matches') : V.ui.home('online')) : setup(g));
     // all options as a popup: the game holds still while it is open (online it keeps running)
     const optsPop = () => { if (inst && inst.pause) inst.pause(); P.optsPopup(() => { if (inst && inst.resume && alive) inst.resume(); }); };
+    // the settings of this match (js/app.js rulesPopup): online only to read, else they count from a new start
+    const setPop = () => { if (inst && inst.pause) inst.pause(); P.rulesPopup(g, cfg, { readOnly: online || table, restart: online || table ? null : c => leave(() => play(g, c)), onClose: () => { if (inst && inst.resume && alive) inst.resume(); } }); };
     // ---------- pause menu (Esc, the back button) ----------
     // Local matches and against the AI: the game holds still (action games pause their loop). Online it keeps running,
     // so it is called "Menü" there and offers resigning instead of a new start. Leaving still asks once more.
@@ -893,13 +895,14 @@
       const sw = (k, on, l) => `<button class="pz-sw" data-pzs="${k}" role="switch" aria-checked="${on}"><span>${l}</span><i class="sw${on ? ' on' : ''}"></i></button>`;
       const sl = (k, l, off) => `<label class="pz-sl${off ? ' off' : ''}"><span>${l}</span><input type="range" min="0" max="100" step="5" value="${settings[k]}" data-pzv="${k}" style="--p:${settings[k]}%" aria-label="${l}"></label>`;
       const score = party ? SIDES.map(s => series[s]).join(':') : series[L] + ':' + series[R];
+      const hasSet = !!((g.options && g.options.length) || g.panelExtra);
       const m = openModal(`<div class="pause">
         <div class="pz-l"><span class="pz-k">${netGame ? 'Die Partie läuft weiter' : 'Partie angehalten'}</span><h2>${title}</h2>
           <p class="pz-info"><span>${esc(g.name)}</span> · <span>${sublabel}</span> · <span>Zug ${plies + 1}</span> · <span>${score}</span></p>
           <button class="btn primary big" id="pz_go"><span>${IC.play}Weiterspielen</span><kbd class="only-fine">Esc</kbd></button>
           <div class="pz-list">${canUndo ? row('pz_undo', IC.undo, 'Zug zurück', 'Z') : ''}
             ${online ? row('pz_res', IC.flag, 'Aufgeben', '') : table ? '' : row('pz_new', IC.redo, 'Neu starten', 'N')}
-            ${row('pz_rules', IC.help, 'Regeln', 'H')}${V.coarse ? '' : row('pz_keys', IC.kbd, 'Tastenkürzel', '?')}</div>
+            ${row('pz_rules', IC.help, 'Regeln', 'H')}${hasSet ? row('pz_set', IC.sliders, netGame ? 'So wird gespielt' : 'Einstellungen der Partie', 'R') : ''}${V.coarse ? '' : row('pz_keys', IC.kbd, 'Tastenkürzel', '?')}</div>
           <button class="pz-leave" id="pz_leave">${IC.x}<span><b>${table ? 'Tisch verlassen' : 'Partie verlassen'}</b><small>${online ? 'zählt als Niederlage' : table ? 'Die KI übernimmt deinen Platz' : 'zählt nicht in der Bilanz'}</small></span></button></div>
         <div class="pz-r"><h3>Schnell-Einstellungen</h3>
           ${sl('vol', 'Effekte', !settings.sound)}${sl('mvol', 'Musik', !settings.sound || settings.music === false)}
@@ -910,6 +913,7 @@
           if ((k === 'z' || k === 'Z') && canUndo) { closeModal(); undo(); return true; }
           if ((k === 'n' || k === 'N') && !netGame) { P.closeModalQuiet(); leave(() => play(g, cfg, series)); return true; }
           if (k === 'h' || k === 'H') { P.closeModalQuiet(); tut(); return true; }
+          if ((k === 'r' || k === 'R') && hasSet) { P.closeModalQuiet(); setPop(); return true; }
           if (k === '?') { P.closeModalQuiet(); P.showKeys(); return true; }
           return false;
         });
@@ -920,6 +924,7 @@
       on('pz_res', () => { P.closeModalQuiet(); leave(null); });
       on('pz_rules', () => { P.closeModalQuiet(); tut(); });
       on('pz_keys', () => { P.closeModalQuiet(); P.showKeys(); });
+      on('pz_set', () => { P.closeModalQuiet(); setPop(); });
       on('pz_leave', () => { P.closeModalQuiet(); back(); });
       on('pz_opts', () => { P.closeModalQuiet(); optsPop(); });
       m.querySelectorAll('[data-pzs]').forEach(b => b.onclick = () => {

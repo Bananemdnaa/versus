@@ -104,19 +104,7 @@
   const TOPICS = [['geo', 'Geografie'], ['natur', 'Wissenschaft und Natur'], ['alltag', 'Spiele und Alltag'], ['sport', 'Sport'], ['geschichte', 'Geschichte']];
   const topicOf = i => i <= 32 ? 'geo' : i <= 53 ? 'natur' : i === 85 || i === 92 || (i >= 63 && i <= 70) ? 'sport' : i <= 73 ? 'alltag' : 'geschichte';
   const topicsOf = v => Array.isArray(v) ? v.filter(k => TOPICS.some(t => t[0] === k)) : [];
-  const panelExtra = {
-    html(opts) {
-      const on = topicsOf(opts.topics);
-      return `<div class="slc"><div class="slc-h"><span>Themen</span><small>${on.length ? on.length + ' gewählt' : 'Alle'}</small></div>
-        <div class="slc-l">${TOPICS.map(([k, l]) => `<button type="button" data-c="${k}" class="${on.includes(k) ? 'on' : ''}" aria-pressed="${on.includes(k)}">${l}</button>`).join('')}</div>
-        ${on.length ? '<button type="button" class="link slc-reset">Alle Themen</button>' : ''}</div>`;
-    },
-    wire(el, opts, save) {
-      const on = topicsOf(opts.topics);
-      el.querySelectorAll('[data-c]').forEach(b => b.onclick = () => { const k = b.dataset.c; save({ topics: on.includes(k) ? on.filter(x => x !== k) : [...on, k] }); });
-      const r = el.querySelector('.slc-reset'); if (r) r.onclick = () => save({ topics: [] });
-    }
-  };
+  const panelExtra = V.ui.topics(TOPICS, 'Themen', topicsOf);
   const TIME = 25;
   const en = () => V.lang === 'en';
   // German "1.441" or "3,5", English "1,441" or "3.5"
@@ -170,7 +158,7 @@
     desc: 'Wie hoch ist der Großglockner, wann sank die Titanic? Alle tippen gleichzeitig eine Zahl. Wer am nächsten dran ist, holt die Punkte, ein Volltreffer gibt extra. Für 2 bis 4, am selben Gerät oder online.',
     sides: { 1: 'Pink', 2: 'Gelb', 3: 'Cyan', 4: 'Grün' },
     keys: [['Ziffern', 'Zahl eintippen'], ['Enter', 'Abgeben']],
-    options: [{ id: 'n', label: 'Spieler', def: 2, choices: [[2, '2'], [3, '3'], [4, '4']] }, { id: 'rounds', label: 'Fragen', def: 7, choices: [[7, '7'], [12, '12']] }],
+    options: [{ id: 'n', label: 'Spieler', group: 'players', inline: 'local', live: false, def: 2, choices: [[2, '2'], [3, '3'], [4, '4']] }, { id: 'rounds', label: 'Fragen', group: 'rules', short: v => `${v} Fragen`, def: 7, choices: [[7, '7'], [12, '12']] }],
     extraOpts: ['topics'], panelExtra,
     localHint: 'Am selben Gerät tippt jeder für sich, das Handy wird nach jedem weitergegeben.',
     endDelay: 1300,

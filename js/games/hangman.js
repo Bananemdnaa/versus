@@ -67,19 +67,7 @@
     return [...new Set(lines.join(' ').split(' ').filter(w => /^[A-ZÄÖÜ]{3,16}$/.test(w)))];
   }
   const LIST = wordsFor(null);
-  const panelExtra = {
-    html(opts) {
-      const on = topicsOf(opts.topics);
-      return `<div class="slc"><div class="slc-h"><span>Themen für das Zufallswort</span><small>${on.length ? on.length + ' gewählt' : 'Alle'}</small></div>
-        <div class="slc-l">${TOPICS.map(([k, l]) => `<button type="button" data-c="${k}" class="${on.includes(k) ? 'on' : ''}" aria-pressed="${on.includes(k)}">${l}</button>`).join('')}</div>
-        ${on.length ? '<button type="button" class="link slc-reset">Alle Themen</button>' : ''}</div>`;
-    },
-    wire(el, opts, save) {
-      const on = topicsOf(opts.topics);
-      el.querySelectorAll('[data-c]').forEach(b => b.onclick = () => { const k = b.dataset.c; save({ topics: on.includes(k) ? on.filter(x => x !== k) : [...on, k] }); });
-      const r = el.querySelector('.slc-reset'); if (r) r.onclick = () => save({ topics: [] });
-    }
-  };
+  const panelExtra = V.ui.topics(TOPICS, 'Themen für das Zufallswort', topicsOf);
   const ABC = (EN ? 'ABCDEFGHIJKLMNOPQRSTUVWXYZ' : 'ABCDEFGHIJKLMNOPQRSTUVWXYZÄÖÜ').split('');
   const FREQ = EN ? 'ETAOINSHRDLCUMWFGYPBVKJXQZ' : 'ENIRSATDHULCGMOBWFKZPVÜÄÖJYXQ';
   const MAX = 10;
@@ -132,7 +120,7 @@
     sides: { 1: 'Pink', 2: 'Gelb', 3: 'Cyan', 4: 'Grün' },
     levelInfo: ['Rät ziemlich wild.', 'Rät die häufigsten Buchstaben zuerst.', 'Kennt viele Wörter und rät gezielt.', 'Kennt alle Wörter der Liste und löst früh.'],
     keys: [['A–Z, Ä Ö Ü', 'Buchstaben raten'], ['Enter', 'Wort abschicken']],
-    options: [{ id: 'n', label: 'Spieler', def: 2, choices: [[2, '2'], [3, '3'], [4, '4']] }, { id: 'rounds', label: 'Wörter pro Person', def: 2, choices: [[1, '1'], [2, '2'], [3, '3']] }],
+    options: [{ id: 'n', label: 'Spieler', group: 'players', inline: 'local', live: false, def: 2, choices: [[2, '2'], [3, '3'], [4, '4']] }, { id: 'rounds', label: 'Wörter pro Person', group: 'rules', short: v => `${v} pro Person`, def: 2, choices: [[1, '1'], [2, '2'], [3, '3']] }],
     extraOpts: ['topics'], panelExtra,
     localHint: 'Wer das Wort vorgibt, tippt es heimlich ein, die anderen raten reihum am selben Gerät.',
     endDelay: 1300,

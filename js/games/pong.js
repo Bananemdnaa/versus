@@ -50,7 +50,7 @@
     sides: { 1: 'Unten', 2: 'Oben' },
     noFirst: true, noAI: true,
     keys: [['← →', 'Schläger unten'], ['A D', 'Schläger oben (zu zweit)'], ['Leertaste', 'Pause']],
-    options: [{ id: 'to', label: 'Punkte zum Sieg', def: 7, choices: [[5, '5'], [7, '7'], [11, '11']] }],
+    options: [{ id: 'to', label: 'Punkte zum Sieg', group: 'rules', inline: 'local', short: v => `bis ${v}`, def: 7, choices: [[5, '5'], [7, '7'], [11, '11']] }],
     levelInfo: ['Langsamer Schläger, zielt ungenau.', 'Kommt an die meisten Bälle.', 'Schnell und ziemlich genau.', 'Kaum zu überwinden. Spiel mit den Kanten.'],
     endDelay: 900,
     icon: `<svg viewBox="0 0 48 48"><rect x="4" y="3" width="40" height="42" rx="6" fill="#080913" stroke="#3a4070" stroke-width="2"/><path d="M8 24h32" stroke="#2a2f4f" stroke-width="1.6" stroke-dasharray="3 3"/><rect x="12" y="8" width="13" height="3.4" rx="1.7" fill="#ffd84f"/><rect x="22" y="37" width="13" height="3.4" rx="1.7" fill="#ff4fd8"/><circle cx="28" cy="20" r="2.6" fill="#fff"/></svg>`,

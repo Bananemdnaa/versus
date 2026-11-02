@@ -123,7 +123,7 @@
     sides: { 1: 'Schwarz', 2: 'Weiß' }, firstLabels: ['Du (Schwarz)', 'KI (Schwarz)', 'Zufall'],
     levelInfo: ['Spielt fast zufällig.', 'Denkt kurz nach, macht aber viele Fehler.', 'Simuliert tausende Partien pro Zug.', 'Rechnet so lange wie möglich. Stark auf 9×9.'],
     keys: [['Pfeile + Enter', 'Stein setzen'], ['P', 'Passen']],
-    options: [{ id: 'size', label: 'Brett', def: 9, choices: [[9, '9×9'], [13, '13×13']] }],
+    options: [{ id: 'size', label: 'Brett', group: 'board', inline: 'local', short: v => `${v}×${v}`, def: 9, choices: [[9, '9×9'], [13, '13×13']] }],
     endDelay: 1600,
     icon: `<svg viewBox="0 0 48 48"><rect x="3" y="3" width="42" height="42" rx="6" fill="#d9ad66" stroke="#5d3a1c" stroke-width="2.5"/>${[0, 1, 2, 3, 4].map(k => `<path d="M${9 + k * 7.5} 9v30M9 ${9 + k * 7.5}h30" stroke="#5d3a1c" stroke-width="1"/>`).join('')}<circle cx="16.5" cy="16.5" r="3.4" fill="#111"/><circle cx="24" cy="16.5" r="3.4" fill="#111"/><circle cx="24" cy="24" r="3.4" fill="#fff" stroke="#999" stroke-width=".6"/><circle cx="31.5" cy="24" r="3.4" fill="#fff" stroke="#999" stroke-width=".6"/><circle cx="16.5" cy="31.5" r="3.4" fill="#111"/></svg>`,
     tutorial: [

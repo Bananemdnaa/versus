@@ -8,7 +8,7 @@
     sides: { 1: 'Unten', 2: 'Oben' },
     noFirst: true, noAI: true,
     keys: [['Pfeile', 'Schläger unten'], ['W A S D', 'Schläger oben (zu zweit)'], ['Leertaste', 'Pause']],
-    options: [{ id: 'to', label: 'Tore zum Sieg', def: 7, choices: [[5, '5'], [7, '7'], [10, '10']] }],
+    options: [{ id: 'to', label: 'Tore zum Sieg', group: 'rules', inline: 'local', short: v => `${v} Tore`, def: 7, choices: [[5, '5'], [7, '7'], [10, '10']] }],
     levelInfo: ['Langsam und verteidigt schlecht.', 'Verteidigt ordentlich, greift selten an.', 'Schnell, greift gezielt an.', 'Blitzschnell und gnadenlos.'],
     endDelay: 900,
     icon: `<svg viewBox="0 0 48 48" fill="none"><rect x="6" y="3" width="36" height="42" rx="8" fill="#080913" stroke="#3a4070" stroke-width="2"/><path d="M18 3h12M18 45h12" stroke="#6ff3ff" stroke-width="3"/><path d="M6 24h36" stroke="#2a2f4f" stroke-width="1.5"/><circle cx="24" cy="24" r="5" stroke="#2a2f4f" stroke-width="1.5"/><circle cx="20" cy="13" r="5" fill="#ffd84f"/><circle cx="27" cy="36" r="5" fill="#ff4fd8"/><circle cx="31" cy="27" r="2.8" fill="#fff"/></svg>`,

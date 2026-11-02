@@ -59,7 +59,7 @@
     sides: { 1: 'Pink', 2: 'Gelb', 3: 'Cyan', 4: 'Grün' },
     levelInfo: ['Hier entscheidet nur der Würfel.', 'Hier entscheidet nur der Würfel.', 'Hier entscheidet nur der Würfel.', 'Hier entscheidet nur der Würfel.'],
     keys: [['Leertaste', 'Würfeln']],
-    options: [{ id: 'n', label: 'Spieler', def: 4, choices: [[2, '2'], [3, '3'], [4, '4']] }],
+    options: [{ id: 'n', label: 'Spieler', group: 'players', inline: 'local', live: false, def: 4, choices: [[2, '2'], [3, '3'], [4, '4']] }],
     localHint: 'Ihr würfelt reihum am selben Gerät, jeder mit seiner Farbe.',
     endDelay: 1300,
     icon: `<svg viewBox="0 0 48 48"><rect x="3" y="3" width="42" height="42" rx="7" fill="#e2c896" stroke="#5d3a1c" stroke-width="2.5"/><path d="M14 40L22 9M20 41L28 10" stroke="#7a4a1f" stroke-width="2.4" stroke-linecap="round"/><path d="M15.6 34h6M17.2 28h6M18.8 22h6M20.4 16h6" stroke="#b9803f" stroke-width="2"/><path d="M36 8c-8 4 6 10-2 15s4 10-6 17" stroke="#2a7d3a" stroke-width="4.5" fill="none" stroke-linecap="round"/><circle cx="36" cy="8" r="3.4" fill="#2a7d3a"/><circle cx="37" cy="7" r=".9" fill="#fff"/></svg>`,

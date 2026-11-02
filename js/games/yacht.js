@@ -102,7 +102,7 @@
     sides: { 1: 'Pink', 2: 'Gelb', 3: 'Cyan', 4: 'Grün' },
     levelInfo: ['Behält, was ihm gerade gefällt.', 'Sammelt gleiche Augen und Straßen, plant aber kaum.', 'Rechnet aus, welche Würfel sich zu behalten lohnen.', 'Rechnet gründlich und spielt auf den Bonus.'],
     keys: [['Leertaste', 'Würfeln'], ['1–5', 'Würfel behalten oder freigeben'], ['Pfeile + Enter', 'Feld eintragen']],
-    options: [{ id: 'n', label: 'Spieler', def: 2, choices: [[2, '2'], [3, '3'], [4, '4']] }],
+    options: [{ id: 'n', label: 'Spieler', group: 'players', inline: 'local', live: false, def: 2, choices: [[2, '2'], [3, '3'], [4, '4']] }],
     localHint: 'Ihr würfelt reihum am selben Gerät, jeder hat seine Spalte auf dem Block.',
     endDelay: 1300,
     icon: `<svg viewBox="0 0 48 48"><rect x="4" y="9" width="22" height="22" rx="5" fill="#fff" stroke="#c9c2b2" transform="rotate(-10 15 20)"/><g fill="#15172a" transform="rotate(-10 15 20)"><circle cx="9.5" cy="14.5" r="2"/><circle cx="15" cy="20" r="2"/><circle cx="20.5" cy="25.5" r="2"/></g><rect x="22" y="18" width="22" height="22" rx="5" fill="#ffd84f" stroke="#b9952a" transform="rotate(12 33 29)"/><g fill="#15172a" transform="rotate(12 33 29)"><circle cx="27.5" cy="23.5" r="2"/><circle cx="38.5" cy="23.5" r="2"/><circle cx="27.5" cy="34.5" r="2"/><circle cx="38.5" cy="34.5" r="2"/><circle cx="33" cy="29" r="2"/></g></svg>`,

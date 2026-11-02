@@ -15,36 +15,37 @@
   const clean = c => String(c || '').replace(/\s+/g, ' ').trim().slice(0, LEN);
   const pickCats = v => { const a = Array.isArray(v) ? [...new Set(v.map(clean).filter(Boolean))].slice(0, MAXC) : []; return a.length >= MINC ? a : DEF_CATS.slice(); };
   const own = () => V.store.get('slfCustom', []);
-  // the category editor in the game panel (js/app.js renders it under the options)
+  // the category editor in the rules view (js/app.js puts it in the group "Inhalte")
+  const isDef = cur => cur.join() === DEF_CATS.join();
   const panelExtra = {
+    title: 'Kategorien',
+    changed: opts => !isDef(pickCats(opts.cats)),
+    reset: () => ({ cats: DEF_CATS.slice() }),
+    short: opts => { const cur = pickCats(opts.cats); return isDef(cur) ? '' : `${cur.length} Kategorien`; },
     html(opts) {
       const cur = pickCats(opts.cats), mine = own(), pool = [...new Set([...POOL, ...mine, ...cur])];
-      return `<div class="slc"><div class="slc-h"><span>Kategorien</span><small>${cur.length} von höchstens ${MAXC}</small></div>
-        <div class="slc-l">${pool.map(c => `<button type="button" data-c="${esc(c)}" class="${cur.includes(c) ? 'on' : ''}" aria-pressed="${cur.includes(c)}">${esc(c)}${mine.includes(c) ? `<i data-x="${esc(c)}" role="button" aria-label="${esc(c)} löschen">×</i>` : ''}</button>`).join('')}</div>
-        <form class="slc-add"><input class="inp" maxlength="${LEN}" placeholder="Eigene Kategorie" aria-label="Eigene Kategorie" autocomplete="off"><button class="btn sm" type="submit"><span>Hinzufügen</span></button></form>
-        ${cur.join() !== DEF_CATS.join() ? '<button type="button" class="link slc-reset">Standard wiederherstellen</button>' : ''}</div>`;
+      return V.ui.multi.html({ items: pool.map(c => [c, c, mine.includes(c)]), on: cur, count: `${cur.length} von max. ${MAXC}`, add: { ph: 'Eigene Kategorie', max: LEN } });
     },
-    wire(el, opts, save) {
+    wire(el, opts, save, warn) {
       const cur = pickCats(opts.cats);
-      el.querySelectorAll('[data-x]').forEach(x => x.onclick = e => {
-        e.stopPropagation();
-        const c = x.dataset.x; V.store.set('slfCustom', own().filter(k => k !== c));
-        save({ cats: cur.filter(k => k !== c).length >= MINC ? cur.filter(k => k !== c) : DEF_CATS.slice() });
+      V.ui.multi.wire(el, {
+        toggle(c) {
+          const on = cur.includes(c);
+          if (on && cur.length <= MINC) return warn(`Mindestens ${MINC} Kategorien`);
+          if (!on && cur.length >= MAXC) return warn(`Höchstens ${MAXC} Kategorien`);
+          save({ cats: on ? cur.filter(k => k !== c) : [...cur, c] });
+        },
+        remove(c) {
+          V.store.set('slfCustom', own().filter(k => k !== c));
+          save({ cats: cur.filter(k => k !== c).length >= MINC ? cur.filter(k => k !== c) : DEF_CATS.slice() });
+        },
+        add(text) {
+          const c = clean(text); if (!c) return;
+          if (!POOL.includes(c) && !own().includes(c)) V.store.set('slfCustom', [...own(), c].slice(-20));
+          if (!cur.includes(c) && cur.length >= MAXC) { save({ cats: cur }); return warn(`Höchstens ${MAXC} Kategorien, sie ist jetzt in der Liste`); }
+          save({ cats: cur.includes(c) ? cur : [...cur, c] });
+        }
       });
-      el.querySelectorAll('[data-c]').forEach(b => b.onclick = () => {
-        const c = b.dataset.c, on = cur.includes(c);
-        if (on && cur.length <= MINC) return V.ui.toast(`Mindestens ${MINC} Kategorien`);
-        if (!on && cur.length >= MAXC) return V.ui.toast(`Höchstens ${MAXC} Kategorien`);
-        save({ cats: on ? cur.filter(k => k !== c) : [...cur, c] });
-      });
-      el.querySelector('.slc-add').onsubmit = e => {
-        e.preventDefault();
-        const c = clean(el.querySelector('.slc-add input').value);
-        if (!c) return;
-        if (!POOL.includes(c) && !own().includes(c)) V.store.set('slfCustom', [...own(), c].slice(-20));
-        save({ cats: cur.includes(c) ? cur : cur.length >= MAXC ? (V.ui.toast(`Höchstens ${MAXC} Kategorien, sie ist jetzt in der Liste`), cur) : [...cur, c] });
-      };
-      const r = el.querySelector('.slc-reset'); if (r) r.onclick = () => save({ cats: DEF_CATS.slice() });
     }
   };
 
@@ -81,8 +82,8 @@
     desc: 'Ein Buchstabe wird ausgelost, alle schreiben gleichzeitig eine Stadt, ein Land, einen Fluss und mehr damit. Wer fertig ist, ruft Stopp. Danach streicht ihr gemeinsam, was nicht zählt. Für 2 bis 4, online oder reihum am selben Gerät.',
     sides: { 1: 'Pink', 2: 'Gelb', 3: 'Cyan', 4: 'Grün' },
     keys: [['Tab', 'Nächstes Feld'], ['Enter', 'Fertig']],
-    options: [{ id: 'n', label: 'Spieler', def: 2, choices: [[2, '2'], [3, '3'], [4, '4']] }, { id: 'rounds', label: 'Runden', def: 3, choices: [[3, '3'], [5, '5']] },
-      { id: 'time', label: 'Zeit pro Runde', def: 90, choices: [[60, '60 s'], [90, '90 s'], [120, '2 Min.']] }],
+    options: [{ id: 'n', label: 'Mitspieler', group: 'players', inline: 'local', live: false, def: 2, choices: [[2, '2'], [3, '3'], [4, '4']] }, { id: 'rounds', label: 'Runden', group: 'rules', short: v => `${v} Runden`, def: 3, choices: [[3, '3'], [5, '5']] },
+      { id: 'time', label: 'Zeit pro Runde', group: 'time', short: v => v === 120 ? '2 Min.' : `${v} s`, def: 90, choices: [[60, '60 s'], [90, '90 s'], [120, '2 Min.']] }],
     extraOpts: ['cats'], panelExtra,
     localHint: 'Am selben Gerät schreibt jeder für sich, das Handy wird nach jedem weitergegeben.',
     endDelay: 1300,

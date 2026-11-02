@@ -929,6 +929,40 @@
     'Spruch entfernen': 'Remove motto', 'Wirklich entfernen?': 'Really remove?', 'Spruch entfernt': 'motto removed'
   });
 
+  // game panel v3 and the rules view
+  A({
+    'Wie spielst du?': 'How do you play?', 'Du gegen den Computer.': 'You against the computer.', 'Du gegen # Computer-Gegner.': 'You against # computer opponents.',
+    'Abwechselnd am selben Gerät.': 'Taking turns on the same device.', 'Abwechselnd am selben Gerät, jeder auf seiner Hälfte.': 'Taking turns on the same device, each on their own half.',
+    'Reihum an diesem Gerät, jeder ist mal dran.': 'In turns on this device, everyone gets a go.', 'Fordere einen Freund heraus.': 'Challenge a friend.',
+    'Ein zufälliger Gegner wird zugelost.': 'You get a random opponent.', 'Tisch für # bis #. Freie Plätze übernimmt die KI.': 'A table for # to #. The AI takes free seats.',
+    'Am selben Gerät schreibt jeder für sich, das Handy wird nach jedem weitergegeben.': 'On the same device everyone writes on their own, the phone is passed on after each.',
+    'Regeln lesen': 'Read the rules', 'Einstellungen der Partie': 'Match settings', 'So wird gespielt': 'How this game is played',
+    'Die Regeln hat festgelegt, wer eingeladen hat.': 'Whoever invited set the rules.', 'Änderungen gelten ab dem nächsten Start.': 'Changes apply from the next start.',
+    'KI auf freien Plätzen': 'AI on free seats', 'Vorlagen': 'Presets', 'Klassisch': 'Classic', 'Schnell': 'Quick', 'Chaos': 'Chaos', 'Eigene': 'Custom',
+    'Spieler': 'Players', 'Spielfeld': 'Board', 'Hausregeln': 'House rules', 'Inhalte': 'Content', 'Zeit': 'Time', 'Zurücksetzen': 'Reset', 'geändert': 'changed',
+    'Mitspieler{0}': 'Players{0}', 'Runden{0}': 'Rounds{0}', 'Zeit pro Runde{0}': 'Time per round{0}', 'Ass: nochmal legen{0}': 'Ace: play again{0}', '# zieht zwei{0}': '# draws two{0}',
+    '# setzt aus{0}': '# skips{0}', 'Startkarten{0}': 'Starting cards{0}', 'Schachuhr{0}': 'Chess clock{0}', 'Punkte zum Sieg{0}': 'Points to win{0}', 'Tore zum Sieg{0}': 'Goals to win{0}',
+    'Spiel bis{0}': 'Play to{0}', 'Brett{0}': 'Board{0}', 'Feldgröße{0}': 'Board size{0}', 'Paare{0}': 'Pairs{0}', 'Hände{0}': 'Hands{0}', 'Fragen{0}': 'Questions{0}',
+    'Wörter pro Person{0}': 'Words per person{0}', 'Steine pro Mulde{0}': 'Seeds per pit{0}',
+    'Wer keine # drauflegen kann, zieht.': "If you can't put a # on top, you draw.", 'Der Nächste muss passen.': 'The next player has to pass.',
+    'Nach einem Ass legst du gleich nach.': 'After an ace you play again right away.', 'Jeder hat so viel Zeit für alle Züge.': 'Each player has this much time for all their moves.',
+    '# Kategorien': '# categories', '# von max. #': '# of max. #', '# von #': '# of #', '# Thema': '# topic', '# Themen': '# topics', 'Mindestens # Thema': 'At least # topic',
+    '# Tore': '# goals', 'Uhr # Min.': 'Clock # min', 'bis # Punkte': 'to # points', 'bis #': 'to #', '# Fragen': '# questions', '# pro Person': '# per person',
+    '# Steine': '# seeds', '# Paare': '# pairs', '# Hände': '# hands', 'bis einer übrig': 'until one is left', '# zieht zwei aus': '# draws two off', '# einzeln': '# single',
+    '# setzt nicht aus': '# does not skip', 'Ass nochmal': 'Ace again',
+    'Alle anzeigen (#)': 'Show all (#)', 'Warten auf Gegner': 'Waiting for an opponent', 'Offene Tische': 'Open tables',
+    'Wer gerade wartet, spielt gegen dich. Ist niemand frei, geht es gegen die KI.': 'Whoever is waiting plays you. If nobody is free, you play the AI.',
+    'Ohne Konto spielst du als Gast. Mit Konto zählt die Partie für die Rangliste.': 'Without an account you play as a guest. With one, the match counts for the ranking.',
+    'Für Partien gegen Freunde brauchst du ein Konto.': 'You need an account to play friends.', 'Für Partien gegen Freunde brauchst du ein Konto. Per Link geht es auch ohne.': 'You need an account to play friends. A link works without one.',
+    'Noch keine Freunde. Such nach einem Namen, zeig deinen QR-Code oder lade unten per Link ein.': 'No friends yet. Search for a name, show your QR code or invite with the link below.',
+    'Mit einem kostenlosen Konto sind alle # Spiele frei, dazu Online-Partien, Freunde und die Rangliste.': 'A free account unlocks all # games, plus online matches, friends and the ranking.'
+  });
+  V.i18n.pat([
+    [/^Freie Plätze: KI (.+)$/, (m, a) => 'Free seats: AI ' + t(a)],
+    [/^Als Gast gehen (.+) und (.+)\.$/, (m, a, b) => 'As a guest you can play ' + a.split(', ').map(t).join(', ') + ' and ' + t(b) + '.'],
+    [/^(.+) löschen$/, (m, a) => 'Delete ' + a]
+  ]);
+
   // ---------- patterns: text with names, moves and hands ----------
   const t = V.t;
   const PIECE = { Bauer: 'Pawn', Springer: 'Knight', Läufer: 'Bishop', Turm: 'Rook', Dame: 'Queen', König: 'King' };

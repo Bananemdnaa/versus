@@ -130,7 +130,7 @@
     firstTitle: 'Wer spielt zuerst aus?',
     levelInfo: ['Spielt irgendeine Karte.', 'Sticht hohe Karten und sagt Zwanziger an.', 'Zählt Punkte mit und dreht zu, wenn es reicht.', 'Merkt sich jede Karte und spielt das Ende perfekt.'],
     keys: [['Pfeile + Enter', 'Karte spielen'], ['T', 'Atout tauschen'], ['Z', 'Zudrehen']],
-    options: [{ id: 'to', label: 'Spiel bis', def: 4, choices: [[4, '4 Punkte'], [7, '7 (Bummerl)']] }],
+    options: [{ id: 'to', label: 'Spiel bis', group: 'rules', inline: 'local', short: v => `bis ${v} Punkte`, def: 4, choices: [[4, '4 Punkte'], [7, '7 (Bummerl)']] }],
     localHint: 'Ihr spielt abwechselnd am selben Gerät. Vor jedem Zug gebt ihr das Handy weiter, damit niemand fremde Karten sieht.',
     endDelay: 1200,
     icon: `<svg viewBox="0 0 48 48"><g transform="rotate(-12 20 26)"><rect x="7" y="10" width="22" height="31" rx="3" fill="#fff" stroke="#c9c2b2"/><text x="11" y="20" font-size="9" font-weight="800" fill="#d62b4d" font-family="Arial">K</text><text x="18" y="32" font-size="13" fill="#d62b4d" font-family="Arial">♥</text></g><g transform="rotate(10 30 24)"><rect x="19" y="7" width="22" height="31" rx="3" fill="#fff" stroke="#c9c2b2"/><text x="22" y="17" font-size="9" font-weight="800" fill="#d62b4d" font-family="Arial">D</text><text x="27" y="29" font-size="13" fill="#d62b4d" font-family="Arial">♥</text></g><circle cx="38" cy="38" r="8" fill="#ffd84f"/><text x="38" y="42" text-anchor="middle" font-size="9" font-weight="800" fill="#15172a" font-family="Arial">66</text></svg>`,

@@ -50,7 +50,7 @@
     desc: 'Ein Rautenbrett aus Sechsecken: Pink will oben mit unten verbinden, Gelb links mit rechts. Wer zuerst eine durchgehende Kette hat, gewinnt. Ein Unentschieden gibt es nie.',
     levelInfo: ['Setzt ziemlich wahllos.', 'Spielt ein paar hundert Partien im Kopf durch.', 'Rechnet tausende Partien durch.', 'Rechnet so viel es geht. Sehr stark auf kleinen Brettern.'],
     keys: [['Pfeile', 'Feld wählen'], ['Enter', 'Stein setzen']],
-    options: [{ id: 'size', label: 'Brett', def: 9, choices: [[7, '7 × 7'], [9, '9 × 9'], [11, '11 × 11']] }],
+    options: [{ id: 'size', label: 'Brett', group: 'board', inline: 'local', short: v => `${v}×${v}`, def: 9, choices: [[7, '7 × 7'], [9, '9 × 9'], [11, '11 × 11']] }],
     icon: `<svg viewBox="0 0 48 48"><path d="M6 10h24l12 28H18z" fill="#1c1f3a" stroke="#0b0c18"/><path d="M6 10h24" stroke="#ff4fd8" stroke-width="3"/><path d="M18 38h24" stroke="#ff4fd8" stroke-width="3"/><path d="M6 10l12 28" stroke="#ffd84f" stroke-width="3"/><path d="M30 10l12 28" stroke="#ffd84f" stroke-width="3"/>${[[14, 16], [19, 22], [22, 28], [27, 33]].map(([x, y]) => `<circle cx="${x}" cy="${y}" r="3" fill="#ff4fd8"/>`).join('')}<circle cx="27" cy="20" r="3" fill="#ffd84f"/><circle cx="31" cy="26" r="3" fill="#ffd84f"/></svg>`,
     tutorial: [
       { t: 'Das Ziel', d: 'Ihr setzt abwechselnd einen Stein auf ein freies Sechseck. <b>Pink</b> will eine Kette von der <b>oberen zur unteren</b> Kante bauen, <b>Gelb</b> von der <b>linken zur rechten</b>. Die farbigen Ränder zeigen, wohin.' },

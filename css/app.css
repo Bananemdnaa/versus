@@ -2342,20 +2342,6 @@ html.lowfx::view-transition-group(*),html.lowfx::view-transition-old(*),html.low
   .view.play>.pbar{background:color-mix(in srgb,var(--ink2) 96%,transparent)}
 }
 
-/* game panel: own editor of a game (Stadt Land Fluss categories) */
-.gp-extra{margin:12px 18px 0}
-.slc{display:flex;flex-direction:column;gap:10px;padding:12px 14px;border-radius:var(--r-m);background:var(--panel2);border:1px solid var(--line)}
-.slc-h{display:flex;justify-content:space-between;align-items:baseline;gap:10px}
-.slc-h span{font-size:13px;color:var(--muted)}
-.slc-h small{font-size:12px;color:var(--dim)}
-.slc-l{display:flex;flex-wrap:wrap;gap:6px}
-.slc-l button{display:inline-flex;align-items:center;gap:6px;height:32px;padding:0 12px;border:1px solid var(--line2);border-radius:var(--r-pill);font-size:13px;color:var(--muted);transition:all var(--t-fast)}
-.slc-l button.on{color:var(--ink);background:var(--yellow);border-color:var(--yellow);font-weight:700}
-.slc-l button i{font-style:normal;font-size:15px;line-height:1;opacity:.7;padding:0 2px}
-.slc-l button i:hover{opacity:1}
-.slc-add{display:flex;gap:8px}
-.slc-add .inp{flex:1;min-width:0;height:38px}
-.slc-reset{align-self:flex-start;font-size:12.5px}
 @media (min-width:960px){.bprev{max-width:440px}}
 /* sidebar: options sit in the profile card (gear); the separate row only in the icon strip */
 @media (min-width:960px){html:not(.side-rail) .sd-bot>[data-go="opts"]{display:none}}
@@ -2587,3 +2573,202 @@ html.lowfx::view-transition-group(*),html.lowfx::view-transition-old(*),html.low
 .lk-bn .lb-g{background:linear-gradient(color-mix(in srgb,var(--lc) 30%,transparent) 1px,transparent 1px) 0 0/12px 12px,linear-gradient(90deg,color-mix(in srgb,var(--lc) 30%,transparent) 1px,transparent 1px) 0 0/12px 12px,var(--panel2)}
 .lk-bn .lb-w{background:radial-gradient(120% 70% at 50% 130%,color-mix(in srgb,var(--lc) 45%,transparent) 0 40%,transparent 41%),var(--panel2)}
 .lk-bn .lb-p{background:color-mix(in srgb,var(--lc) 18%,var(--panel2))}
+
+/* ---------- game panel v3 (notes/PANEL-UMSETZUNG.md): picture, mode bar, what the mode does, a rules line,
+   a fixed bar at the bottom; the rules view replaces the lower part. Comes last, so it wins over the older panel rules. ---------- */
+.gp{display:flex;flex-direction:column}
+.gp .gp-art,.gp .gp-txt{flex:none}
+.gp .gp-art .cat{background:var(--acc)}
+.gp .gp-txt h2{font-size:36px}
+.gp .gp-txt p{font-size:15px;line-height:1.45}
+.gp .gp-tags em{font-size:13px}
+.gp-body{display:flex;flex-direction:column;flex:1;min-height:0}
+.gp-main{flex:1;min-height:0;overflow-y:auto;overflow-x:hidden;padding:14px 20px 12px;display:flex;flex-direction:column;gap:10px;scrollbar-width:thin;scrollbar-color:var(--line2) transparent}
+.gp-main>*{margin:0}
+.gp .gp-go{flex:none;position:relative;display:flex;align-items:center;gap:16px;margin:0;padding:14px 20px 18px;border-top:1px solid var(--line);background:var(--panel)}
+.gp .gp-go .btn.primary.big{flex:1 1 auto;order:0;min-width:0;height:60px;font-size:24px}
+.gp .gp-go .btn.primary.big.long{font-size:20px}
+.gp .gp-go .btn.primary.big>span{overflow:hidden;text-overflow:ellipsis}
+.gp .gp-go .btn.ghost{flex:none;height:52px;padding:0 18px}
+.gp .gp-go :is(.gp-inv,.gp-tut.ico){width:56px;padding:0}
+:is(.gp,.rvw) .gp-h{margin:0;font:700 italic 14px/1 var(--f-d);letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
+
+/* modes: one bar, the icon over the word, the chosen one lit from below */
+.gp-mode2{display:grid;grid-template-columns:repeat(var(--n),minmax(0,1fr));gap:4px;padding:4px;border-radius:16px;background:var(--ink2)}
+.gp-mode2 button{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;height:58px;min-width:0;padding:0 4px;border-radius:12px;color:var(--muted);
+  font:700 italic 15px/1 var(--f-d);letter-spacing:.04em;text-transform:uppercase;transition:background var(--t-fast),color var(--t-fast),transform var(--t-fast) var(--ease)}
+.gp-mode2 button span{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.gp-mode2 button svg{width:20px;height:20px;flex:none}
+.gp-mode2[style*="--n:4"] button{font-size:14px;letter-spacing:0;padding:0 2px}
+@media (hover:hover) and (pointer:fine){.gp-mode2 button:not(.on):hover{background:var(--panel2);color:var(--fg)}}
+.gp-mode2 button:active{transform:scale(.95)}
+.gp-mode2 button.on{background:var(--panel3);color:var(--fg);box-shadow:inset 0 -3px 0 var(--pink)}
+.gp-mode2 button.on svg{color:var(--pink)}
+.gp-mode2 button.lockd{opacity:.45}
+.gp-say{font-size:15px;line-height:1.4;color:var(--muted)}
+
+/* AI strength: four slanted blocks, one sentence below */
+.gp .gp-lvl{margin:0;padding:0;border:0;background:none}
+.gp .lv-top{margin-bottom:6px}
+.gp .lv-top span{font-size:14px;letter-spacing:.14em;color:var(--muted)}
+.gp .lv-top b{font-size:21px}
+.gp .lv-top b.l0{color:var(--good)} .gp .lv-top b.l1{color:var(--cyan)} .gp .lv-top b.l2{color:var(--yellow)} .gp .lv-top b.l3{color:var(--pink)}
+.gp .lv-top em{font-size:14px}
+.lv-row{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;padding:0 4px}
+.lv-row .lvb{--c:var(--good);display:grid;place-items:center;height:48px;min-height:0;padding:0 4px;border-radius:0;transform:skewX(var(--sk));border:1px solid var(--line2);background:var(--panel2);
+  transition:background var(--t-fast),border-color var(--t-fast),transform var(--t-fast)}
+.lv-row .lvb>*{transform:skewX(10deg)}
+.lv-row .lvb.l1{--c:var(--cyan)} .lv-row .lvb.l2{--c:var(--yellow)} .lv-row .lvb.l3{--c:var(--pink)}
+.lv-row .lvb b{font:800 italic 17px/1 var(--f-d);text-transform:uppercase;color:var(--c);max-width:100%;overflow:hidden;text-overflow:ellipsis}
+@media (hover:hover) and (pointer:fine){.lv-row .lvb:hover{border-color:var(--c)}}
+.lv-row .lvb:active{transform:skewX(var(--sk)) scale(.95)}
+.lv-row .lvb.on{background:var(--c);border-color:var(--c)}
+.lv-row .lvb.on b{color:var(--ink)}
+.gp-sub{margin:6px 0 0;font-size:14px;line-height:1.35;color:var(--muted)}
+
+/* one setting right in the panel, and "Wer fängt an?" */
+.gp-inl{display:flex;align-items:center;justify-content:space-between;gap:6px 12px;flex-wrap:wrap}
+.gp-inl>span{font-size:16px;color:var(--fg)}
+.gp-inl.dash{padding-top:10px;border-top:1px dashed var(--line2)}
+.gp .mini-seg,.rvw .mini-seg{flex-wrap:nowrap;gap:6px}
+.gp .mini-seg button,.rvw .mini-seg button{height:40px;padding:0 12px;border-radius:10px;font-size:15px;white-space:nowrap}
+
+/* the rules line: what is set, in one line; opens the rules view */
+.gp-rules{display:flex;align-items:center;gap:12px;width:100%;height:58px;flex:none;padding:0 14px;border-radius:14px;background:var(--panel2);border:1px solid var(--line);text-align:left;transition:border-color var(--t-fast),transform var(--t-fast)}
+@media (hover:hover) and (pointer:fine){.gp-rules:hover{border-color:var(--line2)}}
+.gp-rules:active{transform:scale(.98)}
+.gr-ic{display:grid;place-items:center;color:var(--cyan)} .gr-ic svg{width:22px;height:22px}
+.gr-t{flex:1;min-width:0;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;font-size:15px;color:var(--muted)}
+.gr-t b{font-size:16px;color:var(--fg)}
+.gr-t i{font-style:normal;margin:0 6px;color:var(--dim)}
+.gp-rules>svg{width:18px;height:18px;flex:none;color:var(--dim)}
+
+/* online parts: short lists, the main action is the button at the bottom */
+.gp .gp-online{margin:0;display:flex;flex-direction:column;gap:4px}
+.gp .gp-online .skel i{height:50px}
+.gp-note{margin:0;font-size:15px;line-height:1.45;color:var(--muted)}
+.gp-online .link{align-self:flex-start;font-size:15px;color:var(--cyan);text-decoration-color:color-mix(in srgb,var(--cyan) 45%,transparent)}
+.gp-online .gp-h{margin-top:2px}
+.gp-online>.btn.sm{align-self:flex-start}
+.pline{display:flex;align-items:center;gap:12px;min-height:50px}
+.pav{position:relative;width:38px;height:38px;flex:none;display:grid;place-items:center;border-radius:50%;background:color-mix(in srgb,var(--c) 22%,var(--panel3));color:var(--c);font:800 italic 18px/1 var(--f-d)}
+.pline.on .pav::after{content:'';position:absolute;right:-1px;bottom:-1px;width:11px;height:11px;border-radius:50%;background:var(--good);border:2px solid var(--panel)}
+.pl-t{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.pl-t b{font-size:16px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pl-t small{font-size:14px;color:var(--muted)}
+.pline.on small{color:var(--good)} .pline.busy small{color:var(--yellow)}
+.gp-online .tcode{display:flex;gap:10px;margin-top:4px}
+.gp-online .tcode .inp{flex:1;min-width:0;height:44px;font-size:16px;letter-spacing:.12em;text-transform:uppercase}
+.gp .gp-lock{margin:0}
+.gp .gp-lock p{font-size:14px}
+.gp .hint.dch{margin:0;font-size:14px}
+
+/* rules view */
+.gp.rv-on .gp-art,.gp.rv-on .gp-txt,.gp.rv-on>.gp-body>.fav,.gp.rv-on>.gp-body>.gpx{display:none}
+.gp-rv{flex:1;min-height:0;display:flex;flex-direction:column}
+.rvw{flex:1;min-height:0;display:flex;flex-direction:column;width:100%}
+.rv-head{flex:none;display:flex;align-items:center;gap:12px;min-height:68px;padding:0 16px 0 14px;border-bottom:1px solid var(--line)}
+.rv-t{flex:1;min-width:0}
+.rv-t h3{margin:0;font:800 italic 28px/1 var(--f-d);text-transform:uppercase}
+.rv-t small{display:block;margin-top:3px;font-size:14px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.rv-head .btn.sm[disabled]{opacity:.4;pointer-events:none}
+.rv-pzm{width:40px;height:40px;flex:none;display:grid;place-items:center;background:var(--pink);color:var(--ink);transform:skewX(var(--sk))}
+.rv-pzm svg{width:22px;height:22px}
+.rv-body{flex:1;min-height:0;overflow-y:auto;overflow-x:hidden;padding:14px 20px 8px;display:flex;flex-direction:column;gap:14px;scrollbar-width:thin;scrollbar-color:var(--line2) transparent}
+.rv-note{margin:0;padding-left:12px;border-left:3px solid var(--cyan);font-size:14px;line-height:1.45;color:var(--muted)}
+.rv-pre{display:grid;grid-template-columns:repeat(var(--n),minmax(0,1fr));gap:4px;padding:4px;border-radius:14px;background:var(--ink2)}
+.rv-pre button{height:44px;min-width:0;border-radius:10px;color:var(--muted);font:700 italic 15px/1 var(--f-d);letter-spacing:.04em;text-transform:uppercase;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;transition:background var(--t-fast),color var(--t-fast)}
+@media (hover:hover) and (pointer:fine){.rv-pre button:not(.on):not([aria-disabled]):hover{background:var(--panel2);color:var(--fg)}}
+.rv-pre button.on{background:var(--panel3);color:var(--fg);box-shadow:inset 0 -3px 0 var(--pink)}
+.rv-pre button[aria-disabled]:not(.on){color:var(--dim);cursor:default}
+.rv-g{display:flex;flex-direction:column;gap:8px}
+.rv-gh{display:flex;align-items:baseline;justify-content:space-between;gap:10px}
+.rv-gr{font-size:14px;color:var(--cyan);text-decoration-color:color-mix(in srgb,var(--cyan) 45%,transparent)}
+.rv-card{border-radius:14px;background:var(--panel2);border:1px solid var(--line);overflow:hidden}
+.rv-row{display:flex;align-items:center;justify-content:space-between;gap:12px;width:100%;min-height:56px;padding:9px 14px;text-align:left}
+.rv-row+.rv-row{border-top:1px solid var(--line)}
+.rv-row.wide{flex-direction:column;align-items:stretch;gap:8px;padding:10px 14px}
+.rv-row.wide .mini-seg{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(0,1fr)}
+.rv-row.wide .mini-seg button{padding:0 6px;overflow:hidden;text-overflow:ellipsis}
+.rv-l{display:flex;flex-direction:column;gap:3px;min-width:0}
+.rv-l b{display:inline-flex;align-items:center;gap:8px;font-size:16px;font-weight:600}
+.rv-l small{font-size:14px;line-height:1.35;color:var(--muted)}
+.rv-dot{width:8px;height:8px;flex:none;border-radius:50%;background:var(--cyan);box-shadow:0 0 0 3px rgba(98,240,255,.25)}
+.rv-sw{cursor:pointer;transition:background var(--t-fast)}
+@media (hover:hover) and (pointer:fine){.rv-sw:hover{background:var(--panel3)}}
+.rv-val{flex:none;font-size:15px;font-weight:700}
+.rv-g .lv-row{margin-top:2px}
+.rv-multi{display:flex;flex-direction:column;gap:10px}
+.rv-multi h5{margin:4px 0 0;font-size:16px;font-weight:600}
+.rm-mh{display:flex;align-items:baseline;justify-content:space-between;gap:10px}
+.rm-mh .link{font-size:14px;color:var(--cyan)}
+.rm-cnt{font-size:14px;color:var(--muted);transition:color var(--t-fast)}
+.rm-cnt.warn{color:var(--yellow)}
+.rm-tiles{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
+.rm-tile{display:flex;align-items:center;gap:6px;height:42px;min-width:0;padding:0 8px 0 10px;border-radius:10px;border:1px solid var(--line2);background:var(--panel2);font-size:14.5px;color:var(--muted);text-align:left;transition:border-color var(--t-fast),background var(--t-fast),color var(--t-fast)}
+.rm-tile span{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.rm-tile>svg{display:none;width:16px;height:16px;flex:none;color:var(--cyan)}
+.rm-tile.on{color:var(--fg);border-color:var(--cyan);background:rgba(98,240,255,.1)}
+.rm-tile.on>svg{display:block}
+@media (hover:hover) and (pointer:fine){.rm-tile:not(.on):hover{color:var(--fg);border-color:var(--line2);background:var(--panel3)}}
+.rm-tile i{display:grid;place-items:center;width:24px;height:24px;flex:none;margin-right:-4px;border-radius:6px;opacity:.7}
+.rm-tile i:hover{opacity:1;background:rgba(255,93,115,.18)}
+.rm-tile i svg{width:14px;height:14px}
+.rm-add{display:flex;gap:10px}
+.rm-add .inp{flex:1;min-width:0;height:44px}
+.rm-limit{margin:0;padding:9px 12px;border-radius:10px;font-size:14px;color:var(--yellow);background:rgba(255,216,79,.07);border:1px dashed color-mix(in srgb,var(--yellow) 55%,var(--line))}
+.rm-limit[hidden]{display:none}
+.gp .rv-foot,.rvp .rv-foot{flex:none}
+.rv-foot .btn.ghost.hot{border-color:var(--pink);color:var(--fg)}
+:is(.gp,.rvw) :is(button,input,[role=switch],[role=radio]):focus-visible{outline:3px solid var(--cyan);outline-offset:4px}
+
+/* laptop: the panel fills the height next to the library; only the middle part may scroll */
+@media (min-width:960px){
+  .sel-panel{height:calc(100dvh - var(--abar-h) - 36px);max-height:none;overflow:hidden}
+  .sel-panel .gp{height:100%;min-height:0;overflow:hidden}
+  .sel-panel .gp-art{height:140px}
+  .sel-panel .gp-art .ic{width:100px;height:100px}
+  .sel-panel .gp-txt{padding:14px 20px 0}
+  .sel-panel .gp-txt h2{font-size:36px}
+  .sel-panel .gp-txt p{-webkit-line-clamp:2;font-size:15px}
+  .sel-panel .gp .gp-go{position:relative;padding:14px 20px 18px;background:var(--panel)}
+}
+/* phone: the sheet holds the panel the same way, the bar at the bottom is in thumb reach */
+.modal.gpm{display:flex;flex-direction:column;overflow:hidden;padding:0}
+.modal.gpm .sel-panel.solo{flex:1;min-height:0;display:flex;flex-direction:column}
+.modal.gpm .gp{flex:1;min-height:0}
+.modal.gpm .gp-art{height:168px}
+.modal.gpm .gp-art .ic{width:116px;height:116px}
+.modal.gpm .gp-txt{padding:16px 20px 0}
+.modal.gpm .gp-txt h2{font-size:36px}
+.modal.gpm .gp-txt p{display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+.modal.gpm .sel-panel.solo .gp-go{position:relative;flex-wrap:nowrap;gap:12px;padding:12px 20px max(16px,env(safe-area-inset-bottom,0px));background:var(--panel)}
+.modal.gpm .sel-panel.solo .gp-go .btn.primary.big{flex:1 1 auto;order:0;height:60px}
+.modal.gpm .sel-panel.solo .gp-go .btn.ghost,.modal.gpm .sel-panel.solo .gp-go #tut{flex:none;width:56px;height:56px;padding:0}
+.modal.gpm .gp.rv-on .rv-head{padding-top:14px}
+@media (max-width:959px){
+  .modal.gpm{max-height:calc(100dvh - 24px)}
+  .gp-mode2 button{height:56px}
+  .lv-row{gap:6px}
+}
+
+/* rules of the running match (pause menu) */
+.modal.rvm{display:flex;width:min(100%,440px);height:min(700px,calc(100dvh - 40px));padding:0;overflow:hidden;border-color:var(--line2);box-shadow:0 8px 0 #05060c}
+.rvp{flex:1;min-height:0;display:flex;width:100%}
+.rvp .rv-foot{display:flex;align-items:center;gap:16px;padding:14px 20px 18px;border-top:1px solid var(--line)}
+.rvp .rv-foot .btn.primary.big{flex:1;height:60px}
+.rvp .rv-foot .btn.ghost{height:52px}
+@media (max-width:959px){
+  .modal.rvm{width:100%;height:auto;max-height:calc(100dvh - 24px)}
+  .modal.rvm .rv-head{padding-top:14px}
+  .rvp .rv-foot{padding-bottom:max(16px,env(safe-area-inset-bottom,0px))}
+}
+/* low laptop windows: a smaller picture, one line of text, no tags, so the middle part needs no scrolling */
+@media (min-width:960px) and (max-height:760px){
+  .sel-panel .gp-art{height:100px}
+  .sel-panel .gp-art .ic{width:72px;height:72px}
+  .sel-panel .gp-txt h2{font-size:30px}
+  .sel-panel .gp-txt p{-webkit-line-clamp:1}
+  .sel-panel .gp-tags{display:none}
+  .sel-panel .gp-mode2 button{height:50px;gap:3px}
+}

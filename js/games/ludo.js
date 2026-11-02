@@ -48,7 +48,7 @@
     sides: { 1: 'Pink', 2: 'Gelb', 3: 'Cyan', 4: 'Grün' },
     levelInfo: ['Zieht irgendeine Figur.', 'Wirft raus, wenn es geht, sonst einfach vorwärts.', 'Wirft raus, bringt Figuren in Sicherheit und meidet Gefahr.', 'Wägt jeden Zug genau ab: Risiko, Fortschritt und wen es trifft.'],
     keys: [['Leertaste', 'Würfeln'], ['1–4', 'Figur wählen'], ['Pfeile', 'Cursor über die Figuren'], ['Enter', 'Figur ziehen']],
-    options: [{ id: 'n', label: 'Spieler', def: 4, choices: [[2, '2'], [3, '3'], [4, '4']] }],
+    options: [{ id: 'n', label: 'Spieler', group: 'players', inline: 'local', live: false, def: 4, choices: [[2, '2'], [3, '3'], [4, '4']] }],
     localHint: 'Ihr spielt reihum am selben Gerät, jeder mit seiner Farbe.',
     icon: `<svg viewBox="0 0 48 48"><rect x="3" y="3" width="42" height="42" rx="7" fill="#d4a56a" stroke="#5d3a1c" stroke-width="2.5"/><path d="M19 6h10v13h13v10H29v13H19V29H6V19h13z" fill="#f3e6cc"/><rect x="5" y="5" width="11" height="11" rx="3" fill="#ff3fbf" opacity=".8"/><rect x="32" y="5" width="11" height="11" rx="3" fill="#ffc61a" opacity=".85"/><rect x="32" y="32" width="11" height="11" rx="3" fill="#2fd673" opacity=".8"/><rect x="5" y="32" width="11" height="11" rx="3" fill="#1fc8e6" opacity=".8"/><circle cx="24" cy="24" r="6" fill="#1d4a2f"/><rect x="21" y="21" width="6" height="6" rx="1.4" fill="#fff"/><path d="M12 26c0-2 1.3-3 2.6-3.6l.7-3c-1.6-.7-2.2-2-1.9-3.2.3-1.8 1.5-2.8 2.8-2.8s2.5 1 2.8 2.8c.3 1.2-.3 2.5-1.9 3.2l.7 3c1.3.6 2.6 1.6 2.6 3.6z" fill="#ff3fbf" stroke="#5a0f4a" stroke-width=".8"/></svg>`,
     tutorial: [

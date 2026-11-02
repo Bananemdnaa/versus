@@ -565,40 +565,49 @@
   // games where a match can go over days (the turn always alternates, so the server knows who is to move)
   const ASYNC = ['c4', 'ttt', 'uttt', 'gomoku', 'chess', 'checkers', 'mill', 'go', 'backgammon', 'hex', 'ttt3'];
   let pickAsync = V.store.get('async', false);
-  async function picker(el, g, opts) {
+  // The online parts of the game panel (js/app.js renderPanel). The main action of each mode (link, search, open a table)
+  // is the big button at the bottom of the panel; these lists stay short so nothing has to scroll.
+  const AVC = ['var(--pink)', 'var(--yellow)', 'var(--cyan)', 'var(--good)', 'var(--warn)'];
+  const pAv = name => `<span class="pav" style="--c:${AVC[[...name].reduce((a, c) => a + c.charCodeAt(0), 0) % AVC.length]}">${esc(name.slice(0, 1).toUpperCase())}</span>`;
+  const pLine = (name, status, cls, btn) => `<div class="pline${cls ? ' ' + cls : ''}">${pAv(name)}<span class="pl-t"><b>${esc(name)}</b><small>${status}</small></span>${btn}</div>`;
+  const pLogin = (el, text) => { el.innerHTML = `<p class="gp-note">${text}</p><button class="link" id="plog">Anmelden</button>`; el.querySelector('#plog').onclick = () => V.ui.home('profile'); };
+  const pLink = (el, g, opts) => { const b = el.querySelector('#plink'); if (b) b.onclick = () => { V.sfx.ui(); linkInvite(g, opts); }; };
+  async function picker(el, g, opts, all) {
     if (!el) return;
-    const linkBtn = `<button class="btn sm" id="plink"><span>${IC().link}Per Link einladen</span></button>`;
-    const wireLink = () => { const b = el.querySelector('#plink'); if (b) b.onclick = () => { V.sfx.ui(); linkInvite(g, opts); }; };
-    if (!ready() || isAnon()) { el.innerHTML = `<p class="hint">Für Partien gegen Freunde brauchst du ein Konto. Per Link geht es auch ohne${guestOk(g.id) ? '' : ' Freundschaft, aber mit Konto'}.</p><div class="arow"><button class="btn sm" data-tab-go="profile"><span>${IC().user}Anmelden</span></button>${guestOk(g.id) || ready() ? linkBtn : ''}</div>`; el.querySelector('[data-tab-go]').onclick = () => V.ui.home('profile'); wireLink(); return; }
-    el.innerHTML = V.skel(3);
+    if (!ready() || isAnon()) return pLogin(el, `Für Partien gegen Freunde brauchst du ein Konto.${guestOk(g.id) ? ' Per Link geht es auch ohne.' : ''}`);
+    if (!el.querySelector('.pline')) el.innerHTML = V.skel(3);
     let d;
     try { d = await C().rpc('friends'); } catch (e) { el.innerHTML = `<p class="aerr">${esc(e.message)}</p>`; return; }
-    const fr = d.friends || [], canAsync = ASYNC.includes(g.id);
-    const asy = canAsync && pickAsync;
-    const seg = canAsync ? `<div class="crow"><span>Wann spielt ihr?</span><div class="mini-seg" id="pasy"><button data-v="0" class="${asy ? '' : 'on'}">Jetzt</button><button data-v="1" class="${asy ? 'on' : ''}">Über Tage</button></div></div>` : '';
-    if (!fr.length) { el.innerHTML = `<p class="hint">Noch keine Freunde. Zeig deinen QR-Code, such nach einem Namen oder lade per Link ein.</p><div class="arow"><button class="btn sm primary" id="pgo"><span>${IC().plus}Freund hinzufügen</span></button>${linkBtn}</div>`; el.querySelector('#pgo').onclick = () => { V.sfx.ui(); addFriends(); }; wireLink(); return; }
-    el.innerHTML = seg + `<p class="hint">${asy ? 'Jeder zieht, wann er Zeit hat. Du bekommst Bescheid, wenn du dran bist.' : 'Wen willst du herausfordern? Am besten jemanden, der gerade online ist.'}</p>` + fr.map(f => `<div class="fline${f.online ? ' on' : ''}"><span class="adot"></span><b>${esc(f.username)}</b><small>${f.busy ? 'spielt gerade' : f.online ? 'online' : ago(f.seen)}</small><button class="btn sm${f.online || asy ? ' primary' : ''}" data-inv="${esc(f.username)}"><span>Einladen</span></button></div>`).join('') + `<div class="arow plinkr">${linkBtn}</div>`;
+    if (!el.isConnected) return;
+    const canAsync = ASYNC.includes(g.id), asy = canAsync && pickAsync;
+    // who is online comes first, then who was there last
+    const fr = (d.friends || []).slice().sort((a, b) => (b.online - a.online) || String(b.seen || '').localeCompare(String(a.seen || '')));
+    if (!fr.length) { el.innerHTML = `<p class="gp-note">Noch keine Freunde. Such nach einem Namen, zeig deinen QR-Code oder lade unten per Link ein.</p><button class="btn sm primary" id="pgo"><span>${IC().plus}Freund hinzufügen</span></button>`; el.querySelector('#pgo').onclick = () => { V.sfx.ui(); addFriends(); }; return; }
+    // three friends, two when the "Wann spielt ihr?" row takes the room
+    const shown = all ? fr : fr.slice(0, canAsync ? 2 : 3);
+    el.innerHTML = (canAsync ? `<div class="gp-inl"><span>Wann spielt ihr?</span><div class="mini-seg" role="radiogroup" aria-label="Wann spielt ihr?" id="pasy"><button type="button" role="radio" data-v="0" aria-checked="${!asy}" class="${asy ? '' : 'on'}">Jetzt</button><button type="button" role="radio" data-v="1" aria-checked="${asy}" class="${asy ? 'on' : ''}">Über Tage</button></div></div>` : '')
+      + shown.map((f, i) => pLine(f.username, f.busy ? 'spielt gerade' : f.online ? 'online' : ago(f.seen), f.busy ? 'busy' : f.online ? 'on' : '',
+        `<button class="btn sm${i === 0 && (f.online || asy) ? ' primary' : ''}" data-inv="${esc(f.username)}"><span>Einladen</span></button>`)).join('')
+      + (fr.length > shown.length ? `<button class="link pmore" id="pall">Alle anzeigen (${fr.length})</button>` : '');
     el.querySelectorAll('[data-inv]').forEach(x => x.onclick = () => invite(x.dataset.inv, g, opts, asy));
-    el.querySelectorAll('#pasy button').forEach(x => x.onclick = () => { pickAsync = x.dataset.v === '1'; V.store.set('async', pickAsync); V.sfx.ui(); picker(el, g, opts); });
-    wireLink();
+    el.querySelectorAll('#pasy button').forEach(x => x.onclick = () => { pickAsync = x.dataset.v === '1'; V.store.set('async', pickAsync); V.sfx.ui(); picker(el, g, opts, all); });
+    const pa = el.querySelector('#pall'); if (pa) pa.onclick = () => { V.sfx.ui(); picker(el, g, opts, true); };
   }
 
-  // game panel, mode "Online": open challenge for everybody, plus open challenges of others for this game
+  // game panel, mode "Online": open challenges of others for this game (searching is the button at the bottom)
   function openPanel(el, g, opts) {
     if (!el) return;
     if (!ready()) {
-      if (!guestOk(g.id)) { el.innerHTML = `<p class="hint">Für Online-Partien in ${esc(g.name)} brauchst du ein Konto.</p><button class="btn sm" id="plog"><span>${IC().user}Anmelden</span></button>`; el.querySelector('#plog').onclick = () => V.ui.home('profile'); return; }
-      el.innerHTML = `<p class="hint">Versus sucht dir einen Gegner. Ohne Konto spielst du als Gast.</p>
-        <button class="btn primary big" id="seek"><span>${IC().globe}Als Gast spielen</span></button><button class="btn ghost sm" id="plog"><span>${IC().user}Anmelden</span></button><button class="btn ghost sm" id="plink"><span>${IC().link}Freund per Link einladen</span></button>`;
-      el.querySelector('#seek').onclick = () => seek(g, opts); el.querySelector('#plink').onclick = () => { V.sfx.ui(); linkInvite(g, opts); };
+      if (!guestOk(g.id)) return pLogin(el, `Für Online-Partien in ${esc(g.name)} brauchst du ein Konto.`);
+      el.innerHTML = '<p class="gp-note">Ohne Konto spielst du als Gast. Mit Konto zählt die Partie für die Rangliste.</p><button class="link" id="plog">Anmelden</button>';
       el.querySelector('#plog').onclick = () => V.ui.home('profile');
       return;
     }
     const others = ((pending && pending.open) || []).filter(o => o.game === g.id);
-    el.innerHTML = `<p class="hint">Versus sucht dir einen Gegner: Wer gerade wartet, spielt gegen dich, sonst wartest du auf den Nächsten. Ist niemand frei, geht es gegen die KI.</p>
-      ${others.map(o => `<div class="fline on"><span class="adot"></span><b>${esc(o.from)}</b><small>sucht gerade einen Gegner</small><button class="btn sm primary" data-join="${o.id}"><span>Mitspielen</span></button></div>`).join('')}
-      <button class="btn primary big" id="seek"><span>${IC().globe}Gegner suchen</span></button><button class="btn ghost sm" id="plink"><span>${IC().link}Freund per Link einladen</span></button>`;
-    el.querySelector('#seek').onclick = () => seek(g, opts); el.querySelector('#plink').onclick = () => { V.sfx.ui(); linkInvite(g, opts); };
+    el.innerHTML = (others.length ? `<h4 class="gp-h">Warten auf Gegner</h4>${others.slice(0, 2).map(o => pLine(o.from, 'sucht gerade einen Gegner', 'on', `<button class="btn sm primary" data-join="${o.id}"><span>Mitspielen</span></button>`)).join('')}`
+      : '<p class="gp-note">Wer gerade wartet, spielt gegen dich. Ist niemand frei, geht es gegen die KI.</p>')
+      + '<button class="link" id="plink">Freund per Link einladen</button>';
+    pLink(el, g, opts);
     el.querySelectorAll('[data-join]').forEach(x => x.onclick = () => { x.classList.add('busy'); join(x.dataset.join); });
   }
   const seek = g => quick(g);
@@ -991,13 +1000,11 @@
   // game panel, mode "Online" for table games: open a table, join an open one or enter a code
   function tablePanel(el, g, opts, lvl) {
     if (!el) return;
-    if (!inDiscord() && (!ready() || isAnon())) { el.innerHTML = `<p class="hint">Für Online-Tische brauchst du ein Konto.</p><button class="btn sm" id="plog"><span>${IC().user}Anmelden</span></button>`; el.querySelector('#plog').onclick = () => V.ui.home('profile'); return; }
+    if (!inDiscord() && (!ready() || isAnon())) return pLogin(el, 'Für Online-Tische brauchst du ein Konto.');
     const open = ((tpending && tpending.open) || []).filter(o => o.game === g.id);
-    el.innerHTML = `<p class="hint">Eröffne einen Tisch für ${+(opts && opts.n) || 4} Spieler und lade Freunde ein. Freie Plätze spielt die KI.</p>
-      ${open.map(o => `<div class="fline on"><span class="adot"></span><b>${esc(o.from)}</b><small>Tisch · ${o.players}/${o.n}</small><button class="btn sm primary" data-tjoin="${o.id}"><span>Mitspielen</span></button></div>`).join('')}
-      <button class="btn primary big" id="topen"><span>${IC().users}Tisch eröffnen</span></button>
-      <form class="tcode" id="tcf"><input class="inp" id="tci" placeholder="Tischcode" maxlength="6" autocapitalize="characters" autocomplete="off" spellcheck="false"><button class="btn sm" type="submit"><span>Beitreten</span></button></form>`;
-    el.querySelector('#topen').onclick = () => { V.sfx.ui(); table(g, opts, lvl); };
+    // opening a table is the button at the bottom of the panel
+    el.innerHTML = (open.length ? `<h4 class="gp-h">Offene Tische</h4>${open.slice(0, 2).map(o => pLine(o.from, `Tisch · ${o.players}/${o.n}`, 'on', `<button class="btn sm primary" data-tjoin="${o.id}"><span>Mitspielen</span></button>`)).join('')}` : '')
+      + '<form class="tcode" id="tcf"><input class="inp" id="tci" placeholder="Tischcode" aria-label="Tischcode" maxlength="6" autocapitalize="characters" autocomplete="off" spellcheck="false"><button class="btn sm" type="submit"><span>Beitreten</span></button></form>';
     el.querySelectorAll('[data-tjoin]').forEach(b => b.onclick = () => joinTable(b.dataset.tjoin));
     const i = el.querySelector('#tci');
     i.oninput = () => { i.value = i.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 5); };

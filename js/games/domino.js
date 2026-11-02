@@ -55,7 +55,7 @@
     sides: { 1: 'Pink', 2: 'Gelb', 3: 'Cyan', 4: 'Grün' },
     levelInfo: ['Legt irgendeinen Stein, der passt.', 'Wird zuerst die schweren Steine los.', 'Hält sich Zahlen offen, die es noch hat.', 'Merkt sich, welche Zahlen dir fehlen, und sperrt dich aus.'],
     keys: [['Pfeile + Enter', 'Stein wählen'], ['L / R', 'Links oder rechts anlegen'], ['Leertaste', 'Ziehen oder passen']],
-    options: [{ id: 'n', label: 'Spieler', def: 2, choices: [[2, '2'], [3, '3'], [4, '4']] }, { id: 'to', label: 'Spiel bis', def: 50, choices: [[50, '50 Punkte'], [100, '100 Punkte']] }],
+    options: [{ id: 'n', label: 'Spieler', group: 'players', inline: 'local', live: false, def: 2, choices: [[2, '2'], [3, '3'], [4, '4']] }, { id: 'to', label: 'Spiel bis', group: 'rules', short: v => `bis ${v} Punkte`, def: 50, choices: [[50, '50 Punkte'], [100, '100 Punkte']] }],
     localHint: 'Ihr spielt reihum am selben Gerät. Vor jedem Zug gebt ihr das Handy weiter, damit niemand fremde Steine sieht.',
     endDelay: 1200,
     icon: `<svg viewBox="0 0 48 48"><g transform="rotate(-18 24 24)"><rect x="6" y="15" width="30" height="15" rx="3" fill="#f6f1e4" stroke="#c9bfa6"/><path d="M21 17v11" stroke="#b9ad90"/>${[[11, 19], [16, 26], [26, 19], [26, 26], [31, 19], [31, 26]].map(([x, y]) => `<circle cx="${x}" cy="${y}" r="1.7" fill="#1b1d2e"/>`).join('')}</g><g transform="rotate(14 30 32)"><rect x="18" y="28" width="26" height="13" rx="3" fill="#f6f1e4" stroke="#c9bfa6"/><path d="M31 30v9" stroke="#b9ad90"/><circle cx="24.5" cy="34.5" r="1.7" fill="#ff4fd8"/><circle cx="35" cy="32" r="1.6" fill="#1b1d2e"/><circle cx="39" cy="37" r="1.6" fill="#1b1d2e"/></g></svg>`,

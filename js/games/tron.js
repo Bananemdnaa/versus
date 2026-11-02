@@ -22,7 +22,7 @@
     sides: { 1: 'Pink', 2: 'Gelb', 3: 'Cyan', 4: 'Grün' },
     levelInfo: ['Fährt oft ohne zu schauen.', 'Weicht Wänden aus, plant aber nicht.', 'Sucht sich immer den größten freien Raum.', 'Plant Raum und schneidet dir den Weg ab.'],
     keys: [['A D', 'Spieler 1 links / rechts'], ['← →', 'Spieler 2'], ['C B', 'Spieler 3'], ['J L', 'Spieler 4']],
-    options: [{ id: 'n', label: 'Spieler', def: 2, choices: [[2, '2'], [3, '3'], [4, '4']] }, { id: 'to', label: 'Punkte zum Sieg', def: 3, choices: [[3, '3'], [5, '5']] }],
+    options: [{ id: 'n', label: 'Spieler', group: 'players', inline: 'local', live: false, def: 2, choices: [[2, '2'], [3, '3'], [4, '4']] }, { id: 'to', label: 'Punkte zum Sieg', group: 'rules', short: v => `bis ${v}`, def: 3, choices: [[3, '3'], [5, '5']] }],
     localHint: 'Alle spielen gleichzeitig am selben Gerät. Jeder hat zwei Knöpfe in seiner Ecke, am PC eigene Tasten.',
     endDelay: 900,
     icon: `<svg viewBox="0 0 48 48" fill="none"><rect x="3" y="3" width="42" height="42" rx="6" fill="#07080e" stroke="#373d66" stroke-width="2"/><path d="M10 40V24h12V12h14" stroke="#ff4fd8" stroke-width="3.5" stroke-linejoin="round"/><path d="M38 8v14H28v12h-8" stroke="#62f0ff" stroke-width="3.5" stroke-linejoin="round"/><circle cx="36" cy="12" r="3" fill="#fff"/><circle cx="20" cy="34" r="3" fill="#fff"/></svg>`,

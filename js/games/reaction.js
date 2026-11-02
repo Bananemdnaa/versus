@@ -28,7 +28,7 @@
     sides: { 1: 'Unten', 2: 'Oben' },
     noFirst: true, noAI: true,
     keys: [['L', 'Spieler 1 (unten)'], ['A', 'Spieler 2 (oben)']],
-    options: [{ id: 'to', label: 'Punkte zum Sieg', def: 3, choices: [[3, '3'], [5, '5'], [7, '7']] }],
+    options: [{ id: 'to', label: 'Punkte zum Sieg', group: 'rules', inline: 'local', short: v => `bis ${v}`, def: 3, choices: [[3, '3'], [5, '5'], [7, '7']] }],
     levelInfo: ['Reagiert in etwa 0,5 Sekunden.', 'Reagiert in etwa 0,38 Sekunden.', 'Reagiert in etwa 0,29 Sekunden.', 'Reagiert in etwa 0,22 Sekunden. Fällt auf Finten fast nie rein.'],
     endDelay: 900,
     icon: `<svg viewBox="0 0 48 48" fill="none"><rect x="6" y="3" width="36" height="19" rx="6" fill="#0f4a32" stroke="#5dff9d" stroke-width="2"/><rect x="6" y="26" width="36" height="19" rx="6" fill="#1c1530" stroke="#3b2f5e" stroke-width="2"/><path d="M26 7l-6 8h5l-3 6 7-9h-5z" fill="#5dff9d"/><circle cx="24" cy="35.5" r="4" fill="#ff4fd8"/></svg>`,

@@ -28,7 +28,7 @@
     sides: { 1: 'Pink', 2: 'Gelb', 3: 'Cyan', 4: 'Grün' },
     levelInfo: ['Vergisst fast alles sofort.', 'Merkt sich ungefähr die Hälfte.', 'Hat ein gutes Gedächtnis.', 'Vergisst nichts.'],
     keys: [['Pfeile + Enter', 'Karte aufdecken']],
-    options: [{ id: 'n', label: 'Spieler', def: 2, choices: [[2, '2'], [3, '3'], [4, '4']] }, { id: 'pairs', label: 'Paare', def: 12, choices: [[8, '8'], [12, '12'], [18, '18']] }],
+    options: [{ id: 'n', label: 'Spieler', group: 'players', inline: 'local', live: false, def: 2, choices: [[2, '2'], [3, '3'], [4, '4']] }, { id: 'pairs', label: 'Paare', group: 'board', short: v => `${v} Paare`, def: 12, choices: [[8, '8'], [12, '12'], [18, '18']] }],
     localHint: 'Ihr deckt reihum am selben Gerät auf.',
     endDelay: 1100,
     icon: `<svg viewBox="0 0 48 48"><rect x="4" y="5" width="18" height="18" rx="3" fill="#fff"/><circle cx="13" cy="14" r="5" fill="#ff4fd8"/><rect x="26" y="5" width="18" height="18" rx="3" fill="#c93aac"/><circle cx="35" cy="14" r="3.5" fill="#ffd84f"/><rect x="4" y="27" width="18" height="18" rx="3" fill="#c93aac"/><circle cx="13" cy="36" r="3.5" fill="#ffd84f"/><rect x="26" y="27" width="18" height="18" rx="3" fill="#fff"/><circle cx="35" cy="36" r="5" fill="#ff4fd8"/></svg>`,

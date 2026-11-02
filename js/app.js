@@ -757,24 +757,214 @@
   }
   function saveCfg(g, cfg) { const all = S.get('setup', {}); all[g.id] = cfg; S.set('setup', all); }
   let panelApi = null;
-  // the AI levels in one line each (phone sheet)
-  const LV_SHORT = ['zum Lernen', 'fair', 'plant voraus', 'kaum zu schlagen'];
+
+  // ---------- rules: a game's settings as groups (g.options, g.panelExtra, g.presets) ----------
+  // The same view lives in the laptop panel, in the phone sheet and in the pause menu (rulesPopup).
+  // Option fields: group (players, board, rules, content, time), type 'switch', desc, inline (the mode in which it stands
+  // directly in the panel), short(v) for the summary line, modes (the modes it applies to).
+  const GROUPS = [['players', 'Spieler'], ['board', 'Spielfeld'], ['rules', 'Regeln'], ['content', 'Inhalte'], ['time', 'Zeit']];
+  const netMode = m => m === 'online' || m === 'open';
+  // the voice channel in Discord plays like a table or an online duel
+  const optMode = (g, mode) => mode === 'voice' ? (g.table ? 'table' : 'online') : mode;
+  const optsIn = (g, mode) => (g.options || []).filter(o => !o.modes || o.modes.includes(optMode(g, mode)));
+  const inlineOpt = (g, mode) => optsIn(g, mode).find(o => o.inline === mode);
+  const extraIn = (g, mode) => g.panelExtra && !netMode(optMode(g, mode)) ? g.panelExtra : null;
+  const valLabel = (o, v) => o.type === 'switch' ? (+v ? 'An' : 'Aus') : ((o.choices || []).find(c => String(c[0]) === String(v)) || [0, String(v)])[1];
+  const changedOpt = (o, opts) => String(opts[o.id]) !== String(o.def);
+  const presetOf = (g, opts) => (g.presets || []).find(p => Object.entries(p.opts).every(([k, v]) => String(opts[k]) === String(v)));
+  const tableMode = (g, mode) => mode === 'table' || (mode === 'voice' && !!g.table);
+  // the options the rules view shows in this mode (the inline one stays in the panel, except in the pause menu)
+  const rulesList = (g, mode, all) => { const inl = all ? null : inlineOpt(g, mode); return optsIn(g, mode).filter(o => o !== inl); };
+  const hasRules = (g, mode) => tableMode(g, mode) || rulesList(g, mode).length > 0 || !!extraIn(g, mode);
+  // "3 Spieler · 7 Karten · 7 zieht zwei aus": the player count first, then what differs from the default (at most 3 parts)
+  function summary(g, cfg) {
+    const opts = cfg.opts, list = rulesList(g, cfg.mode), parts = [];
+    if (tableMode(g, cfg.mode)) parts.push(`Freie Plätze: KI ${V.LEVELS[cfg.level]}`);
+    const n = list.find(o => o.id === 'n'); if (n) parts.push(`${opts.n} Spieler`);
+    const pre = presetOf(g, opts), changed = [];
+    GROUPS.forEach(([k]) => {
+      list.filter(o => o.id !== 'n' && (o.group || 'rules') === k && changedOpt(o, opts) && !(pre && o.id in pre.opts))
+        .forEach(o => { const t = o.short ? o.short(opts[o.id]) : `${o.label}: ${valLabel(o, opts[o.id])}`; if (t) changed.push(t); });
+      const ex = k === 'content' && extraIn(g, cfg.mode); if (ex) { const t = ex.short(opts); if (t) changed.push(t); }
+    });
+    if (pre) changed.unshift(pre.label);
+    if (!changed.length) changed.push('Standard');
+    return [...parts, ...changed].slice(0, 3);
+  }
+
+  // tiles to pick several things (categories, topics), shared by the games' editors
+  const MULTI = {
+    html({ items, on, count, add, all }) {
+      return `<div class="rm-mh"><span class="rm-cnt">${count}</span>${all ? '<button type="button" class="link" data-all>Alle</button>' : ''}</div>
+        <div class="rm-tiles">${items.map(([k, l, own]) => `<button type="button" class="rm-tile${on.includes(k) ? ' on' : ''}" data-c="${escA(k)}" aria-pressed="${on.includes(k)}">${IC.check}<span>${escA(l)}</span>${own ? `<i data-x="${escA(k)}" role="button" tabindex="0" aria-label="${escA(l)} löschen">${IC.x}</i>` : ''}</button>`).join('')}</div>
+        ${add ? `<form class="rm-add"><input class="inp" maxlength="${add.max}" placeholder="${add.ph}" aria-label="${add.ph}" autocomplete="off"><button class="btn sm" type="submit"><span>Hinzufügen</span></button></form>` : ''}
+        <p class="rm-limit" role="status" hidden></p>`;
+    },
+    wire(el, h) {
+      el.querySelectorAll('[data-x]').forEach(x => {
+        const del = e => { e.stopPropagation(); e.preventDefault(); h.remove(x.dataset.x); };
+        x.onclick = del; x.onkeydown = e => { if (e.key === 'Enter' || e.key === ' ') del(e); };
+      });
+      el.querySelectorAll('[data-c]').forEach(b => b.onclick = () => h.toggle(b.dataset.c));
+      const a = el.querySelector('[data-all]'); if (a && h.all) a.onclick = h.all;
+      const f = el.querySelector('.rm-add'); if (f) f.onsubmit = e => { e.preventDefault(); h.add(f.querySelector('input').value); };
+    }
+  };
+  // topics for a random word or question: none picked means all of them
+  function topicsPicker(TOPICS, title, topicsOf) {
+    const keys = TOPICS.map(t => t[0]);
+    const shown = opts => { const on = topicsOf(opts.topics); return on.length ? on : keys; };
+    return {
+      title,
+      changed: opts => topicsOf(opts.topics).length > 0,
+      reset: () => ({ topics: [] }),
+      short: opts => { const on = topicsOf(opts.topics); return on.length ? (on.length === 1 ? '1 Thema' : `${on.length} Themen`) : ''; },
+      html(opts) {
+        const on = topicsOf(opts.topics);
+        return MULTI.html({ items: TOPICS, on: shown(opts), count: on.length ? `${on.length} von ${keys.length}` : 'Alle', all: on.length > 0 });
+      },
+      wire(el, opts, save, warn) {
+        const on = shown(opts);
+        MULTI.wire(el, {
+          toggle(k) {
+            if (on.includes(k) && on.length <= 1) return warn('Mindestens 1 Thema');
+            const next = on.includes(k) ? on.filter(x => x !== k) : [...on, k];
+            save({ topics: next.length === keys.length ? [] : next });
+          },
+          all() { save({ topics: [] }); }
+        });
+      }
+    };
+  }
+
+  // radio groups (modes, levels, choices): the arrow keys move inside the group
+  function arrowGroup(group) {
+    group.addEventListener('keydown', e => {
+      if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
+      const bs = [...group.querySelectorAll('[role=radio]')], i = bs.indexOf(document.activeElement); if (i < 0) return;
+      e.preventDefault(); e.stopPropagation();
+      const n = bs[(i + (e.key === 'ArrowLeft' ? -1 : 1) + bs.length) % bs.length]; n.focus(); n.click();
+    });
+  }
+  const segHtml = (id, o, val, ro) => ro ? `<span class="rv-val">${valLabel(o, val)}</span>`
+    : `<div class="mini-seg" role="radiogroup" aria-label="${escA(o.label)}" data-o="${id}">${o.choices.map(([v, l]) => `<button type="button" role="radio" data-v="${v}" aria-checked="${String(v) === String(val)}" class="${String(v) === String(val) ? 'on' : ''}">${l}</button>`).join('')}</div>`;
+
+  // o: { mode, back (the arrow at the top), pause (in a match), readOnly (online: the inviter's rules), all (also the inline
+  // option), save() after every change, foot (html for the bottom bar), wireFoot(el) }
+  function renderRules(el, g, cfg, o) {
+    const opts = cfg.opts, ro = !!o.readOnly, list = rulesList(g, o.mode, o.all), ex = extraIn(g, o.mode), tbl = tableMode(g, o.mode);
+    const pre = presetOf(g, opts);
+    const anyChanged = list.some(x => changedOpt(x, opts)) || (ex && ex.changed(opts));
+    const row = x => {
+      const v = opts[x.id], ch = changedOpt(x, opts);
+      const name = `<b>${x.label}${ch && !ro ? '<i class="rv-dot" role="img" aria-label="geändert"></i>' : ''}</b>${x.desc ? `<small>${x.desc}</small>` : ''}`;
+      if (x.type === 'switch' && !ro) return `<button type="button" class="rv-row rv-sw" role="switch" aria-checked="${!!+v}" data-sw="${x.id}"><span class="rv-l">${name}</span><i class="sw${+v ? ' on' : ''}"></i></button>`;
+      const wide = !ro && (x.choices.length > 3 || x.choices.reduce((a, c) => a + String(c[1]).length, 0) > 14);
+      return `<div class="rv-row${wide ? ' wide' : ''}"><span class="rv-l">${name}</span>${segHtml(x.id, x, v, ro)}</div>`;
+    };
+    const groups = GROUPS.map(([k, t]) => {
+      const rows = list.filter(x => (x.group || 'rules') === k);
+      const exHere = k === 'content' && ex;
+      if (!rows.length && !exHere) return '';
+      const title = k === 'rules' && g.rulesTitle ? g.rulesTitle : exHere && !rows.length ? ex.title : t;
+      const gch = rows.some(x => changedOpt(x, opts)) || (exHere && ex.changed(opts));
+      return `<section class="rv-g"><div class="rv-gh"><h4 class="gp-h">${title}</h4>${gch && !ro ? `<button type="button" class="link rv-gr" data-gr="${k}">Zurücksetzen</button>` : ''}</div>
+        ${rows.length ? `<div class="rv-card">${rows.map(row).join('')}</div>` : ''}
+        ${exHere ? (ro ? `<div class="rv-card"><div class="rv-row"><span class="rv-l"><b>${ex.title}</b></span><span class="rv-val">${ex.short(opts) || 'Standard'}</span></div></div>` : `<div class="rv-multi" id="rvx">${rows.length ? `<h5>${ex.title}</h5>` : ''}${ex.html(opts)}</div>`) : ''}</section>`;
+    }).join('');
+    const level = tbl ? `<section class="rv-g"><div class="rv-gh"><h4 class="gp-h">KI auf freien Plätzen</h4></div>
+      ${ro ? `<div class="rv-card"><div class="rv-row"><span class="rv-l"><b>KI-Stärke</b></span><span class="rv-val">${V.LEVELS[cfg.level]}</span></div></div>`
+        : `<div class="lv-row" role="radiogroup" aria-label="KI-Stärke" id="rvlvl">${V.LEVELS.map((l, i) => `<button type="button" role="radio" data-v="${i}" class="lvb l${i}${i === cfg.level ? ' on' : ''}" aria-checked="${i === cfg.level}"><b>${l}</b></button>`).join('')}</div>`}</section>` : '';
+    const presets = g.presets && !ro ? `<div class="rv-pre" role="radiogroup" aria-label="Vorlagen" style="--n:${g.presets.length + 1}">
+      ${g.presets.map(p => `<button type="button" role="radio" data-pre="${p.id}" aria-checked="${pre === p}" class="${pre === p ? 'on' : ''}">${p.label}</button>`).join('')}
+      <button type="button" role="radio" aria-checked="${!pre}" aria-disabled="true" class="${pre ? '' : 'on'}" tabindex="-1">Eigene</button></div>` : '';
+    // redrawn after every change: the scroll position and the focused control stay where they were
+    const focusSel = a => {
+      if (!a || !el.contains(a)) return null;
+      for (const k of ['sw', 'pre', 'c', 'gr']) if (a.dataset[k] != null) return `[data-${k}="${CSS.escape(a.dataset[k])}"]`;
+      const p = a.parentElement;
+      if (a.dataset.v != null && p) return p.dataset.o ? `[data-o="${p.dataset.o}"] [data-v="${a.dataset.v}"]` : p.id ? `#${p.id} [data-v="${a.dataset.v}"]` : null;
+      return a.id ? '#' + a.id : null;
+    };
+    const sc = el.querySelector('.rv-body'), top = sc ? sc.scrollTop : 0, keep = focusSel(document.activeElement);
+    el.innerHTML = `<div class="rvw${o.pause ? ' pz' : ''}">
+      <div class="rv-head">${o.pause ? `<span class="rv-pzm">${IC.sliders}</span>` : `<button type="button" class="iconbtn rv-back" id="rvback" aria-label="Zurück">${IC.back}</button>`}
+        <div class="rv-t"><h3>${ro ? 'So wird gespielt' : 'Regeln'}</h3><small>${escA(g.name)}</small></div>
+        ${ro ? '' : `<button type="button" class="btn sm ghost" id="rvstd"${anyChanged ? '' : ' disabled'}><span>Standard</span></button>`}</div>
+      <div class="rv-body">${o.pause && !ro ? '<p class="rv-note">Änderungen gelten ab dem nächsten Start.</p>' : ''}${ro ? '<p class="rv-note">Die Regeln hat festgelegt, wer eingeladen hat.</p>' : ''}${presets}${level}${groups}</div>
+      ${o.foot ? `<div class="gp-go rv-foot">${o.foot}</div>` : ''}</div>`;
+    const body = el.querySelector('.rv-body'); if (top) body.scrollTop = top;
+    if (keep) { const k = el.querySelector(keep); if (k) k.focus({ preventScroll: true }); }
+    const done = () => { o.save(); V.sfx.ui(); renderRules(el, g, cfg, o); };
+    const b = el.querySelector('#rvback'); if (b) b.onclick = () => { V.sfx.ui(); o.back(); };
+    if (o.wireFoot) o.wireFoot(el);
+    if (ro) return;
+    el.querySelector('#rvstd').onclick = () => { list.forEach(x => opts[x.id] = x.def); if (ex) Object.assign(opts, ex.reset()); done(); };
+    el.querySelectorAll('[data-gr]').forEach(x => x.onclick = () => {
+      const k = x.dataset.gr; list.filter(y => (y.group || 'rules') === k).forEach(y => opts[y.id] = y.def);
+      if (k === 'content' && ex) Object.assign(opts, ex.reset()); done();
+    });
+    el.querySelectorAll('[data-o]').forEach(grp => {
+      arrowGroup(grp);
+      grp.querySelectorAll('button').forEach(x => x.onclick = () => { const v = x.dataset.v; opts[grp.dataset.o] = isNaN(+v) ? v : +v; done(); });
+    });
+    el.querySelectorAll('[data-sw]').forEach(x => x.onclick = () => { const k = x.dataset.sw; opts[k] = +opts[k] ? 0 : 1; done(); });
+    el.querySelectorAll('[data-pre]').forEach(x => x.onclick = () => { Object.assign(opts, g.presets.find(p => p.id === x.dataset.pre).opts); done(); });
+    const pg = el.querySelector('.rv-pre'); if (pg) arrowGroup(pg);
+    const lv = el.querySelector('#rvlvl');
+    if (lv) { arrowGroup(lv); lv.querySelectorAll('button').forEach(x => x.onclick = () => { cfg.level = +x.dataset.v; done(); }); }
+    const xe = el.querySelector('#rvx');
+    if (xe) ex.wire(xe, opts, v => { Object.assign(opts, v); done(); }, msg => {
+      V.sfx.bad();
+      const p = xe.querySelector('.rm-limit'), c = xe.querySelector('.rm-cnt');
+      p.textContent = msg; p.hidden = false; if (c) c.classList.add('warn');
+      clearTimeout(xe._t); xe._t = setTimeout(() => { p.hidden = true; if (c) c.classList.remove('warn'); }, 3000);
+    });
+  }
+
+  // the rules of the running match as a popup (pause menu): changes count from the next start; online only to read
+  function rulesPopup(g, cfg, { readOnly, restart, onClose }) {
+    const c = { mode: cfg.mode, level: cfg.level, first: cfg.first, opts: Object.assign({}, cfg.opts) };
+    const changed = () => JSON.stringify(c.opts) !== JSON.stringify(cfg.opts) || c.level !== cfg.level;
+    const m = openModal('<div class="rvp"></div>', 'rvm', onClose, false, e => {
+      if (e.key === 'Enter' && !(document.activeElement && document.activeElement.closest('.rv-body'))) { closeModal(); return true; }
+      return false;
+    });
+    m.style.setProperty('--acc', g.accent || 'var(--pink)');
+    const o = {
+      mode: cfg.mode, pause: true, readOnly, all: true,
+      save() { const sv = loadCfg(g); sv.opts = Object.assign(sv.opts, c.opts); if (tableMode(g, c.mode)) sv.level = c.level; saveCfg(g, sv); },
+      foot: `<button class="btn primary big" id="rvgo"><span>${IC.play}Weiter</span></button>${!readOnly && restart ? `<button class="btn ghost" id="rvnew"><span>${IC.redo}Neu starten</span></button>` : ''}`,
+      wireFoot(el) {
+        el.querySelector('#rvgo').onclick = () => { V.sfx.ui(); closeModal(); };
+        const n = el.querySelector('#rvnew');
+        if (n) { n.classList.toggle('hot', changed()); n.onclick = () => { V.sfx.ui(); modalClose = null; closeModal(); restart(Object.assign({}, cfg, { opts: c.opts, level: c.level })); }; }
+      }
+    };
+    renderRules(m.firstElementChild, g, c, o);
+  }
+
+  // the AI levels in one line each
+  const modeSay = (g, cfg, voiceTxt) => ({
+    ai: g.party && +cfg.opts.n > 2 ? `Du gegen ${+cfg.opts.n - 1} Computer-Gegner.` : 'Du gegen den Computer.',
+    local: g.localHint || (g.party ? 'Reihum an diesem Gerät, jeder ist mal dran.' : `Abwechselnd am selben Gerät${g.cat === 'Action' ? ', jeder auf seiner Hälfte' : ''}.`),
+    online: 'Fordere einen Freund heraus.',
+    open: 'Ein zufälliger Gegner wird zugelost.',
+    table: 'Tisch für 2 bis 4. Freie Plätze übernimmt die KI.',
+    voice: voiceTxt
+  })[cfg.mode] || '';
+
   function renderPanel(root, g, full) {
     const cfg = loadCfg(g), s = stat(g.id);
-    // options can be limited to some modes (e.g. the chess clock makes no sense against the AI)
-    // (the voice channel in Discord plays like a table or an online duel)
-    const optMode = cfg.mode === 'voice' ? (g.table ? 'table' : 'online') : cfg.mode;
-    const optsHere = (g.options || []).filter(o => !o.modes || o.modes.includes(optMode));
     const firstLabel = g.firstLabels || ['Du', 'KI', 'Zufall'];
-    const chipRow = (id, label, items, val) => `<div class="crow"><span>${label}</span><div class="mini-seg" id="${id}">${items.map(([v, l]) => `<button data-v="${v}" class="${String(v) === String(val) ? 'on' : ''}">${l}</button>`).join('')}</div></div>`;
     const lvl = cfg.level, cloudOk = !!(V.cloud && V.cloud.available());
-    // Same game: only the settings part is redrawn, the card, icon and text stay as they are.
+    // Same game: only the lower part is redrawn, the picture and the text stay as they are.
     // Other game: the card stays too, only icon and text change with a short crossfade.
     let gp = root.querySelector('.gp');
     if (!gp || root.dataset.gid !== g.id) {
       const fresh = !gp;
       if (fresh) { root.innerHTML = '<div class="gp"><div class="gp-art"><span class="cat"></span><span class="icw"><span class="ic"></span></span></div><div class="gp-txt"><h2></h2><p></p><div class="gp-tags"></div></div><div class="gp-body"></div></div>'; gp = root.firstElementChild; }
-      root.dataset.gid = g.id; root._mi = null;
+      root.dataset.gid = g.id; root._rules = false;
       gp.style.setProperty('--acc', g.accent || 'var(--pink)');
       gp.querySelector('.cat').textContent = g.cat;
       gp.querySelector('.ic').innerHTML = g.icon;
@@ -785,21 +975,41 @@
       if (V.fxOn()) { V.fx.pop(gp, fresh ? 'gp-new' : 'gp-sw'); clearTimeout(gp._t); gp._t = setTimeout(() => gp.classList.remove('gp-new', 'gp-sw'), 450); }
     }
     const rer = () => renderPanel(root, g, full);
+    const body = gp.querySelector('.gp-body');
     // in the sheet the rules close it and open it again afterwards
     const tut = () => tutorial(g, full ? () => setup(g) : rer);
-    const close = full ? `<button class="iconbtn gpx" id="gpx" aria-label="Schließen">${IC.x}</button>` : '';
+    const head = (full ? `<button class="iconbtn gpx" id="gpx" aria-label="Schließen">${IC.x}</button>` : '')
+      + `<button class="iconbtn fav${isFav(g) ? ' on' : ''}" id="fav" aria-pressed="${isFav(g)}" aria-label="Favorit" title="${isFav(g) ? 'Aus Favoriten entfernen' : 'Zu Favoriten'}">${IC.star}</button>`;
+    // the help button shows only its icon on the phone and next to a long main button
+    const tutBtn = icon => `<button class="btn ghost gp-tut${icon ? ' ico' : ''}" id="tut"${icon ? ' aria-label="Regeln lesen" title="Regeln lesen"' : ''}><span>${IC.book}${icon ? '' : 'Regeln'}${P.seen[g.id] ? '' : '<i class="dot"></i>'}</span></button>`;
+    const goBtn = (id, ic, label) => `<button class="btn primary big${label.length > 12 ? ' long' : ''}" id="${id}"><span>${ic}${label}</span></button>`;
+    const wireHead = () => {
+      root.querySelector('#fav').onclick = () => { toggleFav(g); rer(); const f = root.querySelector('#fav'); if (f && V.fxOn()) V.fx.pop(f, 'fx-pop'); };
+      if (full) root.querySelector('#gpx').onclick = () => { V.sfx.ui(); closeModal(); };
+    };
+    gp.classList.toggle('rv-on', !!root._rules);
     if (locked(g)) {
+      root._rules = false; gp.classList.remove('rv-on');
       const ok = GUEST_GAMES.map(id => V.byId[id] && V.byId[id].name).filter(Boolean);
-      gp.querySelector('.gp-body').innerHTML = `${close}<div class="gp-lock"><span class="lki">${IC.lock}</span><div><b>Mit Konto spielbar</b>
-        <p>Als Gast kannst du ${ok.slice(0, -1).join(', ')} und ${ok[ok.length - 1]} spielen. Mit einem kostenlosen Konto sind alle ${V.games.length} Spiele frei, dazu Online-Partien, Freunde und die Rangliste.</p></div></div>
-        <div class="gp-go"><button class="btn primary big" id="acc"><span>${IC.user}Konto erstellen</span></button><button class="btn ghost" id="tut"><span>${IC.book}Regeln</span></button></div>`;
+      body.innerHTML = `${head}<div class="gp-main"><div class="gp-lock"><span class="lki">${IC.lock}</span><div><b>Mit Konto spielbar</b>
+        <p>Mit einem kostenlosen Konto sind alle ${V.games.length} Spiele frei, dazu Online-Partien, Freunde und die Rangliste.</p>
+        <p>Als Gast gehen ${ok.slice(0, -1).join(', ')} und ${ok[ok.length - 1]}.</p></div></div></div>
+        <div class="gp-go">${goBtn('acc', IC.user, 'Konto erstellen')}${tutBtn(true)}</div>`;
+      wireHead();
       root.querySelector('#acc').onclick = () => { V.sfx.ui(); closeModal(); home('profile'); };
       root.querySelector('#tut').onclick = tut;
-      if (full) root.querySelector('#gpx').onclick = () => { V.sfx.ui(); closeModal(); };
-      panelApi = { g, go() { closeModal(); home('profile'); }, tut, level() { }, step() { }, mode() { } };
+      panelApi = { g, go() { closeModal(); home('profile'); }, tut, level() { }, step() { }, mode() { }, rules() { return false; }, open: () => false, fav() { toggleFav(g); rer(); } };
       return;
     }
-    // modes as a segment with a sliding indicator; modes that do not fit stay visible but dimmed and say why when tapped
+    // the rules view replaces the lower part (laptop) or the sheet's content (phone); the arrow brings the panel back
+    const rules = on => {
+      if (on === undefined) on = !root._rules;
+      if (on && !hasRules(g, cfg.mode)) return false;
+      root._rules = on; V.sfx.ui(); rer();
+      const f = root.querySelector(on ? '#rvback' : '#gprules'); if (f) f.focus({ preventScroll: true });
+      return true;
+    };
+    // modes: a bar of 2-4 buttons; modes that do not fit stay visible but dimmed and say why when tapped
     const dc = inDiscord();
     const modes = [{ v: 'ai', ic: IC.robot, l: 'KI', off: g.noAI ? (dc ? 'Nur gemeinsam spielbar' : 'Nur zu zweit') : '' }];
     if (dc) modes.push({ v: 'voice', ic: IC.users, l: 'Sprachkanal', off: !(g.table || g.online) ? 'In Discord nur gegen die KI' : !cloudOk ? 'Online kommt gleich' : '' });
@@ -810,75 +1020,88 @@
       else modes.push({ v: 'open', ic: IC.globe, l: 'Online', off: cloudOk ? 'Nicht online spielbar' : 'Online kommt gleich' });
     }
     // voice channel: a table (2-4 seats, the AI fills free ones) or a game link for one opponent
-    const voice = cfg.mode === 'voice', vTable = voice && g.table;
+    const voice = cfg.mode === 'voice';
     // game links for guests only work in the guest games (server: match_link)
     const vNeedAcc = voice && !g.table && guest() && !GUEST_GAMES.includes(g.id);
     // games only for two people at one device (Pong, Air Hockey, Reaktionsduell) have nothing to offer in Discord
     const dcNone = dc && g.noAI && !(g.table || g.online);
-    const mi = Math.max(0, modes.findIndex(m => m.v === cfg.mode));
-    const modeSub = v => ({ ai: 'Gegen den Computer', local: g.party ? 'Reihum an diesem Gerät' : 'Abwechselnd an diesem Gerät', online: 'Einen Freund herausfordern', open: 'Gegen jemand Fremdes', table: 'Online-Tisch für 2 bis 4', voice: 'Mit allen im Sprachkanal' })[v] || '';
-    gp.querySelector('.gp-body').innerHTML = `${close}<button class="iconbtn fav${isFav(g) ? ' on' : ''}" id="fav" aria-pressed="${isFav(g)}" aria-label="Favorit" title="${isFav(g) ? 'Aus Favoriten entfernen' : 'Zu Favoriten (F)'}">${IC.star}</button>
-      ${full ? `<div class="gp-mode" id="mode" style="--n:${modes.length};--i:${root._mi ?? mi}"><i class="seg-ind"></i>
-        ${modes.map(m => `<button data-v="${m.v}" class="${cfg.mode === m.v ? 'on' : ''}${m.off ? ' lockd' : ''}"${m.off ? ` data-why="${m.off}" aria-disabled="true"` : ''}>${m.off === 'Mit Konto' ? IC.lock : m.ic}<span>${m.l}</span></button>`).join('')}
-      </div>`
-        // laptop: the modes as tiles that say what happens, so nothing is hidden behind a short label
-        : `<h4 class="gp-h">Wie spielst du?</h4><div class="gp-modes${modes.length > 2 ? ' two' : ''}" id="mode">
-        ${modes.map(m => `<button data-v="${m.v}" class="${cfg.mode === m.v ? 'on' : ''}${m.off ? ' lockd' : ''}"${m.off ? ` data-why="${m.off}" aria-disabled="true"` : ''} aria-pressed="${cfg.mode === m.v}">
-          <span class="gm-ic">${m.off === 'Mit Konto' ? IC.lock : m.ic}</span><span class="gm-t"><b>${m.v === 'ai' ? 'Gegen KI' : m.l}</b><small>${m.off || modeSub(m.v)}</small></span></button>`).join('')}
-      </div>`}
-      ${!full && cfg.mode !== 'online' && cfg.mode !== 'open' && (cfg.mode === 'ai' || cfg.mode === 'table' || optsHere.length || g.panelExtra) ? '<h4 class="gp-h">Einstellungen</h4>' : ''}
-      ${cfg.mode === 'ai' || cfg.mode === 'table' ? `<div class="gp-lvl">
-        <div class="lv-top"><span>KI-Stärke</span><b class="l${lvl}">${V.LEVELS[lvl]}</b><em>Bilanz ${s.ai[lvl].w}:${s.ai[lvl].l}</em></div>
-        <div class="lv-big" id="level">${V.LEVELS.map((l, i) => `<button data-v="${i}" class="lvb l${i}${i === lvl ? ' on' : ''}" aria-pressed="${i === lvl}"><b>${l}</b><small>${LV_SHORT[i]}</small></button>`).join('')}</div>
-        <p class="hint">${cfg.mode === 'table' || vTable ? 'So stark spielt die KI auf freien Plätzen.' : (g.levelInfo || LEVEL_INFO)[lvl]}</p></div>` : cfg.mode === 'online' || cfg.mode === 'open' ? '<div class="gp-online" id="ofr"></div>' : voice ? '' : `<p class="hint local">${g.localHint || `Ihr spielt abwechselnd am selben Gerät${g.cat === 'Action' ? ', jeder auf seiner Hälfte' : ''}.`}</p>`}
-      ${(cfg.mode === 'ai' && !g.noFirst) || optsHere.length ? `<div class="gp-more">
-        ${cfg.mode === 'ai' && !g.noFirst ? chipRow('first', g.firstTitle || 'Wer fängt an?', [['me', firstLabel[0]], ['ai', firstLabel[1]], ['rand', firstLabel[2]]], cfg.first) : ''}
-        ${optsHere.map(o => chipRow('o_' + o.id, o.label, o.choices, cfg.opts[o.id])).join('')}
-      </div>` : ''}
-      ${g.panelExtra && cfg.mode !== 'online' && cfg.mode !== 'open' ? `<div class="gp-extra" id="gpext">${g.panelExtra.html(cfg.opts)}</div>` : ''}
-      ${cfg.mode === 'table' ? '<div class="gp-online" id="ofr"></div>' : ''}
-      ${dcNone ? '<p class="hint dch">Dieses Spiel spielt ihr zu zweit am selben Gerät. In Discord hat jeder sein eigenes, darum geht es hier nicht.</p>' : dc && cfg.mode === 'ai' ? '<p class="hint dch">Nur du siehst dieses Spiel. Zum Mitspielen mit den anderen wähl oben „Sprachkanal“.</p>' : ''}
-      ${voice ? `<p class="hint dch">${vNeedAcc ? 'Für dieses Spiel braucht ihr beide ein kostenloses Versus-Konto. Als Gast gehen 4 Gewinnt, Tic Tac Toe, Schiffe versenken und Käsekästchen.' : g.table ? 'Du eröffnest einen Tisch. Alle in diesem Sprachkanal sehen ihn unten als Balken und spielen auf ihrem eigenen Gerät mit.' : 'Du lädst ein. Wer in diesem Sprachkanal zuerst auf „Mitspielen“ tippt, spielt auf seinem eigenen Gerät gegen dich.'}</p>` : ''}
-      <div class="gp-go">${cfg.mode === 'online' || cfg.mode === 'open' || cfg.mode === 'table' || dcNone ? '' : vNeedAcc ? `<button class="btn primary big" id="acc"><span>${IC.user}Konto erstellen</span></button>` : `<button class="btn primary big" id="go"><span>${voice ? IC.users + (g.table ? 'Tisch eröffnen' : 'Einladen') : IC.play + 'Spielen'}</span></button>`}
-        <button class="btn ghost" id="tut"><span>${IC.book}Regeln${P.seen[g.id] ? '' : '<i class="dot"></i>'}</span></button>
-        ${full && g.online && cloudOk && !dc && (cfg.mode === 'ai' || cfg.mode === 'local') ? `<button class="btn finv" id="finv"><span>${IC.link}Freund einladen</span></button>` : ''}</div>`;
-    // the indicator glides from the old mode to the new one
-    const seg = root.querySelector('#mode');
-    if (root._mi != null && root._mi !== mi && V.fxOn()) void seg.offsetWidth;
-    seg.style.setProperty('--i', mi);
-    root._mi = mi;
-    root.querySelector('#fav').onclick = () => { toggleFav(g); rer(); const f = root.querySelector('#fav'); if (f && V.fxOn()) V.fx.pop(f, 'fx-pop'); };
-    if (full) root.querySelector('#gpx').onclick = () => { V.sfx.ui(); closeModal(); };
-    const on = (id, fn) => { const e = root.querySelector('#' + id); if (e) e.querySelectorAll('button').forEach(b => b.onclick = () => {
+    const voiceGo = () => { saveCfg(g, cfg); if (!V.online) return; if (full) closeModal(); return g.table ? V.online.table(g, cfg.opts, cfg.level) : V.online.linkInvite(g, cfg.opts); };
+    const anon = !V.cloud || !V.cloud.user();
+    // the main button does what the mode is about, so the bar at the bottom is never empty
+    const act = dcNone ? null
+      : vNeedAcc ? { id: 'acc', ic: IC.user, l: 'Konto erstellen', fn() { V.sfx.ui(); closeModal(); home('profile'); } }
+      : voice ? { id: 'go', ic: IC.users, l: g.table ? 'Tisch eröffnen' : 'Einladen', fn: voiceGo }
+      : cfg.mode === 'online' ? { id: 'go', ic: IC.link, l: 'Per Link einladen', fn() { V.sfx.ui(); saveCfg(g, cfg); if (full) closeModal(); V.online.linkInvite(g, cfg.opts); } }
+      : cfg.mode === 'open' ? { id: 'go', ic: IC.globe, l: anon ? 'Als Gast spielen' : 'Gegner suchen', fn() { saveCfg(g, cfg); if (full) closeModal(); V.online.seek(g, cfg.opts); } }
+      : cfg.mode === 'table' ? { id: 'go', ic: IC.plus, l: 'Tisch eröffnen', fn() { V.sfx.ui(); saveCfg(g, cfg); if (full) closeModal(); V.online.table(g, cfg.opts, cfg.level); } }
+      : { id: 'go', ic: IC.play, l: 'Spielen', fn() { saveCfg(g, cfg); play(g, cfg); } };
+    const finv = full && g.online && cloudOk && !dc && (cfg.mode === 'ai' || cfg.mode === 'local')
+      ? `<button class="btn ghost gp-inv" id="finv" aria-label="Freund einladen" title="Freund einladen"><span>${IC.link}</span></button>` : '';
+    const foot = `${act ? goBtn(act.id, act.ic, act.l) : ''}${finv}${tutBtn(full || !act || act.l.length > 12)}`;
+    const go = () => { if (act) act.fn(); };
+    const wireFoot = el => {
+      const a = act && el.querySelector('#' + act.id); if (a) a.onclick = go;
+      el.querySelector('#tut').onclick = tut;
+      const fi = el.querySelector('#finv'); if (fi) fi.onclick = () => { V.sfx.ui(); saveCfg(g, cfg); closeModal(); V.online.linkInvite(g, cfg.opts); };
+    };
+    panelApi = {
+      g, go, tut,
+      level(i) { if (cfg.mode !== 'ai' || root._rules) return; cfg.level = Math.max(0, Math.min(3, i)); saveCfg(g, cfg); V.sfx.tick(); rer(); },
+      step(d) { this.level(cfg.level + d); },
+      mode() { if (g.noAI || root._rules) return; cfg.mode = cfg.mode !== 'ai' ? 'ai' : !dc ? 'local' : g.table || g.online ? 'voice' : 'ai'; saveCfg(g, cfg); V.sfx.tick(); rer(); },
+      fav() { toggleFav(g); rer(); },
+      rules, open: () => !!root._rules
+    };
+    if (root._rules && hasRules(g, cfg.mode)) {
+      body.innerHTML = `${head}<div class="gp-rv"></div>`;
+      wireHead();
+      renderRules(body.querySelector('.gp-rv'), g, cfg, { mode: cfg.mode, back: () => rules(false), save: () => saveCfg(g, cfg), foot, wireFoot });
+      return;
+    }
+    root._rules = false; gp.classList.remove('rv-on');
+    const say = modeSay(g, cfg, vNeedAcc ? 'Für dieses Spiel braucht ihr beide ein kostenloses Versus-Konto. Als Gast gehen 4 Gewinnt, Tic Tac Toe, Schiffe versenken und Käsekästchen.'
+      : g.table ? 'Du eröffnest einen Tisch. Alle in diesem Sprachkanal sehen ihn unten als Balken und spielen auf ihrem eigenen Gerät mit.'
+        : 'Du lädst ein. Wer in diesem Sprachkanal zuerst auf „Mitspielen“ tippt, spielt auf seinem eigenen Gerät gegen dich.');
+    const inl = inlineOpt(g, cfg.mode);
+    let content = '';
+    if (cfg.mode === 'ai' && !dcNone) {
+      content = `<div class="gp-lvl"><div class="lv-top"><span>KI-Stärke</span><b class="l${lvl}">${V.LEVELS[lvl]}</b><em>Bilanz ${s.ai[lvl].w}:${s.ai[lvl].l}</em></div>
+        <div class="lv-row" role="radiogroup" aria-label="KI-Stärke" id="level">${V.LEVELS.map((l, i) => `<button type="button" role="radio" data-v="${i}" class="lvb l${i}${i === lvl ? ' on' : ''}" aria-checked="${i === lvl}"><b>${l}</b></button>`).join('')}</div>
+        <p class="gp-sub">${(g.levelInfo || LEVEL_INFO)[lvl]}</p></div>
+        ${g.noFirst ? '' : `<div class="gp-inl dash"><span>${g.firstTitle || 'Wer fängt an?'}</span><div class="mini-seg" role="radiogroup" aria-label="${g.firstTitle || 'Wer fängt an?'}" id="first">${[['me', firstLabel[0]], ['ai', firstLabel[1]], ['rand', firstLabel[2]]].map(([v, l]) => `<button type="button" role="radio" data-v="${v}" aria-checked="${cfg.first === v}" class="${cfg.first === v ? 'on' : ''}">${l}</button>`).join('')}</div></div>`}`;
+    } else if (netMode(cfg.mode) || cfg.mode === 'table') content = '<div class="gp-online" id="ofr"></div>';
+    if (inl) content += `<div class="gp-inl"><span>${inl.label}</span>${segHtml(inl.id, inl, cfg.opts[inl.id])}</div>`;
+    if (dcNone) content += '<p class="hint dch">Dieses Spiel spielt ihr zu zweit am selben Gerät. In Discord hat jeder sein eigenes, darum geht es hier nicht.</p>';
+    else if (dc && cfg.mode === 'ai') content += '<p class="hint dch">Nur du siehst dieses Spiel. Zum Mitspielen mit den anderen wähl oben „Sprachkanal“.</p>';
+    // a game that cannot be played here (Pong in Discord) shows only the note why
+    const sum = !dcNone && hasRules(g, cfg.mode) ? summary(g, cfg) : null;
+    body.innerHTML = `${head}<div class="gp-main">
+      <div class="gp-mode2" role="radiogroup" aria-label="Wie spielst du?" id="mode" style="--n:${modes.length}">
+        ${modes.map(m => `<button type="button" role="radio" data-v="${m.v}" aria-checked="${cfg.mode === m.v}" class="${cfg.mode === m.v ? 'on' : ''}${m.off ? ' lockd' : ''}"${m.off ? ` data-why="${m.off}" aria-disabled="true"` : ''}>${m.off === 'Mit Konto' ? IC.lock : m.ic}<span>${m.v === 'ai' && modes.length < 4 ? 'Gegen KI' : m.l}</span></button>`).join('')}
+      </div>
+      ${dcNone ? '' : `<p class="gp-say">${say}</p>`}
+      ${content}
+      ${sum ? `<button type="button" class="gp-rules" id="gprules" aria-haspopup="dialog"><span class="gr-ic">${IC.sliders}</span><span class="gr-t"><b>Regeln</b>${sum.map(t => `<i>·</i><span>${escA(t)}</span>`).join('')}</span>${IC.fwd}</button>` : ''}
+    </div>
+    <div class="gp-go">${foot}</div>`;
+    wireHead(); wireFoot(body);
+    const on = (id, fn) => { const e = root.querySelector('#' + id); if (!e) return; arrowGroup(e); e.querySelectorAll('button').forEach(b => b.onclick = () => {
       if (b.dataset.why) { V.sfx.bad(); return toast(b.dataset.why); }
+      // the group is drawn again: the focus moves to the same choice in the new one
+      const had = e.contains(document.activeElement);
       fn(b.dataset.v); saveCfg(g, cfg); V.sfx.ui(); rer();
+      const f = root.querySelector(`#${id} [data-v="${b.dataset.v}"]`); if (f && had) f.focus({ preventScroll: true });
     }); };
     on('mode', x => cfg.mode = x);
     on('level', x => cfg.level = +x);
     on('first', x => cfg.first = x);
-    (g.options || []).forEach(o => on('o_' + o.id, x => cfg.opts[o.id] = isNaN(+x) ? x : +x));
-    const ext = root.querySelector('#gpext');
-    if (ext) g.panelExtra.wire(ext, cfg.opts, o => { Object.assign(cfg.opts, o); saveCfg(g, cfg); V.sfx.ui(); rer(); });
-    const voiceGo = () => { saveCfg(g, cfg); if (!V.online) return; if (full) closeModal(); return g.table ? V.online.table(g, cfg.opts, cfg.level) : V.online.linkInvite(g, cfg.opts); };
-    const goBtn = root.querySelector('#go'); if (goBtn) goBtn.onclick = () => { if (voice) return voiceGo(); saveCfg(g, cfg); play(g, cfg); };
-    const accBtn = root.querySelector('#acc'); if (accBtn) accBtn.onclick = () => { V.sfx.ui(); closeModal(); home('profile'); };
+    const ie = inl && root.querySelector(`[data-o="${inl.id}"]`);
+    if (ie) { arrowGroup(ie); ie.querySelectorAll('button').forEach(b => b.onclick = () => { const v = b.dataset.v; cfg.opts[inl.id] = isNaN(+v) ? v : +v; saveCfg(g, cfg); V.sfx.ui(); rer(); }); }
+    const gr = root.querySelector('#gprules'); if (gr) gr.onclick = () => rules(true);
     if (cfg.mode === 'online' && V.online) V.online.picker(root.querySelector('#ofr'), g, cfg.opts);
     if (cfg.mode === 'open' && V.online) V.online.openPanel(root.querySelector('#ofr'), g, cfg.opts);
     if (cfg.mode === 'table' && V.online) V.online.tablePanel(root.querySelector('#ofr'), g, cfg.opts, cfg.level);
-    root.querySelector('#tut').onclick = tut;
-    // phone sheet: a game link for a friend (whoever opens it plays against you)
-    const fi = root.querySelector('#finv'); if (fi) fi.onclick = () => { V.sfx.ui(); saveCfg(g, cfg); closeModal(); V.online.linkInvite(g, cfg.opts); };
-    panelApi = {
-      g,
-      go() { if (cfg.mode === 'online' || vNeedAcc || dcNone) return; if (voice) return voiceGo(); if (cfg.mode === 'table') return V.online && V.online.table(g, cfg.opts, cfg.level); if (cfg.mode === 'open') return V.online && V.online.seek(g, cfg.opts); saveCfg(g, cfg); play(g, cfg); },
-      tut,
-      level(i) { if (cfg.mode !== 'ai' && cfg.mode !== 'table' && !vTable) return; cfg.level = Math.max(0, Math.min(3, i)); saveCfg(g, cfg); V.sfx.tick(); rer(); },
-      step(d) { this.level(cfg.level + d); },
-      mode() { if (g.noAI) return; cfg.mode = cfg.mode !== 'ai' ? 'ai' : !dc ? 'local' : g.table || g.online ? 'voice' : 'ai'; saveCfg(g, cfg); V.sfx.tick(); rer(); },
-      fav() { toggleFav(g); rer(); }
-    };
   }
-
   // Phone: the panel opens as a bottom sheet over the home screen. Laptop: the panel lives next to the game grid.
   let sheetRoot = null;
   const sheetKeys = e => {
@@ -887,6 +1110,9 @@
     if (k === 's' || k === 'S') { panelApi.mode(); return true; }
     if ((k === 'f' || k === 'F') && panelApi.fav) { panelApi.fav(); return true; }
     if (k === 't' || k === 'T') { panelApi.tut(); return true; }
+    if (k === 'r' || k === 'R') { panelApi.rules(); return true; }
+    // Esc in the rules view goes back to the panel, otherwise it closes the sheet
+    if (k === 'Escape' && panelApi.open()) { panelApi.rules(false); return true; }
     if (k === 'ArrowLeft' || k === 'ArrowRight') { panelApi.step(k === 'ArrowLeft' ? -1 : 1); return true; }
     if (k === 'Enter') { const f = document.activeElement; if (f && f.tagName === 'BUTTON' && modalEl && modalEl.contains(f)) return false; panelApi.go(); return true; }
     return false;
@@ -1446,6 +1672,8 @@
       if (k === 's' || k === 'S') { panelApi.mode(); return true; }
       if ((k === 'f' || k === 'F') && panelApi.fav) { panelApi.fav(); return true; }
       if (k === 't' || k === 'T') { panelApi.tut(); return true; }
+      if (k === 'r' || k === 'R') return panelApi.rules();
+      if (k === 'Escape' && panelApi.open()) { panelApi.rules(false); return true; }
       return false;
     };
     if (view === 'home') {
@@ -1652,11 +1880,13 @@
     play: (g, cfg, series) => play(g, cfg, series), setup: g => setup(g), wide: () => wide(),
     // full-screen view outside the home tabs (admin panel)
     show(name, html) { destroyCurrent(); view = name; const v = mount(html); wireHeader(v); return v; },
-    view: () => view, tab: () => homeTab, side: () => side.render(), cont: () => contRefresh()
+    view: () => view, tab: () => homeTab, side: () => side.render(), cont: () => contRefresh(),
+    // for the games' editors in the rules view (js/games/slf.js, hangman.js, guess.js)
+    multi: MULTI, topics: topicsPicker
   };
   // what js/play.js needs from the shell
   Object.assign(P, {
-    mount, locked, guest, toast, home, setup, openModal, closeModal, nav, tutorial, showKeys, optsPopup, toggleSound,
+    mount, locked, guest, toast, home, setup, openModal, closeModal, nav, tutorial, showKeys, optsPopup, toggleSound, rulesPopup,
     enterPlay(g) { destroyCurrent(); view = 'play'; lastGame = g; selected = g; document.querySelectorAll('.upbar:not(.note)').forEach(b => b.remove()); },
     updateBar,
     setCurrent(c) { current = c; },

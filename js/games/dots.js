@@ -78,7 +78,7 @@
     short: 'Linien ziehen, Kästchen schließen.',
     desc: 'Zieht abwechselnd Linien zwischen den Punkten. Wer ein Kästchen schließt, bekommt es und zieht nochmal.',
     keys: [['Pfeile', 'Zur nächsten freien Linie springen'], ['Enter', 'Linie ziehen']],
-    options: [{ id: 'size', label: 'Feldgröße', def: 4, choices: [[3, '3×3'], [4, '4×4'], [5, '5×5'], [6, '6×6']] }],
+    options: [{ id: 'size', label: 'Feldgröße', group: 'board', inline: 'local', short: v => `${v}×${v}`, def: 4, choices: [[3, '3×3'], [4, '4×4'], [5, '5×5'], [6, '6×6']] }],
     levelInfo: ['Anfänger: lässt Kästchen liegen und verschenkt oft welche.', 'Nimmt Kästchen mit und verschenkt nur selten eins.', 'Verschenkt nichts, solange es sichere Linien gibt, und gibt dann die kleinste Kette ab.', 'Rechnet das ganze Endspiel durch und opfert gezielt Kästchen, um die Ketten zu kontrollieren.'],
     icon: `<svg viewBox="0 0 48 48" fill="none" stroke-linecap="round"><rect x="8" y="8" width="16" height="16" fill="rgba(255,79,216,.25)"/><path d="M8 8h16v16H8z" stroke="#ff4fd8" stroke-width="3"/><path d="M24 8h16M40 8v16" stroke="#ffd84f" stroke-width="3"/><path d="M8 40h16" stroke="#ffd84f" stroke-width="3"/>${[8, 24, 40].map(y => [8, 24, 40].map(x => `<circle cx="${x}" cy="${y}" r="3" fill="#cfd2f0"/>`).join('')).join('')}</svg>`,
     tutorial: [

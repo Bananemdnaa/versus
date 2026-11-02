@@ -110,7 +110,7 @@
     desc: 'Setzt abwechselnd Steine auf die Kreuzungen. Wer zuerst fünf in einer Reihe hat, waagerecht, senkrecht oder diagonal, gewinnt.',
     levelInfo: ['Anfänger: blockt deine Dreier oft nicht.', 'Blockt Drohungen, baut aber selten eigene Fallen.', 'Rechnet drei Züge voraus und sieht Doppeldrohungen.', 'Rechnet so tief wie möglich. Offene Dreier musst du sofort blocken.'],
     keys: [['Pfeile', 'Cursor bewegen'], ['Enter', 'Stein setzen']],
-    options: [{ id: 'size', label: 'Brett', def: 15, choices: [[13, '13×13'], [15, '15×15']] }],
+    options: [{ id: 'size', label: 'Brett', group: 'board', inline: 'local', short: v => `${v}×${v}`, def: 15, choices: [[13, '13×13'], [15, '15×15']] }],
     icon: `<svg viewBox="0 0 48 48"><rect x="3" y="3" width="42" height="42" rx="6" fill="#231d38" stroke="#4a3d73" stroke-width="2"/>${[0, 1, 2, 3, 4].map(k => `<path d="M${9 + k * 7.5} 6v36M6 ${9 + k * 7.5}h36" stroke="#4d4377" stroke-width="1"/>`).join('')}${[0, 1, 2, 3].map(k => `<circle cx="${9 + k * 7.5}" cy="${39 - k * 7.5}" r="3.3" fill="#ff4fd8"/>`).join('')}<circle cx="16.5" cy="16.5" r="3.3" fill="#ffd84f"/><circle cx="31.5" cy="31.5" r="3.3" fill="#ffd84f"/><circle cx="24" cy="9" r="3.3" fill="#ffd84f"/></svg>`,
     tutorial: [
       { t: 'Das Ziel', d: 'Ihr setzt abwechselnd einen Stein auf eine <b>freie Kreuzung</b>. Wer zuerst <b>fünf eigene Steine</b> lückenlos in einer Reihe hat, gewinnt. Waagerecht, senkrecht und diagonal zählen.', demo: V.mini(['.......', '.b...A.', '..b.A..', '...A...', '..Ab...', '.A.....'], {}, { w: 240 }) },
