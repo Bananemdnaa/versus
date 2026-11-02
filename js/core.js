@@ -22,7 +22,7 @@
     // silent: written by the cloud sync itself, so it must not trigger another upload
     set(k, v, silent) { try { localStorage.setItem('versus.' + k, JSON.stringify(v)); } catch (e) { } if (!silent && V.cloud) V.cloud.changed(k); }
   };
-  const DEFAULTS = { sound: true, vol: 80, music: true, mvol: 45, haptic: 'strong', fx: 'full', intro: true, coords: true, hints: true, aiFast: false, openCards: true, board: 'std', face: false, cb: false, side: 'open', season: 'auto' };
+  const DEFAULTS = { sound: true, vol: 80, music: true, mvol: 45, haptic: 'strong', fx: 'full', intro: true, coords: true, hints: true, aiFast: false, openCards: true, board: 'std', face: false, cb: false, side: 'open', seasonOn: true };
   const settings = V.settings = Object.assign({}, DEFAULTS, S.get('settings', {}));
   // older saves stored vibration as true/false
   if (settings.haptic === true) settings.haptic = 'strong'; else if (settings.haptic === false) settings.haptic = 'off';

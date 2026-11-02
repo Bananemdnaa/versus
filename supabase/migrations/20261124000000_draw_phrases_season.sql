@@ -1,4 +1,4 @@
--- Versus: Zeichnen & Raten (draw) an Online-Tischen (2-4 Plätze) und schnelle Sätze in Online-Partien (match_react).
+-- Versus: Zeichnen & Raten (draw) an Online-Tischen, schnelle Sätze in Online-Partien (match_react) und der Saison-Look (site_state.season).
 -- Einmal im Supabase SQL-Editor ausführen. Baut auf allen bisherigen Migrationen auf.
 
 alter table public.party_tables drop constraint if exists party_tables_game_check;
@@ -49,3 +49,27 @@ begin
   return rid;
 end;
 $$;
+
+-- Saison-Look: das Team legt fest, welcher läuft ('' = keiner); Spieler können ihn nur für sich ausschalten
+alter table public.site_state add column if not exists season text not null default '' check (season in ('', 'halloween', 'winter'));
+
+create or replace function public.site_notice()
+returns jsonb language sql stable security definer set search_path = '' as $$
+  select jsonb_build_object(
+    'txt', case when s.until is null or s.until > now() then s.txt end,
+    'txt_en', case when s.until is null or s.until > now() then s.txt_en end,
+    'kind', s.kind, 'until', s.until, 'at', s.at, 'signups', s.signups, 'guests', s.guests, 'season', s.season)
+  from public.site_state s where s.id = 1;
+$$;
+
+create or replace function public.admin_set_season(s text)
+returns void language plpgsql security definer set search_path = '' as $$
+begin
+  perform public.require_admin();
+  if coalesce(s, '') not in ('', 'halloween', 'winter') then raise exception 'Unbekannter Saison-Look.'; end if;
+  update public.site_state set season = coalesce(s, '') where id = 1;
+  perform public.admin_note('season', null, case when coalesce(s, '') = '' then 'aus' else s end);
+end;
+$$;
+revoke all on function public.admin_set_season(text) from public, anon;
+grant execute on function public.admin_set_season(text) to authenticated;

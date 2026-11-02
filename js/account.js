@@ -499,7 +499,7 @@
   }
   function logList() {
     const L = { hide: 'ausgeblendet', show: 'eingeblendet', ban: 'gesperrt', unban: 'entsperrt', note: 'Notiz', rename: 'umbenannt', reset_stats: 'Bilanz zurückgesetzt', admin_on: 'zum Admin gemacht', admin_off: 'Admin entzogen', dev_on: 'Dev-Konto an', dev_off: 'Dev-Konto aus', void_match: 'Partie annulliert', report_done: 'Meldung erledigt', report_open: 'Meldung wieder offen',
-      warn: 'verwarnt', auto_hide: 'automatisch ausgeblendet', void_table: 'Tisch annulliert', notice: 'Ankündigung', notice_off: 'Ankündigung entfernt', site: 'Seiteneinstellungen', purge_guests: 'Gäste aufgeräumt' };
+      warn: 'verwarnt', auto_hide: 'automatisch ausgeblendet', void_table: 'Tisch annulliert', notice: 'Ankündigung', notice_off: 'Ankündigung entfernt', site: 'Seiteneinstellungen', season: 'Saison-Look', purge_guests: 'Gäste aufgeräumt' };
     if (!logs) return V.skel();
     if (!logs.length) return '<p class="muted">Noch keine Admin-Aktionen.</p>';
     // a void_table target is a table code, not a player
@@ -535,6 +535,9 @@
         <h4>Automatisch ausblenden</h4>
         <p class="fine">Melden so viele verschiedene Spieler jemanden innerhalb von 24 Stunden, kommt das Konto aus Ranglisten und Suche, bis ihr es euch anseht.</p>
         <div class="chips mini" id="ah">${[[0, 'Aus'], [2, 'Ab 2'], [3, 'Ab 3'], [5, 'Ab 5']].map(([k, l]) => `<button data-ah="${k}" class="${(s.auto_hide ?? 3) === k ? 'on' : ''}">${l}</button>`).join('')}</div></div>
+      <div class="apanel"><h3>Saison-Look</h3>
+        <p class="fine">Deko für die ganze App, für alle Spieler. Wer sie nicht mag, schaltet sie in den Optionen für sich aus. Nur ihr legt fest, welcher Look läuft.</p>
+        <div class="chips mini" id="ss">${[['', 'Keiner'], ['halloween', 'Halloween'], ['winter', 'Winter &amp; Weihnachten']].map(([k, l]) => `<button data-ss="${k}" class="${(s.season || '') === k ? 'on' : ''}">${l}</button>`).join('')}</div></div>
       ${owner ? `<div class="apanel"><h3>Gäste aufräumen</h3>
         <p class="fine">Löscht Gastkonten, die seit 30 Tagen nicht mehr da waren, samt ihren Partien. Gäste zählen nirgends, ihr Fortschritt bleibt im Browser.</p>
         <p>${purge == null ? '' : purge ? `<b>${purge}</b> Gastkonten sind älter als 30 Tage.` : 'Gerade keine alten Gastkonten.'}</p>
@@ -625,6 +628,7 @@
     const no = h.querySelector('#n_off'); if (no) no.onclick = () => act('admin_set_notice', { txt: '', txt_en: null, hours: null, kind: 'info' }, 'Ankündigung entfernt.');
     h.querySelectorAll('[data-site]').forEach(x => x.onclick = () => { const on = x.dataset.on !== '1'; act('admin_set_site', { [x.dataset.site]: on }, on ? 'Wieder offen.' : 'Pausiert.'); });
     h.querySelectorAll('[data-ah]').forEach(x => x.onclick = () => act('admin_set_site', { auto_hide: +x.dataset.ah }, 'Gespeichert.'));
+    h.querySelectorAll('[data-ss]').forEach(x => x.onclick = () => act2(async () => { await C().rpc('admin_set_season', { s: x.dataset.ss }); if (V.season) V.season.fromSite(x.dataset.ss); }, x.dataset.ss ? 'Saison-Look ist an.' : 'Saison-Look ist aus.'));
     const pg = h.querySelector('#purge'); if (pg) pg.onclick = () => act2(() => C().rpc('admin_purge_guests', { days: 30, dry: false }).then(n => V.ui.toast(n + ' Gastkonten gelöscht.')), null);
     h.querySelectorAll('[data-a]').forEach(x => x.onclick = () => {
       const n = x.dataset.n;

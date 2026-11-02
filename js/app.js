@@ -1251,7 +1251,7 @@
         ${sw('o_cb', !!settings.cb, 'Farbenblind-Modus', 'Muster auf den Steinen, Formen an den Namen, Nummern auf den Figuren', IC.eye)}
         ${pop ? '' : `<div class="opt orow">${IC.globe}<span><b>Sprache</b><small>Language · Deutsch oder Englisch</small></span>${seg('lang', V.lang, [['de', 'Deutsch'], ['en', 'English']])}</div>`}
         <div class="opt orow">${IC.grid}<span><b>Spielbrett</b><small>Schach, Dame und Reversi</small></span>${seg('board', settings.board || 'std', [['std', 'Standard'], ['neon', 'Neon'], ['wood', 'Holz']])}</div>
-        <div class="opt orow">${IC.star}<span><b>Saison-Look</b><small>Halloween und Winter für die ganze App, automatisch zur richtigen Zeit</small></span>${seg('season', settings.season || 'auto', [['auto', 'Auto'], ['off', 'Aus'], ['halloween', 'Halloween'], ['winter', 'Winter']])}</div>
+        ${sw('o_season', settings.seasonOn !== false, 'Saison-Look', V.season && V.season.active() ? 'Gerade: ' + ({ halloween: 'Halloween', winter: 'Winter' })[V.season.active()] + ' · Deko für die ganze App' : 'Gerade ist kein Saison-Look aktiv', IC.star)}
         <div class="bprev" aria-hidden="true">${[['std', 'Standard'], ['neon', 'Neon'], ['wood', 'Holz']].map(([k, l]) => `<button tabindex="-1" data-bp="${k}" class="bp bp-${k}${(settings.board || 'std') === k ? ' on' : ''}"><i></i><span>${l}</span></button>`).join('')}</div>
       </div></div>
       <div class="ogroup" data-oc="game"><h2 class="oh"><button class="oh-b" data-ot="game" aria-expanded="true">Spiel</button></h2>
@@ -1348,7 +1348,6 @@
       // every screen is drawn in German and translated on the way (js/i18n.js), so a reload switches everything at once
       if (g.dataset.k === 'lang' && b.dataset.v !== V.lang) { S.set('lang', b.dataset.v); setTimeout(() => location.reload(), 150); }
       if (g.dataset.k === 'board') applyFxClass();
-      if (g.dataset.k === 'season' && V.season) V.season.apply();
     }));
     // a long test pulse; if nothing is felt, the phone itself is muting web vibration (silent mode, do not disturb, intensity 0)
     const vt = v.querySelector('#o_vtest');
@@ -1365,6 +1364,7 @@
     flip('o_coords', () => { settings.coords = settings.coords === false; applyFxClass(); return settings.coords; });
     flip('o_hints', () => { settings.hints = settings.hints === false; applyFxClass(); return settings.hints; });
     flip('o_cb', () => { settings.cb = !settings.cb; applyFxClass(); return settings.cb; });
+    flip('o_season', () => { settings.seasonOn = settings.seasonOn === false; if (V.season) V.season.apply(); return settings.seasonOn; });
     flip('o_fast', () => (settings.aiFast = !settings.aiFast));
     flip('o_face', () => (settings.face = !settings.face));
     flip('o_open', () => (settings.openCards = settings.openCards === false));
@@ -1777,6 +1777,7 @@
     if (!V.cloud || !V.cloud.available() || navigator.onLine === false || Date.now() - noticeAt < 300000) return;
     noticeAt = Date.now();
     V.cloud.rpc('site_notice').then(n => {
+      if (n && 'season' in n && V.season) V.season.fromSite(n.season);
       const txt = n && (V.lang === 'en' && n.txt_en ? n.txt_en : n.txt), key = n && n.at;
       const old = document.querySelector('.upbar.note');
       if (old && old.dataset.k !== key) old.remove();

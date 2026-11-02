@@ -1,18 +1,16 @@
-// Versus: seasonal looks for the whole app. Only decoration behind the content (moon and bats at Halloween, snow and
-// fairy lights in winter) plus tinted background lights; nothing changes in the games. Setting "season":
-// auto (by date), off, or one look by hand. Effects off: the decoration stands still, no snow falls.
+// Versus: seasonal looks for the whole app (moon and bats at Halloween, snow and fairy lights in winter) plus tinted
+// background lights; nothing changes in the games. Which look runs, the team decides in the admin panel (site_state.season,
+// read with site_notice); players can only switch it off (setting seasonOn). The last known look is kept on the device,
+// so it shows at once on the next start and offline. Effects off: the decoration stands still, no snow falls.
 (function () {
   'use strict';
-  const st = V.settings;
+  const st = V.settings, S = V.store;
   const LOOKS = ['halloween', 'winter'];
-  // auto: Halloween from 20 October to 8 November, winter from 1 December to 6 January
-  function byDate(d = new Date()) {
-    const m = d.getMonth() + 1, day = d.getDate();
-    if ((m === 10 && day >= 20) || (m === 11 && day <= 8)) return 'halloween';
-    if (m === 12 || (m === 1 && day <= 6)) return 'winter';
-    return '';
-  }
-  const current = () => { const s = st.season || 'auto'; return s === 'off' ? '' : LOOKS.includes(s) ? s : byDate(); };
+  let site = S.get('season', '');
+  const active = () => (LOOKS.includes(site) ? site : '');
+  const current = () => (st.seasonOn === false ? '' : active());
+  // the look from the server (site_notice); called by js/app.js whenever it loads the site state
+  function fromSite(s) { s = LOOKS.includes(s) ? s : ''; if (s === site) return; site = s; S.set('season', s, true); apply(); }
 
   const bat = `<svg viewBox="0 0 64 28"><path d="M32 9c2-5 5-6 6-3 3-4 9-6 14-3 4 2 8 1 12-2-2 6-6 10-11 10 1 3 0 6-3 8-2-3-5-4-8-3-2 1-5 4-6 8-1-4-4-7-6-8-3-1-6 0-8 3-3-2-4-5-3-8C8 11 4 7 2 1c4 3 8 4 12 2 5-3 11-1 14 3 1-3 4-2 6 3z"/></svg>`;
   const web = `<svg viewBox="0 0 120 120" fill="none" stroke="currentColor" stroke-width="1"><path d="M0 0 120 120M0 0 60 120M0 0 120 60M0 0 0 120M0 0 120 0"/><path d="M0 24c8-2 16 2 21-4 3 6 2 0 9 3M0 48c14-3 26 2 36-8 8 10 12 4 18 6 0 0 1 7 6 8M0 76c18-4 34 4 50-12 12 14 22 6 30 9 2 6 1 12 8 14M0 104c24-6 44 6 66-18 16 18 30 8 40 12M24 0c-2 8 2 16-4 21M48 0c-3 14 2 26-8 36M76 0c-4 18 4 34-12 50M104 0c-6 24 6 44-18 66"/></svg>`;
@@ -75,6 +73,6 @@
 
   // again after a change of the setting or of the effects switch
   function apply() { const l = current(); if (l !== on || (l && !layer)) build(l); else if (l === 'winter') { stopSnow(); startSnow(); } }
-  V.season = { apply, current, byDate };
+  V.season = { apply, current, active, fromSite };
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', apply); else apply();
 })();
