@@ -2800,3 +2800,56 @@ html.lowfx::view-transition-group(*),html.lowfx::view-transition-old(*),html.low
 .kquick{flex-wrap:wrap}
 .kquick button.ph{width:auto;padding:0 12px;font:600 13px/1 var(--f-b)}
 .pcard .emo.phr,.emo-w.phr,.kemo-i.phr{animation-duration:3.4s}
+
+/* ---------- seasonal looks (js/season.js): decoration behind the content, tinted background lights ---------- */
+.season{position:absolute;inset:0;pointer-events:none;overflow:hidden}
+.season i{position:absolute;display:block}
+/* Halloween: orange and violet lights, a moon, bats, a cobweb, fog at the bottom */
+.ss-halloween .bgfx .blob.a{background:radial-gradient(closest-side,rgba(255,122,24,.30),transparent)}
+.ss-halloween .bgfx .blob.b{background:radial-gradient(closest-side,rgba(150,70,255,.26),transparent)}
+.season.halloween .moon{right:8%;top:70px;width:92px;height:92px;border-radius:50%;background:radial-gradient(circle at 38% 35%,#fff6d8,#ffd27a 55%,#e8a23c);box-shadow:0 0 60px 18px rgba(255,190,90,.22),0 0 140px 40px rgba(255,140,40,.12);opacity:.85}
+.season.halloween .moon::after{content:'';position:absolute;inset:0;border-radius:50%;background:radial-gradient(circle at 70% 60%,rgba(170,110,40,.35) 0 9%,transparent 10%),radial-gradient(circle at 45% 72%,rgba(170,110,40,.25) 0 6%,transparent 7%),radial-gradient(circle at 30% 45%,rgba(170,110,40,.22) 0 7%,transparent 8%)}
+.season.halloween .web{left:-6px;top:-6px;width:150px;height:150px;color:rgba(220,220,255,.16)}
+.season.halloween .web svg,.season.halloween .bat svg{width:100%;height:100%;display:block}
+.season.halloween .bat{width:46px;height:20px;fill:#0b0612;filter:drop-shadow(0 0 6px rgba(255,140,40,.35));animation:ssBat 26s linear infinite;offset-rotate:0deg}
+.season.halloween .bat svg{animation:ssFlap .32s ease-in-out infinite alternate;transform-origin:50% 40%}
+.season.halloween .bat.b0{top:18%;animation-delay:-3s}
+.season.halloween .bat.b1{top:34%;width:34px;height:15px;animation-duration:34s;animation-delay:-14s}
+.season.halloween .bat.b2{top:12%;width:28px;height:12px;animation-duration:40s;animation-delay:-25s}
+.season.halloween .bat.b3{top:56%;width:38px;height:17px;animation-duration:30s;animation-delay:-8s;animation-direction:reverse}
+.season.halloween .bat.b4{top:26%;width:24px;height:11px;animation-duration:44s;animation-delay:-33s;animation-direction:reverse}
+.season.halloween .fog{left:-10%;right:-10%;bottom:-40px;height:200px;background:radial-gradient(60% 100% at 30% 100%,rgba(150,110,220,.18),transparent 70%),radial-gradient(50% 90% at 75% 100%,rgba(255,140,60,.12),transparent 70%);animation:ssFog 18s ease-in-out infinite alternate}
+@keyframes ssBat{0%{transform:translate(-80px,0)}25%{transform:translate(25vw,-30px)}50%{transform:translate(50vw,20px)}75%{transform:translate(75vw,-20px)}100%{transform:translate(calc(100vw + 80px),0)}}
+@keyframes ssFlap{from{transform:scaleY(1)}to{transform:scaleY(.45)}}
+@keyframes ssFog{from{transform:translateX(-3%)}to{transform:translateX(3%)}}
+/* a pumpkin on the logo */
+.ss-halloween .sd-logo::after{content:'🎃';font-size:.8em;margin-left:.3em}
+/* Winter: icy lights, fairy lights on top, snow, a snow drift at the bottom */
+.ss-winter .bgfx .blob.a{background:radial-gradient(closest-side,rgba(120,200,255,.26),transparent)}
+.ss-winter .bgfx .blob.b{background:radial-gradient(closest-side,rgba(255,80,110,.16),transparent)}
+.season.winter .snow{position:absolute;inset:0;width:100%;height:100%}
+.season.winter .lights{left:0;right:0;top:-6px;height:34px}
+.season.winter .lights::before{content:'';position:absolute;left:-2%;right:-2%;top:0;height:22px;border-bottom:1.5px solid rgba(40,50,70,.9);border-radius:0 0 50% 50%/0 0 100% 100%}
+.season.winter .lights b{position:absolute;left:var(--x);top:calc(14px + var(--k) * 1px + (var(--k) - 1.5) * (var(--k) - 1.5) * 1px);width:7px;height:11px;border-radius:50% 50% 45% 45%;background:var(--c);box-shadow:0 0 8px 2px var(--c);animation:ssBulb 2.4s ease-in-out infinite;animation-delay:calc(var(--k) * -.6s)}
+.season.winter .lights b:nth-child(4n+1){--c:#ff4f6d} .season.winter .lights b:nth-child(4n+2){--c:#ffd84f} .season.winter .lights b:nth-child(4n+3){--c:#5dff9d} .season.winter .lights b:nth-child(4n){--c:#62c8ff}
+.season.winter .drift{left:-5%;right:-5%;bottom:-30px;height:70px;background:radial-gradient(40% 60% at 20% 100%,rgba(235,245,255,.14),transparent 70%),radial-gradient(45% 70% at 70% 100%,rgba(235,245,255,.12),transparent 70%)}
+@keyframes ssBulb{0%,100%{opacity:1}50%{opacity:.35;box-shadow:none}}
+.ss-winter .sd-logo::after{content:'❄';font-size:.75em;margin-left:.3em;color:#cfeaff}
+/* calmer during a match, still with effects off */
+body:has(.view.play) .season{opacity:.45}
+body:has(.view.play) .season.halloween .bat{display:none}
+.lowfx .season *,.lowfx .season *::before{animation:none!important}
+.lowfx .season.halloween .bat{display:none}
+.side-rail .sd-logo::after{display:none}
+.season.front{position:fixed;inset:0;z-index:35}
+.season.halloween .spider{left:calc(100% - 26px);top:0;width:1px;height:150px;background:rgba(220,220,255,.25);transform-origin:top;animation:ssDrop 7s ease-in-out infinite}
+.season.halloween .spider b{position:absolute;left:-7px;bottom:-12px;width:15px;height:13px;border-radius:50%;background:#120a18;box-shadow:0 0 0 1px rgba(255,140,40,.35),-6px 2px 0 -5px #120a18,6px 2px 0 -5px #120a18}
+.season.halloween .spider b::before,.season.halloween .spider b::after{content:'';position:absolute;top:5px;width:24px;height:1.5px;left:-5px;background:#120a18;box-shadow:0 -3px 0 #120a18,0 3px 0 #120a18}
+@keyframes ssDrop{0%,100%{transform:scaleY(.55)}50%{transform:scaleY(1)}}
+.season.halloween .spider b{animation:ssDropB 7s ease-in-out infinite}
+@keyframes ssDropB{0%,100%{transform:scaleY(1.8)}50%{transform:scaleY(1)}}
+/* the big cards get a touch of the season */
+.ss-halloween .hcard.hw{box-shadow:0 0 0 1px rgba(255,122,24,.45),0 0 40px -12px rgba(255,122,24,.7)}
+.ss-winter .hcard.hw{box-shadow:0 0 0 1px rgba(160,220,255,.5),0 0 40px -12px rgba(140,210,255,.7)}
+body:has(.view.play) .season.front{opacity:.35}
+body:has(.view.play) .season.halloween .spider{display:none}

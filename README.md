@@ -239,3 +239,7 @@ Versus läuft als Activity direkt im Discord-Sprachkanal (`js/discord.js`, SDK 2
 ## Hardcore Tic Tac Toe
 
 Ultimate Tic Tac Toe eine Ebene tiefer (`js/games/hardcore.js`): 9 Bereiche, jeder ein Ultimate-Brett, 729 Felder. Drei in einer Reihe gewinnen ein kleines Brett, drei kleine Bretter einen Bereich, drei Bereiche das Spiel; entschiedene Bretter ohne Sieger zählen für niemanden. Wer im Bereich a, Brett b, Feld c setzt, schickt den Gegner in Bereich b, Brett c; ist das Brett entschieden, darf er überall in Bereich b spielen, ist der Bereich entschieden, überall. Groß steht immer ein Bereich, daneben eine Karte aller neun (antippen oder `1`–`9` wie der Ziffernblock), nach jedem Zug springt die Ansicht in den Bereich, in dem gespielt werden muss. KI mit Monte-Carlo-Baumsuche; noch nicht online.
+
+## Saison-Looks
+
+`js/season.js` schmückt die ganze App passend zur Jahreszeit: **Halloween** (20. Oktober bis 8. November: Mond und Nebel im Hintergrund, Fledermäuse, Spinnennetz und Spinne darüber, Kürbis am Logo, orange und violette Lichter) und **Winter** (1. Dezember bis 6. Januar: Lichterkette oben, fallender Schnee, eisblaue Lichter, Schneeflocke am Logo). Die Deko liegt in einer Ebene, die jeden Tipp durchlässt, unter Dialogen und Meldungen; in einer Partie ist sie gedämpft. Mit Effekten aus steht sie still und es schneit nicht. Optionen → Anzeige → Saison-Look: Auto, Aus, Halloween oder Winter (Einstellung `season`).

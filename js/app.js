@@ -1251,6 +1251,7 @@
         ${sw('o_cb', !!settings.cb, 'Farbenblind-Modus', 'Muster auf den Steinen, Formen an den Namen, Nummern auf den Figuren', IC.eye)}
         ${pop ? '' : `<div class="opt orow">${IC.globe}<span><b>Sprache</b><small>Language · Deutsch oder Englisch</small></span>${seg('lang', V.lang, [['de', 'Deutsch'], ['en', 'English']])}</div>`}
         <div class="opt orow">${IC.grid}<span><b>Spielbrett</b><small>Schach, Dame und Reversi</small></span>${seg('board', settings.board || 'std', [['std', 'Standard'], ['neon', 'Neon'], ['wood', 'Holz']])}</div>
+        <div class="opt orow">${IC.star}<span><b>Saison-Look</b><small>Halloween und Winter für die ganze App, automatisch zur richtigen Zeit</small></span>${seg('season', settings.season || 'auto', [['auto', 'Auto'], ['off', 'Aus'], ['halloween', 'Halloween'], ['winter', 'Winter']])}</div>
         <div class="bprev" aria-hidden="true">${[['std', 'Standard'], ['neon', 'Neon'], ['wood', 'Holz']].map(([k, l]) => `<button tabindex="-1" data-bp="${k}" class="bp bp-${k}${(settings.board || 'std') === k ? ' on' : ''}"><i></i><span>${l}</span></button>`).join('')}</div>
       </div></div>
       <div class="ogroup" data-oc="game"><h2 class="oh"><button class="oh-b" data-ot="game" aria-expanded="true">Spiel</button></h2>
@@ -1347,6 +1348,7 @@
       // every screen is drawn in German and translated on the way (js/i18n.js), so a reload switches everything at once
       if (g.dataset.k === 'lang' && b.dataset.v !== V.lang) { S.set('lang', b.dataset.v); setTimeout(() => location.reload(), 150); }
       if (g.dataset.k === 'board') applyFxClass();
+      if (g.dataset.k === 'season' && V.season) V.season.apply();
     }));
     // a long test pulse; if nothing is felt, the phone itself is muting web vibration (silent mode, do not disturb, intensity 0)
     const vt = v.querySelector('#o_vtest');
@@ -1358,7 +1360,7 @@
         : IOS ? 'Nichts gespürt? Auf dem iPhone geht das erst ab iOS 18 und nur, wenn unter Einstellungen → Töne & Haptik die <b>Systemhaptik</b> an ist.'
         : 'Nichts gespürt? Android schluckt Vibrationen von Webseiten, wenn das Handy auf <b>Lautlos</b> oder <b>Nicht stören</b> steht. Stell auf Ton oder Vibrieren und schau unter Einstellungen → Töne und Vibration → <b>Vibrationsintensität</b>, dass <b>Berührung</b> und <b>Benachrichtigungen</b> nicht auf 0 stehen.';
     };
-    flip('o_fx', () => { settings.fx = settings.fx === 'low' ? 'full' : 'low'; applyFxClass(); return settings.fx !== 'low'; });
+    flip('o_fx', () => { settings.fx = settings.fx === 'low' ? 'full' : 'low'; applyFxClass(); if (V.season) V.season.apply(); return settings.fx !== 'low'; });
     flip('o_intro', () => (settings.intro = settings.intro === false));
     flip('o_coords', () => { settings.coords = settings.coords === false; applyFxClass(); return settings.coords; });
     flip('o_hints', () => { settings.hints = settings.hints === false; applyFxClass(); return settings.hints; });
