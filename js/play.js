@@ -112,7 +112,7 @@
     const shown = s => s === me && acct ? acct : names[s];
     const remoteSide = s => (online && s === oppSide) || (table && s !== mySide && !botSide(s));
     const sub = s => botSide(s) ? V.LEVELS[cfg.level] + ' · ' + sideLabel(s) : remoteSide(s) ? 'Online · ' + sideLabel(s) : s === me && acct ? 'Du · ' + sideLabel(s) : sideLabel(s);
-    const av = s => botSide(s) ? IC.robot : s === me ? `<span>${esc(acct ? acct.slice(0, 1).toUpperCase() : 'DU')}</span>` : remoteSide(s) ? IC.user : watch ? `<span>${esc(names[s].slice(0, 2).toUpperCase())}</span>` : `<span>P${s}</span>`;
+    const av = s => botSide(s) ? IC.robot : s === me ? (acct && V.look ? `<span class="lav">${V.look.text(acct, V.look.mine(), 1)}</span>` : `<span>${esc(acct ? acct.slice(0, 1).toUpperCase() : 'DU')}</span>`) : remoteSide(s) ? IC.user : watch ? `<span>${esc(names[s].slice(0, 2).toUpperCase())}</span>` : `<span>P${s}</span>`;
     const thinker = s => botSide(s) || (online && s === oppSide) || (table && s !== mySide) || watch;
     const card = (s, pos) => `<div class="pcard pcard-${pos} ps${s}${s === me ? ' me' : ''}" id="pl${s}"><span class="av">${av(s)}</span>
       <span class="nm"><b>${esc(shown(s))}</b><small>${sub(s)}</small></span>

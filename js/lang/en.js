@@ -920,6 +920,15 @@
     'Dabei seit': 'Joined', 'Zuletzt': 'Last seen', 'Tipp auf einen Spieler für alle Infos und Aktionen.': 'Tap a player for all details and actions.'
   });
 
+  // profile look
+  A({
+    'Dein Look': 'Your look', 'Look ändern': 'Change look', 'Farbe': 'Colour', 'Avatar': 'Avatar', 'Banner': 'Banner', 'Spruch': 'Motto', 'Lieblingsspiel': 'Favourite game', 'Keins': 'None',
+    'z. B. Revanche? Jederzeit.': 'e.g. Rematch? Any time.', 'Violett': 'Violet', 'Rot': 'Red', 'Weiß': 'White', 'Orange': 'Orange',
+    'Streifen': 'Stripes', 'Punkte': 'Dots', 'Gitter': 'Grid', 'Wellen': 'Waves', 'Diagonale': 'Diagonal', 'Schlicht': 'Plain',
+    'Dein Look ist gespeichert': 'Your look is saved', 'Der Look kommt nach dem nächsten Server-Update.': 'Looks come with the next server update.', 'Dieser Spruch geht leider nicht.': 'This motto is not allowed.',
+    'Spruch entfernen': 'Remove motto', 'Wirklich entfernen?': 'Really remove?', 'Spruch entfernt': 'motto removed'
+  });
+
   // ---------- patterns: text with names, moves and hands ----------
   const t = V.t;
   const PIECE = { Bauer: 'Pawn', Springer: 'Knight', Läufer: 'Bishop', Turm: 'Rook', Dame: 'Queen', König: 'King' };

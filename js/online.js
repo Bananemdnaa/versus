@@ -784,7 +784,7 @@
       <span class="pr-d">${ago(r.at)}</span></div>`).join('');
     const vs = p.vs && p.vs.played ? `<div class="pvs"><small>Ihr beide</small><b><span class="me">${p.vs.wins}</span><i>:</i><span>${p.vs.losses}</span></b><small>${p.vs.played} Partien${p.vs.draws ? ' · ' + p.vs.draws + ' remis' : ''}</small></div>` : '';
     const blk = isBlocked(p.username);
-    const act = p.me ? (isAnon() ? '' : `<button class="btn" id="pcode"><span>${IC().qr}Mein Freundescode</span></button>`)
+    const act = p.me ? (isAnon() ? '' : `<button class="btn primary" id="plook"><span>${IC().spark}Look ändern</span></button><button class="btn" id="pcode"><span>${IC().qr}Mein Freundescode</span></button>`)
       : blk ? `<button class="btn" id="punb"><span>Nicht mehr blockieren</span></button>`
       : isAnon() ? ''
       : p.friend === 'friend' ? `<button class="btn primary" id="pch"><span>${IC().play}Herausfordern</span></button><button class="btn ghost" id="prm"><span>Freund entfernen</span></button>`
@@ -795,7 +795,7 @@
     m.innerHTML = `<div class="prof p2">
       <div class="p2-top"><i class="p2-st" aria-hidden="true"></i>
         <span class="p2-av">${esc(p.username.slice(0, 2).toUpperCase())}</span>
-        <div class="p2-id"><b>${esc(p.username)}</b><div class="p2-tags" id="ptags">${p.dev ? '<em class="p2-b dev">Dev</em>' : ''}</div>
+        <div class="p2-id"><b>${esc(p.username)}</b><div class="p2-tags" id="ptags">${p.dev ? '<em class="p2-b r-dev">Dev</em>' : ''}</div>
           <small>${status} · dabei seit ${new Date(p.since).toLocaleDateString(V.locale(), { month: 'long', year: 'numeric' })}</small></div>
         <button class="iconbtn p2-x" id="pc" aria-label="Schließen">${IC().x}</button></div>
       <div class="p2-stats">${stat(t.wins || 0, 'Siege', 'p')}${stat(t.losses || 0, 'Niederlagen', 'y')}${stat(pct(t.wins, t.played) + ' %', 'Siegquote', 'c')}${stat(p.week ? '#' + p.week.pos : '–', 'Diese Woche', 'g')}</div>
@@ -812,8 +812,15 @@
     C().rpc('player_badges', { name: p.username }).then(b => {
       const h = m.querySelector('#ptags'); if (!h || !b) return;
       const ROLE = { owner: 'Owner', admin: 'Admin' };
-      h.insertAdjacentHTML('afterbegin', b.role && ROLE[b.role] ? `<em class="p2-b ${b.role}">${IC().shield}${ROLE[b.role]}</em>` : '');
+      h.insertAdjacentHTML('afterbegin', b.role && ROLE[b.role] ? `<em class="p2-b r-${b.role}">${IC().shield}${ROLE[b.role]}</em>` : '');
       if (b.invited) h.insertAdjacentHTML('beforeend', `<em class="p2-b inv" title="Hat ${b.invited} Spieler zu Versus eingeladen">${IC().users}Werber · ${b.invited}</em>`);
+      // the player's look: avatar, banner, motto, favourite game
+      const l = b.look || {}, top = m.querySelector('.p2-top'), av = m.querySelector('.p2-av'), id = m.querySelector('.p2-id');
+      if (!top || !V.look) return;
+      top.classList.add(V.look.banner(l)); top.style.setProperty('--lc', V.look.color(l));
+      av.setAttribute('style', V.look.style(l)); av.classList.toggle('sym', V.look.isIcon(l)); av.innerHTML = V.look.text(p.username, l);
+      if (l.m) { const s = document.createElement('small'); s.className = 'p2-m'; s.textContent = '„' + l.m + '“'; s.setAttribute('translate', 'no'); id.querySelector('b').after(s); }
+      if (l.g && V.byId[l.g]) id.insertAdjacentHTML('beforeend', `<span class="p2-fav"><span class="ic">${V.byId[l.g].icon}</span>${esc(gname(l.g))}</span>`);
     }, () => { });
     m.querySelectorAll('[data-prof]').forEach(x => x.onclick = () => { V.sfx.ui(); profile(x.dataset.prof); });
     const on = (id, fn) => { const x = m.querySelector('#' + id); if (x) x.onclick = () => fn(x); };
@@ -824,6 +831,7 @@
     on('pwd', () => C().rpc('friend_remove', { name: p.username }).then(() => { V.ui.toast('Anfrage zurückgezogen'); changed(); again(); }, e => V.ui.toast(e.message)));
     on('pch', () => { V.sfx.ui(); challenge(p.username); });
     on('pcode', () => { V.sfx.ui(); addFriends('code'); });
+    on('plook', () => { V.sfx.ui(); V.ui.closeModal(); V.look.editor(); });
     on('prep', () => { V.sfx.ui(); report(p.username); });
     on('punb', () => block(p.username, false).then(again));
     // blocking needs a second tap

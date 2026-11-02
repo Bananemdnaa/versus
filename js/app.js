@@ -86,7 +86,7 @@
     const u = V.cloud && V.cloud.available() ? V.cloud.user() : null, full = u && !u.anon;
     const name = u ? u.username : 'Gast';
     const hr = new Date().getHours(), greet = hr < 11 ? 'Guten Morgen' : hr < 18 ? 'Guten Tag' : 'Guten Abend';
-    return `<header class="ahd"><button class="ah-av${full ? '' : ' guest'}" id="ahav" aria-label="Konto"><span>${full ? escA(name.slice(0, 1).toUpperCase()) : '+'}</span></button>
+    return `<header class="ahd"><button class="ah-av${full ? (V.look.isIcon(V.look.mine()) ? ' sym' : '') : ' guest'}" id="ahav" aria-label="Konto"${full ? ` style="${V.look.style(V.look.mine())}"` : ''}><span>${full ? V.look.text(name, V.look.mine(), 1) : '+'}</span></button>
       <div class="ah-t"><small class="ah-g">${greet}</small><b>${escA(name)}</b><div class="ah-c" id="ahc"></div></div>
       <button class="iconbtn" id="ahq" aria-label="Spiel suchen">${IC.search}</button>
       <button class="iconbtn snd" aria-label="Ton an oder aus">${settings.sound ? IC.sound : IC.mute}</button><button class="iconbtn" id="ahopt" aria-label="Optionen">${IC.gear}</button></header>`;
@@ -124,6 +124,8 @@
     const u = V.cloud.user();
     return `<button class="acct${u && !u.anon ? ' in' : ' guest'}" id="acct" title="Konto">${IC.user}<span>${u ? u.username : 'Gast'}</span>${u && !u.anon ? '' : `<em>${u ? 'Konto behalten' : 'Anmelden'}</em>`}</button>`;
   }
+  // after a new look: avatars in the sidebar, the phone head and on the account page
+  document.addEventListener('versus-look', () => { refreshAcct(); if (view === 'home' && homeTab === 'profile') home('profile'); });
   function refreshAcct() {
     side.render();
     const h = app.querySelector('.ahd');
@@ -187,7 +189,7 @@
         <div class="sd-bot">
           ${installOffer() ? `<button class="sd-item sd-inst" data-go="install" title="Als App installieren">${IC.dl}<span>Als App installieren</span></button>` : ''}
           ${item('opts', 'Optionen', IC.gear)}
-          <div class="sd-me"><button class="sd-av${full ? '' : ' guest'}" data-go="profile" aria-label="Konto"><span>${full ? escA(u.username.slice(0, 1).toUpperCase()) : '+'}</span></button>
+          <div class="sd-me"><button class="sd-av${full ? (V.look.isIcon(V.look.mine()) ? ' sym' : '') : ' guest'}" data-go="profile" aria-label="Konto"${full ? ` style="${V.look.style(V.look.mine())}"` : ''}><span>${full ? V.look.text(u.username, V.look.mine(), 1) : '+'}</span></button>
             <span class="sd-mt"><b>${full ? escA(u.username) : 'Gast'}</b>${full ? '<small>Konto</small>' : `<button class="sd-login" data-go="profile">${u ? 'Konto behalten' : 'Anmelden'}</button>`}</span>
             <button class="iconbtn sd-gear" data-go="opts" aria-label="Optionen" title="Optionen">${IC.gear}</button></div></div>`;
       if (V.online && V.online.badge) V.online.badge();

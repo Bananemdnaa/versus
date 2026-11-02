@@ -64,11 +64,12 @@
     return `<section class="page acctp">
       <h1 class="title"><span>Dein</span> Konto</h1>
       <div class="acard me">
-        <div class="ahead"><span class="abig">${esc(u.username.slice(0, 2).toUpperCase())}</span>
+        <div class="ahead"><span class="abig${V.look.isIcon(V.look.mine()) ? ' sym' : ''}" style="${V.look.style(V.look.mine())}">${V.look.text(u.username, V.look.mine())}</span>
           <div><b>${esc(u.username)}</b>${role ? `<em class="rtag ${role}">${ROLE[role]}</em>` : ''}${info.dev ? '<em class="rtag dev">Dev</em>' : ''}<small>Dabei seit ${day(info.joined)}</small></div></div>
         <div class="sync ${sync[0]}"><i></i><span>${sync[1]}</span><button class="btn ghost sm" id="a_sync"><span>${IC().redo}Abgleichen</span></button></div>
         <div class="arow">
           ${role ? `<button class="btn primary" id="a_admin"><span>${IC().shield}Admin-Panel</span></button>` : ''}
+          <button class="btn" id="a_look"><span>${IC().spark}Dein Look</span></button>
           <button class="btn" id="a_prof"><span>${IC().trophy}Profil und Verlauf</span></button>
           <button class="btn" id="a_out"><span>Abmelden</span></button>
         </div>
@@ -231,6 +232,7 @@
     if (q('#a_out')) q('#a_out').onclick = async () => { V.sfx.ui(); await c.signOut(); V.ui.toast('Abgemeldet'); V.ui.home('profile'); };
     if (q('#a_admin')) q('#a_admin').onclick = () => { V.sfx.ui(); admin(); };
     if (q('#akpis')) fillMe(b);
+    if (q('#a_look')) q('#a_look').onclick = () => { V.sfx.ui(); V.look.editor(); };
     if (q('#a_hist')) q('#a_hist').onclick = () => { V.sfx.ui(); V.online.profile(C().user().username); };
     if (q('#a_prof')) q('#a_prof').onclick = () => { V.sfx.ui(); V.online.profile(c.user().username); };
     b.querySelectorAll('[data-box]').forEach(x => x.onclick = () => { openBox = openBox === x.dataset.box ? null : x.dataset.box; V.sfx.ui(); V.ui.home('profile'); });
@@ -419,6 +421,7 @@
           <button class="btn ghost sm" data-box="note:${n}"><span>${p.note ? 'Notiz ändern' : 'Notiz'}</span></button>
           <button class="btn ghost sm" data-box="ren:${n}"><span>Umbenennen</span></button>
           ${p.me ? '' : confirmBtn('rn:', 'Name zurücksetzen', 'Neutralen Namen geben?', 'ren_reset')}
+          ${p.guest ? '' : confirmBtn('cm:', 'Spruch entfernen', 'Wirklich entfernen?', 'clr_motto')}
           <button class="btn ghost sm" data-games="${n}"><span>Partien</span></button>
           ${confirmBtn('reset:', 'Bilanz zurücksetzen', 'Wirklich alles auf 0?', 'reset')}
           ${owner && !p.me && p.role !== 'owner' ? confirmBtn('adm:', p.role ? 'Admin entziehen' : 'Zum Admin machen', p.role ? 'Wirklich entziehen?' : 'Wirklich Admin?', p.role ? 'admin_off' : 'admin_on') : ''}
@@ -632,6 +635,7 @@
         dev_on: () => act('admin_set_dev', { name: n, make: true }, n + ' ist jetzt ein Dev-Konto.'),
         dev_off: () => act('admin_set_dev', { name: n, make: false }, n + ' ist kein Dev-Konto mehr.'),
         note_save: () => act('admin_set_note', { name: n, txt: h.querySelector('#note_t').value }, 'Notiz gespeichert.'),
+        clr_motto: () => act('admin_clear_motto', { name: n }, 'Spruch von ' + n + ' entfernt.'),
         ren_save: () => { const nn = h.querySelector('#ren_n').value.trim().toLowerCase(); act('admin_rename_user', { name: n, new_name: nn }, n + ' heißt jetzt ' + nn + '.'); query = nn; },
         // one tap for a bad name: a neutral name; the player can pick a new one later, the old one stays under "Früher"
         ren_reset: () => { const nn = 'player' + (1000 + Math.floor(Math.random() * 9000)); query = nn; act('admin_rename_user', { name: n, new_name: nn }, n + ' heißt jetzt ' + nn + '.'); }
