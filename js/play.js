@@ -1010,6 +1010,8 @@
     if (window.ResizeObserver) { const ro = new ResizeObserver(askFit); ro.observe(ctx.stage); cleanups.push(() => ro.disconnect()); }
     addEventListener('resize', askFit); cleanups.push(() => { removeEventListener('resize', askFit); clearTimeout(fitF); });
     askFit();
+    // some games build part of their screen a moment later (the fleet dock in Schiffe versenken): measure again
+    [700, 1600].forEach(ms => ctx.later(askFit, ms));
   }
   P.play = play;
 })();

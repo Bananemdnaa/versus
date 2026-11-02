@@ -27,6 +27,8 @@
   .ludo .f.hm{background:radial-gradient(circle at 40% 35%,color-mix(in srgb,var(--fc) 35%,#fff),color-mix(in srgb,var(--fc) 75%,#fff) 80%);box-shadow:inset 0 -2px 3px rgba(0,0,0,.25),0 0 0 2px color-mix(in srgb,var(--fc) 70%,#3a2410)}
   .ludo .f.yd{background:radial-gradient(circle at 40% 35%,rgba(255,255,255,.55),color-mix(in srgb,var(--fc) 40%,#fff) 80%);box-shadow:inset 0 2px 4px rgba(0,0,0,.3),0 0 0 2px color-mix(in srgb,var(--fc) 60%,#3a2410)}
   .ludo .f.off{opacity:.45;filter:grayscale(.8)}
+  /* .hm is also Galgenmännchen's whole board (width from --bw): the home fields must not take that over */
+  .ludo .f.hm{width:auto;display:block;gap:0}
   .ludo .mid{grid-column:6;grid-row:6;position:relative;display:grid;place-items:center;border-radius:50%;background:radial-gradient(circle at 50% 45%,#2f6b45,#1d4a2f 70%);box-shadow:inset 0 3px 10px rgba(0,0,0,.55),0 0 0 3px #5d3a1c;z-index:2;margin:-14%}
   .ludo .mid .die3w{--ds:clamp(22px,6.4cqw,40px)}
   .ludo{container-type:inline-size}

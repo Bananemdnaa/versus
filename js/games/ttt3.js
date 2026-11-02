@@ -72,11 +72,27 @@
   .t3-views{display:flex;gap:4px;padding:4px;border-radius:12px;background:var(--panel);border:1px solid var(--line);flex-wrap:wrap;justify-content:center}
   .t3-views button{padding:7px 11px;border-radius:9px;font:800 italic 13px/1 var(--f-d);text-transform:uppercase;letter-spacing:.04em;color:var(--muted);background:none}
   .t3-views button.on{background:var(--cyan);color:var(--ink)}
-  .t3-views .t3-help{margin-left:6px;border:1px dashed var(--line2)}
-  .t3-views .t3-help.on{background:var(--yellow);color:var(--ink);border-color:var(--yellow)}
-  @media (max-width:420px){.t3-views{flex-wrap:nowrap;gap:2px}.t3-views button{padding:7px 7px;font-size:12px;letter-spacing:0}.t3-views .t3-help{margin-left:3px}}
+  .t3-help{flex:none;padding:7px 11px;border-radius:9px;border:1px dashed var(--line2);font:800 italic 13px/1 var(--f-d);text-transform:uppercase;letter-spacing:.04em;color:var(--muted)}
+  .t3-help.on{background:var(--yellow);color:var(--ink);border-color:var(--yellow)}
+  @media (max-width:560px){.t3-views{flex-wrap:nowrap;justify-content:flex-start;gap:2px}.t3-views button{padding:7px 7px;font-size:12px;letter-spacing:0}}
   .t3-hint{display:flex;align-items:center;justify-content:center;gap:10px;color:var(--muted);font-size:12.5px;text-align:center;min-height:34px;max-width:440px}
   .t3:not(.v-top) .t3-g{transform:none}
+  /* Einzeln: four small previews to switch, one layer big */
+  .t3.v-one{display:flex;flex-direction:column;align-items:center;gap:10px}
+  .t3-tabs{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;width:min(100%,420px)}
+  .t3-tab{display:flex;flex-direction:column;align-items:center;gap:5px;padding:6px 4px;border-radius:10px;background:var(--panel);border:2px solid color-mix(in srgb,var(--lc) 35%,transparent);font:800 italic 11px/1 var(--f-d);letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+  .t3-tab.on{border-color:var(--lc);background:color-mix(in srgb,var(--lc) 18%,var(--panel));color:var(--fg)}
+  .t3-tab .mg{display:grid;grid-template-columns:repeat(4,1fr);gap:2px;width:100%;max-width:58px}
+  .t3-tab .mg i{aspect-ratio:1;border-radius:50%;background:color-mix(in srgb,var(--lc) 22%,var(--panel2))}
+  .t3-tab .mg i.p1{background:var(--p1)} .t3-tab .mg i.p2{background:var(--p2)}
+  .t3.v-one>.t3-g{width:min(100%,420px);padding:8px;gap:6px}
+  /* Säulen: one board from above, every cell holds its four layers (1 2 below, 3 4 on top) */
+  .t3.v-pillar{grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;width:min(var(--bw),520px)}
+  .t3-p{display:grid;grid-template-columns:1fr 1fr;gap:3px;padding:4px;border-radius:9px;background:var(--panel);border:1px solid var(--line)}
+  .t3-p .t3-c{border-radius:5px}
+  .t3-views{max-width:100%;overflow-x:auto;scrollbar-width:none}
+  .t3-views::-webkit-scrollbar{display:none}
+  .t3-views button{flex:none}
   /* 3D: the four layers stacked, tilted and turned; the stones always face the viewer */
   .t3.v-cube{display:block}
   .t3-scene{--size:clamp(150px,44vw,200px);--gap:clamp(84px,26vw,112px);perspective:1400px;height:calc(var(--gap) * 2.9 + var(--size) * 1);display:grid;place-items:center;touch-action:pan-y;cursor:grab;user-select:none}
@@ -104,11 +120,13 @@
     start(ctx) {
       let s = { b: Array(64).fill(0), turn: 1, last: -1, n: 0 }, over = false, busy = false, winLine = null, winShown = 0;
       // views: the four layers from above, the cube cut into slices from the front or the side, or all layers stacked in 3D
-      const VIEWS = [['top', 'Ebenen'], ['front', 'Von vorne'], ['side', 'Von der Seite'], ['cube', '3D']];
+      const VIEWS = [['top', 'Ebenen'], ['one', 'Einzeln'], ['pillar', 'Säulen'], ['front', 'Von vorne'], ['side', 'Von der Seite'], ['cube', '3D']];
       const HINT = {
         top: 'Jede Tafel ist eine Ebene von oben, jede Ebene hat ihre Farbe: 1 blau (unten), 2 lila, 3 türkis, 4 orange (oben).',
         front: 'Der Würfel von vorne in Scheiben geschnitten: Jede Zeile ist eine Ebene (Farbe und Zahl links). Reihen durch die Ebenen laufen hier senkrecht oder schräg.',
         side: 'Der Würfel von der Seite in Scheiben geschnitten: Jede Zeile ist eine Ebene (Farbe und Zahl links). Reihen durch die Ebenen laufen hier senkrecht oder schräg.',
+        one: 'Eine Ebene groß, oben die vier Ebenen klein zum Umschalten. Zieht der Gegner in einer anderen Ebene, springt die Ansicht dorthin.',
+        pillar: 'Jedes Feld ist eine Säule durch alle Ebenen: unten links 1, unten rechts 2, oben links 3, oben rechts 4. Reihen durch die Ebenen liegen hier in einer Säule oder schräg.',
         cube: 'Alle vier Ebenen übereinander, Ebene 1 unten. Zum Drehen wischen oder die Pfeile tippen.'
       };
       let view = V.store.get('ttt3view', 'top'), rz = V.store.get('ttt3rot', -35);
@@ -130,11 +148,31 @@
         for (let r = 0; r < 4; r++) for (let c = 0; c < 4; c++) { const i = at(k, r, c), el = V.el('div', 't3-c e l' + Math.floor(i / 16), '<i></i>'); el.dataset.i = i; cells[i] = el; g.appendChild(el); }
         return g;
       }
+      // "Einzeln": the layer shown big; small previews of all four on top (their dots are kept in minis)
+      let layer = Math.max(0, Math.min(3, +V.store.get('ttt3layer', 0) || 0)), minis = [];
+      // a cell that is not on screen (another layer in "Einzeln"): switch to its layer first
+      const show = i => { if (!cells[i] && view === 'one') { layer = Math.floor(i / 16); build(); } return cells[i]; };
       function build() {
-        cells = []; wrap.className = 't3 v-' + view; wrap.innerHTML = '';
+        cells = []; minis = []; wrap.className = 't3 v-' + view; wrap.innerHTML = '';
         bar.innerHTML = VIEWS.map(([v, l]) => `<button class="${v === view ? 'on' : ''}" data-v="${v}">${l}</button>`).join('');
-        bar.appendChild(helpBtn);
-        if (view === 'cube') {
+
+        if (view === 'one') {
+          const tabs = V.el('div', 't3-tabs');
+          for (let k = 0; k < 4; k++) {
+            const t = V.el('button', 't3-tab l' + k + (k === layer ? ' on' : ''), `<span class="mg">${'<i></i>'.repeat(16)}</span><span>Ebene ${k + 1}</span>`);
+            t.dataset.k = k; minis[k] = [...t.querySelectorAll('.mg i')]; tabs.appendChild(t);
+          }
+          wrap.append(tabs, grid(layer));
+          hint.innerHTML = `<span>${HINT.one}</span>`;
+        } else if (view === 'pillar') {
+          for (let r = 0; r < 4; r++) for (let c = 0; c < 4; c++) {
+            const p = V.el('div', 't3-p');
+            // drawn top row first: layers 3 and 4 on top, 1 and 2 below
+            for (const k of [2, 3, 0, 1]) { const i = k * 16 + r * 4 + c, el = V.el('div', 't3-c e l' + k, '<i></i>'); el.dataset.i = i; cells[i] = el; p.appendChild(el); }
+            wrap.appendChild(p);
+          }
+          hint.innerHTML = `<span>${HINT.pillar}</span>`;
+        } else if (view === 'cube') {
           const scene = V.el('div', 't3-scene'), stack = V.el('div', 't3-stack');
           stack.style.setProperty('--rz', rz + 'deg');
           for (let k = 0; k < 4; k++) { const g = grid(k); g.style.setProperty('--k', k); g.insertAdjacentHTML('beforeend', `<small class="t3-lab l${k}">${k + 1}</small>`); stack.appendChild(g); }
@@ -150,9 +188,11 @@
           }
           hint.innerHTML = `<span>${HINT[view]}</span>`;
         }
+        hint.appendChild(helpBtn);
         draw();
       }
       bar.addEventListener('click', e => { const b = e.target.closest('[data-v]'); if (!b || b.dataset.v === view) return; view = b.dataset.v; V.store.set('ttt3view', view); V.sfx.ui(); build(); });
+      wrap.addEventListener('click', e => { const t = e.target.closest('.t3-tab'); if (!t || +t.dataset.k === layer) return; layer = +t.dataset.k; V.store.set('ttt3layer', layer); V.sfx.tick(); build(); });
       // turning the cube: arrow buttons in 90° steps, or dragging sideways
       const turnTo = (deg, smooth) => { rz = deg; const st = wrap.querySelector('.t3-stack'); if (st) { st.classList.toggle('drag', !smooth); st.style.setProperty('--rz', rz + 'deg'); } };
       hint.addEventListener('click', e => { const b = e.target.closest('[data-r]'); if (b) { turnTo(Math.round((rz + 90 * +b.dataset.r) / 45) * 45, true); V.store.set('ttt3rot', rz); V.sfx.tick(); } });
@@ -177,6 +217,7 @@
           c.classList.toggle('th', help && human() && threat.has(i));
           c.classList.toggle('w', !!winLine && winLine.indexOf(i) >= 0 && winLine.indexOf(i) < winShown);
         });
+        minis.forEach((m, k) => m.forEach((d, j) => { const v = s.b[k * 16 + j]; d.className = v === 1 ? 'p1' : v === 2 ? 'p2' : ''; }));
         wrap.classList.toggle('can', human());
         wrap.classList.toggle('done', over && !!winLine);
       }
@@ -186,12 +227,12 @@
         const who = s.turn;
         s = G.play(s, i);
         busy = true; draw();
-        cells[i].classList.add('new'); setTimeout(() => cells[i].classList.remove('new'), 400);
-        V.kit.placed(cells[i], V.hex(who), ctx.isAI(who));
+        const ce = show(i); ce.classList.add('new'); setTimeout(() => ce.classList.remove('new'), 400);
+        V.kit.placed(ce, V.hex(who), ctx.isAI(who));
         const line = lineAt(s.b, i);
         if (line) {
           over = true; busy = false; winLine = line; draw();
-          line.forEach((j, n) => ctx.later(() => { winShown = n + 1; cells[j].classList.add('w'); V.fx.burstAt(cells[j], '#ffffff', 6, 45); }, n * 110));
+          line.forEach((j, n) => ctx.later(() => { winShown = n + 1; if (cells[j]) { cells[j].classList.add('w'); V.fx.burstAt(cells[j], '#ffffff', 6, 45); } }, n * 110));
           return ctx.end(who);
         }
         if (s.n >= 64) { over = true; busy = false; draw(); return ctx.end(0); }
@@ -206,7 +247,7 @@
             const r = L === 0 ? V.weak(V.searchAll(G, s, 1, 400), 30, 0.3) : L === 1 ? V.pickSoft(V.searchAll(G, s, 2, 700), 10) : V.search(G, s, [3, 8][L - 2], [900, 2200][L - 2]);
             return { move: r.move, mood: V.mood(r.score, 80) };
           },
-          targets: i => [cells[i]],
+          targets: i => [show(i)],
           decoys: () => G.order(s, G.moves(s)).slice(1, 4).map(i => cells[i]),
           apply: put,
           decode: i => (Number.isInteger(i) && i >= 0 && i < 64 && !s.b[i] ? i : null),

@@ -79,8 +79,8 @@
 
 
   V.css(`
-  .bs{display:flex;flex-wrap:wrap;gap:18px 26px;justify-content:center;align-items:flex-start;width:100%}
-  .bsside{display:flex;flex-direction:column;gap:10px;align-items:center;width:min(100%,440px)}
+  .bs{display:flex;flex-wrap:wrap;gap:18px 26px;justify-content:center;align-items:flex-start;width:fit-content;max-width:100%;margin:0 auto}
+  .bsside{display:flex;flex-direction:column;gap:10px;align-items:center;width:min(100%,440px,var(--bw,440px))}
   .bsside.small{width:min(100%,250px)}
   .bsside h4{margin:0;font-family:var(--f-d);font-size:12px;letter-spacing:.16em;text-transform:uppercase;color:var(--muted);font-weight:600}
   .bsb{display:grid;grid-template-columns:repeat(11,1fr);gap:2px;width:100%;user-select:none;-webkit-user-select:none;touch-action:manipulation}
