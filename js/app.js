@@ -343,7 +343,7 @@
     const rg = V.byId[S.get('recent')];
     if (ok(rg)) {
       const c = loadCfg(rg), s = P.stats[rg.id], r = s && c.mode === 'ai' ? s.ai[c.level] : null;
-      const how = c.mode === 'local' ? (rg.party ? 'Am Gerät' : 'Zu zweit') : c.mode === 'ai' ? 'Gegen KI · ' + V.LEVELS[c.level] : c.mode === 'voice' ? 'Mit dem Sprachkanal' : 'Online';
+      const how = c.mode === 'local' ? 'Am Gerät' : c.mode === 'ai' ? 'Gegen KI · ' + V.LEVELS[c.level] : c.mode === 'voice' ? 'Mit dem Sprachkanal' : 'Online';
       cards.push({ g: rg, kick: 'Weiterspielen', sub: how + (r && r.w + r.l ? ` · ${r.w}:${r.l}` : ''), act: 'cont' });
     }
     let pop = null, most = 0;
@@ -384,7 +384,7 @@
   function quickTiles() {
     const qt = (id, cls, ic, label, live) => `<button class="qtile ${cls}" id="${id}"><span class="qt-ic">${ic}</span>${live ? '<i class="live"></i>' : ''}<b>${label}</b></button>`;
     // in Discord the middle tile plays with the voice channel instead of two players on one device
-    return `<div class="qtiles">${qt('qt_quick', 'c', IC.boltf, 'Schnelles Spiel', true)}${inDiscord() ? qt('qt_voice', 'y', IC.users, 'Sprachkanal') : qt('qt_local', 'y', IC.users, 'Zu zweit')}${qt('qt_ai', 'p', IC.robot, 'Gegen KI')}</div>`;
+    return `<div class="qtiles">${qt('qt_quick', 'c', IC.boltf, 'Schnelles Spiel', true)}${inDiscord() ? qt('qt_voice', 'y', IC.users, 'Sprachkanal') : qt('qt_local', 'y', IC.users, 'Am Gerät')}${qt('qt_ai', 'p', IC.robot, 'Gegen KI')}</div>`;
   }
   // laptop: four mode tiles under the hero (same actions as the phone tiles, plus a game link to share)
   function modeTiles() {
@@ -393,7 +393,7 @@
     // every tile says which game it starts (the last one played that fits, otherwise 4 Gewinnt)
     const roomG = (r => r && r.online && !locked(r) ? r : V.byId.c4)(V.byId[S.get('recent')]);
     return `<div class="mtiles">${mt('qt_quick', 'c', IC.boltf, 'Schnelles Spiel', net && V.online && V.online.quickName ? V.online.quickName() : 'Gleich da')}
-      ${inDiscord() ? mt('qt_voice', 'y', IC.users, 'Sprachkanal', 'Mit allen im Kanal') : mt('qt_local', 'y', IC.users, 'Zu zweit', lastFor('local').name + ' an einem Gerät')}
+      ${inDiscord() ? mt('qt_voice', 'y', IC.users, 'Sprachkanal', 'Mit allen im Kanal') : mt('qt_local', 'y', IC.users, 'Am Gerät', lastFor('local').name + ' an einem Gerät')}
       ${mt('qt_ai', 'p', IC.robot, 'Gegen KI', lastFor('ai').name)}
       ${net && !inDiscord() ? mt('qt_room', 'g', IC.link, 'Raum erstellen', 'Link für ' + roomG.name) : ''}</div>`;
   }
@@ -746,7 +746,9 @@
   // ---------- game panel (desktop side panel and phone setup screen) ----------
   function loadCfg(g) {
     const saved = S.get('setup', {})[g.id] || {};
-    const cfg = { mode: g.noAI ? (saved.mode === 'table' && g.table ? 'table' : 'local') : ((saved.mode === 'online' || saved.mode === 'open') && !g.online) || (saved.mode === 'table' && !g.table) ? 'ai' : (saved.mode || 'ai'), level: saved.level ?? 1, first: saved.first || 'me', opts: {} };
+    // tables: 'table' is a private table for friends ("Freund"), 'tpub' a public one ("Online")
+    const tbl = saved.mode === 'table' || saved.mode === 'tpub';
+    const cfg = { mode: g.noAI ? (tbl && g.table ? saved.mode : 'local') : ((saved.mode === 'online' || saved.mode === 'open') && !g.online) || (tbl && !g.table) ? 'ai' : (saved.mode || 'ai'), level: saved.level ?? 1, first: saved.first || 'me', opts: {} };
     // inside the Discord activity there are only two modes: against the AI (only you see it) or with the voice channel
     if (inDiscord()) { if (cfg.mode !== 'ai' && cfg.mode !== 'voice') cfg.mode = g.noAI ? 'voice' : 'ai'; if (cfg.mode === 'voice' && !(g.table || g.online)) cfg.mode = 'ai'; }
     else if (cfg.mode === 'voice') cfg.mode = g.noAI ? 'local' : 'ai';
@@ -765,14 +767,14 @@
   const GROUPS = [['players', 'Spieler'], ['board', 'Spielfeld'], ['rules', 'Regeln'], ['content', 'Inhalte'], ['time', 'Zeit']];
   const netMode = m => m === 'online' || m === 'open';
   // the voice channel in Discord plays like a table or an online duel
-  const optMode = (g, mode) => mode === 'voice' ? (g.table ? 'table' : 'online') : mode;
+  const optMode = (g, mode) => mode === 'voice' ? (g.table ? 'table' : 'online') : mode === 'tpub' ? 'table' : mode;
   const optsIn = (g, mode) => (g.options || []).filter(o => !o.modes || o.modes.includes(optMode(g, mode)));
   const inlineOpt = (g, mode) => optsIn(g, mode).find(o => o.inline === mode);
   const extraIn = (g, mode) => g.panelExtra && !netMode(optMode(g, mode)) ? g.panelExtra : null;
   const valLabel = (o, v) => o.type === 'switch' ? (+v ? 'An' : 'Aus') : ((o.choices || []).find(c => String(c[0]) === String(v)) || [0, String(v)])[1];
   const changedOpt = (o, opts) => String(opts[o.id]) !== String(o.def);
   const presetOf = (g, opts) => (g.presets || []).find(p => Object.entries(p.opts).every(([k, v]) => String(opts[k]) === String(v)));
-  const tableMode = (g, mode) => mode === 'table' || (mode === 'voice' && !!g.table);
+  const tableMode = (g, mode) => mode === 'table' || mode === 'tpub' || (mode === 'voice' && !!g.table);
   // the options the rules view shows in this mode (the inline one stays in the panel, except in the pause menu)
   const rulesList = (g, mode, all) => { const inl = all ? null : inlineOpt(g, mode); return optsIn(g, mode).filter(o => o !== inl); };
   const hasRules = (g, mode) => tableMode(g, mode) || rulesList(g, mode).length > 0 || !!extraIn(g, mode);
@@ -950,7 +952,8 @@
     local: g.localHint || (g.party ? 'Reihum an diesem Gerät, jeder ist mal dran.' : `Abwechselnd am selben Gerät${g.cat === 'Action' ? ', jeder auf seiner Hälfte' : ''}.`),
     online: 'Fordere einen Freund heraus.',
     open: 'Ein zufälliger Gegner wird zugelost.',
-    table: 'Tisch für 2 bis 4. Freie Plätze übernimmt die KI.',
+    table: `Ein privater Tisch${g.party ? ' für 2 bis 4' : ''}: deine Freunde sehen ihn, andere kommen per Code oder Link.${g.noAI ? '' : ' Freie Plätze übernimmt die KI.'}`,
+    tpub: `Ein offener Tisch${g.party ? ' für 2 bis 4' : ''}: jeder kann sich dazusetzen.${g.noAI ? '' : ' Freie Plätze übernimmt die KI.'}`,
     voice: voiceTxt
   })[cfg.mode] || '';
 
@@ -1009,15 +1012,18 @@
       const f = root.querySelector(on ? '#rvback' : '#gprules'); if (f) f.focus({ preventScroll: true });
       return true;
     };
-    // modes: a bar of 2-4 buttons; modes that do not fit stay visible but dimmed and say why when tapped
+    // modes: always the same four (KI, Am Gerät, Freund, Online; in Discord KI and Sprachkanal); modes that do not fit
+    // stay visible but dimmed and say why when tapped
     const dc = inDiscord();
-    const modes = [{ v: 'ai', ic: IC.robot, l: 'KI', off: g.noAI ? (dc ? 'Nur gemeinsam spielbar' : 'Nur zu zweit') : '' }];
+    const modes = [{ v: 'ai', ic: IC.robot, l: 'KI', off: g.noAI ? (dc ? 'Nur gemeinsam spielbar' : 'Dieses Spiel hat keine KI') : '' }];
     if (dc) modes.push({ v: 'voice', ic: IC.users, l: 'Sprachkanal', off: !(g.table || g.online) ? 'In Discord nur gegen die KI' : !cloudOk ? 'Online kommt gleich' : '' });
     else {
-      modes.push({ v: 'local', ic: IC.users, l: g.party ? 'Am Gerät' : 'Zu zweit' });
-      if (g.online && cloudOk) modes.push({ v: 'online', ic: IC.user, l: 'Freund', off: guest() ? 'Mit Konto' : '' }, { v: 'open', ic: IC.globe, l: 'Online' });
-      else if (g.table && cloudOk) modes.push({ v: 'table', ic: IC.globe, l: 'Online', off: guest() ? 'Mit Konto' : '' });
-      else modes.push({ v: 'open', ic: IC.globe, l: 'Online', off: cloudOk ? 'Nicht online spielbar' : 'Online kommt gleich' });
+      modes.push({ v: 'local', ic: IC.users, l: 'Am Gerät' });
+      const no = cloudOk ? 'Nicht online spielbar' : 'Online kommt gleich', acc = guest() ? 'Mit Konto' : '';
+      // tables: "Freund" opens a private table for friends, "Online" a public one everybody can join
+      if (g.online && cloudOk) modes.push({ v: 'online', ic: IC.user, l: 'Freund', off: acc }, { v: 'open', ic: IC.globe, l: 'Online' });
+      else if (g.table && cloudOk) modes.push({ v: 'table', ic: IC.user, l: 'Freund', off: acc }, { v: 'tpub', ic: IC.globe, l: 'Online', off: acc });
+      else modes.push({ v: 'online', ic: IC.user, l: 'Freund', off: no }, { v: 'open', ic: IC.globe, l: 'Online', off: no });
     }
     // voice channel: a table (2-4 seats, the AI fills free ones) or a game link for one opponent
     const voice = cfg.mode === 'voice';
@@ -1033,7 +1039,7 @@
       : voice ? { id: 'go', ic: IC.users, l: g.table ? 'Tisch eröffnen' : 'Einladen', fn: voiceGo }
       : cfg.mode === 'online' ? { id: 'go', ic: IC.link, l: 'Per Link einladen', fn() { V.sfx.ui(); saveCfg(g, cfg); if (full) closeModal(); V.online.linkInvite(g, cfg.opts); } }
       : cfg.mode === 'open' ? { id: 'go', ic: IC.globe, l: anon ? 'Als Gast spielen' : 'Gegner suchen', fn() { saveCfg(g, cfg); if (full) closeModal(); V.online.seek(g, cfg.opts); } }
-      : cfg.mode === 'table' ? { id: 'go', ic: IC.plus, l: 'Tisch eröffnen', fn() { V.sfx.ui(); saveCfg(g, cfg); if (full) closeModal(); V.online.table(g, cfg.opts, cfg.level); } }
+      : tableMode(g, cfg.mode) ? { id: 'go', ic: IC.plus, l: 'Tisch eröffnen', fn() { V.sfx.ui(); saveCfg(g, cfg); if (full) closeModal(); V.online.table(g, cfg.opts, cfg.level, cfg.mode === 'tpub'); } }
       : { id: 'go', ic: IC.play, l: 'Spielen', fn() { saveCfg(g, cfg); play(g, cfg); } };
     const finv = full && g.online && cloudOk && !dc && (cfg.mode === 'ai' || cfg.mode === 'local')
       ? `<button class="btn ghost gp-inv" id="finv" aria-label="Freund einladen" title="Freund einladen"><span>${IC.link}</span></button>` : '';
@@ -1069,7 +1075,7 @@
         <div class="lv-row" role="radiogroup" aria-label="KI-Stärke" id="level">${V.LEVELS.map((l, i) => `<button type="button" role="radio" data-v="${i}" class="lvb l${i}${i === lvl ? ' on' : ''}" aria-checked="${i === lvl}"><b>${l}</b></button>`).join('')}</div>
         <p class="gp-sub">${(g.levelInfo || LEVEL_INFO)[lvl]}</p></div>
         ${g.noFirst ? '' : `<div class="gp-inl dash"><span>${g.firstTitle || 'Wer fängt an?'}</span><div class="mini-seg" role="radiogroup" aria-label="${g.firstTitle || 'Wer fängt an?'}" id="first">${[['me', firstLabel[0]], ['ai', firstLabel[1]], ['rand', firstLabel[2]]].map(([v, l]) => `<button type="button" role="radio" data-v="${v}" aria-checked="${cfg.first === v}" class="${cfg.first === v ? 'on' : ''}">${l}</button>`).join('')}</div></div>`}`;
-    } else if (netMode(cfg.mode) || cfg.mode === 'table') content = '<div class="gp-online" id="ofr"></div>';
+    } else if (netMode(cfg.mode) || cfg.mode === 'table' || cfg.mode === 'tpub') content = '<div class="gp-online" id="ofr"></div>';
     if (inl) content += `<div class="gp-inl"><span>${inl.label}</span>${segHtml(inl.id, inl, cfg.opts[inl.id])}</div>`;
     if (dcNone) content += '<p class="hint dch">Dieses Spiel spielt ihr zu zweit am selben Gerät. In Discord hat jeder sein eigenes, darum geht es hier nicht.</p>';
     else if (dc && cfg.mode === 'ai') content += '<p class="hint dch">Nur du siehst dieses Spiel. Zum Mitspielen mit den anderen wähl oben „Sprachkanal“.</p>';
@@ -1100,7 +1106,7 @@
     const gr = root.querySelector('#gprules'); if (gr) gr.onclick = () => rules(true);
     if (cfg.mode === 'online' && V.online) V.online.picker(root.querySelector('#ofr'), g, cfg.opts);
     if (cfg.mode === 'open' && V.online) V.online.openPanel(root.querySelector('#ofr'), g, cfg.opts);
-    if (cfg.mode === 'table' && V.online) V.online.tablePanel(root.querySelector('#ofr'), g, cfg.opts, cfg.level);
+    if (tableMode(g, cfg.mode) && cfg.mode !== 'voice' && V.online) V.online.tablePanel(root.querySelector('#ofr'), g, cfg.opts, cfg.level, cfg.mode === 'tpub');
   }
   // Phone: the panel opens as a bottom sheet over the home screen. Laptop: the panel lives next to the game grid.
   let sheetRoot = null;
@@ -1134,7 +1140,7 @@
   let statMode = 'all', statSort = { k: 'n', d: -1 };
   // win, loss, draw as one letter each (in English W L D)
   const SNU = V.lang === 'en' ? ['W', 'L', 'D'] : ['S', 'N', 'U'];
-  const STAT_MODES = [['all', 'Alle'], ['ai', 'Gegen KI'], ['on', 'Online'], ['local', 'Zu zweit']];
+  const STAT_MODES = [['all', 'Alle'], ['ai', 'Gegen KI'], ['on', 'Online'], ['local', 'Am Gerät']];
   const LVL_CLS = ['l0', 'l1', 'l2', 'l3'];
   function gameRec(g, mode) {
     const s = P.stats[g.id]; if (!s) return null;
@@ -1180,7 +1186,7 @@
               <span class="good">${r.w}</span><span class="bad">${r.l}</span><span class="dim">${r.d}</span>
               <span class="st-q">${r.n ? `<i class="qbar"><i style="--w:${r.rate}%"></i></i>${r.rate} %` : '–'}</span>
               ${statMode === 'local' ? '' : `<span>${r.best >= 0 ? `<em class="lvt ${LVL_CLS[r.best]}">${V.LEVELS[r.best]}</em>` : '–'}</span>`}</button>`).join('') : '<p class="muted st-none">In diesem Modus noch keine Partie.</p>'}
-            ${statMode === 'local' ? '<p class="fine">Zu zweit: S = Spieler 1 gewinnt, N = Spieler 2 gewinnt.</p>' : ''}</div>
+            ${statMode === 'local' ? '<p class="fine">Am Gerät: S = Spieler 1 gewinnt, N = Spieler 2 gewinnt.</p>' : ''}</div>
         </div>
         <div class="scol side-col"><div class="apanel smiles"><h3>Meilensteine</h3>
           ${ms('Spiele ausprobiert', tried, V.games.length, tried + ' von ' + V.games.length)}
@@ -1545,7 +1551,7 @@
       id: '_welcome', name: 'Willkommen',
       tutorial: [
         { t: 'Willkommen bei Versus', demo: `<div class="wicons">${icons}</div>`, d: `<b>${V.games.length} Spiele für zwei bis vier</b>: Klassiker wie 4 Gewinnt und Schach, Strategie und schnelle Action-Duelle. Gemacht für eine schnelle Runde zwischendurch mit Freunden.` },
-        { t: 'Drei Arten zu spielen', demo: `<div class="wmodes">${mode(IC.robot, 'KI', '4 Stufen')}${mode(IC.users, 'Zu zweit', 'ein Gerät')}${mode(IC.globe, 'Online', 'mit Freunden')}</div>`, d: '<b>Gegen die KI</b> von Anfänger bis Profi, <b>zu zweit</b> an einem Handy, oder <b>online</b> gegen Freunde. Die Rangliste startet jeden Montag neu.' },
+        { t: 'Drei Arten zu spielen', demo: `<div class="wmodes">${mode(IC.robot, 'KI', '4 Stufen')}${mode(IC.users, 'Am Gerät', 'zusammen')}${mode(IC.globe, 'Online', 'mit Freunden')}</div>`, d: '<b>Gegen die KI</b> von Anfänger bis Profi, <b>zu zweit</b> an einem Handy, oder <b>online</b> gegen Freunde. Die Rangliste startet jeden Montag neu.' },
         { t: 'Leg los', demo: `<div class="wmodes">${mode(IC.help, 'Tutorial', 'in jedem Spiel')}${mode(IC.user, 'Konto', 'kostenlos')}${mode(IC.dl, 'App', 'installierbar')}</div>`, d: 'Jedes Spiel erklärt sich beim ersten Mal selbst. Als Gast spielst du sofort los; mit einem Konto sind alle Spiele, Freunde und Online-Partien dabei.' }
       ]
     });
@@ -1807,6 +1813,8 @@
   function registerSW() {
     // (not inside the Discord activity: the frame there is Discord's, and offline play makes no sense in a voice channel)
     if (!('serviceWorker' in navigator) || !/^https?:$/.test(location.protocol) || (V.discord && V.discord.on)) return;
+    // on localhost only with ?sw=1, so edits show up after a plain reload
+    if (/^(localhost|127.0.0.1)$/.test(location.hostname) && !/[?&]sw=1/.test(location.search)) { navigator.serviceWorker.getRegistrations().then(rs => rs.forEach(r => r.unregister())).catch(() => { }); return; }
     navigator.serviceWorker.register('sw.js').then(reg => {
       swReg = reg;
       if (reg.waiting && navigator.serviceWorker.controller) { swWaiting = reg.waiting; updateBar(); }

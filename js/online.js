@@ -191,7 +191,7 @@
   const initials = n => esc(String(n).slice(0, 2).toUpperCase());
   function tab() {
     // no server: a real empty page with a retry
-    if (!C() || !C().available()) return `<section class="page"><div class="empty ooff">${IC().wifioff}<b>Online ist gerade nicht erreichbar</b><p>KI und Zu zweit gehen weiter. Versuch es gleich nochmal.</p>
+    if (!C() || !C().available()) return `<section class="page"><div class="empty ooff">${IC().wifioff}<b>Online ist gerade nicht erreichbar</b><p>KI und Spiele am Gerät gehen weiter. Versuch es gleich nochmal.</p>
       <div class="arow"><button class="btn primary sm" id="oretry"><span>${IC().redo}Erneut versuchen</span></button><button class="btn sm" data-tab="games"><span>Zu den Spielen</span></button></div></div></section>`;
     const full = C().user() && !isAnon();
     const loginCard = !full ? `<div class="acard oacc"><b>Mit Konto: Freunde, Herausforderungen, Rangliste</b><p class="lead">${C().user() ? 'Du spielst als Gast. ' : ''}Mit einem kostenlosen Konto kannst du Freunde hinzufügen, sie herausfordern und in die Rangliste kommen.</p>
@@ -893,10 +893,11 @@
     if (!ready() || isAnon()) { V.ui.toast('Dafür brauchst du ein Konto'); V.ui.home('profile'); return false; }
     return true;
   }
-  async function table(g, opts, lvl) {
+  // pub: a public table everybody can join (mode "Online"), otherwise only friends and whoever has the code
+  async function table(g, opts, lvl, pub) {
     try {
       if (!(await tableAccess())) return;
-      const st = await C().rpc('party_create', { gm: g.id, op: opts || optsFor(g), n: g.party ? +(opts && opts.n) || 4 : 2, lvl: lvl ?? 1, pub: false });
+      const st = await C().rpc('party_create', { gm: g.id, op: opts || optsFor(g), n: g.party ? +(opts && opts.n) || 4 : 2, lvl: lvl ?? 1, pub: !!pub });
       lobby(st);
       showRoom('table', st.id);
     }
@@ -997,16 +998,20 @@
     // joining, leaving and the start poke the table channel (hello: the others see me sitting down at once)
     lobbyChan = C().channel('t:' + st.id, poll, true);
   }
-  // game panel, mode "Online" for table games: open a table, join an open one or enter a code
-  function tablePanel(el, g, opts, lvl) {
+  // game panel for table games: "Freund" (pub false) shows the tables you were invited to and a code field,
+  // "Online" (pub true) the public tables of everybody; opening a table is the button at the bottom of the panel
+  function tablePanel(el, g, opts, lvl, pub) {
     if (!el) return;
     if (!inDiscord() && (!ready() || isAnon())) return pLogin(el, 'Für Online-Tische brauchst du ein Konto.');
-    const open = ((tpending && tpending.open) || []).filter(o => o.game === g.id);
-    // opening a table is the button at the bottom of the panel
-    el.innerHTML = (open.length ? `<h4 class="gp-h">Offene Tische</h4>${open.slice(0, 2).map(o => pLine(o.from, `Tisch · ${o.players}/${o.n}`, 'on', `<button class="btn sm primary" data-tjoin="${o.id}"><span>Mitspielen</span></button>`)).join('')}` : '')
-      + '<form class="tcode" id="tcf"><input class="inp" id="tci" placeholder="Tischcode" aria-label="Tischcode" maxlength="6" autocapitalize="characters" autocomplete="off" spellcheck="false"><button class="btn sm" type="submit"><span>Beitreten</span></button></form>';
+    const list = ((tpending && tpending[pub ? 'open' : 'invites']) || []).filter(o => o.game === g.id);
+    const rows = list.slice(0, 2).map(o => pLine(o.from, `Tisch · ${o.players}/${o.n}`, 'on', `<button class="btn sm primary" data-tjoin="${o.id}"><span>Mitspielen</span></button>`)).join('');
+    el.innerHTML = pub
+      ? (list.length ? `<h4 class="gp-h">Offene Tische</h4>${rows}` : '<p class="gp-note">Gerade ist kein offener Tisch frei. Eröffne einen, dann kann sich jeder dazusetzen.</p>')
+      : (list.length ? `<h4 class="gp-h">Einladungen</h4>${rows}` : '')
+        + '<form class="tcode" id="tcf"><input class="inp" id="tci" placeholder="Tischcode" aria-label="Tischcode" maxlength="6" autocapitalize="characters" autocomplete="off" spellcheck="false"><button class="btn sm" type="submit"><span>Beitreten</span></button></form>';
     el.querySelectorAll('[data-tjoin]').forEach(b => b.onclick = () => joinTable(b.dataset.tjoin));
     const i = el.querySelector('#tci');
+    if (!i) return;
     i.oninput = () => { i.value = i.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 5); };
     el.querySelector('#tcf').onsubmit = e => { e.preventDefault(); if (i.value.length === 5) joinTable(null, i.value); else V.ui.toast('Der Tischcode hat 5 Zeichen'); };
   }
