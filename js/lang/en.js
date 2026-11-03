@@ -78,6 +78,7 @@
     'Normal · Selten · Legendär': 'Normal · Rare · Legendary', 'Normal': 'Normal', 'Selten': 'Rare', 'Legendär': 'Legendary', 'Noch offen (#)': 'Still open (#)',
     'Noch keins. Spiel eine Partie, dann kommt das erste.': 'None yet. Play a game and the first one comes.',
     'Mit einem kostenlosen Konto sind Abzeichen und Serie auf jedem Gerät dabei und in deinem Profil zu sehen.': 'With a free account, badges and series come along on every device and show in your profile.',
+    'Verdient am {0}': 'Earned on {0}',
     'Legendäres Abzeichen': 'Legendary badge', 'Seltenes Abzeichen': 'Rare badge', 'Abzeichen zurücksetzen': 'Reset badges', 'Wirklich zurücksetzen?': 'Really reset?',
     'Hundert': 'Hundred', '# Partien': '# games', 'Couch-Legende': 'Couch legend', 'Volles Haus': 'Full house', 'Eine Partie zu viert': 'A game with four',
     'Urgestein': 'Veteran', 'Unsterblich': 'Immortal', 'Weltenbummler': 'Globetrotter', '# verschiedene Spiele': '# different games', 'Spezialist': 'Specialist',

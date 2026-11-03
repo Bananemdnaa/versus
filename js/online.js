@@ -826,7 +826,7 @@
       if (b.invited) h.insertAdjacentHTML('beforeend', `<em class="p2-b inv" title="Hat ${b.invited} Spieler zu Versus eingeladen">${IC().users}Werber · ${b.invited}</em>`);
       // the badges they earned (set_awards); legendary ones first
       const aw = b.awards || (p.me ? V.store.get('badges', {}) : null), pw = m.querySelector('#paw');
-      if (pw && V.badges && aw && Object.keys(aw).length) { const html = V.badges.profile(aw); if (html) { pw.hidden = false; m.querySelector('#pawl').innerHTML = html; m.querySelector('#pawn').textContent = (html.match(/class="pb /g) || []).length + ' / ' + V.badges.count; } }
+      if (pw && V.badges && aw && Object.keys(aw).length) { const html = V.badges.profile(aw); if (html) { pw.hidden = false; m.querySelector('#pawl').innerHTML = html; m.querySelector('#pawn').textContent = (html.match(/class="pb /g) || []).length + ' / ' + V.badges.count; V.badges.wire(pw, aw); } }
       // the player's look: avatar, banner, motto, favourite game
       const l = b.look || {}, top = m.querySelector('.p2-top'), av = m.querySelector('.p2-av'), id = m.querySelector('.p2-id');
       if (!top || !V.look) return;

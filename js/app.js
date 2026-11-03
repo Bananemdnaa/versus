@@ -600,7 +600,22 @@
     count: BADGES.length,
     profile(aw) {
       const l = BADGES.filter(b => aw && aw[b[0]]).sort((x, y) => y[4] - x[4] || (aw[y[0]] < aw[x[0]] ? -1 : 1));
-      return l.length ? `<div class="pbdg">${l.map(b => `<span class="pb bt${b[4]}" title="${escA(TIERS[b[4]] + ' · ' + b[3])}">${IC[b[1]]}<b>${b[2]}</b></span>`).join('')}</div>` : '';
+      return l.length ? `<div class="pbdg">${l.map(b => `<button type="button" class="pb bt${b[4]}" data-bid="${b[0]}" aria-expanded="false">${IC[b[1]]}<b>${b[2]}</b></button>`).join('')}</div><div class="pb-info" hidden></div>` : '';
+    },
+    // a tap on a badge opens its explanation under the row (tier, how to get it, when it was earned); again closes it
+    wire(root, aw) {
+      const box = root.querySelector('.pb-info'); if (!box) return;
+      root.querySelectorAll('[data-bid]').forEach(x => x.onclick = () => {
+        const b = BADGES.find(y => y[0] === x.dataset.bid), open = x.getAttribute('aria-expanded') === 'true';
+        root.querySelectorAll('[data-bid]').forEach(y => { y.setAttribute('aria-expanded', 'false'); y.classList.remove('sel'); });
+        V.sfx.tick();
+        if (open || !b) { box.hidden = true; return; }
+        x.setAttribute('aria-expanded', 'true'); x.classList.add('sel');
+        const when = aw && aw[b[0]] ? new Date(aw[b[0]]).toLocaleDateString(V.locale(), { day: 'numeric', month: 'long', year: 'numeric' }) : '';
+        box.className = 'pb-info bt' + b[4]; box.hidden = false;
+        box.innerHTML = `<span class="pbi-ic">${IC[b[1]]}</span><div><em>${TIERS[b[4]]}</em><b>${b[2]}</b><p>${b[3]}</p>${when ? `<small>Verdient am <i>${when}</i></small>` : ''}</div>`;
+        if (V.fxOn()) V.fx.pop(box, 'fx-pop');
+      });
     }
   };
   function wireCont(c) {
