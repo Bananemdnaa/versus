@@ -71,6 +71,10 @@
     'Geht erst nach dem nächsten Server-Update': 'Works after the next server update',
     'Alle Tutorials sind wieder neu': 'All tutorials are new again', 'Einstellungen zurückgesetzt': 'Settings reset', 'Bilanz gelöscht': 'Stats deleted',
     // tutorial dialog, welcome
+    // end screen: next step
+    'Leicht geschlagen': 'Easy beaten', 'Mittel geschlagen': 'Medium beaten', 'Schwer geschlagen': 'Hard beaten',
+    'Weiter auf Mittel': 'On to Medium', 'Weiter auf Schwer': 'On to Hard', 'Weiter auf Profi': 'On to Pro',
+    'Noch nicht gespielt': 'Not played yet', 'Mal was anderes?': 'Something different?',
     // first start: quick start
     'Wer spielt?': "Who's playing?", 'Ich allein': 'Just me', 'gegen die KI': 'against the AI', 'Wir zu zweit': 'Two of us', 'an diesem Gerät': 'on this device',
     'Mit Freund': 'With a friend', 'per Link': 'by link', 'Erst mal umschauen': 'Just look around first',

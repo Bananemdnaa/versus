@@ -383,6 +383,9 @@
         const tone = winner === 0 ? 'draw' : me ? (meWon ? 'win' : 'lose') : party ? 'w' + winner : (winner === L ? 'left' : 'right');
         const again = () => online ? net.rematch(series) : table ? (closeModal(), V.online.table(g, cfg.opts, cfg.level)) : play(g, cfg, series);
         const menu = () => watch ? (M.admin ? V.account.admin('matches') : V.ui.home('online')) : setup(g);
+        // what comes next (AI and one device only): after a win against the AI the next level is one tap away,
+        // otherwise a game of the same kind that was not played yet (so the 35 games get found)
+        const step = !online && !table && !watch && !auto && !off ? nextStep(winner === me && !!winner) : null;
         ctx.later(() => {
           const m = openModal(`<div class="ko ${tone}">
             <div class="band"><div class="band-in"><span class="kicker">${esc(note || sublabel)}${online && net && net.last && net.last.ranked === false ? ' · zählt nicht für die Rangliste' : ''}</span>
@@ -394,6 +397,7 @@
             ${online && V.online.friendOf(M.opp) === false && !(V.cloud.user() && V.cloud.user().anon) ? `<button class="btn ghost sm efr" id="efr"><span>${IC.plus}${esc(M.opp)} als Freund hinzufügen</span></button>` : ''}
             ${watch ? '' : `<button class="btn ${meWon && !off ? '' : 'ghost '}sm eshare" id="es"><span>${IC.share}${meWon && !off ? 'Freund herausfordern' : 'Ergebnis teilen'}</span></button>`}
             ${online && V.online.report ? `<button class="link erep" id="erep">${esc(M.opp)} melden</button>` : ''}
+            ${step ? step.html : ''}
             <div class="actions">${watch ? '' : `<button class="btn primary" id="er"><span>${IC.redo}${online ? 'Revanche anfragen' : table ? 'Neuer Tisch' : 'Revanche'}</span><kbd class="only-fine">R</kbd></button>`}<button class="btn" id="eb"><span>Brett ansehen</span></button><button class="btn ghost" id="em"><span>${watch ? 'Zurück' : 'Menü'}</span></button></div></div>`, 'endm', null, false, e => {
             if ((e.key === 'Enter' || e.key === 'n' || e.key === 'N' || e.key === 'r' || e.key === 'R') && !watch) { again(); return true; }
             if (e.key === 'Escape') { closeModal(); return true; }
@@ -403,6 +407,7 @@
           // the winner's number counts up and pulses once the band is in
           m.querySelectorAll('.eseries b.up').forEach(b => ctx.later(() => { b.textContent = b.dataset.n; V.fx.pop(b, 'bump'); }, 450));
           const er = m.querySelector('#er'); if (er) er.onclick = again;
+          const kn = m.querySelector('#knext'); if (kn) kn.onclick = () => { V.sfx.go(); V.buzz(12); closeModal(); step.go(); };
           m.querySelectorAll('[data-emo]').forEach(b => b.onclick = () => sendEmote(b.dataset.emo));
           const efr = m.querySelector('#efr');
           if (efr) efr.onclick = () => V.online.request(M.opp).then(r => { efr.disabled = true; efr.querySelector('span').textContent = r === 'accepted' || r === 'friends' ? 'Ihr seid jetzt Freunde' : 'Anfrage gesendet'; }, e => toast(e.message));
@@ -439,6 +444,34 @@
         ctx.later(step, real ? 240 : 190);
       };
       step();
+    }
+
+    // ---------- end screen: the next step ----------
+    function nextStep(won) {
+      const card = (cls, kick, ic, title, sub, acc) => `<button class="knext ${cls}" id="knext" style="--acc:${acc}"><span class="kn-ic">${ic}</span>
+        <span class="kn-t"><small>${kick}</small><b>${title}</b><em>${sub}</em></span><span class="kn-go">${IC.play}</span></button>`;
+      if (ai && won && cfg.level < 3) {
+        const lv = cfg.level + 1;
+        const all = S.get('setup', {}); all[g.id] = Object.assign({}, all[g.id] || {}, cfg, { level: lv }); delete all[g.id].replay; delete all[g.id].firstWas;
+        return {
+          html: card('lvl l' + lv, `${V.LEVELS[cfg.level]} geschlagen`, IC.bolt, `Weiter auf ${V.LEVELS[lv]}`, (g.levelInfo || P.LEVEL_INFO)[lv], 'var(--yellow)'),
+          go() { S.set('setup', all); play(g, Object.assign({}, cfg, { level: lv, replay: null, firstWas: null, first: cfg.firstWas || cfg.first })); }
+        };
+      }
+      // a few rounds in, or a win at the top: show another game for the same mode
+      if (!won && ai && series[1] + series[2] + series.d < 2) return null;
+      const mode = ai ? 'ai' : 'local', tried = id => !!P.stats[id];
+      const ok = x => x !== g && !locked(x) && (mode === 'local' || !x.noAI) && !(V.discord && V.discord.on);
+      const pool = V.games.filter(ok), score = x => (tried(x.id) ? 0 : 4) + (x.cat === g.cat ? 2 : 0) + Math.random() * 1.5;
+      const x = pool.sort((a, b) => score(b) - score(a))[0];
+      if (!x) return null;
+      const opts = {}; (x.options || []).forEach(o => { opts[o.id] = o.def; });
+      const saved = S.get('setup', {})[x.id];
+      const c2 = saved && (saved.mode === mode) ? Object.assign({}, saved) : { mode, level: ai ? Math.min(cfg.level, 1) : 1, first: 'me', opts };
+      return {
+        html: card('disc', tried(x.id) ? 'Mal was anderes?' : 'Noch nicht gespielt', x.icon, x.name, x.short || '', x.accent || 'var(--pink)'),
+        go() { play(x, c2); }
+      };
     }
 
     // ---------- undo against the AI ----------

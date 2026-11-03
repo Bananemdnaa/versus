@@ -43,6 +43,10 @@ Weitere Regeln:
 
 Statt einer Tour fragt Versus beim ersten Besuch nur „Wer spielt?“: **Ich allein** (gegen die KI), **Wir zu zweit** (an diesem Gerät) oder **Mit Freund** (per Link, nur mit Server). Darunter stehen je drei kurze Spiele, die auch ohne Konto gehen; ein Tipp schließt das Fenster und startet die Partie sofort (gegen die KI auf Leicht, du fängst an), beim Link öffnet sich die Einladung. Tasten 1–3 starten das jeweilige Spiel. „Erst mal umschauen“ schließt nur. Das Fenster kommt einmal (`seen._welcome`).
 
+## Nach der Partie
+
+Gegen die KI und am Gerät zeigt der Ergebnis-Bildschirm über den Knöpfen einen nächsten Schritt: Nach einem Sieg gegen die KI unter Profi heißt er „Weiter auf …“ und startet mit einem Tipp dieselbe Partie eine Stufe stärker (die Stufe wird gespeichert). Sonst (am Gerät, nach einem Sieg gegen Profi oder ab der zweiten Runde) schlägt er ein anderes Spiel für denselben Modus vor, am liebsten eines, das noch nie gespielt wurde und aus derselben Kategorie stammt; gesperrte Spiele kommen nicht vor. Online, am Tisch und beim Zuschauen gibt es ihn nicht.
+
 ## Modi
 
 Am Laptop ist die Startseite ein Auswahlbildschirm: links die Spiele, rechts direkt die Einstellungen des gewählten Spiels. Im Spiel stehen die Spielerkarten links und rechts neben dem Brett. Am Handy öffnet ein Tipp auf ein Spiel dessen Einstellungen.
