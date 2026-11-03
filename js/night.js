@@ -9,7 +9,9 @@
   const MAX = 8;
   const get = () => S().get('night', null);
   const put = n => S().set('night', n);
-  const active = () => { const n = get(); return !!(n && n.people && n.people.length >= 2); };
+  // account only: guests (also guest sessions from a quick match) see the row with a lock and land on the account page
+  const shut = () => !!(V.guest && V.guest());
+  const active = () => { const n = get(); return !shut() && !!(n && n.people && n.people.length >= 2); };
 
   // points per person, best first (ties by name)
   function table(n) {
@@ -28,13 +30,14 @@
     const n = get();
     return active()
       ? `<button class="opt night-on" data-night="1">${IC().trophy}<span><b>Spieleabend läuft</b><small>${esc(leadText(n))} · ${n.rounds.length} ${n.rounds.length === 1 ? 'Partie' : 'Partien'}</small></span><em class="rtag live">Tabelle</em></button>`
+      : shut() ? `<button class="opt night-lock" data-night="1">${IC().lock}<span><b>Spieleabend</b><small>Mit kostenlosem Konto: Punkte über mehrere Spiele sammeln</small></span><em class="rtag">Konto</em></button>`
       : `<button class="opt" data-night="1">${IC().trophy}<span><b>Spieleabend</b><small>Punkte über mehrere Spiele sammeln. Wer gewinnt den Abend?</small></span></button>`;
   }
   function wire(b) { b.querySelectorAll('[data-night]').forEach(x => x.onclick = () => { V.sfx.ui(); open(); }); }
   function refreshHome() { document.querySelectorAll('[data-night]').forEach(x => { const t = document.createElement('div'); t.innerHTML = row(); const nx = t.firstElementChild; x.replaceWith(nx); wire(nx.parentNode); }); }
 
   // ---------- the dialog: set up, standings, end ----------
-  function open() { return active() ? standings() : setupNight(); }
+  function open() { if (shut()) { V.ui.toast('Der Spieleabend braucht ein kostenloses Konto'); return V.ui.home('profile'); } return active() ? standings() : setupNight(); }
 
   function setupNight(adding) {
     const n = get();

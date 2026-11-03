@@ -60,6 +60,10 @@ Kein Wettbewerb: Niemand muss jedes Spiel können.
 
 Gäste sehen den Banner „Kostenloses Konto: … Spiele mehr“ am Handy erst, wenn sie eine Partie gespielt haben. Ab der dritten Partie zeigt der Ergebnis-Bildschirm höchstens alle drei Tage einmal „Bilanz sichern – Kostenloses Konto“ als nächsten Schritt; ein Tipp öffnet die Anmeldung.
 
+## Spieleabend
+
+Nur mit Konto (`js/night.js`): Gäste, auch Gast-Sitzungen aus dem schnellen Spiel, sehen die Zeile mit Schloss und „Konto“; ein Tipp führt zur Anmeldung. Ein Abend, der als Gast begonnen wurde, ruht, bis man eingeloggt ist. Läuft der Server nicht, bleibt er wie alles andere offen.
+
 ## Modi
 
 Am Laptop ist die Startseite ein Auswahlbildschirm: links die Spiele, rechts direkt die Einstellungen des gewählten Spiels. Im Spiel stehen die Spielerkarten links und rechts neben dem Brett. Am Handy öffnet ein Tipp auf ein Spiel dessen Einstellungen.
