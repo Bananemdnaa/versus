@@ -73,7 +73,7 @@
     // tutorial dialog, welcome
     // end screen: next step
     'Spiel des Tages · {0}': 'Game of the day · {0}', 'Spiel des Tages': 'Game of the day', 'Erledigt': 'Done', 'Morgen geht es weiter': 'More tomorrow',
-    'Aus deinen Spielen': 'From your games', 'Einmal durchspielen': 'Play it once', 'Anderes Spiel': 'Another game',
+    'Neu für dich': 'New for you', 'Heute für alle': 'Today for everyone', 'Heute ein anderes Spiel (einmal)': 'Another game today (once)',
     'Heute erledigt': 'Done today', 'Heute noch offen': 'Still open today', 'längste Serie #': 'longest series #', 'Heute erledigt · längste Serie #': 'Done today · longest series #', 'Heute noch offen · längste Serie #': 'Still open today · longest series #',
     'Spiel des Tages erledigt': 'Game of the day done', 'Neues Abzeichen': 'New badge', 'Abzeichen': 'Badges', '# von #': '# of #',
     'Serie und Abzeichen überall dabei': 'Series and badges everywhere',

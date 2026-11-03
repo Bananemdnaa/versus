@@ -441,36 +441,31 @@
     const a = c.querySelector('#frsadd'); if (a) a.onclick = () => { V.sfx.ui(); V.online.addFriends(); };
   }
   // ---------- Spiel des Tages ----------
-  // No competition: the game comes from your own games (favourites, recently and often played) when you have some,
-  // otherwise from a few classics; it runs at your own level for that game and can be swapped. Playing it to the end
-  // counts (winning is not needed). Days in a row make a series; one missed day a week is forgiven (Serienschutz).
-  // Kept in versus.dailyCh and synced with the account (js/cloud.js).
-  const DAILY_POOL = ['c4', 'dots', 'ships', 'reversi', 'kalaha', 'mill', 'checkers', 'gomoku', 'hex', 'uttt', 'ttt3', 'backgammon'];
+  // One game a day from all games that have an AI, the same for everybody on that date, so you get to know new games.
+  // No competition: a game you never played starts on Leicht, otherwise it runs at your own level; playing it to the
+  // end counts (winning is not needed); it can be swapped once a day. Days in a row make a series; one missed day a
+  // week is forgiven (Serienschutz). Kept in versus.dailyCh and synced with the account (js/cloud.js).
   const dkey = d => d.toLocaleDateString('sv');
   const dayAgo = n => dkey(new Date(Date.now() - n * 864e5));
   const playable = g => g && !g.noAI && !locked(g);
-  function dailyPool() {
-    const n = id => { const s = P.stats[id]; return s ? s.ai.reduce((a, r) => a + r.w + r.l + r.d, 0) : 0; };
-    const often = Object.keys(P.stats).filter(id => n(id) >= 2).sort((a, b) => n(b) - n(a));
-    const own = [...new Set([...favs(), ...S.get('recents', []), ...often])].map(id => V.byId[id]).filter(playable);
-    // fewer than three own games: a few classics join behind them, so there is always something to swap to
-    const list = own.length >= 3 ? own : [...new Set([...own, ...DAILY_POOL.map(id => V.byId[id]).filter(playable)])];
-    return { own, list };
-  }
+  // sorted by id, so the order (and the game of the day) does not depend on the language or the library sort
+  const dailyPool = () => V.games.filter(playable).sort((a, b) => a.id < b.id ? -1 : 1);
+  const aiPlayed = id => { const s = P.stats[id]; return s ? s.ai.reduce((a, r) => a + r.w + r.l + r.d, 0) : 0; };
   // the series is still alive when the last counted day was yesterday, or the day before with the weekly protection free
   const freeOk = st => !st.freeAt || st.freeAt < dayAgo(7);
   function daily() {
-    const key = dkey(new Date()), pool = dailyPool();
-    if (!pool.list.length) return null;
+    const key = dkey(new Date()), list = dailyPool();
+    if (!list.length) return null;
     let h = 7; for (const ch of key) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
-    const st = S.get('dailyCh', {}), sw = st.swapDay === key ? st.swap || 0 : 0;
-    const g = pool.list[(h + sw) % pool.list.length];
+    const st = S.get('dailyCh', {}), swapped = st.swapDay === key;
+    // a swap jumps a bit further, so it usually lands in another kind of game
+    const g = list[(h + (swapped ? 7 : 0)) % list.length];
     const alive = st.last === key || st.last === dayAgo(1) || (st.last === dayAgo(2) && freeOk(st));
-    return { key, g, own: pool.own.includes(g), many: pool.list.length > 1, level: loadCfg(g).level, done: st.last === key, streak: alive ? st.streak || 0 : 0, best: st.best || 0 };
+    const fresh = !aiPlayed(g.id);
+    return { key, g, fresh, canSwap: !swapped && list.length > 1, level: fresh ? 0 : loadCfg(g).level, done: st.last === key, streak: alive ? st.streak || 0 : 0, best: st.best || 0 };
   }
   function dailySwap() {
-    const st = S.get('dailyCh', {}), key = dkey(new Date());
-    st.swap = st.swapDay === key ? (st.swap || 0) + 1 : 1; st.swapDay = key; S.set('dailyCh', st);
+    const st = S.get('dailyCh', {}); st.swapDay = dkey(new Date()); S.set('dailyCh', st);
   }
   // the game of the day was played to the end: counts once a day, returns the series (0 if it was already counted)
   function dailyDone(key) {
@@ -485,7 +480,7 @@
   }
   function playDaily() {
     const t = daily(); if (!t) return;
-    const cfg = loadCfg(t.g); cfg.mode = 'ai'; cfg.daily = t.key;
+    const cfg = loadCfg(t.g); cfg.mode = 'ai'; cfg.level = t.level; cfg.daily = t.key;
     V.sfx.go(); V.buzz(12); play(t.g, cfg);
   }
   function dailyCard() {
@@ -495,8 +490,8 @@
     return `<section class="dch-w"><div class="dch${t.done ? ' done' : ''}" style="--acc:${t.g.accent || 'var(--pink)'}">
       <button class="dc-main" id="dch"><span class="dc-ic">${t.g.icon}${t.done ? `<i class="dc-ok">${IC.check}</i>` : ''}</span>
         <span class="dc-tx"><em>Spiel des Tages · ${day}</em><b>${t.done ? 'Erledigt' : t.g.name}</b>
-          <small>${t.done ? 'Morgen geht es weiter' : `<i class="lvt l${t.level}">${V.LEVELS[t.level]}</i>${t.own ? 'Aus deinen Spielen' : 'Einmal durchspielen'}`}</small></span></button>
-      ${t.many && !t.done ? `<button class="dc-sw" id="dcsw" aria-label="Anderes Spiel" title="Anderes Spiel">${IC.dice}</button>` : ''}
+          <small>${t.done ? 'Morgen geht es weiter' : `<i class="lvt l${t.level}">${V.LEVELS[t.level]}</i>${t.fresh ? 'Neu für dich' : 'Heute für alle'}`}</small></span></button>
+      ${t.canSwap && !t.done ? `<button class="dc-sw" id="dcsw" aria-label="Heute ein anderes Spiel (einmal)" title="Heute ein anderes Spiel (einmal)">${IC.dice}</button>` : ''}
       ${flame}</div></section>`;
   }
   const wireDaily = v => {
