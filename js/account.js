@@ -426,6 +426,7 @@
           <button class="btn ghost sm" data-box="ren:${n}"><span>Umbenennen</span></button>
           ${p.me ? '' : confirmBtn('rn:', 'Name zurücksetzen', 'Neutralen Namen geben?', 'ren_reset')}
           ${p.guest ? '' : confirmBtn('cm:', 'Spruch entfernen', 'Wirklich entfernen?', 'clr_motto')}
+          ${p.guest ? '' : confirmBtn('ca:', 'Abzeichen zurücksetzen', 'Wirklich zurücksetzen?', 'clr_awards')}
           <button class="btn ghost sm" data-games="${n}"><span>Partien</span></button>
           ${confirmBtn('reset:', 'Bilanz zurücksetzen', 'Wirklich alles auf 0?', 'reset')}
           ${owner && !p.me && p.role !== 'owner' ? confirmBtn('adm:', p.role ? 'Admin entziehen' : 'Zum Admin machen', p.role ? 'Wirklich entziehen?' : 'Wirklich Admin?', p.role ? 'admin_off' : 'admin_on') : ''}
@@ -644,6 +645,7 @@
         dev_off: () => act('admin_set_dev', { name: n, make: false }, n + ' ist kein Dev-Konto mehr.'),
         note_save: () => act('admin_set_note', { name: n, txt: h.querySelector('#note_t').value }, 'Notiz gespeichert.'),
         clr_motto: () => act('admin_clear_motto', { name: n }, 'Spruch von ' + n + ' entfernt.'),
+        clr_awards: () => act('admin_clear_awards', { name: n }, 'Abzeichen von ' + n + ' zurückgesetzt.'),
         ren_save: () => { const nn = h.querySelector('#ren_n').value.trim().toLowerCase(); act('admin_rename_user', { name: n, new_name: nn }, n + ' heißt jetzt ' + nn + '.'); query = nn; },
         // one tap for a bad name: a neutral name; the player can pick a new one later, the old one stays under "Früher"
         ren_reset: () => { const nn = 'player' + (1000 + Math.floor(Math.random() * 9000)); query = nn; act('admin_rename_user', { name: n, new_name: nn }, n + ' heißt jetzt ' + nn + '.'); }

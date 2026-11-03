@@ -387,7 +387,10 @@
         // otherwise a game of the same kind that was not played yet (so the 35 games get found)
         // Spiel des Tages: played to the end counts once a day (no win needed); then new Abzeichen
         const dWon = ai && cfg.daily && !auto && !off ? P.dailyDone(cfg.daily) : 0;
-        const fresh = !watch && !auto && !off ? P.badgeCheck(new Date().getHours()) : [];
+        // wins in a row against the AI or online (a draw keeps the run, a loss ends it), for the badges
+        const mine = ai ? me : (online || table) ? mySide : 0;
+        if (mine && !watch && !auto && !off && winner !== 0) { const wr = S.get('winRun', {}); wr.cur = winner === mine ? (wr.cur || 0) + 1 : 0; wr.best = Math.max(wr.best || 0, wr.cur); S.set('winRun', wr); }
+        const fresh = !watch && !auto && !off ? P.badgeCheck({ hour: new Date().getHours(), seats: N }) : [];
         const step = !online && !table && !watch && !auto && !off ? nextStep(winner === me && !!winner) : null;
         ctx.later(() => {
           const m = openModal(`<div class="ko ${tone}">
@@ -395,7 +398,7 @@
               <h2 aria-label="${esc(big)}">${[...big].map((ch, k) => `<span aria-hidden="true" style="--k:${k}">${ch === ' ' ? '&nbsp;' : esc(ch)}</span>`).join('')}</h2></div></div>
             ${party ? `<div class="eparty">${SIDES.map(k => `<span class="ep c${k}"><b>${series[k]}</b><small>${esc(names[k])}</small></span>`).join('')}</div>` : `<div class="eseries"><span class="nl">${esc(names[L])}</span><b class="sl${winner === L && !off ? ' up' : ''}" data-n="${series[L]}">${winner === L && !off ? series[L] - 1 : series[L]}</b><i>:</i><b class="sr${winner === R && !off ? ' up' : ''}" data-n="${series[R]}">${winner === R && !off ? series[R] - 1 : series[R]}</b><span class="nr">${esc(names[R])}</span></div>`}
             ${dWon ? `<div class="kdaily">${IC.bolt}<b>Spiel des Tages erledigt</b><span>Serie: ${dWon} ${dWon === 1 ? 'Tag' : 'Tage'}</span></div>` : ''}
-            ${fresh.length ? `<div class="kbadges">${fresh.map(b => `<div class="kbdg"><span class="bdg-ic">${b.ic}</span><span><small>Neues Abzeichen</small><b>${b.t}</b></span></div>`).join('')}</div>` : ''}
+            ${fresh.length ? `<div class="kbadges">${fresh.map(b => `<div class="kbdg bt${b.tier}" title="${esc(b.d)}"><span class="bdg-ic">${b.ic}</span><span><small>${b.tier === 3 ? 'Legendäres Abzeichen' : b.tier === 2 ? 'Seltenes Abzeichen' : 'Neues Abzeichen'}</small><b>${b.t}</b></span></div>`).join('')}</div>` : ''}
             ${ai && winner && winner !== me && !off && tipFor() ? `<div class="ktip">${IC.bulb}<div><b>Tipp für die Revanche</b><p>${tipFor()}</p></div></div>` : ''}
             ${series.d ? `<p class="small">${series.d}× unentschieden</p>` : ''}
             ${online ? `<div class="kemo" id="kemo"></div><div class="kquick">${['gg', 'clap', 'haha', 'sweat'].map(e => `<button data-emo="${e}">${EMO[e]}</button>`).join('')}${['p_wp', 'p_rev'].map(e => `<button class="ph" data-emo="${e}">${PHR[e]}</button>`).join('')}</div>` : ''}

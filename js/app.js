@@ -501,46 +501,108 @@
   };
 
   // ---------- Abzeichen ----------
-  // A collection to look at, not a race: each one can be reached in many ways, none needs a win or a certain game.
-  // Earned ones keep their date (versus.badges, synced with the account).
+  // A collection in three tiers: 1 normal, 2 selten, 3 legendär. Most need no win or certain game; some are about winning
+  // (against the AI, online, in a row), and the legendary ones take months. Earned ones keep their date (versus.badges,
+  // synced with the account) and are shown in the profile for others too (set_awards, player_badges → awards).
+  // [id, icon, title, how, tier, test(ctx)]
+  const md = (m, d) => c => c.month === m && c.day === d;
   const BADGES = [
-    ['first', 'play', 'Los geht’s', 'Deine erste Partie', c => c.total >= 1],
-    ['duo', 'users', 'Zu zweit', '5 Partien an einem Gerät', c => c.local >= 5],
-    ['ai10', 'robot', 'Maschinenflüsterer', '10 Partien gegen die KI', c => c.ai >= 10],
-    ['online', 'globe', 'Online dabei', 'Eine Online-Partie', c => c.on >= 1],
-    ['curious', 'spark', 'Neugierig', '5 verschiedene Spiele ausprobiert', c => c.tried >= 5],
-    ['fav', 'star', 'Lieblingsspiel', 'Ein Spiel 25-mal gespielt', c => c.most >= 25],
-    ['draw', 'flag', 'Gleichstand', '5 Unentschieden', c => c.draws >= 5],
-    ['d3', 'bolt', 'Dranbleiben', 'Spiel des Tages 3 Tage in Folge', c => c.best >= 3],
-    ['d7', 'bolt', 'Eine Woche', 'Spiel des Tages 7 Tage in Folge', c => c.best >= 7],
-    ['d30', 'trophy', 'Ein Monat', 'Spiel des Tages 30 Tage in Folge', c => c.best >= 30],
-    ['owl', 'clock', 'Nachteule', 'Eine Partie zwischen 0 und 4 Uhr', c => c.hour >= 0 && c.hour < 4],
-    ['early', 'clock', 'Frühaufsteher', 'Eine Partie zwischen 5 und 7 Uhr', c => c.hour >= 5 && c.hour < 7]
+    // playing
+    ['first', 'play', 'Los geht’s', 'Deine erste Partie', 1, c => c.total >= 1],
+    ['duo', 'users', 'Zu zweit', '5 Partien an einem Gerät', 1, c => c.local >= 5],
+    ['ai10', 'robot', 'Maschinenflüsterer', '10 Partien gegen die KI', 1, c => c.ai >= 10],
+    ['online', 'globe', 'Online dabei', 'Eine Online-Partie', 1, c => c.on >= 1],
+    ['draw', 'flag', 'Gleichstand', '5 Unentschieden', 1, c => c.draws >= 5],
+    ['t100', 'chart', 'Hundert', '100 Partien', 2, c => c.total >= 100],
+    ['couch', 'users', 'Couch-Legende', '50 Partien an einem Gerät', 2, c => c.local >= 50],
+    ['full', 'users', 'Volles Haus', 'Eine Partie zu viert', 2, c => c.seats >= 4],
+    ['t500', 'chart', 'Urgestein', '500 Partien', 3, c => c.total >= 500],
+    ['t1000', 'trophy', 'Unsterblich', '1000 Partien', 3, c => c.total >= 1000],
+    // games
+    ['curious', 'spark', 'Neugierig', '5 verschiedene Spiele ausprobiert', 1, c => c.tried >= 5],
+    ['fav', 'star', 'Lieblingsspiel', 'Ein Spiel 25-mal gespielt', 1, c => c.most >= 25],
+    ['tried10', 'spark', 'Weltenbummler', '10 verschiedene Spiele', 2, c => c.tried >= 10],
+    ['fav100', 'star', 'Spezialist', 'Ein Spiel 100-mal gespielt', 2, c => c.most >= 100],
+    ['tried20', 'spark', 'Sammler', '20 verschiedene Spiele', 3, c => c.tried >= 20],
+    ['tryall', 'spark', 'Alleskönner', 'Jedes Spiel mindestens einmal', 3, c => c.tried >= V.games.length],
+    // winning
+    ['lvl1', 'robot', 'Aufsteiger', 'Die KI auf Mittel geschlagen', 1, c => c.lvl >= 1],
+    ['lvl2', 'robot', 'Harter Brocken', 'Die KI auf Schwer geschlagen', 2, c => c.lvl >= 2],
+    ['pro', 'shield', 'Profi-Bezwinger', 'Die KI auf Profi geschlagen', 2, c => c.lvl >= 3],
+    ['pro5', 'shield', 'Maschinenbrecher', 'Profi in 5 verschiedenen Spielen geschlagen', 3, c => c.proGames >= 5],
+    ['pro25', 'shield', 'Unaufhaltsam', '25 Siege gegen Profi', 3, c => c.proWins >= 25],
+    ['run5', 'bolt', 'Lauf', '5 Siege in Folge (KI oder online)', 2, c => c.run >= 5],
+    ['run10', 'bolt', 'Siegesserie', '10 Siege in Folge (KI oder online)', 3, c => c.run >= 10],
+    // online
+    ['on1', 'globe', 'Erster Online-Sieg', 'Eine Online-Partie gewonnen', 1, c => c.onWins >= 1],
+    ['on25', 'globe', 'Online-Ass', '25 Online-Siege', 2, c => c.onWins >= 25],
+    ['on100', 'trophy', 'Champion', '100 Online-Siege', 3, c => c.onWins >= 100],
+    // every day
+    ['d3', 'bolt', 'Dranbleiben', 'Spiel des Tages 3 Tage in Folge', 1, c => c.best >= 3],
+    ['d7', 'bolt', 'Eine Woche', 'Spiel des Tages 7 Tage in Folge', 1, c => c.best >= 7],
+    ['d30', 'trophy', 'Ein Monat', 'Spiel des Tages 30 Tage in Folge', 2, c => c.best >= 30],
+    ['d100', 'trophy', 'Unerschütterlich', 'Spiel des Tages 100 Tage in Folge', 3, c => c.best >= 100],
+    // when
+    ['owl', 'clock', 'Nachteule', 'Eine Partie zwischen 0 und 4 Uhr', 1, c => c.hour >= 0 && c.hour < 4],
+    ['early', 'clock', 'Frühaufsteher', 'Eine Partie zwischen 5 und 7 Uhr', 1, c => c.hour >= 5 && c.hour < 7],
+    ['spooky', 'moon', 'Gruselnacht', 'Eine Partie an Halloween', 2, c => c.hour >= 0 && md(10, 31)(c)],
+    ['xmas', 'star', 'Fest der Spiele', 'Eine Partie an Weihnachten (24.–26.12.)', 2, c => c.hour >= 0 && c.month === 12 && c.day >= 24 && c.day <= 26],
+    ['newyear', 'spark', 'Guter Start', 'Eine Partie am Neujahrstag', 2, c => c.hour >= 0 && md(1, 1)(c)]
   ];
-  function badgeCtx(hour = -1) {
-    const c = { total: 0, local: 0, ai: 0, on: 0, tried: 0, most: 0, draws: 0, best: (S.get('dailyCh', {}).best || 0), hour };
+  const TIERS = ['', 'Normal', 'Selten', 'Legendär'];
+  // ev: what just happened (after a match): hour, seats at the table
+  function badgeCtx(ev = {}) {
+    const now = new Date();
+    const c = { total: 0, local: 0, ai: 0, on: 0, onWins: 0, tried: 0, most: 0, draws: 0, lvl: -1, proWins: 0, proGames: 0,
+      best: S.get('dailyCh', {}).best || 0, run: S.get('winRun', {}).best || 0, hour: ev.hour ?? -1, seats: ev.seats || 0, month: now.getMonth() + 1, day: now.getDate() };
     for (const id in P.stats) {
       const s = P.stats[id], on = s.on || { w: 0, l: 0, d: 0 };
       const ai = s.ai.reduce((a, r) => a + r.w + r.l + r.d, 0), lo = s.local.a + s.local.b + s.local.d, o = on.w + on.l + on.d, n = ai + lo + o;
-      c.ai += ai; c.local += lo; c.on += o; c.total += n; if (n) c.tried++; c.most = Math.max(c.most, n);
+      c.ai += ai; c.local += lo; c.on += o; c.onWins += on.w; c.total += n; if (n) c.tried++; c.most = Math.max(c.most, n);
       c.draws += s.ai.reduce((a, r) => a + r.d, 0) + s.local.d + on.d;
+      s.ai.forEach((r, k) => { if (r.w) c.lvl = Math.max(c.lvl, k); });
+      c.proWins += s.ai[3].w; if (s.ai[3].w) c.proGames++;
     }
     return c;
   }
-  // checks after a match (hour: when it ended) and on the Bilanz page; returns the newly earned ones
-  function badgeCheck(hour) {
-    const have = S.get('badges', {}), c = badgeCtx(hour), fresh = [];
-    BADGES.forEach(b => { if (!have[b[0]] && b[4](c)) { have[b[0]] = dkey(new Date()); fresh.push(b); } });
-    if (fresh.length) S.set('badges', have);
-    return fresh.map(b => ({ id: b[0], ic: IC[b[1]], t: b[2], d: b[3] }));
+  const badgeOut = b => ({ id: b[0], ic: IC[b[1]], t: b[2], d: b[3], tier: b[4] });
+  // checks after a match and on the Bilanz page; returns the newly earned ones
+  function badgeCheck(ev) {
+    const have = S.get('badges', {}), c = badgeCtx(typeof ev === 'number' ? { hour: ev } : ev), fresh = [];
+    BADGES.forEach(b => { if (!have[b[0]] && b[5](c)) { have[b[0]] = dkey(new Date()); fresh.push(b); } });
+    if (fresh.length) { S.set('badges', have); pushAwards(); }
+    return fresh.map(badgeOut);
   }
+  // the earned badges go to the own profile on the server (accounts only), so others see them
+  function pushAwards() {
+    const u = V.cloud && V.cloud.available() && V.cloud.user();
+    if (!u || u.anon) return;
+    const have = S.get('badges', {}), a = {};
+    BADGES.forEach(b => { if (have[b[0]]) a[b[0]] = have[b[0]]; });
+    const sig = u.id + JSON.stringify(a);
+    if (S.get('awardsSent') === sig) return;
+    V.cloud.rpc('set_awards', { a }).then(() => S.set('awardsSent', sig), () => { });
+  }
+  const bdgTile = (b, date) => `<div class="bdg bt${b[4]}${date ? ' on' : ''}" title="${escA(TIERS[b[4]] + ' · ' + b[3])}"><span class="bdg-ic">${IC[b[1]]}</span><b>${b[2]}</b><small>${date ? new Date(date).toLocaleDateString(V.locale(), { day: 'numeric', month: 'short', year: '2-digit' }) : b[3]}</small></div>`;
   function badgePanel() {
     badgeCheck();
-    const have = S.get('badges', {}), n = BADGES.filter(b => have[b[0]]).length;
-    return `<div class="apanel sbadges"><h3>Abzeichen<small>${n} von ${BADGES.length}</small></h3>
-      <div class="bdg-grid">${BADGES.map(([id, ic, t, d]) => `<div class="bdg${have[id] ? ' on' : ''}" title="${escA(d)}"><span class="bdg-ic">${IC[ic]}</span><b>${t}</b><small>${have[id] ? new Date(have[id]).toLocaleDateString(V.locale(), { day: 'numeric', month: 'short' }) : d}</small></div>`).join('')}</div>
-      ${guest() || !(V.cloud && V.cloud.user()) ? '<p class="fine">Mit einem kostenlosen Konto sind Abzeichen und Serie auf jedem Gerät dabei.</p>' : ''}</div>`;
+    const have = S.get('badges', {}), got = BADGES.filter(b => have[b[0]]), open = BADGES.filter(b => !have[b[0]]);
+    const byTier = l => l.slice().sort((x, y) => y[4] - x[4]);
+    const tierN = t => `<span class="tcount bt${t}">${got.filter(b => b[4] === t).length}/${BADGES.filter(b => b[4] === t).length}</span>`;
+    return `<div class="apanel sbadges"><h3>Abzeichen<small>${got.length} von ${BADGES.length}</small></h3>
+      <div class="tcounts">${tierN(1)}${tierN(2)}${tierN(3)}<small>Normal · Selten · Legendär</small></div>
+      ${got.length ? `<div class="bdg-grid">${byTier(got).map(b => bdgTile(b, have[b[0]])).join('')}</div>` : '<p class="muted">Noch keins. Spiel eine Partie, dann kommt das erste.</p>'}
+      ${open.length ? `<details class="bdg-open"><summary>Noch offen (${open.length})</summary><div class="bdg-grid">${open.sort((x, y) => x[4] - y[4]).map(b => bdgTile(b)).join('')}</div></details>` : ''}
+      ${guest() || !(V.cloud && V.cloud.user()) ? '<p class="fine">Mit einem kostenlosen Konto sind Abzeichen und Serie auf jedem Gerät dabei und in deinem Profil zu sehen.</p>' : ''}</div>`;
   }
+  // for the profile of any player (js/online.js): the earned ones, legendary first
+  V.badges = {
+    count: BADGES.length,
+    profile(aw) {
+      const l = BADGES.filter(b => aw && aw[b[0]]).sort((x, y) => y[4] - x[4] || (aw[y[0]] < aw[x[0]] ? -1 : 1));
+      return l.length ? `<div class="pbdg">${l.map(b => `<span class="pb bt${b[4]}" title="${escA(TIERS[b[4]] + ' · ' + b[3])}">${IC[b[1]]}<b>${b[2]}</b></span>`).join('')}</div>` : '';
+    }
+  };
   function wireCont(c) {
     c.querySelectorAll('[data-cont]').forEach(b => b.onclick = () => { const r = contList[+b.dataset.cont]; if (!r) return; V.sfx.ui(); b.classList.add('busy'); V.online.resumeAny(r); });
   }
@@ -2042,7 +2104,7 @@
       cloudUser = id; cloudKnown = known;
       if (id && settings.stealth) V.cloud.rpc('set_stealth', { hide: true }).catch(() => { });
       // the team sees which language a player reads, and warnings from the team show up once
-      if (id) { V.cloud.rpc('set_lang', { l: V.lang }).catch(() => { }); checkWarnings(); }
+      if (id) { V.cloud.rpc('set_lang', { l: V.lang }).catch(() => { }); checkWarnings(); setTimeout(pushAwards, 4000); }
       // an open game sheet shows the new locks and modes too
       if (sheetRoot && sheetRoot.isConnected && selected) renderPanel(sheetRoot, selected, true);
       // the account tab is drawn again too when the login changed (a restored session must not leave the login form up)
