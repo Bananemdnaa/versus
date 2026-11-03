@@ -2019,7 +2019,13 @@
     show(name, html) { destroyCurrent(); view = name; const v = mount(html); wireHeader(v); return v; },
     view: () => view, tab: () => homeTab, side: () => side.render(), cont: () => contRefresh(),
     // for the games' editors in the rules view (js/games/slf.js, hangman.js, guess.js)
-    multi: MULTI, topics: topicsPicker
+    multi: MULTI, topics: topicsPicker,
+    // the account tab (js/account.js): series of the game of the day and the badges, both kept with the account
+    acctBadges() {
+      const t = daily(), st = S.get('dailyCh', {});
+      return `<div class="aserie apanel"><span class="dc-st${t && t.streak ? ' on' : ''}">${IC.bolt}<b>${t ? t.streak : 0}</b><small>${t && t.streak === 1 ? 'Tag' : 'Tage'}</small></span>
+        <div><b>Spiel des Tages</b><small>${t && t.done ? 'Heute erledigt' : 'Heute noch offen'} · längste Serie ${st.best || 0}</small></div></div>${badgePanel()}`;
+    }
   };
   // what js/play.js needs from the shell
   Object.assign(P, {

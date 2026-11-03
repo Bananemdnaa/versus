@@ -78,6 +78,7 @@
         </div>
       </div>
       <div class="kpis akpis" id="akpis">${V.skel(1)}</div>
+      <div class="abadges">${V.ui.acctBadges ? V.ui.acctBadges() : ''}</div>
       <div class="agrid2">
       <div class="apanel arecent"><div class="fhead"><h3>Letzte Partien</h3><button class="link" id="a_hist">Ganzer Verlauf</button></div><div id="arecent">${V.skel(3)}</div></div>
       <div class="asec"><h3 class="ash">Konto und Sicherheit</h3>

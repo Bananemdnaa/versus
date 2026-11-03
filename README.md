@@ -53,7 +53,7 @@ Kein Wettbewerb: Niemand muss jedes Spiel können.
 
 - **Spiel des Tages:** jeden Tag ein Spiel gegen die KI, ausgesucht aus *deinen* Spielen (Favoriten, zuletzt und oft gespielt; bei weniger als drei kommen ein paar Klassiker dazu), auf deiner eigenen Stufe für dieses Spiel. Mit dem Würfel daneben tauschst du es gegen ein anderes. Es zählt, wenn du die Partie zu Ende spielst, gewinnen musst du nicht. Tage in Folge ergeben eine Serie; ein verpasster Tag pro Woche ist verziehen (Serienschutz). Karte am Handy über den Schnellknöpfen, am Laptop unter den Modus-Kacheln.
 - **Abzeichen:** 12 Stück in der Bilanz (statt der früheren Meilensteine wie „Siege gegen Profi“), z. B. erste Partie, 5 Partien zu zweit, 10 gegen die KI, 5 verschiedene Spiele, ein Spiel 25-mal, 5 Unentschieden, Serien von 3, 7 und 30 Tagen, Nachteule, Frühaufsteher. Keines verlangt einen Sieg oder ein bestimmtes Spiel. Neue erscheinen auf dem Ergebnis-Bildschirm.
-- Serie (`versus.dailyCh`) und Abzeichen (`versus.badges`) werden mit dem Konto abgeglichen (`js/cloud.js`, KEYS): auf dem gleichen Tag gewinnt die längere Serie, sonst der spätere Tag; Abzeichen werden vereinigt, mit dem früheren Datum. Dafür ist keine Migration nötig.
+- Serie und Abzeichen stehen auch im Konto-Tab (über „Letzte Partien“). Serie (`versus.dailyCh`) und Abzeichen (`versus.badges`) werden mit dem Konto abgeglichen (`js/cloud.js`, KEYS): auf dem gleichen Tag gewinnt die längere Serie, sonst der spätere Tag; Abzeichen werden vereinigt, mit dem früheren Datum. Dafür ist keine Migration nötig.
 
 ## Konto-Hinweis
 

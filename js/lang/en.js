@@ -74,6 +74,7 @@
     // end screen: next step
     'Spiel des Tages · {0}': 'Game of the day · {0}', 'Spiel des Tages': 'Game of the day', 'Erledigt': 'Done', 'Morgen geht es weiter': 'More tomorrow',
     'Aus deinen Spielen': 'From your games', 'Einmal durchspielen': 'Play it once', 'Anderes Spiel': 'Another game',
+    'Heute erledigt': 'Done today', 'Heute noch offen': 'Still open today', 'längste Serie #': 'longest series #', 'Heute erledigt · längste Serie #': 'Done today · longest series #', 'Heute noch offen · längste Serie #': 'Still open today · longest series #',
     'Spiel des Tages erledigt': 'Game of the day done', 'Neues Abzeichen': 'New badge', 'Abzeichen': 'Badges', '# von #': '# of #',
     'Serie und Abzeichen überall dabei': 'Series and badges everywhere',
     'Mit einem kostenlosen Konto sind Abzeichen und Serie auf jedem Gerät dabei.': 'With a free account, badges and series come along on every device.',
