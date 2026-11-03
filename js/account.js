@@ -42,7 +42,7 @@
       </div></section>`;
     if (!u) return `<section class="page acctp"><h1 class="title"><span>Dein</span> Konto</h1>
       <div class="asplit"><div class="apromo"><em class="hc-k">Kostenlos</em><b>Ein Konto für alles</b>
-        <ul>${[[IC().chart, 'Bilanz auf jedem Gerät'], [IC().users, 'Freunde und Herausforderungen'], [IC().trophy, 'Rangliste jede Woche'], [IC().shield, 'Keine E-Mail nötig']].map(([ic, t]) => `<li>${ic}<span>${t}</span></li>`).join('')}</ul></div>
+        <ul>${[[IC().chart, 'Bilanz auf jedem Gerät'], [IC().users, 'Freunde und Herausforderungen'], [IC().bolt, 'Serie und Abzeichen überall dabei'], [IC().shield, 'Keine E-Mail nötig']].map(([ic, t]) => `<li>${ic}<span>${t}</span></li>`).join('')}</ul></div>
       <div class="acard">
         <p class="lead">Mit einem Konto liegt deine Bilanz sicher auf dem Server und ist auf jedem Gerät dabei. Freunde und Online-Duelle bauen darauf auf.</p>
         <div class="gp-mode amode" id="amode"><button data-m="login" class="${mode === 'login' ? 'on' : ''}">${IC().user}<span>Einloggen</span></button><button data-m="new" class="${mode === 'new' ? 'on' : ''}">${IC().spark}<span>Konto erstellen</span></button></div>

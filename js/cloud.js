@@ -13,7 +13,7 @@
   // Supabase needs an e-mail address internally; this domain is ours (GitHub Pages), no mails are sent.
   const MAIL = 'bananemdnaa.github.io';
   const NAME_RE = /^[a-z0-9_-]{3,16}$/;
-  const KEYS = ['stats', 'seen', 'settings', 'setup', 'recent', 'recents', 'favs'];
+  const KEYS = ['stats', 'seen', 'settings', 'setup', 'recent', 'recents', 'favs', 'dailyCh', 'badges'];
 
   let sb = null, user = null, info = null, timer = null, beat = null, busy = false, again = false, leaving = false;
   const state = { status: 'off', last: 0, error: '' };
@@ -103,6 +103,14 @@
     merged.recent = (mine && local.recent) || cloud.recent || local.recent || null;
     merged.recents = (mine && local.recents) || cloud.recents || local.recents || [];
     merged.favs = (mine && local.favs) || cloud.favs || local.favs || [];
+    // Spiel des Tages: the later day wins (on the same day the longer series), the best series is the higher one;
+    // Abzeichen: all of both, each with its earlier date
+    const dl = local.dailyCh || {}, dc = cloud.dailyCh || {};
+    const dw = (dl.last || '') > (dc.last || '') || ((dl.last || '') === (dc.last || '') && (dl.streak || 0) >= (dc.streak || 0)) ? dl : dc;
+    if (dl.last || dc.last) merged.dailyCh = Object.assign({}, dc, dw, { best: Math.max(dl.best || 0, dc.best || 0, dw.streak || 0) });
+    const bl = local.badges || {}, bc = cloud.badges || {};
+    merged.badges = Object.assign({}, bc);
+    for (const k in bl) if (!merged.badges[k] || bl[k] < merged.badges[k]) merged.badges[k] = bl[k];
     writeLocal(merged);
     setMeta({ uid: user.id, rev: row.rev, sync: Date.now() });
     state.status = 'ok'; state.last = Date.now(); emit();

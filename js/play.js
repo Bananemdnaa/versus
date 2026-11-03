@@ -385,15 +385,17 @@
         const menu = () => watch ? (M.admin ? V.account.admin('matches') : V.ui.home('online')) : setup(g);
         // what comes next (AI and one device only): after a win against the AI the next level is one tap away,
         // otherwise a game of the same kind that was not played yet (so the 35 games get found)
-        // Tagesduell: a win counts once a day and keeps the series going
-        const dWon = ai && cfg.daily && !auto && !off && winner && winner === me ? P.dailyWon(cfg.daily) : 0;
+        // Spiel des Tages: played to the end counts once a day (no win needed); then new Abzeichen
+        const dWon = ai && cfg.daily && !auto && !off ? P.dailyDone(cfg.daily) : 0;
+        const fresh = !watch && !auto && !off ? P.badgeCheck(new Date().getHours()) : [];
         const step = !online && !table && !watch && !auto && !off ? nextStep(winner === me && !!winner) : null;
         ctx.later(() => {
           const m = openModal(`<div class="ko ${tone}">
             <div class="band"><div class="band-in"><span class="kicker">${esc(note || sublabel)}${online && net && net.last && net.last.ranked === false ? ' · zählt nicht für die Rangliste' : ''}</span>
               <h2 aria-label="${esc(big)}">${[...big].map((ch, k) => `<span aria-hidden="true" style="--k:${k}">${ch === ' ' ? '&nbsp;' : esc(ch)}</span>`).join('')}</h2></div></div>
             ${party ? `<div class="eparty">${SIDES.map(k => `<span class="ep c${k}"><b>${series[k]}</b><small>${esc(names[k])}</small></span>`).join('')}</div>` : `<div class="eseries"><span class="nl">${esc(names[L])}</span><b class="sl${winner === L && !off ? ' up' : ''}" data-n="${series[L]}">${winner === L && !off ? series[L] - 1 : series[L]}</b><i>:</i><b class="sr${winner === R && !off ? ' up' : ''}" data-n="${series[R]}">${winner === R && !off ? series[R] - 1 : series[R]}</b><span class="nr">${esc(names[R])}</span></div>`}
-            ${dWon ? `<div class="kdaily">${IC.bolt}<b>Tagesduell geschafft</b><span>Serie: ${dWon} ${dWon === 1 ? 'Tag' : 'Tage'}</span></div>` : ai && cfg.daily && !off ? '<p class="small">Tagesduell: gewinn eine Partie, dann zählt der Tag.</p>' : ''}
+            ${dWon ? `<div class="kdaily">${IC.bolt}<b>Spiel des Tages erledigt</b><span>Serie: ${dWon} ${dWon === 1 ? 'Tag' : 'Tage'}</span></div>` : ''}
+            ${fresh.length ? `<div class="kbadges">${fresh.map(b => `<div class="kbdg"><span class="bdg-ic">${b.ic}</span><span><small>Neues Abzeichen</small><b>${b.t}</b></span></div>`).join('')}</div>` : ''}
             ${ai && winner && winner !== me && !off && tipFor() ? `<div class="ktip">${IC.bulb}<div><b>Tipp für die Revanche</b><p>${tipFor()}</p></div></div>` : ''}
             ${series.d ? `<p class="small">${series.d}× unentschieden</p>` : ''}
             ${online ? `<div class="kemo" id="kemo"></div><div class="kquick">${['gg', 'clap', 'haha', 'sweat'].map(e => `<button data-emo="${e}">${EMO[e]}</button>`).join('')}${['p_wp', 'p_rev'].map(e => `<button class="ph" data-emo="${e}">${PHR[e]}</button>`).join('')}</div>` : ''}

@@ -440,44 +440,112 @@
     c.querySelectorAll('[data-prof]').forEach(b => b.onclick = () => { V.sfx.ui(); V.online.profile(b.dataset.prof); });
     const a = c.querySelector('#frsadd'); if (a) a.onclick = () => { V.sfx.ui(); V.online.addFriends(); };
   }
-  // ---------- Tagesduell ----------
-  // One game a day against the AI at a set level (the same for everybody on that date: picked from the date).
-  // Guests get it from the games they can play. Winning it once a day keeps the series going (versus.dailyCh).
-  const DAILY_POOL = ['c4', 'dots', 'ships', 'reversi', 'kalaha', 'mill', 'checkers', 'gomoku', 'hex', 'uttt', 'ttt3', 'backgammon', 'go'];
-  // by weekday (Sunday first): the week starts easy and ends with the hard ones
-  const DAILY_LVL = [3, 0, 1, 1, 2, 1, 2];
+  // ---------- Spiel des Tages ----------
+  // No competition: the game comes from your own games (favourites, recently and often played) when you have some,
+  // otherwise from a few classics; it runs at your own level for that game and can be swapped. Playing it to the end
+  // counts (winning is not needed). Days in a row make a series; one missed day a week is forgiven (Serienschutz).
+  // Kept in versus.dailyCh and synced with the account (js/cloud.js).
+  const DAILY_POOL = ['c4', 'dots', 'ships', 'reversi', 'kalaha', 'mill', 'checkers', 'gomoku', 'hex', 'uttt', 'ttt3', 'backgammon'];
   const dkey = d => d.toLocaleDateString('sv');
-  function daily() {
-    const d = new Date(), key = dkey(d);
-    const pool = DAILY_POOL.map(id => V.byId[id]).filter(g => g && !g.noAI && !locked(g));
-    if (!pool.length) return null;
-    let h = 7; for (const ch of key) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
-    const st = S.get('dailyCh', {}), yest = dkey(new Date(Date.now() - 864e5));
-    return { key, g: pool[h % pool.length], level: DAILY_LVL[d.getDay()], done: st.last === key, streak: st.last === key || st.last === yest ? st.streak || 0 : 0 };
+  const dayAgo = n => dkey(new Date(Date.now() - n * 864e5));
+  const playable = g => g && !g.noAI && !locked(g);
+  function dailyPool() {
+    const n = id => { const s = P.stats[id]; return s ? s.ai.reduce((a, r) => a + r.w + r.l + r.d, 0) : 0; };
+    const often = Object.keys(P.stats).filter(id => n(id) >= 2).sort((a, b) => n(b) - n(a));
+    const own = [...new Set([...favs(), ...S.get('recents', []), ...often])].map(id => V.byId[id]).filter(playable);
+    // fewer than three own games: a few classics join behind them, so there is always something to swap to
+    const list = own.length >= 3 ? own : [...new Set([...own, ...DAILY_POOL.map(id => V.byId[id]).filter(playable)])];
+    return { own, list };
   }
-  // a won Tagesduell: counts once per day, returns the series
-  function dailyWon(key) {
-    const t = daily(); if (!t || t.key !== key) return 0;
+  // the series is still alive when the last counted day was yesterday, or the day before with the weekly protection free
+  const freeOk = st => !st.freeAt || st.freeAt < dayAgo(7);
+  function daily() {
+    const key = dkey(new Date()), pool = dailyPool();
+    if (!pool.list.length) return null;
+    let h = 7; for (const ch of key) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
+    const st = S.get('dailyCh', {}), sw = st.swapDay === key ? st.swap || 0 : 0;
+    const g = pool.list[(h + sw) % pool.list.length];
+    const alive = st.last === key || st.last === dayAgo(1) || (st.last === dayAgo(2) && freeOk(st));
+    return { key, g, own: pool.own.includes(g), many: pool.list.length > 1, level: loadCfg(g).level, done: st.last === key, streak: alive ? st.streak || 0 : 0, best: st.best || 0 };
+  }
+  function dailySwap() {
+    const st = S.get('dailyCh', {}), key = dkey(new Date());
+    st.swap = st.swapDay === key ? (st.swap || 0) + 1 : 1; st.swapDay = key; S.set('dailyCh', st);
+  }
+  // the game of the day was played to the end: counts once a day, returns the series (0 if it was already counted)
+  function dailyDone(key) {
     const st = S.get('dailyCh', {});
-    if (st.last !== key) { st.streak = st.last === dkey(new Date(Date.now() - 864e5)) ? (st.streak || 0) + 1 : 1; st.last = key; S.set('dailyCh', st); }
+    if (key !== dkey(new Date()) || st.last === key) return 0;
+    if (st.last === dayAgo(1)) st.streak = (st.streak || 0) + 1;
+    else if (st.last === dayAgo(2) && freeOk(st)) { st.streak = (st.streak || 0) + 1; st.freeAt = key; }
+    else st.streak = 1;
+    st.last = key; st.best = Math.max(st.best || 0, st.streak);
+    S.set('dailyCh', st);
     return st.streak;
   }
   function playDaily() {
     const t = daily(); if (!t) return;
-    const cfg = loadCfg(t.g); cfg.mode = 'ai'; cfg.level = t.level; cfg.first = 'me'; cfg.daily = t.key;
+    const cfg = loadCfg(t.g); cfg.mode = 'ai'; cfg.daily = t.key;
     V.sfx.go(); V.buzz(12); play(t.g, cfg);
   }
   function dailyCard() {
     const t = daily(); if (!t || inDiscord()) return '';
-    const day = new Date().toLocaleDateString(V.locale(), { weekday: 'short', day: 'numeric', month: 'short' });
+    const day = new Date().toLocaleDateString(V.locale(), { weekday: 'short' });
     const flame = `<span class="dc-st${t.streak ? ' on' : ''}" title="Serie">${IC.bolt}<b>${t.streak}</b><small>${t.streak === 1 ? 'Tag' : 'Tage'}</small></span>`;
-    return `<section class="dch-w"><button class="dch${t.done ? ' done' : ''}" id="dch" style="--acc:${t.g.accent || 'var(--pink)'}">
-      <span class="dc-ic">${t.g.icon}${t.done ? `<i class="dc-ok">${IC.check}</i>` : ''}</span>
-      <span class="dc-tx"><em>Tagesduell · ${day}</em><b>${t.done ? 'Geschafft!' : 'Schlag die KI'}</b>
-        <small>${t.g.name} · <i class="lvt l${t.level}">${V.LEVELS[t.level]}</i>${t.done ? ' · Morgen kommt ein neues' : ''}</small></span>
-      ${flame}</button></section>`;
+    return `<section class="dch-w"><div class="dch${t.done ? ' done' : ''}" style="--acc:${t.g.accent || 'var(--pink)'}">
+      <button class="dc-main" id="dch"><span class="dc-ic">${t.g.icon}${t.done ? `<i class="dc-ok">${IC.check}</i>` : ''}</span>
+        <span class="dc-tx"><em>Spiel des Tages · ${day}</em><b>${t.done ? 'Erledigt' : t.g.name}</b>
+          <small>${t.done ? 'Morgen geht es weiter' : `<i class="lvt l${t.level}">${V.LEVELS[t.level]}</i>${t.own ? 'Aus deinen Spielen' : 'Einmal durchspielen'}`}</small></span></button>
+      ${t.many && !t.done ? `<button class="dc-sw" id="dcsw" aria-label="Anderes Spiel" title="Anderes Spiel">${IC.dice}</button>` : ''}
+      ${flame}</div></section>`;
   }
-  const wireDaily = v => { const b = v.querySelector('#dch'); if (b) b.onclick = playDaily; };
+  const wireDaily = v => {
+    const b = v.querySelector('#dch'); if (b) b.onclick = playDaily;
+    const sw = v.querySelector('#dcsw');
+    if (sw) sw.onclick = () => { dailySwap(); V.sfx.tick(); const w = v.querySelector('.dch-w'); w.outerHTML = dailyCard(); wireDaily(v); const n = v.querySelector('.dch'); if (n && V.fxOn()) V.fx.pop(n, 'fx-pop'); };
+  };
+
+  // ---------- Abzeichen ----------
+  // A collection to look at, not a race: each one can be reached in many ways, none needs a win or a certain game.
+  // Earned ones keep their date (versus.badges, synced with the account).
+  const BADGES = [
+    ['first', 'play', 'Los geht’s', 'Deine erste Partie', c => c.total >= 1],
+    ['duo', 'users', 'Zu zweit', '5 Partien an einem Gerät', c => c.local >= 5],
+    ['ai10', 'robot', 'Maschinenflüsterer', '10 Partien gegen die KI', c => c.ai >= 10],
+    ['online', 'globe', 'Online dabei', 'Eine Online-Partie', c => c.on >= 1],
+    ['curious', 'spark', 'Neugierig', '5 verschiedene Spiele ausprobiert', c => c.tried >= 5],
+    ['fav', 'star', 'Lieblingsspiel', 'Ein Spiel 25-mal gespielt', c => c.most >= 25],
+    ['draw', 'flag', 'Gleichstand', '5 Unentschieden', c => c.draws >= 5],
+    ['d3', 'bolt', 'Dranbleiben', 'Spiel des Tages 3 Tage in Folge', c => c.best >= 3],
+    ['d7', 'bolt', 'Eine Woche', 'Spiel des Tages 7 Tage in Folge', c => c.best >= 7],
+    ['d30', 'trophy', 'Ein Monat', 'Spiel des Tages 30 Tage in Folge', c => c.best >= 30],
+    ['owl', 'clock', 'Nachteule', 'Eine Partie zwischen 0 und 4 Uhr', c => c.hour >= 0 && c.hour < 4],
+    ['early', 'clock', 'Frühaufsteher', 'Eine Partie zwischen 5 und 7 Uhr', c => c.hour >= 5 && c.hour < 7]
+  ];
+  function badgeCtx(hour = -1) {
+    const c = { total: 0, local: 0, ai: 0, on: 0, tried: 0, most: 0, draws: 0, best: (S.get('dailyCh', {}).best || 0), hour };
+    for (const id in P.stats) {
+      const s = P.stats[id], on = s.on || { w: 0, l: 0, d: 0 };
+      const ai = s.ai.reduce((a, r) => a + r.w + r.l + r.d, 0), lo = s.local.a + s.local.b + s.local.d, o = on.w + on.l + on.d, n = ai + lo + o;
+      c.ai += ai; c.local += lo; c.on += o; c.total += n; if (n) c.tried++; c.most = Math.max(c.most, n);
+      c.draws += s.ai.reduce((a, r) => a + r.d, 0) + s.local.d + on.d;
+    }
+    return c;
+  }
+  // checks after a match (hour: when it ended) and on the Bilanz page; returns the newly earned ones
+  function badgeCheck(hour) {
+    const have = S.get('badges', {}), c = badgeCtx(hour), fresh = [];
+    BADGES.forEach(b => { if (!have[b[0]] && b[4](c)) { have[b[0]] = dkey(new Date()); fresh.push(b); } });
+    if (fresh.length) S.set('badges', have);
+    return fresh.map(b => ({ id: b[0], ic: IC[b[1]], t: b[2], d: b[3] }));
+  }
+  function badgePanel() {
+    badgeCheck();
+    const have = S.get('badges', {}), n = BADGES.filter(b => have[b[0]]).length;
+    return `<div class="apanel sbadges"><h3>Abzeichen<small>${n} von ${BADGES.length}</small></h3>
+      <div class="bdg-grid">${BADGES.map(([id, ic, t, d]) => `<div class="bdg${have[id] ? ' on' : ''}" title="${escA(d)}"><span class="bdg-ic">${IC[ic]}</span><b>${t}</b><small>${have[id] ? new Date(have[id]).toLocaleDateString(V.locale(), { day: 'numeric', month: 'short' }) : d}</small></div>`).join('')}</div>
+      ${guest() || !(V.cloud && V.cloud.user()) ? '<p class="fine">Mit einem kostenlosen Konto sind Abzeichen und Serie auf jedem Gerät dabei.</p>' : ''}</div>`;
+  }
   function wireCont(c) {
     c.querySelectorAll('[data-cont]').forEach(b => b.onclick = () => { const r = contList[+b.dataset.cont]; if (!r) return; V.sfx.ui(); b.classList.add('busy'); V.online.resumeAny(r); });
   }
@@ -1201,9 +1269,6 @@
       return x * statSort.d || b.n - a.n;
     });
     const th = (k, l) => `<button class="st-h${statSort.k === k ? ' on' : ''}" data-sort="${k}" aria-sort="${statSort.k === k ? (statSort.d > 0 ? 'ascending' : 'descending') : 'none'}">${l}${statSort.k === k ? (statSort.d > 0 ? ' ↑' : ' ↓') : ''}</button>`;
-    const tried = V.games.filter(g => { const r = gameRec(g, 'all'); return r && r.all; }).length;
-    const bestAll = Math.max(-1, ...V.games.map(g => { const r = gameRec(g, 'all'); return r ? r.best : -1; }));
-    const ms = (l, v, max, sub) => `<div class="mst"><div><b>${l}</b><small>${sub}</small></div><i class="mbar"><i style="--w:${Math.round(Math.min(1, v / max) * 100)}%"></i></i></div>`;
     return `<section class="stats page sx">
       <div class="shead"><h1 class="title"><span>Deine</span> Bilanz</h1>
         <div class="chips mini" id="smode">${STAT_MODES.map(([k, l]) => `<button data-sm="${k}" class="${statMode === k ? 'on' : ''}">${l}</button>`).join('')}</div></div>
@@ -1221,11 +1286,7 @@
               ${statMode === 'local' ? '' : `<span>${r.best >= 0 ? `<em class="lvt ${LVL_CLS[r.best]}">${V.LEVELS[r.best]}</em>` : '–'}</span>`}</button>`).join('') : '<p class="muted st-none">In diesem Modus noch keine Partie.</p>'}
             ${statMode === 'local' ? '<p class="fine">Am Gerät: S = Spieler 1 gewinnt, N = Spieler 2 gewinnt.</p>' : ''}</div>
         </div>
-        <div class="scol side-col"><div class="apanel smiles"><h3>Meilensteine</h3>
-          ${ms('Spiele ausprobiert', tried, V.games.length, tried + ' von ' + V.games.length)}
-          ${ms('Stärkste geschlagene KI', bestAll + 1, 4, bestAll >= 0 ? V.LEVELS[bestAll] : 'Noch keine')}
-          ${ms('Siege gegen Profi', t.proWins, 10, t.proWins + ' von 10')}
-          ${ms('Online-Siege', t.onWins, 25, t.onWins + ' von 25')}</div></div>
+        <div class="scol side-col">${badgePanel()}</div>
       </div>
     </section>`;
   }
@@ -1964,7 +2025,7 @@
   Object.assign(P, {
     mount, locked, guest, toast, home, setup, openModal, closeModal, nav, tutorial, showKeys, optsPopup, toggleSound, rulesPopup,
     enterPlay(g) { destroyCurrent(); view = 'play'; lastGame = g; selected = g; document.querySelectorAll('.upbar:not(.note)').forEach(b => b.remove()); },
-    updateBar, daily, dailyWon, totals,
+    updateBar, daily, dailyDone, badgeCheck, totals,
     setCurrent(c) { current = c; },
     modalOpen: () => !!modalEl,
     // closes the dialog without running its onClose callback

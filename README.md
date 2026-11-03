@@ -47,9 +47,13 @@ Statt einer Tour fragt Versus beim ersten Besuch nur „Wer spielt?“: **Ich al
 
 Gegen die KI und am Gerät zeigt der Ergebnis-Bildschirm über den Knöpfen einen nächsten Schritt: Nach einem Sieg gegen die KI unter Profi heißt er „Weiter auf …“ und startet mit einem Tipp dieselbe Partie eine Stufe stärker (die Stufe wird gespeichert). Sonst (am Gerät, nach einem Sieg gegen Profi oder ab der zweiten Runde) schlägt er ein anderes Spiel für denselben Modus vor, am liebsten eines, das noch nie gespielt wurde und aus derselben Kategorie stammt; gesperrte Spiele kommen nicht vor. Online, am Tisch und beim Zuschauen gibt es ihn nicht.
 
-## Tagesduell
+## Spiel des Tages und Abzeichen
 
-Jeden Tag ein Spiel gegen die KI in einer festen Stufe, für alle am selben Datum gleich (aus dem Datum gewählt, aus 4 Gewinnt, Käsekästchen, Schiffe versenken, Reversi, Kalaha, Mühle, Dame, Fünf in einer Reihe, Hex, Ultimate und 3D Tic Tac Toe, Backgammon und Go; Gäste nur aus ihren Spielen). Die Stufe hängt vom Wochentag ab: Montag Leicht, Dienstag, Mittwoch und Freitag Mittel, Donnerstag und Samstag Schwer, Sonntag Profi. Ein Sieg zählt einmal pro Tag; wer an aufeinanderfolgenden Tagen gewinnt, baut eine Serie auf (`versus.dailyCh`, nur auf dem Gerät). Die Karte steht am Handy über den Schnellknöpfen (statt der früheren Reihe „Für dich“, deren Spiele direkt darunter noch einmal kamen), am Laptop unter den Modus-Kacheln.
+Kein Wettbewerb: Niemand muss jedes Spiel können.
+
+- **Spiel des Tages:** jeden Tag ein Spiel gegen die KI, ausgesucht aus *deinen* Spielen (Favoriten, zuletzt und oft gespielt; bei weniger als drei kommen ein paar Klassiker dazu), auf deiner eigenen Stufe für dieses Spiel. Mit dem Würfel daneben tauschst du es gegen ein anderes. Es zählt, wenn du die Partie zu Ende spielst, gewinnen musst du nicht. Tage in Folge ergeben eine Serie; ein verpasster Tag pro Woche ist verziehen (Serienschutz). Karte am Handy über den Schnellknöpfen, am Laptop unter den Modus-Kacheln.
+- **Abzeichen:** 12 Stück in der Bilanz (statt der früheren Meilensteine wie „Siege gegen Profi“), z. B. erste Partie, 5 Partien zu zweit, 10 gegen die KI, 5 verschiedene Spiele, ein Spiel 25-mal, 5 Unentschieden, Serien von 3, 7 und 30 Tagen, Nachteule, Frühaufsteher. Keines verlangt einen Sieg oder ein bestimmtes Spiel. Neue erscheinen auf dem Ergebnis-Bildschirm.
+- Serie (`versus.dailyCh`) und Abzeichen (`versus.badges`) werden mit dem Konto abgeglichen (`js/cloud.js`, KEYS): auf dem gleichen Tag gewinnt die längere Serie, sonst der spätere Tag; Abzeichen werden vereinigt, mit dem früheren Datum. Dafür ist keine Migration nötig.
 
 ## Konto-Hinweis
 

@@ -72,6 +72,16 @@
     'Alle Tutorials sind wieder neu': 'All tutorials are new again', 'Einstellungen zurückgesetzt': 'Settings reset', 'Bilanz gelöscht': 'Stats deleted',
     // tutorial dialog, welcome
     // end screen: next step
+    'Spiel des Tages · {0}': 'Game of the day · {0}', 'Spiel des Tages': 'Game of the day', 'Erledigt': 'Done', 'Morgen geht es weiter': 'More tomorrow',
+    'Aus deinen Spielen': 'From your games', 'Einmal durchspielen': 'Play it once', 'Anderes Spiel': 'Another game',
+    'Spiel des Tages erledigt': 'Game of the day done', 'Neues Abzeichen': 'New badge', 'Abzeichen': 'Badges', '# von #': '# of #',
+    'Serie und Abzeichen überall dabei': 'Series and badges everywhere',
+    'Mit einem kostenlosen Konto sind Abzeichen und Serie auf jedem Gerät dabei.': 'With a free account, badges and series come along on every device.',
+    'Los geht’s': "Let's go", 'Deine erste Partie': 'Your first game', '# Partien an einem Gerät': '# games on one device',
+    'Maschinenflüsterer': 'Machine whisperer', '# Partien gegen die KI': '# games against the AI', 'Online dabei': 'Online player', 'Eine Online-Partie': 'One online game',
+    'Neugierig': 'Curious', '# verschiedene Spiele ausprobiert': '# different games tried', 'Lieblingsspiel': 'Favourite game', 'Ein Spiel #-mal gespielt': 'One game played # times',
+    'Gleichstand': 'Dead even', '# Unentschieden': '# draws', 'Dranbleiben': 'Keep going', 'Eine Woche': 'One week', 'Ein Monat': 'One month',
+    'Spiel des Tages # Tage in Folge': 'Game of the day # days in a row', 'Nachteule': 'Night owl', 'Eine Partie zwischen # und # Uhr': "A game between # and # o'clock", 'Frühaufsteher': 'Early bird',
     'Tagesduell': 'Daily duel', 'Tagesduell · {0}': 'Daily duel · {0}', 'Schlag die KI': 'Beat the AI', 'Geschafft!': 'Done!', 'Morgen kommt ein neues': 'A new one tomorrow',
     'Tag': 'day', 'Tage': 'days', 'Tagesduell geschafft': 'Daily duel done', 'Serie: # Tag': 'Series: # day', 'Serie: # Tage': 'Series: # days',
     'Tagesduell: gewinn eine Partie, dann zählt der Tag.': 'Daily duel: win one game and the day counts.',
