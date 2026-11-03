@@ -385,12 +385,15 @@
         const menu = () => watch ? (M.admin ? V.account.admin('matches') : V.ui.home('online')) : setup(g);
         // what comes next (AI and one device only): after a win against the AI the next level is one tap away,
         // otherwise a game of the same kind that was not played yet (so the 35 games get found)
+        // Tagesduell: a win counts once a day and keeps the series going
+        const dWon = ai && cfg.daily && !auto && !off && winner && winner === me ? P.dailyWon(cfg.daily) : 0;
         const step = !online && !table && !watch && !auto && !off ? nextStep(winner === me && !!winner) : null;
         ctx.later(() => {
           const m = openModal(`<div class="ko ${tone}">
             <div class="band"><div class="band-in"><span class="kicker">${esc(note || sublabel)}${online && net && net.last && net.last.ranked === false ? ' · zählt nicht für die Rangliste' : ''}</span>
               <h2 aria-label="${esc(big)}">${[...big].map((ch, k) => `<span aria-hidden="true" style="--k:${k}">${ch === ' ' ? '&nbsp;' : esc(ch)}</span>`).join('')}</h2></div></div>
             ${party ? `<div class="eparty">${SIDES.map(k => `<span class="ep c${k}"><b>${series[k]}</b><small>${esc(names[k])}</small></span>`).join('')}</div>` : `<div class="eseries"><span class="nl">${esc(names[L])}</span><b class="sl${winner === L && !off ? ' up' : ''}" data-n="${series[L]}">${winner === L && !off ? series[L] - 1 : series[L]}</b><i>:</i><b class="sr${winner === R && !off ? ' up' : ''}" data-n="${series[R]}">${winner === R && !off ? series[R] - 1 : series[R]}</b><span class="nr">${esc(names[R])}</span></div>`}
+            ${dWon ? `<div class="kdaily">${IC.bolt}<b>Tagesduell geschafft</b><span>Serie: ${dWon} ${dWon === 1 ? 'Tag' : 'Tage'}</span></div>` : ai && cfg.daily && !off ? '<p class="small">Tagesduell: gewinn eine Partie, dann zählt der Tag.</p>' : ''}
             ${ai && winner && winner !== me && !off && tipFor() ? `<div class="ktip">${IC.bulb}<div><b>Tipp für die Revanche</b><p>${tipFor()}</p></div></div>` : ''}
             ${series.d ? `<p class="small">${series.d}× unentschieden</p>` : ''}
             ${online ? `<div class="kemo" id="kemo"></div><div class="kquick">${['gg', 'clap', 'haha', 'sweat'].map(e => `<button data-emo="${e}">${EMO[e]}</button>`).join('')}${['p_wp', 'p_rev'].map(e => `<button class="ph" data-emo="${e}">${PHR[e]}</button>`).join('')}</div>` : ''}
@@ -450,12 +453,21 @@
     function nextStep(won) {
       const card = (cls, kick, ic, title, sub, acc) => `<button class="knext ${cls}" id="knext" style="--acc:${acc}"><span class="kn-ic">${ic}</span>
         <span class="kn-t"><small>${kick}</small><b>${title}</b><em>${sub}</em></span><span class="kn-go">${IC.play}</span></button>`;
+      // guests: after the third game, once every three days, the free account (their record lives only on this device)
+      if (guest() && P.totals().total >= 3 && Date.now() - S.get('acctNudge', 0) > 3 * 864e5) {
+        S.set('acctNudge', Date.now());
+        const more = V.games.filter(x => locked(x)).length;
+        return {
+          html: card('acct', 'Bilanz sichern', IC.user, 'Kostenloses Konto', `${more} Spiele mehr, online gegen Freunde und deine Partien auf jedem Gerät`, 'var(--cyan)'),
+          go() { home('profile'); }
+        };
+      }
       if (ai && won && cfg.level < 3) {
         const lv = cfg.level + 1;
-        const all = S.get('setup', {}); all[g.id] = Object.assign({}, all[g.id] || {}, cfg, { level: lv }); delete all[g.id].replay; delete all[g.id].firstWas;
+        const all = S.get('setup', {}); all[g.id] = Object.assign({}, all[g.id] || {}, cfg, { level: lv }); delete all[g.id].replay; delete all[g.id].firstWas; delete all[g.id].daily;
         return {
           html: card('lvl l' + lv, `${V.LEVELS[cfg.level]} geschlagen`, IC.bolt, `Weiter auf ${V.LEVELS[lv]}`, (g.levelInfo || P.LEVEL_INFO)[lv], 'var(--yellow)'),
-          go() { S.set('setup', all); play(g, Object.assign({}, cfg, { level: lv, replay: null, firstWas: null, first: cfg.firstWas || cfg.first })); }
+          go() { S.set('setup', all); play(g, Object.assign({}, cfg, { level: lv, replay: null, firstWas: null, daily: null, first: cfg.firstWas || cfg.first })); }
         };
       }
       // a few rounds in, or a win at the top: show another game for the same mode

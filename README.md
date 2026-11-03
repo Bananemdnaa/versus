@@ -47,6 +47,14 @@ Statt einer Tour fragt Versus beim ersten Besuch nur „Wer spielt?“: **Ich al
 
 Gegen die KI und am Gerät zeigt der Ergebnis-Bildschirm über den Knöpfen einen nächsten Schritt: Nach einem Sieg gegen die KI unter Profi heißt er „Weiter auf …“ und startet mit einem Tipp dieselbe Partie eine Stufe stärker (die Stufe wird gespeichert). Sonst (am Gerät, nach einem Sieg gegen Profi oder ab der zweiten Runde) schlägt er ein anderes Spiel für denselben Modus vor, am liebsten eines, das noch nie gespielt wurde und aus derselben Kategorie stammt; gesperrte Spiele kommen nicht vor. Online, am Tisch und beim Zuschauen gibt es ihn nicht.
 
+## Tagesduell
+
+Jeden Tag ein Spiel gegen die KI in einer festen Stufe, für alle am selben Datum gleich (aus dem Datum gewählt, aus 4 Gewinnt, Käsekästchen, Schiffe versenken, Reversi, Kalaha, Mühle, Dame, Fünf in einer Reihe, Hex, Ultimate und 3D Tic Tac Toe, Backgammon und Go; Gäste nur aus ihren Spielen). Die Stufe hängt vom Wochentag ab: Montag Leicht, Dienstag, Mittwoch und Freitag Mittel, Donnerstag und Samstag Schwer, Sonntag Profi. Ein Sieg zählt einmal pro Tag; wer an aufeinanderfolgenden Tagen gewinnt, baut eine Serie auf (`versus.dailyCh`, nur auf dem Gerät). Die Karte steht am Handy über den Schnellknöpfen (statt der früheren Reihe „Für dich“, deren Spiele direkt darunter noch einmal kamen), am Laptop unter den Modus-Kacheln.
+
+## Konto-Hinweis
+
+Gäste sehen den Banner „Kostenloses Konto: … Spiele mehr“ am Handy erst, wenn sie eine Partie gespielt haben. Ab der dritten Partie zeigt der Ergebnis-Bildschirm höchstens alle drei Tage einmal „Bilanz sichern – Kostenloses Konto“ als nächsten Schritt; ein Tipp öffnet die Anmeldung.
+
 ## Modi
 
 Am Laptop ist die Startseite ein Auswahlbildschirm: links die Spiele, rechts direkt die Einstellungen des gewählten Spiels. Im Spiel stehen die Spielerkarten links und rechts neben dem Brett. Am Handy öffnet ein Tipp auf ein Spiel dessen Einstellungen.

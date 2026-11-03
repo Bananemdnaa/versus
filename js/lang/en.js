@@ -72,6 +72,11 @@
     'Alle Tutorials sind wieder neu': 'All tutorials are new again', 'Einstellungen zurückgesetzt': 'Settings reset', 'Bilanz gelöscht': 'Stats deleted',
     // tutorial dialog, welcome
     // end screen: next step
+    'Tagesduell': 'Daily duel', 'Tagesduell · {0}': 'Daily duel · {0}', 'Schlag die KI': 'Beat the AI', 'Geschafft!': 'Done!', 'Morgen kommt ein neues': 'A new one tomorrow',
+    'Tag': 'day', 'Tage': 'days', 'Tagesduell geschafft': 'Daily duel done', 'Serie: # Tag': 'Series: # day', 'Serie: # Tage': 'Series: # days',
+    'Tagesduell: gewinn eine Partie, dann zählt der Tag.': 'Daily duel: win one game and the day counts.',
+    'Bilanz sichern': 'Keep your record', 'Kostenloses Konto': 'Free account',
+    '# Spiele mehr, online gegen Freunde und deine Partien auf jedem Gerät': '# more games, play friends online and your games on every device',
     'Leicht geschlagen': 'Easy beaten', 'Mittel geschlagen': 'Medium beaten', 'Schwer geschlagen': 'Hard beaten',
     'Weiter auf Mittel': 'On to Medium', 'Weiter auf Schwer': 'On to Hard', 'Weiter auf Profi': 'On to Pro',
     'Noch nicht gespielt': 'Not played yet', 'Mal was anderes?': 'Something different?',

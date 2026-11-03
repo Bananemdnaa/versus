@@ -317,10 +317,10 @@
     // laptop: hero, mode tiles and "Weiterspielen" above the library; a search hides them and shows the hits
     return `<div class="select">
       <section class="sel-main">
-        ${W ? `<div id="gtop"${homeQuery.trim() ? ' hidden' : ''}>${heroCarousel()}${modeTiles()}<div id="gcont">${contRow()}</div>${installCard()}</div>
+        ${W ? `<div id="gtop"${homeQuery.trim() ? ' hidden' : ''}>${heroCarousel()}${modeTiles()}${dailyCard()}<div id="gcont">${contRow()}</div>${installCard()}</div>
         <div class="lhead"><h2 class="lh">Bibliothek<small>${V.games.length}</small></h2>
           <div class="lview" role="group" aria-label="Ansicht">${[['grid', 'Kacheln', IC.grid], ['list', 'Liste', IC.book]].map(([k, l, ic]) => `<button data-lv="${k}" class="${libView() === k ? 'on' : ''}" aria-pressed="${libView() === k}" title="${l}" aria-label="${l}">${ic}</button>`).join('')}</div></div>`
-        : `<h1 class="ah-big">Bereit fürs Duell?</h1>${heroCarousel()}<div id="gcont">${contPhone()}</div>${quickTiles()}<div id="gfr">${friendsRow()}</div>${forYou()}`}
+        : `<h1 class="ah-big">Bereit fürs Duell?</h1>${heroCarousel()}<div id="gcont">${contPhone()}</div>${dailyCard()}${quickTiles()}<div id="gfr">${friendsRow()}</div>`}
         <div class="gfind">
           <div class="gsrow">
             ${W ? '' : `<label class="gsearch">${IC.search}<input id="gq" type="search" placeholder="Spiel suchen" autocomplete="off" spellcheck="false" enterkeyhint="go" aria-label="Spiel suchen" value="${escA(homeQuery)}"><kbd class="only-fine">/</kbd><button class="gclear" id="gqx" aria-label="Suche löschen"${homeQuery ? '' : ' hidden'}>${IC.x}</button></label>`}<button class="iconbtn gsurp" id="gsurp" aria-label="Überrasch mich" title="Überrasch mich">${IC.dice}</button></div>
@@ -440,12 +440,44 @@
     c.querySelectorAll('[data-prof]').forEach(b => b.onclick = () => { V.sfx.ui(); V.online.profile(b.dataset.prof); });
     const a = c.querySelector('#frsadd'); if (a) a.onclick = () => { V.sfx.ui(); V.online.addFriends(); };
   }
-  // phone: "Für dich", a two-column grid of favourites, recently played and a few classics
-  function forYou() {
-    const ids = [...favs(), ...S.get('recents', []), 'c4', 'ttt', 'ships', 'dots', 'pong'];
-    const list = [...new Set(ids)].map(id => V.byId[id]).filter(g => g && !locked(g)).slice(0, 4);
-    return list.length ? `<section class="grow fy"><h2 class="gh">Für dich</h2><div class="tiles fy">${list.map((g, k) => tile(g, k)).join('')}</div></section>` : '';
+  // ---------- Tagesduell ----------
+  // One game a day against the AI at a set level (the same for everybody on that date: picked from the date).
+  // Guests get it from the games they can play. Winning it once a day keeps the series going (versus.dailyCh).
+  const DAILY_POOL = ['c4', 'dots', 'ships', 'reversi', 'kalaha', 'mill', 'checkers', 'gomoku', 'hex', 'uttt', 'ttt3', 'backgammon', 'go'];
+  // by weekday (Sunday first): the week starts easy and ends with the hard ones
+  const DAILY_LVL = [3, 0, 1, 1, 2, 1, 2];
+  const dkey = d => d.toLocaleDateString('sv');
+  function daily() {
+    const d = new Date(), key = dkey(d);
+    const pool = DAILY_POOL.map(id => V.byId[id]).filter(g => g && !g.noAI && !locked(g));
+    if (!pool.length) return null;
+    let h = 7; for (const ch of key) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
+    const st = S.get('dailyCh', {}), yest = dkey(new Date(Date.now() - 864e5));
+    return { key, g: pool[h % pool.length], level: DAILY_LVL[d.getDay()], done: st.last === key, streak: st.last === key || st.last === yest ? st.streak || 0 : 0 };
   }
+  // a won Tagesduell: counts once per day, returns the series
+  function dailyWon(key) {
+    const t = daily(); if (!t || t.key !== key) return 0;
+    const st = S.get('dailyCh', {});
+    if (st.last !== key) { st.streak = st.last === dkey(new Date(Date.now() - 864e5)) ? (st.streak || 0) + 1 : 1; st.last = key; S.set('dailyCh', st); }
+    return st.streak;
+  }
+  function playDaily() {
+    const t = daily(); if (!t) return;
+    const cfg = loadCfg(t.g); cfg.mode = 'ai'; cfg.level = t.level; cfg.first = 'me'; cfg.daily = t.key;
+    V.sfx.go(); V.buzz(12); play(t.g, cfg);
+  }
+  function dailyCard() {
+    const t = daily(); if (!t || inDiscord()) return '';
+    const day = new Date().toLocaleDateString(V.locale(), { weekday: 'short', day: 'numeric', month: 'short' });
+    const flame = `<span class="dc-st${t.streak ? ' on' : ''}" title="Serie">${IC.bolt}<b>${t.streak}</b><small>${t.streak === 1 ? 'Tag' : 'Tage'}</small></span>`;
+    return `<section class="dch-w"><button class="dch${t.done ? ' done' : ''}" id="dch" style="--acc:${t.g.accent || 'var(--pink)'}">
+      <span class="dc-ic">${t.g.icon}${t.done ? `<i class="dc-ok">${IC.check}</i>` : ''}</span>
+      <span class="dc-tx"><em>Tagesduell · ${day}</em><b>${t.done ? 'Geschafft!' : 'Schlag die KI'}</b>
+        <small>${t.g.name} · <i class="lvt l${t.level}">${V.LEVELS[t.level]}</i>${t.done ? ' · Morgen kommt ein neues' : ''}</small></span>
+      ${flame}</button></section>`;
+  }
+  const wireDaily = v => { const b = v.querySelector('#dch'); if (b) b.onclick = playDaily; };
   function wireCont(c) {
     c.querySelectorAll('[data-cont]').forEach(b => b.onclick = () => { const r = contList[+b.dataset.cont]; if (!r) return; V.sfx.ui(); b.classList.add('busy'); V.online.resumeAny(r); });
   }
@@ -580,7 +612,8 @@
     return section(`${IC.star}Favoriten`, fav) + section('Zuletzt gespielt', recent) + V.CATS.map(c => section(c, list.filter(g => g.cat === c), undefined, c)).join('');
   }
   // phone, guests: one banner instead of a box of locked games
-  const lockBanner = n => n ? `<div class="lockb"><span class="lki">${IC.lock}</span><span class="lb-t"><b>Kostenloses Konto: ${n} Spiele mehr</b><small>Dazu Online-Partien, Freunde und die Rangliste</small></span><button class="btn primary sm" data-tab="profile"><span>Konto erstellen</span></button></div>` : '';
+  // (new visitors see the games first; the banner comes once a game was played)
+  const lockBanner = n => n && totals().total ? `<div class="lockb"><span class="lki">${IC.lock}</span><span class="lb-t"><b>Kostenloses Konto: ${n} Spiele mehr</b><small>Dazu Online-Partien, Freunde und die Rangliste</small></span><button class="btn primary sm" data-tab="profile"><span>Konto erstellen</span></button></div>` : '';
   let homeQuery = '';
   function refreshList() {
     const tl = app.querySelector('#glist'); if (!tl || view !== 'home' || homeTab !== 'games') return;
@@ -619,7 +652,7 @@
       refreshList();
     });
     if (!wide()) wireSearch(v);
-    const fy = v.querySelector('.tiles.fy'); if (fy) wireTiles(fy);
+    wireDaily(v);
     const fr = v.querySelector('#gfr'); if (fr) wireFriends(fr);
     wireHero(v);
     if (wide()) renderPanel(v.querySelector('#panel'), selected, false);
@@ -1931,7 +1964,7 @@
   Object.assign(P, {
     mount, locked, guest, toast, home, setup, openModal, closeModal, nav, tutorial, showKeys, optsPopup, toggleSound, rulesPopup,
     enterPlay(g) { destroyCurrent(); view = 'play'; lastGame = g; selected = g; document.querySelectorAll('.upbar:not(.note)').forEach(b => b.remove()); },
-    updateBar,
+    updateBar, daily, dailyWon, totals,
     setCurrent(c) { current = c; },
     modalOpen: () => !!modalEl,
     // closes the dialog without running its onClose callback
