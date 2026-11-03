@@ -71,6 +71,13 @@
     'Geht erst nach dem nächsten Server-Update': 'Works after the next server update',
     'Alle Tutorials sind wieder neu': 'All tutorials are new again', 'Einstellungen zurückgesetzt': 'Settings reset', 'Bilanz gelöscht': 'Stats deleted',
     // tutorial dialog, welcome
+    // first start: quick start
+    'Wer spielt?': "Who's playing?", 'Ich allein': 'Just me', 'gegen die KI': 'against the AI', 'Wir zu zweit': 'Two of us', 'an diesem Gerät': 'on this device',
+    'Mit Freund': 'With a friend', 'per Link': 'by link', 'Erst mal umschauen': 'Just look around first',
+    '# Spiele · kostenlos · ohne Werbung': '# games · free · no ads',
+    'Die KI startet auf Leicht. Stärker wird sie, wann du willst.': 'The AI starts on Easy. Make it stronger whenever you like.',
+    'Legt das Handy zwischen euch. Jeder spielt von seiner Seite.': 'Put the phone between you. Each plays from their own side.',
+    'Du bekommst einen Link. Wer ihn öffnet, spielt sofort gegen dich, ohne Konto.': 'You get a link. Whoever opens it plays you right away, no account needed.',
     'Willkommen': 'Welcome', 'Willkommen bei Versus': 'Welcome to Versus', 'Drei Arten zu spielen': 'Three ways to play', 'Leg los': "Let's go",
     '{0}: Klassiker wie # Gewinnt und Schach, Strategie und schnelle Action-Duelle. Gemacht für eine schnelle Runde zwischendurch mit Freunden.': '{0}: classics like Connect 4 and chess, strategy and fast action duels. Made for a quick round with friends.',
     '# Spiele für zwei bis vier': '# games for two to four',

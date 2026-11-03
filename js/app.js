@@ -1544,20 +1544,51 @@
     render();
   }
 
-  // first start: three short slides about what Versus is (shown once, like a tutorial)
+  // First start: no tour to click through, but a quick start. "Wer spielt?" (alone, two at this device, a friend by link)
+  // shows three short games for that choice; one tap closes it and starts the match right away (against the AI on
+  // Leicht, so the first round feels good). Every game still shows its own tutorial and the "Hier tippen" hand.
   V.welcomeDue = () => !P.seen._welcome;
+  const QS = {
+    ai: { ic: 'robot', l: 'Ich allein', s: 'gegen die KI', games: ['c4', 'ttt', 'dots'], hint: 'Die KI startet auf Leicht. Stärker wird sie, wann du willst.' },
+    local: { ic: 'users', l: 'Wir zu zweit', s: 'an diesem Gerät', games: ['reaction', 'pong', 'c4'], hint: 'Legt das Handy zwischen euch. Jeder spielt von seiner Seite.' },
+    link: { ic: 'globe', l: 'Mit Freund', s: 'per Link', games: ['c4', 'ttt', 'ships'], hint: 'Du bekommst einen Link. Wer ihn öffnet, spielt sofort gegen dich, ohne Konto.' }
+  };
   function welcome() {
     if (P.seen._welcome) return;
-    const icons = ['c4', 'chess', 'ships', 'ttt', 'pong', 'reversi'].map(id => V.byId[id] ? `<i style="--k:${'c4,chess,ships,ttt,pong,reversi'.split(',').indexOf(id)}">${V.byId[id].icon}</i>` : '').join('');
-    const mode = (ic, b, s) => `<div class="wmode">${ic}<b>${b}</b><small>${s}</small></div>`;
-    tutorial({
-      id: '_welcome', name: 'Willkommen',
-      tutorial: [
-        { t: 'Willkommen bei Versus', demo: `<div class="wicons">${icons}</div>`, d: `<b>${V.games.length} Spiele für zwei bis vier</b>: Klassiker wie 4 Gewinnt und Schach, Strategie und schnelle Action-Duelle. Gemacht für eine schnelle Runde zwischendurch mit Freunden.` },
-        { t: 'Drei Arten zu spielen', demo: `<div class="wmodes">${mode(IC.robot, 'KI', '4 Stufen')}${mode(IC.users, 'Am Gerät', 'zusammen')}${mode(IC.globe, 'Online', 'mit Freunden')}</div>`, d: '<b>Gegen die KI</b> von Anfänger bis Profi, <b>zu zweit</b> an einem Handy, oder <b>online</b> gegen Freunde. Die Rangliste startet jeden Montag neu.' },
-        { t: 'Leg los', demo: `<div class="wmodes">${mode(IC.help, 'Tutorial', 'in jedem Spiel')}${mode(IC.user, 'Konto', 'kostenlos')}${mode(IC.dl, 'App', 'installierbar')}</div>`, d: 'Jedes Spiel erklärt sich beim ersten Mal selbst. Als Gast spielst du sofort los; mit einem Konto sind alle Spiele, Freunde und Online-Partien dabei.' }
-      ]
+    const linkOk = !!(V.online && V.cloud && V.cloud.available() && !inDiscord());
+    const who = Object.keys(QS).filter(k => k === 'ai' || (k === 'local' ? !inDiscord() : linkOk));
+    let pick = 'ai', done = false;
+    const finish = () => { if (done) return; done = true; P.seen._welcome = 1; S.set('seen', P.seen); };
+    const games = k => QS[k].games.map(id => V.byId[id]).filter(g => g && !locked(g) && (k !== 'link' || g.online) && (k !== 'ai' || !g.noAI));
+    const row = () => games(pick).map((g, i) => `<button class="qs-g" data-g="${g.id}" style="--acc:${g.accent || 'var(--pink)'};--k:${i}">
+        <span class="ic">${g.icon}</span><span class="qs-gt"><b>${g.name}</b><small>${g.short || ''}</small></span><span class="qs-play">${pick === 'link' ? IC.link : IC.play}</span></button>`).join('');
+    const m = openModal(`<div class="qs">
+      <div class="qs-k"><span>Versus</span><b>${V.games.length} Spiele · kostenlos · ohne Werbung</b></div>
+      <h3>Wer spielt?</h3>
+      <div class="qs-who" role="radiogroup" aria-label="Wer spielt?" style="--n:${who.length}">${who.map(k => `<button type="button" role="radio" data-w="${k}" aria-checked="${k === pick}" class="${k === pick ? 'on' : ''}">${IC[QS[k].ic]}<b>${QS[k].l}</b><small>${QS[k].s}</small></button>`).join('')}</div>
+      <div class="qs-list" aria-live="polite"><p class="qs-hint">${QS[pick].hint}</p><div class="qs-games">${row()}</div></div>
+      <button class="qs-skip" id="qsx">Erst mal umschauen</button>
+    </div>`, 'qsm', finish, false, e => {
+      if (/^[1-3]$/.test(e.key)) { const b = m.querySelectorAll('.qs-g')[+e.key - 1]; if (b) b.click(); return true; }
+      return false;
     });
+    const list = m.querySelector('.qs-list');
+    const wire = () => list.querySelectorAll('.qs-g').forEach(b => b.onclick = () => {
+      const g = V.byId[b.dataset.g], cfg = loadCfg(g);
+      finish(); closeModal(); V.buzz(12);
+      if (pick === 'link') { V.sfx.ui(); return V.online.linkInvite(g, cfg.opts); }
+      cfg.mode = pick; if (pick === 'ai') { cfg.level = 0; cfg.first = 'me'; }
+      saveCfg(g, cfg); V.sfx.go(); play(g, cfg);
+    });
+    wire();
+    arrowGroup(m.querySelector('.qs-who'));
+    m.querySelectorAll('[data-w]').forEach(b => b.onclick = () => {
+      if (b.dataset.w === pick) return;
+      pick = b.dataset.w; V.sfx.tick();
+      m.querySelectorAll('[data-w]').forEach(x => { const on = x === b; x.classList.toggle('on', on); x.setAttribute('aria-checked', on); });
+      list.innerHTML = `<p class="qs-hint">${QS[pick].hint}</p><div class="qs-games">${row()}</div>`; wire();
+    });
+    m.querySelector('#qsx').onclick = () => { V.sfx.tick(); closeModal(); };
   }
 
   // ---------- keyboard board cursor ----------

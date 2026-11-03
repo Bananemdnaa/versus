@@ -39,6 +39,10 @@ Weitere Regeln:
 - **Fünf in einer Reihe:** 13×13 oder 15×15, fünf oder mehr in einer Reihe gewinnen. Am Handy setzt der erste Tipp eine Vorschau, der zweite den Stein.
 - **Kalaha:** 6 Mulden mit 3, 4 oder 6 Steinen, Extrazug im eigenen Speicher, Fangen aus der leeren eigenen Mulde, am Ende bekommt jeder die Steine seiner Seite.
 
+## Erster Start
+
+Statt einer Tour fragt Versus beim ersten Besuch nur „Wer spielt?“: **Ich allein** (gegen die KI), **Wir zu zweit** (an diesem Gerät) oder **Mit Freund** (per Link, nur mit Server). Darunter stehen je drei kurze Spiele, die auch ohne Konto gehen; ein Tipp schließt das Fenster und startet die Partie sofort (gegen die KI auf Leicht, du fängst an), beim Link öffnet sich die Einladung. Tasten 1–3 starten das jeweilige Spiel. „Erst mal umschauen“ schließt nur. Das Fenster kommt einmal (`seen._welcome`).
+
 ## Modi
 
 Am Laptop ist die Startseite ein Auswahlbildschirm: links die Spiele, rechts direkt die Einstellungen des gewählten Spiels. Im Spiel stehen die Spielerkarten links und rechts neben dem Brett. Am Handy öffnet ein Tipp auf ein Spiel dessen Einstellungen.

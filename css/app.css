@@ -859,6 +859,45 @@ html,body{-webkit-tap-highlight-color:transparent}
 .wmode b{font:800 italic 15px/1.1 var(--f-d);text-transform:uppercase}
 .wmode small{font-size:11.5px;color:var(--muted)}
 .lowfx .wicons i,.lowfx .wmode{animation:none}
+/* first start: quick start "Wer spielt?" -> one tap into a match */
+.modal.qsm{max-width:500px}
+.qs{display:flex;flex-direction:column;gap:14px}
+.qs-k{display:flex;justify-content:space-between;align-items:baseline;gap:10px;font:700 italic 13px/1 var(--f-d);letter-spacing:.18em;text-transform:uppercase;color:var(--pink)}
+.qs-k b{font:600 11.5px/1.2 var(--f-b,inherit);letter-spacing:0;text-transform:none;color:var(--muted);text-align:right}
+.qs h3{font:800 italic clamp(34px,9vw,44px)/.95 var(--f-d);text-transform:uppercase;margin:0;background:linear-gradient(100deg,var(--fg) 40%,var(--pink) 75%,var(--yellow));-webkit-background-clip:text;background-clip:text;color:transparent}
+.qs-who{display:grid;grid-template-columns:repeat(var(--n),1fr);gap:8px}
+.qs-who button{position:relative;display:flex;flex-direction:column;align-items:center;gap:3px;padding:14px 6px 12px;border-radius:10px;background:var(--panel2);border:1.5px solid var(--line);color:var(--fg);cursor:pointer;text-align:center;transition:transform .2s var(--spring),border-color .2s,background .2s;animation:wpop .45s var(--spring) backwards}
+.qs-who button:nth-child(2){animation-delay:.07s}.qs-who button:nth-child(3){animation-delay:.14s}
+.qs-who svg{width:28px;height:28px;color:var(--dim);transition:color .2s,transform .3s var(--spring)}
+.qs-who b{font:800 italic 15px/1.1 var(--f-d);text-transform:uppercase}
+.qs-who small{font-size:11.5px;color:var(--muted)}
+.qs-who button:hover{border-color:var(--line2)}
+.qs-who button.on{border-color:var(--pink);background:linear-gradient(180deg,rgba(255,79,216,.18),rgba(255,79,216,.04));box-shadow:0 0 0 3px rgba(255,79,216,.15),0 8px 24px -10px rgba(255,79,216,.6)}
+.qs-who button.on svg{color:var(--pink);transform:scale(1.12)}
+.qs-who button.on::after{content:"";position:absolute;bottom:-8px;left:50%;width:12px;height:12px;background:var(--panel);border-right:1.5px solid var(--pink);border-bottom:1.5px solid var(--pink);transform:translateX(-50%) rotate(45deg) scale(.0);animation:qsTip .25s .05s var(--spring) forwards}
+@keyframes qsTip{to{transform:translateX(-50%) rotate(45deg) scale(1)}}
+.qs-list{display:flex;flex-direction:column;gap:8px;padding:12px;border-radius:10px;background:var(--ink2);border:1px solid var(--line)}
+.qs-hint{margin:0 2px 2px;font-size:13px;color:var(--muted);line-height:1.4}
+.qs-games{display:flex;flex-direction:column;gap:8px}
+.qs-g{display:flex;align-items:center;gap:12px;padding:8px 10px 8px 8px;border-radius:9px;background:var(--panel2);border:1px solid var(--line);color:var(--fg);cursor:pointer;text-align:left;transition:transform .15s var(--ease),border-color .15s,background .15s;animation:qsIn .35s var(--spring) backwards;animation-delay:calc(var(--k) * 60ms)}
+@keyframes qsIn{from{opacity:0;transform:translateY(8px)}}
+.qs-g .ic{flex:none;width:46px;height:46px;border-radius:8px;display:grid;place-items:center;background:color-mix(in srgb,var(--acc) 14%,transparent)}
+.qs-g .ic svg{width:36px;height:36px}
+.qs-gt{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.qs-gt b{font:800 italic 18px/1 var(--f-d);text-transform:uppercase}
+.qs-gt small{font-size:12.5px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.qs-play{flex:none;width:40px;height:40px;border-radius:50%;display:grid;place-items:center;background:var(--pink);color:#140a18;box-shadow:0 4px 16px -4px var(--pink);transition:transform .2s var(--spring)}
+.qs-play svg{width:18px;height:18px}
+.qs-g:hover,.qs-g:focus-visible{border-color:var(--acc);background:color-mix(in srgb,var(--acc) 9%,var(--panel2))}
+.qs-g:hover .qs-play,.qs-g:focus-visible .qs-play{transform:scale(1.12)}
+.qs-g:active{transform:scale(.98)}
+.qs-g:first-child .qs-play{animation:qsPulse 1.8s 1s ease-out infinite}
+@keyframes qsPulse{0%{box-shadow:0 0 0 0 rgba(255,79,216,.55)}70%,100%{box-shadow:0 0 0 12px rgba(255,79,216,0)}}
+.qs-skip{align-self:center;background:none;border:0;padding:6px 10px;color:var(--muted);font-size:13px;text-decoration:underline;text-underline-offset:3px;cursor:pointer}
+.qs-skip:hover{color:var(--fg)}
+.lowfx .qs-who button,.lowfx .qs-g,.lowfx .qs-g:first-child .qs-play,.lowfx .qs-who button.on::after{animation:none}
+.lowfx .qs-who button.on::after{transform:translateX(-50%) rotate(45deg)}
+
 
 /* ---------- chess clock ---------- */
 .pcard .clk{margin-left:auto;flex:none;padding:5px 9px;min-width:62px;text-align:center;font:800 italic 20px/1 var(--f-d);font-variant-numeric:tabular-nums;background:var(--panel2);border:1px solid var(--line);color:var(--muted);transform:skewX(var(--sk));transition:background .2s,color .2s}
