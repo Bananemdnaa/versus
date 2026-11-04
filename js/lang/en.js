@@ -72,6 +72,7 @@
     'Alle Tutorials sind wieder neu': 'All tutorials are new again', 'Einstellungen zurückgesetzt': 'Settings reset', 'Bilanz gelöscht': 'Stats deleted',
     // tutorial dialog, welcome
     // chess: review, move list, openings, board options
+    "Schach, Dame und Reversi · Standard ist beim Schach grün": "Chess, checkers and Reversi · Standard is green for chess",
     "Partie analysieren": "Review the game", "Analyse": "Review", "Partie-Analyse": "Game review",
     "Versus rechnet jede Stellung durch …": "Versus is working through every position …", "Genauigkeit": "Accuracy", "Bester Zug": "Best move",
     "Exzellent": "Excellent", "Gut": "Good", "Ungenauigkeit": "Inaccuracy",

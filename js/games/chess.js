@@ -290,18 +290,18 @@
 
   V.css(`
   .chesswrap{width:min(var(--bw),620px,100%);display:flex;flex-direction:column;gap:6px;--lt:#ebecd0;--dk:#739552;--lml:#f5f682;--lmd:#b9ca43;--dot:rgba(0,0,0,.16);--col:#739552;--cod:#ebecd0}
-  .chesswrap.th-neon{--lt:#272c5c;--dk:#1a1d40;--lml:#3b3474;--lmd:#2f2963;--dot:rgba(98,240,255,.5);--col:#8189d0;--cod:#6b73ba}
+  .bd-neon .chesswrap{--lt:#272c5c;--dk:#1a1d40;--lml:#3b3474;--lmd:#2f2963;--dot:rgba(98,240,255,.5);--col:#8189d0;--cod:#6b73ba}
   .bd-wood .chesswrap{--lt:#ecd3a6;--dk:#b5835a;--lml:#e8d47c;--lmd:#c9a24f;--dot:rgba(60,30,10,.3);--col:#9a6a40;--cod:#f0d9b0}
   .capt{display:flex;gap:0;min-height:22px;align-items:center;flex-wrap:wrap}
   .capt i{display:block;width:20px;height:20px;margin-right:-6px} .capt i svg{width:100%;height:100%;display:block}
   .capt em{font-style:normal;font-size:12px;font-weight:700;color:var(--muted);margin-left:10px}
   .chess{display:grid;grid-template-columns:repeat(8,1fr);border-radius:4px;overflow:hidden;box-shadow:0 10px 30px -12px rgba(0,0,0,.7);user-select:none;-webkit-user-select:none;touch-action:none;position:relative}
-  .th-neon .chess{border-radius:12px;border:2px solid #4a52a0;box-shadow:0 0 0 1px rgba(98,240,255,.18),0 0 46px -12px var(--cy)}
+  .bd-neon .chess{border-radius:12px;border:2px solid #4a52a0;box-shadow:0 0 0 1px rgba(98,240,255,.18),0 0 46px -12px var(--cy)}
   .bd-wood .chess{border:6px solid #5d3a1c;box-shadow:0 18px 40px -14px rgba(0,0,0,.8)}
   .chess .sq{aspect-ratio:1;position:relative;display:grid;place-items:center;cursor:pointer;min-width:0}
   .chess .lt{background:var(--lt)} .chess .dk{background:var(--dk)}
   .chess .lastm.lt,.chess .sel.lt{background:var(--lml)} .chess .lastm.dk,.chess .sel.dk{background:var(--lmd)}
-  .th-neon .chess .lastm{box-shadow:inset 0 0 0 2px rgba(255,79,216,.5)} .th-neon .chess .sel{box-shadow:inset 0 0 0 4px var(--cy)}
+  .bd-neon .chess .lastm{box-shadow:inset 0 0 0 2px rgba(255,79,216,.5)} .bd-neon .chess .sel{box-shadow:inset 0 0 0 4px var(--cy)}
   .chess .hov{box-shadow:inset 0 0 0 4px rgba(255,255,255,.75)}
   .chess .chk{background:radial-gradient(circle,#ff2d2d 0,#e83a3a 25%,rgba(232,58,58,.5) 55%,transparent 80%)!important}
   .chess .pc{display:block;position:relative;z-index:2;width:100%;height:100%;transition:transform .15s,rotate .45s var(--ease)}
@@ -371,8 +371,7 @@
     sides: { 1: 'Weiß', 2: 'Schwarz' },
     keys: [['Pfeile', 'Feld wählen'], ['Enter', 'Figur nehmen, dann Zielfeld'], ['1–4', 'Bei Umwandlung: Dame, Turm, Läufer, Springer']],
     firstTitle: 'Deine Farbe', firstLabels: ['Weiß', 'Schwarz', 'Zufall'],
-    options: [{ id: 'theme', label: 'Brett', group: 'board', desc: 'Grün wie im Schachverein oder im Versus-Neon.', short: v => v === 'neon' ? 'Neon-Brett' : '', def: 'green', choices: [['green', 'Grün'], ['neon', 'Neon']] },
-      { id: 'flipb', label: 'Brett drehen', group: 'board', desc: 'Am Gerät nebeneinander: Das Brett dreht sich zu dem, der dran ist. Sitzt ihr euch gegenüber, drehen sich stattdessen die Figuren.', short: v => v ? 'Brett dreht mit' : '', def: 0, modes: ['local'], choices: [[0, 'Aus'], [1, 'Mitdrehen']] },
+    options: [{ id: 'flipb', label: 'Brett drehen', group: 'board', desc: 'Am Gerät nebeneinander: Das Brett dreht sich zu dem, der dran ist. Sitzt ihr euch gegenüber, drehen sich stattdessen die Figuren.', short: v => v ? 'Brett dreht mit' : '', def: 0, modes: ['local'], choices: [[0, 'Aus'], [1, 'Mitdrehen']] },
       { id: 'clock', label: 'Schachuhr', group: 'time', inline: 'local', desc: 'Jeder hat so viel Zeit für alle Züge.', short: v => v ? `Uhr ${v} Min.` : '', def: 0, modes: ['local', 'online', 'open'], choices: [[0, 'Aus'], [3, '3 Min'], [5, '5 Min'], [10, '10 Min']] }],
     levelInfo: ['Anfänger: zieht oft planlos und lässt Figuren hängen.', 'Schlägt, was offen herumsteht, übersieht aber Gabeln und Fesselungen.', 'Rechnet drei Halbzüge genau. Hängende Figuren verzeiht sie nicht.', 'Rechnet bis zu acht Halbzüge tief und nimmt sich Zeit dafür.'],
     endDelay: 1300,
@@ -400,8 +399,8 @@
       const hist = [];
       let view = null, rev = null;
       const capd = { w: [], b: [] };
-      const theme = ctx.opts && ctx.opts.theme === 'neon' ? 'neon' : 'green';
-      const wrap = V.el('div', 'chesswrap th-' + theme), topC = V.el('div', 'capt'), botC = V.el('div', 'capt'), board = V.el('div', 'chess');
+      // the board look comes from Optionen → Spielbrett: Standard is the green club board, Neon and Holz as for Dame and Reversi
+      const wrap = V.el('div', 'chesswrap'), topC = V.el('div', 'capt'), botC = V.el('div', 'capt'), board = V.el('div', 'chess');
       const panel = V.el('div', 'chx', `<div class="chx-top"><span class="chx-op" id="chop"></span><span class="chx-nav">
           <button id="chf" aria-label="Zum Anfang">⏮</button><button id="chp" aria-label="Zug zurück">◀</button><button id="chn" aria-label="Zug vor">▶</button><button id="chl" aria-label="Zum aktuellen Zug">⏭</button></span></div>
         <div class="chx-ml" id="chml" data-empty="${V.t ? V.t('Hier stehen gleich die Züge.') : 'Hier stehen gleich die Züge.'}"></div>`);
