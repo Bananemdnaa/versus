@@ -357,13 +357,55 @@
       else if (prev && (prev.kind === 'mist' || prev.kind === 'blun') && wB >= 65 && loss >= 10 && loss <= 30) kind = 'miss';
       else kind = loss <= 10 ? 'inacc' : loss <= 20 ? 'mist' : 'blun';
       const better = !isBest && top.pv[0] && ['inacc', 'mist', 'miss', 'blun', 'good'].includes(kind) ? fromUci(P, top.pv[0]) : null;
-      res.push({
-        kind, acc: kind === 'book' ? 100 : accOf(loss),
+      const item = {
+        kind, acc: kind === 'book' ? 100 : accOf(loss), loss, phase: phaseOf(P, k, book),
         best: better ? san(P, better, legal(P)) : '', bestM: better ? { f: better.f, t: better.t } : null,
         line: better ? lineSan(P, k, top.pv) : ''
-      });
+      };
+      item.why = explain(pos, info, plies, k, item, bestV);
+      res.push(item);
     }
-    return { moves: res, evals: info.map((x, i) => { const s = clamp((x.lines[0] || { s: 0 }).s); return pos[i].turn === 'w' ? s : -s; }), sf: true };
+    return { moves: res, evals: info.map((x, i) => { const s = clamp((x.lines[0] || { s: 0 }).s); return pos[i].turn === 'w' ? s : -s; }), sf: true, info, pos };
+  }
+  // phases for the accuracy per phase: opening (book or the first 12 moves), endgame (little material left), middlegame
+  function phaseOf(P, k, book) {
+    if (k < Math.max(book, 24)) return 'open';
+    let mat = 0; for (const p of P.b) if (p && 'nbrq'.includes(p.toLowerCase())) mat += VAL[p.toLowerCase()];
+    return mat <= 2600 ? 'end' : 'mid';
+  }
+  // the coach: one or two sentences why a move is rated as it is (mate, material, the missed chance)
+  const PNAME = { p: 'einen Bauern', n: 'einen Springer', b: 'einen Läufer', r: 'einen Turm', q: 'die Dame' };
+  function explain(pos, info, plies, k, item, bestV) {
+    const P = pos[k], after = pos[k + 1], me = P.turn, top = info[k].lines[0] || { s: 0, pv: [] }, reply = info[k + 1].lines[0] || { s: 0, pv: [] };
+    const mat = (Q, s) => { let v = 0; for (const p of Q.b) if (p && p.toLowerCase() !== 'k') v += (side(p) === s ? 1 : -1) * VAL[p.toLowerCase()]; return v; };
+    const run = (Q0, pv, n) => { const Q = clone(Q0); for (let i = 0; i < Math.min(n, pv.length); i++) { const m = fromUci(Q, pv[i]); if (!m) break; make(Q, m); } return Q; };
+    const sanOf = (Q, u) => { const m = fromUci(Q, u); return m ? show(san(Q, m, legal(Q))) : ''; };
+    const b = t => `<b>${t}</b>`;
+    if (plies[k].san.endsWith('#')) return 'Schachmatt!';
+    if (item.kind === 'book') { const op = opening(plies.slice(0, k + 1).map(h => h.san.replace(/[+#]/g, ''))); return op ? `Ein bekannter Eröffnungszug: ${b(op)}` : 'Ein bekannter Eröffnungszug.'; }
+    // the answer mates
+    if (reply.s >= 90000) return 100000 - reply.s === 1 ? `Danach setzt der Gegner sofort matt: ${b(sanOf(after, reply.pv[0]))}.` : `Danach setzt der Gegner in ${b(100000 - reply.s)} Zügen matt, los geht es mit ${b(sanOf(after, reply.pv[0]))}.`;
+    // a mate was there
+    if (top.s >= 90000 && !['best', 'great', 'brill'].includes(item.kind)) return `Hier gab es ein Matt in ${b(100000 - top.s)} mit ${b(show(item.best || sanOf(P, top.pv[0])))}.`;
+    if (item.kind === 'brill') return 'Ein starkes Opfer: Die Figur darf geschlagen werden, aber das lohnt sich für den Gegner nicht.';
+    if (item.kind === 'great') return 'Der einzige Zug, der die Stellung hält. Alles andere wäre deutlich schlechter.';
+    if (item.kind === 'best') return 'Der stärkste Zug in dieser Stellung.';
+    if (item.kind === 'exc') return 'Fast so stark wie der beste Zug.';
+    if (item.kind === 'good') return 'Ein solider Zug.';
+    // material, counted along the lines (so a mere exchange is not a win): the best line against the played move
+    // followed by the strongest answer, five plies each
+    const gainBest = mat(run(P, top.pv, 5), me) - mat(P, me);
+    const lost = mat(run(P, top.pv, 5), me) - mat(run(after, reply.pv, 5), me);
+    // the most valuable own piece the opponent takes in the answer line
+    const takenBy = (() => { const Q = clone(after); let best = null; for (let i = 0; i < Math.min(5, reply.pv.length); i++) { const m = fromUci(Q, reply.pv[i]); if (!m) break; if (m.cap && side(m.cap) === me && (!best || VAL[m.cap.toLowerCase()] > VAL[best.toLowerCase()])) best = m.cap; make(Q, m); } return best; })();
+    if (item.kind === 'miss' && gainBest >= 250 && item.best) return `Verpasst: Mit ${b(show(item.best))} hätte man Material gewonnen.`;
+    if (lost >= 250 && takenBy) return `Danach verliert man ${b(PNAME[takenBy.toLowerCase()])}. Der Gegner beginnt mit ${b(sanOf(after, reply.pv[0]))}.`;
+    if (lost >= 250) return `Das kostet Material. Der Gegner antwortet am besten mit ${b(sanOf(after, reply.pv[0]))}.`;
+    if (gainBest >= 250 && item.best) return `Mit ${b(show(item.best))} hätte man Material gewonnen.`;
+    if (item.kind === 'inacc') return `Nicht ganz genau. ${b(show(item.best))} war besser.`;
+    const ans = reply.pv[0] ? `<span>Stärkste Antwort:</span> ${b(sanOf(after, reply.pv[0]))}` : '';
+    if (item.kind === 'mist') return `<span>${winP(bestV) >= 60 ? 'Damit gibt man einen großen Teil des Vorteils her.' : 'Danach steht man deutlich schlechter.'}</span> ${ans}`;
+    return `<span>${winP(bestV) >= 60 ? 'Damit ist der Vorteil weg.' : 'Danach ist die Stellung kaum noch zu halten.'}</span> ${ans}`;
   }
 
   function review(start, plies, prog) {
@@ -454,7 +496,7 @@
   .chx-ml button i{font-style:normal;font-weight:800;font-size:11px}
   .chx-view{font:600 12px/1.2 var(--f-b);color:var(--cyan)}
   .chev{position:relative;height:16px;border-radius:4px;overflow:hidden;background:#403d39}
-  .chev i{position:absolute;left:0;top:0;bottom:0;background:#f4f4f4;transition:width .35s var(--ease)}
+  .chev i{position:absolute;left:0;top:0;bottom:0;background:#f4f4f4;transition:width .35s var(--ease),height .35s var(--ease)}
   .chev b{position:absolute;right:6px;top:50%;transform:translateY(-50%);font:800 11px/1 var(--f-b);color:#9a9a9a;mix-blend-mode:difference}
   .charrow{position:absolute;inset:0;width:100%;height:100%;z-index:6;pointer-events:none}
   .charrow line{stroke:rgba(129,182,76,.9);stroke-width:.22;stroke-linecap:round;marker-end:url(#charh)}
@@ -475,10 +517,54 @@
   .chr-acc .w b{color:#f4f4f4} .chr-acc .b b{color:#9aa0b8}
   .chr-graph{width:100%;height:70px;border-radius:8px;overflow:hidden;background:#3a3a3a}
   .chr-tab{display:grid;grid-template-columns:auto 1fr auto auto;gap:4px 12px;align-items:center;font-size:14px}
-  .chr-tab .kd{width:22px;height:22px;border-radius:50%;display:grid;place-items:center;color:#fff;font:800 11px/1 var(--f-b)}
+  .chr .kd,.chr-tab .kd{width:22px;height:22px;border-radius:50%;display:grid;place-items:center;color:#fff;font:800 11px/1 var(--f-b)}
   .chr-tab .c{font:800 15px/1 var(--f-d);text-align:center;min-width:24px}
   .chr-prog{height:8px;border-radius:4px;background:var(--panel3);overflow:hidden} .chr-prog i{display:block;height:100%;width:var(--w);background:var(--good);transition:width .2s}
-  .chr-hint{font-size:13px;color:var(--muted);margin:0}`);
+  .chr-hint{font-size:13px;color:var(--muted);margin:0}
+  /* the board with its eval bar: above it on phones, beside it (upright) on wide screens */
+  .chbrow{display:flex;flex-direction:column;gap:6px}
+  .chbrow .chess{width:100%}
+  .chev i{width:var(--wp,50%)}
+  @media (min-width:900px){
+    .chbrow{flex-direction:row} .chbrow .chess{flex:1;min-width:0;width:auto}
+    .chev{width:20px;height:auto;flex:none}
+    .chev i{width:100%;top:auto;height:var(--wp,50%)} .chev.fl i{bottom:auto;top:0}
+    .chev b{right:auto;left:50%;top:auto;bottom:4px;transform:translateX(-50%);font-size:9px;writing-mode:horizontal-tb}
+    .chev.fl b{bottom:auto;top:4px}
+  }
+  /* the coach card */
+  .chco{position:relative;display:flex;gap:10px;align-items:flex-start;padding:10px 12px;border-radius:10px;background:var(--panel2);border:1px solid var(--line);animation:wpop .3s var(--spring)}
+  .chco-ic{flex:none;width:34px;height:34px;border-radius:50%;display:grid;place-items:center;color:#fff;font:800 14px/1 var(--f-b);box-shadow:0 2px 6px rgba(0,0,0,.35)}
+  .chco-tx{flex:1;min-width:0;display:flex;flex-direction:column;gap:4px}
+  .chco-h{font:800 15px/1.2 var(--f-b)} .chco-h.good{color:var(--good)} .chco-h.bad{color:#ff8a8a}
+  .chco p{margin:0;font-size:13.5px;line-height:1.4;color:var(--fg)} .chco p b{font-weight:800}
+  .chco-b span{color:var(--muted)} .chco-b small{display:block;color:var(--muted);font-weight:600;margin-top:2px}
+  .chco-try{align-self:flex-start;margin-top:4px}
+  .chco-acts{display:flex;gap:6px;flex-wrap:wrap;margin-top:4px}
+  .chco-n{position:absolute;right:10px;top:10px;font:700 11px/1 var(--f-b);color:var(--muted)}
+  .chco-side{position:absolute;right:10px;top:12px;width:12px;height:12px;border-radius:3px;border:1px solid var(--line2)} .chco-side.w{background:#f4f4f4} .chco-side.b{background:#222}
+  .chco.retry{border-color:color-mix(in srgb,var(--cyan) 50%,var(--line))} .chco.right{border-color:var(--good)} .chco.wrong{border-color:#ca3431;animation:tqNo .45s ease}
+  .k2-blun{border-color:#ca343188} .k2-mist{border-color:#e5762b88} .k2-brill{border-color:#1baca688} .k2-great{border-color:#5c8bb088}
+  /* the graph in the panel */
+  .chg.big{height:80px;cursor:default}
+  .chg{position:relative;height:54px;border-radius:7px;overflow:hidden;background:#3a3836;cursor:pointer}
+  .chg svg{position:absolute;inset:0;width:100%;height:100%}
+  .chg .mid{stroke:#777;stroke-width:.6;vector-effect:non-scaling-stroke}
+  .chg .cur{stroke:var(--cyan);stroke-width:2;vector-effect:non-scaling-stroke}
+  .chg-dots{position:absolute;inset:0;pointer-events:none} .chg-dots i{position:absolute;width:9px;height:9px;margin:-4.5px 0 0 -4.5px;border-radius:50%;border:1.5px solid #fff;box-shadow:0 1px 2px rgba(0,0,0,.4)}
+  .chg circle.k-inacc{fill:#e6a22e} .chg circle.k-mist{fill:#e5762b} .chg circle.k-blun{fill:#ca3431} .chg circle.k-miss{fill:#ee6b55} .chg circle.k-brill{fill:#1baca6} .chg circle.k-great{fill:#5c8bb0}
+  .chg circle{transform-box:fill-box} .chr-graph circle{stroke:#fff;stroke-width:.5}
+  .chr-graph circle.k-mist{fill:#e5762b} .chr-graph circle.k-blun{fill:#ca3431} .chr-graph circle.k-miss{fill:#ee6b55}
+  /* the summary */
+  .chr-h{display:flex;align-items:baseline;justify-content:space-between;gap:10px} .chr-h h3{margin:0} .chr-h small{color:var(--muted);font-size:12px}
+  .chr-elo{font-style:normal;font-size:12px;color:var(--fg);margin-top:4px;padding:3px 8px;border-radius:999px;background:var(--panel3)}
+  .chr-keys{display:flex;flex-direction:column;gap:6px} .chr-keys h4{margin:0;font:800 italic 14px/1 var(--f-d);text-transform:uppercase;letter-spacing:.06em;color:var(--muted)}
+  .chr-key{display:grid;grid-template-columns:auto 1fr;gap:2px 10px;align-items:center;padding:8px 10px;border-radius:9px;background:var(--panel2);border:1px solid var(--line);text-align:left;color:var(--fg)}
+  .chr-key .kd{grid-row:span 2} .chr-key .km{font-size:13.5px} .chr-key .kw{font-size:12.5px;color:var(--muted)} .chr-key .kw b{color:var(--fg)}
+  .chr-ph{display:grid;grid-template-columns:1fr auto auto;gap:6px 16px;align-items:center;font-size:13.5px}
+  .chr-ph b{font-size:12px;color:var(--muted);text-align:center} .chr-ph .ph{display:inline-block;min-width:34px;text-align:center;padding:3px 6px;border-radius:6px;color:#fff;font:800 13px/1 var(--f-b)}
+  .chr{max-height:min(84vh,780px);overflow-y:auto} .chr>*{flex-shrink:0}
+  .chr .actions{position:sticky;bottom:-1px;padding-top:8px;background:linear-gradient(transparent,var(--panel) 30%);z-index:2}`);
 
   const cm = (rows, extra) => V.mini(rows, Object.assign({
     K: { c: 'pw', t: '♚︎' }, Q: { c: 'pw', t: '♛︎' }, R: { c: 'pw', t: '♜︎' }, B: { c: 'pw', t: '♝︎' }, N: { c: 'pw', t: '♞︎' }, P: { c: 'pw', t: '♟︎' },
@@ -520,17 +606,21 @@
       // the game so far: { m, san, mover, b (board after), last, chk }; view: null = live, else the number of plies shown
       const hist = [];
       let view = null, rev = null;
+      // "Fehler üben": { list of plies, i, k, P, moves, state: 'ask' | 'check' | 'right' | 'wrong' | 'shown', tries, tried }
+      let retry = null;
       const capd = { w: [], b: [] };
       // the board look comes from Optionen → Spielbrett: Standard is the green club board, Neon and Holz as for Dame and Reversi
       const wrap = V.el('div', 'chesswrap'), topC = V.el('div', 'capt'), botC = V.el('div', 'capt'), board = V.el('div', 'chess');
-      const panel = V.el('div', 'chx', `<div class="chx-top"><span class="chx-op" id="chop"></span><span class="chx-nav">
+      const panel = V.el('div', 'chx nofit', `<div class="chx-top"><span class="chx-op" id="chop"></span><span class="chx-nav">
           <button id="chf" aria-label="Zum Anfang">⏮</button><button id="chp" aria-label="Zug zurück">◀</button><button id="chn" aria-label="Zug vor">▶</button><button id="chl" aria-label="Zum aktuellen Zug">⏭</button></span></div>
+        <div class="chco" id="chco" hidden></div><div class="chg" id="chg" hidden></div>
         <div class="chx-ml" id="chml" data-empty="${V.t ? V.t('Hier stehen gleich die Züge.') : 'Hier stehen gleich die Züge.'}"></div>`);
       const evb = V.el('div', 'chev', '<i></i><b></b>'), arrow = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
       evb.hidden = true;
       arrow.setAttribute('class', 'charrow'); arrow.setAttribute('viewBox', '0 0 8 8');
       arrow.innerHTML = '<defs><marker id="charh" markerWidth="3" markerHeight="3" refX="1.6" refY="1.5" orient="auto"><path d="M0 0L3 1.5L0 3z" fill="rgba(129,182,76,.9)"/></marker></defs><line/>';
-      wrap.append(topC, evb, board, botC, panel); ctx.stage.appendChild(wrap);
+      const brow = V.el('div', 'chbrow'); brow.append(evb, board);
+      wrap.append(topC, brow, botC, panel); ctx.stage.appendChild(wrap);
       for (let sq = 0; sq < 64; sq++) { const d = V.el('div', 'sq ' + (((sq >> 3) + (sq & 7)) % 2 ? 'dk' : 'lt')); d.dataset.sq = sq; board.appendChild(d); }
       board.appendChild(arrow);
       const cells = {}; [...board.children].forEach(d => cells[+d.dataset.sq] = d);
@@ -550,18 +640,19 @@
 
       // ---------- drawing ----------
       function render() {
-        const live = view === null;
-        const h = live ? null : hist[view - 1];
-        const b = live ? P.b : view === 0 ? START.b : h.b;
-        const lm = live ? last : h ? h.m : null;
-        const chk = live ? (inCheck(P, P.turn) ? P.kings[P.turn] : -1) : h && h.chk >= 0 ? h.chk : -1;
-        const targets = live && sel >= 0 ? moves.filter(m => m.f === sel) : [];
-        const mark = rev && lm && !live && view > 0 ? rev.moves[view - 1] : rev && live && hist.length && last === hist[hist.length - 1].m ? rev.moves[hist.length - 1] : null;
+        const live = view === null && !retry;
+        const h = live || retry ? null : hist[view - 1];
+        const R = retry && retry.P;
+        const b = R ? R.b : live ? P.b : view === 0 ? START.b : h.b;
+        const lm = R ? (retry.tried || (retry.k > 0 ? hist[retry.k - 1].m : null)) : live ? last : h ? h.m : null;
+        const chk = R ? (inCheck(R, R.turn) ? R.kings[R.turn] : -1) : live ? (inCheck(P, P.turn) ? P.kings[P.turn] : -1) : h && h.chk >= 0 ? h.chk : -1;
+        const targets = sel >= 0 && (live || (R && retry.state === 'ask')) ? (R ? retry.moves : moves).filter(m => m.f === sel) : [];
+        const mark = retry ? null : rev && lm && !live && view > 0 ? rev.moves[view - 1] : rev && live && hist.length && last === hist[hist.length - 1].m ? rev.moves[hist.length - 1] : null;
         for (let sq = 0; sq < 64; sq++) {
           const d = cells[sq], p = b[sq];
           let cls = 'sq ' + (((sq >> 3) + (sq & 7)) % 2 ? 'dk' : 'lt');
           if (lm && (sq === lm.f || sq === lm.t)) cls += ' lastm';
-          if (sq === sel && live) cls += ' sel';
+          if (sq === sel && (live || R)) cls += ' sel';
           if (sq === chk) cls += ' chk';
           const tg = targets.find(m => m.t === sq);
           if (tg) cls += tg.cap ? ' ring' : ' dot';
@@ -575,14 +666,14 @@
         }
         board.style.setProperty('--sq', (board.clientWidth / 8 || 40) + 'px');
         // after a review: the eval bar for the position shown and an arrow for the better move
-        const at = view === null ? hist.length : view;
+        const at = retry ? retry.k : view === null ? hist.length : view;
         evb.hidden = !rev;
         if (rev) {
           const e = rev.evals[at] ?? 0, mate = Math.abs(e) >= 1990;
-          evb.querySelector('i').style.width = winP(e).toFixed(1) + '%';
+          evb.style.setProperty('--wp', winP(e).toFixed(1) + '%'); evb.classList.toggle('fl', !!flip);
           evb.querySelector('b').textContent = mate ? (e > 0 ? '+M' : '-M') : (e > 0 ? '+' : '') + (e / 100).toFixed(1);
         }
-        const bm = rev && at > 0 && rev.moves[at - 1] && rev.moves[at - 1].bestM;
+        const bm = retry ? (retry.state === 'shown' && retry.sol ? retry.sol : null) : rev && at > 0 && rev.moves[at - 1] && rev.moves[at - 1].bestM;
         arrow.style.display = bm ? '' : 'none';
         if (bm) {
           const xy = q => { let c = q & 7, r = q >> 3; if (flip) { c = 7 - c; r = 7 - r; } return [c + 0.5, r + 0.5]; };
@@ -614,16 +705,111 @@
         const op = opening(hist.map(x => x.san.replace(/[+#]/g, '')));
         const r = rev && view !== null && view > 0 ? rev.moves[view - 1] : null;
         const kd = r && KIND.find(z => z[0] === r.kind);
-        panel.querySelector('#chop').innerHTML = r ? `<span class="t-${r.kind}"><b>${show(hist[view - 1].san)}</b> <span>${kd[2]}</span></span>${r.best ? ` · Besser: <b>${show(r.best)}</b>` : ''}${r.line ? `<small class="chx-line"><span>Beste Fortsetzung:</span> <span>${r.line}</span></small>` : ''}`
+        panel.querySelector('#chop').innerHTML = r || retry ? ''
           : view !== null ? `<span class="chx-view">Rückblick · Zug ${Math.ceil(view / 2) || 0}</span>` : op ? `<b>${op}</b>` : '';
+        coach(); graph();
         panel.querySelector('#chf').disabled = panel.querySelector('#chp').disabled = cur === 0;
         panel.querySelector('#chn').disabled = panel.querySelector('#chl').disabled = cur === hist.length;
       }
       // looking back through the game (the live game goes on when you move or tap ⏭)
       function go(k) {
         k = Math.max(0, Math.min(hist.length, k));
+        retry = null;
         view = k === hist.length ? null : k; sel = -1; V.sfx.tick(); render();
       }
+      // ---------- the coach card below the board (after a review) ----------
+      function coach() {
+        const el = panel.querySelector('#chco');
+        if (retry) return retryCard(el);
+        const at = view === null ? hist.length : view, r = rev && at > 0 ? rev.moves[at - 1] : null;
+        el.hidden = !r; if (!r) return;
+        const kd = KIND.find(z => z[0] === r.kind), mover = hist[at - 1].mover;
+        const canTry = rev.sf && ['inacc', 'mist', 'miss', 'blun'].includes(r.kind);
+        el.className = 'chco k2-' + r.kind;
+        el.innerHTML = `<span class="chco-ic k-${r.kind}">${kd[1]}</span><div class="chco-tx">
+            <b class="chco-h"><span>${show(hist[at - 1].san)}</span> <span>${kd[2]}</span></b>
+            ${r.why ? `<p>${r.why}</p>` : ''}
+            ${r.best ? `<p class="chco-b"><span>Besser:</span> <b>${r.line || show(r.best)}</b></p>` : ''}
+            ${canTry ? '<button class="btn sm chco-try" id="chtry"><span>Besseren Zug selbst finden</span></button>' : ''}</div>
+          <i class="chco-side ${mover}"></i>`;
+        const t = el.querySelector('#chtry'); if (t) t.onclick = () => startRetry([at - 1]);
+      }
+      // ---------- the eval graph: tap to jump; dots for the weaker moves ----------
+      function graph() {
+        const el = panel.querySelector('#chg');
+        el.hidden = !rev; if (!rev) return;
+        const n = rev.evals.length - 1 || 1, at = retry ? retry.k : view === null ? hist.length : view;
+        const X = i => (i / n * 100).toFixed(2), Y = e => (100 - winP(e)).toFixed(2);
+        const area = `M0 100 ${rev.evals.map((e, i) => `L${X(i)} ${Y(e)}`).join(' ')} L100 100Z`;
+        const dots = rev.moves.map((r, k) => ['inacc', 'mist', 'miss', 'blun', 'brill', 'great'].includes(r.kind) ? `<i class="k-${r.kind}" style="left:${X(k + 1)}%;top:${Y(rev.evals[k + 1])}%"></i>` : '').join('');
+        el.innerHTML = `<svg viewBox="0 0 100 100" preserveAspectRatio="none"><path d="${area}" fill="#f2f2f2"/><path d="M0 50H100" class="mid"/><path d="M${X(at)} 0V100" class="cur"/></svg>
+          <span class="chg-dots">${dots}</span>`;
+        el.onclick = e => { const r2 = el.getBoundingClientRect(); go(Math.round((e.clientX - r2.left) / r2.width * n)); };
+      }
+
+      // ---------- "Fehler üben": find a better move in the positions where a weak move was played ----------
+      function startRetry(list) {
+        if (!list.length) return;
+        retry = { list, i: 0 }; V.closeModal && document.querySelector('.chrm') && V.closeModal();
+        setRetry(0);
+      }
+      function setRetry(i) {
+        const k = retry.list[i];
+        Object.assign(retry, { i, k, P: clone(rev.pos[k]), state: 'ask', tries: 0, tried: null, sol: null, msg: '' });
+        retry.moves = legal(retry.P); sel = -1; view = k; render();
+      }
+      function retryCard(el) {
+        const k = retry.k, r = rev.moves[k], who = retry.P.turn === 'w' ? 'Weiß' : 'Schwarz';
+        el.hidden = false; el.className = 'chco retry ' + retry.state;
+        const head = retry.state === 'right' ? `<b class="chco-h good"><span>Richtig!</span></b>`
+          : retry.state === 'wrong' ? `<b class="chco-h bad"><span>Nicht ganz.</span></b>`
+          : retry.state === 'shown' ? `<b class="chco-h"><span>Die Lösung:</span> <span>${show(r.best || '')}</span></b>`
+          : retry.state === 'check' ? '<b class="chco-h"><span>Stockfish prüft …</span></b>'
+          : `<b class="chco-h"><span>${who} ist am Zug.</span> <span>Finde einen besseren Zug als</span> <span>${show(hist[k].san)}</span></b>`;
+        const last = retry.i === retry.list.length - 1;
+        el.innerHTML = `<span class="chco-ic k-${retry.state === 'right' ? 'best' : retry.state === 'wrong' ? 'blun' : 'great'}">${retry.state === 'right' ? '✓' : retry.state === 'wrong' ? '✕' : '?'}</span><div class="chco-tx">
+          ${head}${retry.msg ? `<p>${retry.msg}</p>` : ''}
+          <div class="chco-acts">
+            ${retry.state === 'ask' || retry.state === 'wrong' ? '<button class="btn sm ghost" id="rsol"><span>Lösung zeigen</span></button>' : ''}
+            ${retry.state === 'right' || retry.state === 'shown' ? `<button class="btn sm primary" id="rnext"><span>${last ? 'Fertig' : 'Nächster Fehler'}</span></button>` : ''}
+            <button class="btn sm ghost" id="rend"><span>Beenden</span></button></div>
+          <small class="chco-n">${retry.i + 1} / ${retry.list.length}</small></div>`;
+        const on = (id, fn) => { const b = el.querySelector('#' + id); if (b) b.onclick = fn; };
+        on('rsol', () => { const bm = r.bestM; retry.state = 'shown'; retry.sol = bm; retry.msg = r.line ? `<span>Beste Fortsetzung:</span> <span>${r.line}</span>` : ''; V.sfx.ui(); render(); });
+        on('rnext', () => { V.sfx.ui(); if (last) { const k2 = retry.k; retry = null; view = k2 + 1; render(); V.ui.toast('Gut geübt!'); } else setRetry(retry.i + 1); });
+        on('rend', () => { const k2 = retry.k; retry = null; view = k2 + 1; V.sfx.ui(); render(); });
+      }
+      async function tryMove(m) {
+        if (!retry || retry.state !== 'ask') return;
+        const k = retry.k, Q = clone(retry.P), uci = sqn(m.f) + sqn(m.t) + (m.promo || ''), top = (rev.info[k].lines[0] || { pv: [] });
+        make(Q, m); retry.tried = m; retry.P = Q; retry.state = 'check'; sel = -1; V.sfx.move(); render();
+        let ok = top.pv[0] === uci, msg = ok ? 'Genau das ist der beste Zug.' : '';
+        if (!ok) {
+          // other moves count when they keep (almost) as much as the best one
+          let val;
+          if (!legal(Q).length) val = inCheck(Q, Q.turn) ? 100000 : 0;
+          else { try { const api = await engine(); val = -((await sfLines(api, Q, k + 1, 450))[0] || { s: 0 }).s; } catch (e) { val = -100000; } }
+          const bestV = Math.max(-2000, Math.min(2000, top.s || 0)), v = Math.max(-2000, Math.min(2000, val));
+          const loss = winP(bestV) - winP(v);
+          ok = loss <= 5;
+          const played = Math.max(-2000, Math.min(2000, -((rev.info[k + 1].lines[0] || { s: 0 }).s)));
+          msg = ok ? `Auch gut. Stockfish mag <b>${show(rev.moves[k].best || '')}</b> noch ein bisschen mehr.` : v > played + 30 ? 'Besser als in der Partie, aber noch nicht der starke Zug.' : 'Das hilft auch nicht weiter. Probier es nochmal.';
+        }
+        if (!retry || retry.k !== k) return;
+        retry.state = ok ? 'right' : 'wrong'; retry.msg = msg; retry.tries++;
+        if (ok) { V.sfx.goal(); V.buzz(12); }
+        else {
+          V.sfx.bad();
+          // back to the position after a moment; from the second try on a hint names the piece
+          setTimeout(() => {
+            if (!retry || retry.k !== k) return;
+            const bm = rev.moves[k].bestM, hint = retry.tries >= 2 && bm ? `<span>Tipp: Schau dir</span> <b>${show(rev.pos[k].b[bm.f].toUpperCase() === 'P' ? 'den Bauern' : NAME_A[rev.pos[k].b[bm.f].toLowerCase()])}</b> <span>auf</span> <b>${sqn(bm.f)}</b> <span>an.</span>` : retry.msg;
+            Object.assign(retry, { P: clone(rev.pos[k]), state: 'ask', tried: null, msg: hint }); retry.moves = legal(retry.P); render();
+          }, 1100);
+        }
+        render();
+      }
+      const NAME_A = { n: 'den Springer', b: 'den Läufer', r: 'den Turm', q: 'die Dame', k: 'den König' };
       panel.querySelector('#chf').onclick = () => go(0);
       panel.querySelector('#chp').onclick = () => go((view === null ? hist.length : view) - 1);
       panel.querySelector('#chn').onclick = () => go((view === null ? hist.length : view) + 1);
@@ -632,6 +818,13 @@
       // ---------- input: tap a piece and its target, or drag it there ----------
       const canMove = () => !over && !ctx.isAI(numOf[P.turn]);
       function tap(sq) {
+        if (retry) {
+          if (retry.state !== 'ask') return;
+          const R = retry.P, p = R.b[sq];
+          if (sel >= 0) { const cand = retry.moves.filter(m => m.f === sel && m.t === sq); if (cand.length) return cand.length > 1 ? promote(cand, tryMove) : tryMove(cand[0]); }
+          if (p && side(p) === R.turn && retry.moves.some(m => m.f === sq)) { sel = sel === sq ? -1 : sq; V.sfx.move(); } else sel = -1;
+          return render();
+        }
         if (view !== null) { go(hist.length); return; }
         if (!canMove()) return;
         const p = P.b[sq];
@@ -654,13 +847,16 @@
         if (!drag || e.pointerId !== drag.id) return;
         if (!drag.on) {
           if (Math.hypot(e.clientX - drag.x, e.clientY - drag.y) < 6) return;
-          const p = P.b[drag.sq];
-          if (view !== null || !canMove() || !p || side(p) !== P.turn || !moves.some(m => m.f === drag.sq)) { drag = null; return; }
+          const RP = retry && retry.state === 'ask' ? retry.P : null, RM = RP ? retry.moves : moves;
+          const p = (RP || P).b[drag.sq];
+          if (RP ? false : (view !== null || !canMove())) { drag = null; return; }
+          if (retry && !RP) { drag = null; return; }
+          if (!p || side(p) !== (RP || P).turn || !RM.some(m => m.f === drag.sq)) { drag = null; return; }
           drag.on = true; sel = drag.sq; render();
           const src = cells[drag.sq].querySelector('.pc'); if (src) src.classList.add('dragsrc');
           const w = cells[drag.sq].getBoundingClientRect().width;
           drag.ghost = V.el('div', 'chdrag', pc(p)); drag.ghost.style.width = drag.ghost.style.height = w + 'px';
-          if (facing() && P.turn === 'b') drag.ghost.style.rotate = '180deg';
+          if (facing() && P.turn === 'b' && !retry) drag.ghost.style.rotate = '180deg';
           document.body.appendChild(drag.ghost);
         }
         drag.ghost.style.left = e.clientX + 'px'; drag.ghost.style.top = e.clientY + 'px';
@@ -675,6 +871,7 @@
         if (!dg.on) return e.type === 'pointerup' ? tap(dg.sq) : null;
         dg.ghost.remove();
         const t = dg.hov ? +dg.hov.dataset.sq : -1;
+        if (retry) { const c2 = retry.moves.filter(m => m.f === dg.sq && m.t === t); if (c2.length > 1) return promote(c2, tryMove); if (c2.length) return tryMove(c2[0]); return render(); }
         const cand = moves.filter(m => m.f === dg.sq && m.t === t);
         if (cand.length > 1) return promote(cand);
         if (cand.length) return doMove(cand[0], true);
@@ -684,9 +881,9 @@
       // keyboard (Enter on the board cursor) sends a click
       board.addEventListener('click', e => { if (skipClick) return; const d = e.target.closest('.sq'); if (d) tap(+d.dataset.sq); });
 
-      function promote(cand) {
-        const w = P.turn === 'w';
-        const pickP = pr => { V.closeModal(); doMove(cand.find(x => x.promo === pr)); };
+      function promote(cand, then = doMove) {
+        const w = (retry ? retry.P : P).turn === 'w';
+        const pickP = pr => { V.closeModal(); then(cand.find(x => x.promo === pr)); };
         const m = V.openModal(`<div class="confirm"><h3>Umwandlung</h3><p>In welche Figur soll der Bauer werden?</p>
           <div class="promo">${'qrbn'.split('').map((pr, k) => `<button data-p="${pr}">${pc(w ? pr.toUpperCase() : pr)}<small>${NAME[pr]}<kbd class="only-fine">${k + 1}</kbd></small></button>`).join('')}</div></div>`, '', () => render(), false, e => {
           const k = e.key.toLowerCase(), map = { 1: 'q', 2: 'r', 3: 'b', 4: 'n', d: 'q', q: 'q', t: 'r', r: 'r', l: 'b', b: 'b', s: 'n', n: 'n', enter: 'q' };
@@ -752,24 +949,40 @@
         });
       }
       function showReview() {
-        const acc = s => { const l = rev.moves.filter((x, k) => hist[k].mover === s); return l.length ? (l.reduce((a, x) => a + x.acc, 0) / l.length) : 0; };
-        const count = (s, kind) => rev.moves.filter((x, k) => hist[k].mover === s && x.kind === kind).length;
-        const nm = s => ctx.name(numOf[s]);
-        // the eval graph: white's winning chance over the game
+        const sides = ['w', 'b'], nm = s => ctx.name(numOf[s]);
+        const mv = s => rev.moves.map((x, k) => Object.assign({ k }, x)).filter(x => hist[x.k].mover === s);
+        const avg = l => l.length ? l.reduce((a, x) => a + x.acc, 0) / l.length : null;
+        const acc = s => avg(mv(s)) || 0;
+        const count = (s, kind) => mv(s).filter(x => x.kind === kind).length;
+        // a rough playing strength from the accuracy (only an estimate, like the "game rating" of the big sites)
+        const elo = a => Math.max(250, Math.round(2900 * Math.pow(a / 100, 4.5) / 50) * 50);
+        const PH = [['open', 'Eröffnung'], ['mid', 'Mittelspiel'], ['end', 'Endspiel']];
+        const phase = (s, ph) => { const a = avg(mv(s).filter(x => x.phase === ph)); return a === null ? '–' : `<span class="ph ${a >= 90 ? 'k-best' : a >= 75 ? 'k-good' : a >= 60 ? 'k-inacc' : a >= 45 ? 'k-mist' : 'k-blun'}">${Math.round(a)}</span>`; };
+        // key moments: the three moves that changed the game most
+        const keys = rev.moves.map((x, k) => Object.assign({ k }, x)).filter(x => ['mist', 'blun', 'miss', 'brill', 'great'].includes(x.kind))
+          .sort((a, b) => (b.kind === 'brill') - (a.kind === 'brill') || (b.loss || 0) - (a.loss || 0)).slice(0, 3).sort((a, b) => a.k - b.k);
+        // practice: the weak moves of the human players (against the AI only your own)
+        const human = s => !ctx.isAI(numOf[s]);
+        const practice = rev.sf ? rev.moves.map((x, k) => ({ x, k })).filter(o => ['mist', 'blun', 'miss'].includes(o.x.kind) && human(hist[o.k].mover)).map(o => o.k) : [];
+        const n1 = s => esc(nm(s));
         const pts = rev.evals.map((e, k) => [k / Math.max(1, rev.evals.length - 1) * 100, 100 - winP(e)]);
-        const graph = `<svg class="chr-graph" viewBox="0 0 100 100" preserveAspectRatio="none"><path d="M0 100 ${pts.map(p => 'L' + p[0].toFixed(2) + ' ' + p[1].toFixed(2)).join(' ')} L100 100Z" fill="#f4f4f4"/><path d="M0 50H100" stroke="#888" stroke-width=".6"/></svg>`;
-        const m = V.openModal(`<div class="chr"><h3>Partie-Analyse</h3><p class="chr-hint">${rev.sf ? 'Mit Stockfish 19' : 'Mit der Versus-Engine (Stockfish war nicht erreichbar)'}</p>
-          <div class="chr-acc"><div class="w"><small><span>${esc(nm('w'))}</span> · <span>Weiß</span></small><b>${acc('w').toFixed(1)}</b><small>Genauigkeit</small></div><div class="b"><small><span>${esc(nm('b'))}</span> · <span>Schwarz</span></small><b>${acc('b').toFixed(1)}</b><small>Genauigkeit</small></div></div>
-          ${graph}
+        const graphSvg = `<div class="chg big"><svg viewBox="0 0 100 100" preserveAspectRatio="none"><path d="M0 100 ${pts.map(p => 'L' + p[0].toFixed(2) + ' ' + p[1].toFixed(2)).join(' ')} L100 100Z" fill="#f2f2f2"/><path d="M0 50H100" class="mid"/></svg><span class="chg-dots">${rev.moves.map((x, k) => ['mist', 'blun', 'miss', 'brill', 'great'].includes(x.kind) ? `<i class="k-${x.kind}" style="left:${pts[k + 1][0].toFixed(2)}%;top:${pts[k + 1][1].toFixed(2)}%"></i>` : '').join('')}</span></div>`;
+        const m = V.openModal(`<div class="chr"><div class="chr-h"><h3>Partie-Analyse</h3><small>${rev.sf ? 'Stockfish 19' : 'Versus-Engine'}</small></div>
+          <div class="chr-acc">${sides.map(s => `<div class="${s}"><small><span>${n1(s)}</span> · <span>${s === 'w' ? 'Weiß' : 'Schwarz'}</span></small><b>${acc(s).toFixed(1)}</b><small>Genauigkeit</small>
+            ${rev.sf && mv(s).length >= 8 ? `<em class="chr-elo"><span>Spielstärke ca.</span> <span>${elo(acc(s))}</span></em>` : ''}</div>`).join('')}</div>
+          ${graphSvg}
+          ${keys.length ? `<div class="chr-keys"><h4>Schlüsselmomente</h4>${keys.map(x => { const kd = KIND.find(z => z[0] === x.kind); return `<button data-go="${x.k + 1}" class="chr-key"><span class="kd k-${x.kind}">${kd[1]}</span><span class="km"><b>${Math.floor(x.k / 2) + 1}${x.k % 2 ? '…' : '.'} ${show(hist[x.k].san)}</b> <span>${kd[2]}</span></span><span class="kw">${x.why || ''}</span></button>`; }).join('')}</div>` : ''}
           <div class="chr-tab">${KIND.map(([k, sym, label]) => `<span class="kd k-${k}">${sym}</span><span>${label}</span><span class="c">${count('w', k)}</span><span class="c">${count('b', k)}</span>`).join('')}</div>
-          <p class="chr-hint">Tipp: In der Zugliste unter dem Brett sind die Züge jetzt markiert. Tippe einen an, dann siehst du die Stellung und den besseren Zug.</p>
-          <div class="actions"><button class="btn primary" id="chrgo"><span>Züge ansehen</span></button></div></div>`, 'chrm');
+          ${rev.sf && rev.moves.length >= 12 ? `<div class="chr-ph"><span></span><b>Weiß</b><b>Schwarz</b>${PH.map(([k, l]) => `<span>${l}</span>${phase('w', k)}${phase('b', k)}`).join('')}</div>` : ''}
+          <div class="actions">${practice.length ? `<button class="btn primary" id="chrtry"><span>Fehler üben (${practice.length})</span></button>` : ''}<button class="btn ${practice.length ? '' : 'primary'}" id="chrgo"><span>Züge ansehen</span></button></div>
+          <p class="chr-hint">Kostenlos und so oft du willst. Tippe auf einen Schlüsselmoment oder in der Zugliste auf einen Zug, dann erklärt dir der Coach, was dort passiert ist.</p></div>`, 'chrm');
         m.querySelector('#chrgo').onclick = () => {
           V.closeModal();
-          // jump to the first big mistake, otherwise to the start
-          const k = rev.moves.findIndex(x => x.kind === 'blun' || x.kind === 'mist');
+          const k = rev.moves.findIndex(x => x.kind === 'blun' || x.kind === 'mist' || x.kind === 'miss');
           go(k >= 0 ? k + 1 : 1);
         };
+        const t = m.querySelector('#chrtry'); if (t) t.onclick = () => { V.closeModal(); startRetry(practice); };
+        m.querySelectorAll('[data-go]').forEach(b => b.onclick = () => { V.closeModal(); go(+b.dataset.go); });
       }
 
       function next(chk) {

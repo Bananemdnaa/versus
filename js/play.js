@@ -1058,7 +1058,9 @@
       fitF = 0;
       if (!alive) return;
       // the page scrolls on the phone, the main area (#app) on the laptop
-      const sc = V.ui.wide() ? document.getElementById('app') : document.documentElement, extra = () => sc.scrollHeight - (sc === document.documentElement ? innerHeight : sc.clientHeight);
+      // parts marked .nofit (the chess move list and review below the board) may go below the screen: they don't count
+      const loose = () => [...ctx.stage.querySelectorAll('.nofit')].reduce((h, e) => h + e.offsetHeight + 6, 0);
+      const sc = V.ui.wide() ? document.getElementById('app') : document.documentElement, extra = () => sc.scrollHeight - (sc === document.documentElement ? innerHeight : sc.clientHeight) - loose();
       const over = () => extra() > 2;
       // the entrance animation moves everything down a little; measure once it is over
       if (v.classList.contains('enter')) { fitF = setTimeout(fit, 120); return; }

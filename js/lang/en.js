@@ -71,6 +71,25 @@
     'Geht erst nach dem nächsten Server-Update': 'Works after the next server update',
     'Alle Tutorials sind wieder neu': 'All tutorials are new again', 'Einstellungen zurückgesetzt': 'Settings reset', 'Bilanz gelöscht': 'Stats deleted',
     // tutorial dialog, welcome
+    // chess review: coach, practice, summary
+    "Schachmatt!": "Checkmate!", "Ein bekannter Eröffnungszug: {0}": "A known opening move: {0}", "Ein bekannter Eröffnungszug.": "A known opening move.",
+    "Danach setzt der Gegner sofort matt: {0}.": "The opponent mates right away: {0}.", "Danach setzt der Gegner in {0} Zügen matt, los geht es mit {1}.": "The opponent mates in {0} moves, starting with {1}.", "Hier gab es ein Matt in {0} mit {1}.": "There was mate in {0} with {1}.",
+    "Ein starkes Opfer: Die Figur darf geschlagen werden, aber das lohnt sich für den Gegner nicht.": "A strong sacrifice: the piece can be taken, but that doesn't pay off for the opponent.", "Der einzige Zug, der die Stellung hält. Alles andere wäre deutlich schlechter.": "The only move that holds the position. Everything else would be clearly worse.", "Der stärkste Zug in dieser Stellung.": "The strongest move in this position.",
+    "Fast so stark wie der beste Zug.": "Almost as strong as the best move.", "Ein solider Zug.": "A solid move.", "Verpasst: Mit {0} hätte man Material gewonnen.": "Missed: {0} would have won material.",
+    "Danach verliert man {0}. Der Gegner beginnt mit {1}.": "This loses {0}. The opponent starts with {1}.", "einen Bauern": "a pawn", "einen Springer": "a knight",
+    "einen Läufer": "a bishop", "einen Turm": "a rook", "Das kostet Material. Der Gegner antwortet am besten mit {0}.": "This costs material. The best answer is {0}.",
+    "Mit {0} hätte man Material gewonnen.": "{0} would have won material.", "Nicht ganz genau. {0} war besser.": "Not quite accurate. {0} was better.", "Damit gibt man einen großen Teil des Vorteils her.": "This gives away a large part of the advantage.",
+    "Danach steht man deutlich schlechter.": "After this the position is clearly worse.", "Damit ist der Vorteil weg.": "The advantage is gone.", "Danach ist die Stellung kaum noch zu halten.": "After this the position is hard to hold.",
+    "Stärkste Antwort:": "Strongest answer:", "Besser:": "Better:", "Besseren Zug selbst finden": "Find a better move yourself",
+    "Nicht ganz.": "Not quite.", "Die Lösung:": "The solution:", "Stockfish prüft …": "Stockfish is checking …",
+    "Weiß ist am Zug.": "White to move.", "Schwarz ist am Zug.": "Black to move.", "Finde einen besseren Zug als": "Find a better move than",
+    "Lösung zeigen": "Show solution", "Nächster Fehler": "Next mistake", "Gut geübt!": "Well practised!",
+    "Genau das ist der beste Zug.": "That is exactly the best move.", "Auch gut. Stockfish mag {0} noch ein bisschen mehr.": "Also good. Stockfish likes {0} a little more.", "Besser als in der Partie, aber noch nicht der starke Zug.": "Better than in the game, but not the strong move yet.",
+    "Das hilft auch nicht weiter. Probier es nochmal.": "That doesn't help either. Try again.", "Tipp: Schau dir": "Hint: look at", "den Bauern": "the pawn",
+    "den Springer": "the knight", "den Läufer": "the bishop", "den Turm": "the rook",
+    "den König": "the king", "Spielstärke ca.": "Playing strength approx.", "Schlüsselmomente": "Key moments",
+    "Eröffnung": "Opening", "Mittelspiel": "Middlegame", "Endspiel": "Endgame",
+    "Fehler üben (#)": "Practise mistakes (#)", "Versus-Engine": "Versus engine", "Kostenlos und so oft du willst. Tippe auf einen Schlüsselmoment oder in der Zugliste auf einen Zug, dann erklärt dir der Coach, was dort passiert ist.": "Free and as often as you like. Tap a key moment or a move in the list, and the coach explains what happened there.",
     // chess: review, move list, openings, board options
     "Brillant": "Brilliant", "Großartiger Zug": "Great move", "Buchzug": "Book move", "Verpasst": "Miss", "Mit Stockfish 19": "With Stockfish 19", "Mit der Versus-Engine (Stockfish war nicht erreichbar)": "With the Versus engine (Stockfish could not be reached)", "Stockfish rechnet jede Stellung durch …": "Stockfish is working through every position …", "Beste Fortsetzung:": "Best line:",
     "Schach, Dame und Reversi · Standard ist beim Schach grün": "Chess, checkers and Reversi · Standard is green for chess",
@@ -1514,6 +1533,7 @@
   });
   V.i18n.ctx('[data-g=code]', { 'Treffer': 'Hits', 'Fast': 'Close' });
   V.i18n.ctx('[data-g=ttt3]', { 'Ecken': 'corners' });
+  V.i18n.ctx('.chco, .chr', { 'auf': 'on', 'an.': '.', 'die Dame': 'the queen' });
   V.i18n.ctx('.chr, .chx', { 'Fehler': 'Mistake', 'Gut': 'Good', 'Verpasst': 'Miss' });
   V.i18n.pat([[/^Spalte ([a-d])$/, 'Column $1']]);
   V.i18n.pat([[/^Ebene (\d), ([a-d]\d)$/, 'Layer $1, $2']]);
