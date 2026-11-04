@@ -60,6 +60,10 @@ Kein Wettbewerb: Niemand muss jedes Spiel können.
 
 Gäste sehen den Banner „Kostenloses Konto: … Spiele mehr“ am Handy erst, wenn sie eine Partie gespielt haben. Ab der dritten Partie zeigt der Ergebnis-Bildschirm höchstens alle drei Tage einmal „Bilanz sichern – Kostenloses Konto“ als nächsten Schritt; ein Tipp öffnet die Anmeldung.
 
+## Rangliste: Woche, für immer, Freunde
+
+Im Online-Tab zwei Umschalter: **Diese Woche / Für immer** und **Alle / Freunde** (Freunde nur mit Konto), beliebig kombinierbar, dazu die Spielauswahl. „Freunde“ zeigt nur dich und deine Freunde mit Plätzen unter euch, die besten drei der letzten Woche unter euch und deinen Platz; ohne Freunde einen Knopf zum Hinzufügen. **Server:** `supabase/migrations/20261127000000_friends_board.sql` im SQL-Editor ausführen (`friends_board(gm, period)`, gleiche Antwort wie `leaderboard`); ohne die Migration sagt die App, dass es nach dem nächsten Server-Update kommt.
+
 ## Spieleabend
 
 Nur mit Konto (`js/night.js`): Gäste, auch Gast-Sitzungen aus dem schnellen Spiel, sehen die Zeile mit Schloss und „Konto“; ein Tipp führt zur Anmeldung. Ein Abend, der als Gast begonnen wurde, ruht, bis man eingeloggt ist. Läuft der Server nicht, bleibt er wie alles andere offen.

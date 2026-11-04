@@ -583,7 +583,7 @@
     if (S.get('awardsSent') === sig) return;
     V.cloud.rpc('set_awards', { a }).then(() => S.set('awardsSent', sig), () => { });
   }
-  const bdgTile = (b, date) => `<div class="bdg bt${b[4]}${date ? ' on' : ''}" title="${escA(TIERS[b[4]] + ' · ' + b[3])}"><span class="bdg-ic">${IC[b[1]]}</span><b>${b[2]}</b><small>${date ? new Date(date).toLocaleDateString(V.locale(), { day: 'numeric', month: 'short', year: '2-digit' }) : b[3]}</small></div>`;
+  const bdgTile = (b, date) => `<div class="abz bt${b[4]}${date ? ' on' : ''}" title="${escA(TIERS[b[4]] + ' · ' + b[3])}"><span class="abz-ic">${IC[b[1]]}</span><b>${b[2]}</b><small>${date ? new Date(date).toLocaleDateString(V.locale(), { day: 'numeric', month: 'short', year: '2-digit' }) : b[3]}</small></div>`;
   function badgePanel() {
     badgeCheck();
     const have = S.get('badges', {}), got = BADGES.filter(b => have[b[0]]), open = BADGES.filter(b => !have[b[0]]);
@@ -591,8 +591,8 @@
     const tierN = t => `<span class="tcount bt${t}">${got.filter(b => b[4] === t).length}/${BADGES.filter(b => b[4] === t).length}</span>`;
     return `<div class="apanel sbadges"><h3>Abzeichen<small>${got.length} von ${BADGES.length}</small></h3>
       <div class="tcounts">${tierN(1)}${tierN(2)}${tierN(3)}<small>Normal · Selten · Legendär</small></div>
-      ${got.length ? `<div class="bdg-grid">${byTier(got).map(b => bdgTile(b, have[b[0]])).join('')}</div>` : '<p class="muted">Noch keins. Spiel eine Partie, dann kommt das erste.</p>'}
-      ${open.length ? `<details class="bdg-open"><summary>Noch offen (${open.length})</summary><div class="bdg-grid">${open.sort((x, y) => x[4] - y[4]).map(b => bdgTile(b)).join('')}</div></details>` : ''}
+      ${got.length ? `<div class="abz-grid">${byTier(got).map(b => bdgTile(b, have[b[0]])).join('')}</div>` : '<p class="muted">Noch keins. Spiel eine Partie, dann kommt das erste.</p>'}
+      ${open.length ? `<details class="abz-open"><summary>Noch offen (${open.length})</summary><div class="abz-grid">${open.sort((x, y) => x[4] - y[4]).map(b => bdgTile(b)).join('')}</div></details>` : ''}
       ${guest() || !(V.cloud && V.cloud.user()) ? '<p class="fine">Mit einem kostenlosen Konto sind Abzeichen und Serie auf jedem Gerät dabei und in deinem Profil zu sehen.</p>' : ''}</div>`;
   }
   // for the profile of any player (js/online.js): the earned ones, legendary first

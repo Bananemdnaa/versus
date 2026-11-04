@@ -185,7 +185,7 @@
   function hideInvite() { if (card) { card.classList.add('out'); const c = card; setTimeout(() => c.remove(), 250); } card = null; cardId = null; }
 
   // ---------- Online tab ----------
-  let friendsData = null, board = null, boardGame = '', boardPeriod = 'week';
+  let friendsData = null, board = null, boardGame = '', boardPeriod = 'week', boardScope = 'all';
   // who is a friend: name -> 'friend' | 'outgoing' | 'incoming' (null until loaded once)
   let fstate = null;
   const initials = n => esc(String(n).slice(0, 2).toUpperCase());
@@ -203,7 +203,8 @@
       ${C().user() ? '<div id="oactive" class="obanners"></div>' : ''}
       <div class="ogrid${full ? '' : ' solo'}">
         <div class="ocol">${quickCard()}${full ? '<div id="oasync"></div>' : ''}<div class="apanel osec orank"><div class="rtop"><h3>Rangliste <em class="chip c rleft" id="rleft" hidden></em></h3><div class="oseg rper" id="oper">${[['week', 'Diese Woche'], ['all', 'Für immer']].map(([k, l]) => `<button data-p="${k}" class="${boardPeriod === k ? 'on' : ''}">${l}</button>`).join('')}</div></div>
-          <label class="rsel">${IC().trophy}<select class="inp" id="obgs" aria-label="Spiel für die Rangliste">${[['', 'Alle Spiele'], ...ONLINE.concat(TABLE).filter(id => V.byId[id]).map(id => [id, gname(id)])].map(([id, l]) => `<option value="${id}"${boardGame === id ? ' selected' : ''}>${esc(l)}</option>`).join('')}</select></label>
+          <div class="rfilt"><label class="rsel">${IC().trophy}<select class="inp" id="obgs" aria-label="Spiel für die Rangliste">${[['', 'Alle Spiele'], ...ONLINE.concat(TABLE).filter(id => V.byId[id]).map(id => [id, gname(id)])].map(([id, l]) => `<option value="${id}"${boardGame === id ? ' selected' : ''}>${esc(l)}</option>`).join('')}</select></label>
+            ${full ? `<div class="oseg rper rscope" id="oscope" role="group" aria-label="Wer steht in der Rangliste?">${[['all', 'Alle', IC().globe], ['friends', 'Freunde', IC().users]].map(([k, l, ic]) => `<button data-s="${k}" class="${boardScope === k ? 'on' : ''}" aria-pressed="${boardScope === k}">${ic}${l}</button>`).join('')}</div>` : ''}</div>
           <div id="oboard">${V.skel()}</div></div></div>
         <div class="ocol">${full ? `<div class="apanel osec fpanel"><div class="fhead"><h3>Freunde <small id="fcount"></small></h3><button class="btn primary sm" id="fadd"><span>${IC().plus}Hinzufügen</span></button></div>
             <div id="ofriends">${V.skel()}</div></div>` : loginCard}</div>
@@ -218,6 +219,13 @@
     // a table code (from a friend): straight to that table
     const cf = b.querySelector('#ocode');
     if (cf) cf.onsubmit = e => { e.preventDefault(); const c = b.querySelector('#ocodei').value.trim().toUpperCase(); if (!c) return; V.sfx.ui(); joinTable(null, c); };
+    // everybody or only you and your friends (accounts; js: friends_board on the server)
+    b.querySelectorAll('#oscope button').forEach(x => x.onclick = () => {
+      if (boardScope === x.dataset.s) return;
+      boardScope = x.dataset.s; V.sfx.ui();
+      b.querySelectorAll('#oscope button').forEach(y => { y.classList.toggle('on', y === x); y.setAttribute('aria-pressed', y === x); });
+      loadBoard(b);
+    });
     b.querySelectorAll('#oper button').forEach(x => x.onclick = () => {
       if (boardPeriod === x.dataset.p) return;
       boardPeriod = x.dataset.p; V.sfx.ui();
@@ -527,7 +535,11 @@
   async function loadBoard(b) {
     const el = b.querySelector('#oboard'); if (!el) return;
     el.classList.add('loading');
-    try { board = await C().rpc('leaderboard', { gm: boardGame || null, lim: 50, period: boardPeriod }); }
+    const fr = boardScope === 'friends' && C().user() && !isAnon();
+    if (fr) {
+      try { board = await C().rpc('friends_board', { gm: boardGame || null, period: boardPeriod }); }
+      catch (e) { el.classList.remove('loading'); el.innerHTML = `<p class="gp-note">${/friends_board|function/i.test(e.message) ? 'Die Freunde-Rangliste kommt nach dem nächsten Server-Update.' : esc(e.message)}</p>`; return; }
+    } else try { board = await C().rpc('leaderboard', { gm: boardGame || null, lim: 50, period: boardPeriod }); }
     catch (e) {
       // server without the weekly ranking yet: fall back to the all-time list
       try { board = await C().rpc('leaderboard', { gm: boardGame || null, lim: 50 }); board.period = 'all'; board.legacy = true; }
@@ -536,17 +548,21 @@
     el.classList.remove('loading');
     const top = board.top || [], me = board.me, myName = C().user() && C().user().username;
     const scope = boardGame ? gname(boardGame) : 'allen Spielen';
+    const friends = !!board.friends;
     const week = board.period === 'week';
     const left = week && board.until ? untilText(board.until) : '';
     const lastW = week && (board.last || []).length ? `<div class="rlast">${IC().trophy}<span><small>Sieger letzte Woche</small>${board.last.map(r => `<b class="l${r.pos}">${r.pos}. ${esc(r.username)}</b>`).join('')}</span></div>` : '';
     // the countdown sits as a chip next to the title
     const chip = b.querySelector('#rleft'); if (chip) { chip.hidden = !left; chip.textContent = left ? 'noch ' + left : ''; }
-    const head = (week ? `<p class="rweek"><b>Wochenwertung</b> · startet jeden Montag neu</p>` : board.legacy ? '<p class="rweek">Wochenwertung kommt nach dem nächsten Server-Update.</p>' : '<p class="rweek"><b>Ewige Wertung</b> · alle Partien seit Beginn</p>') + lastW;
+    const fTag = friends ? '<em class="rtag fr">Freunde</em> ' : '';
+    const head = (week ? `<p class="rweek">${fTag}<b>Wochenwertung</b> · startet jeden Montag neu</p>` : board.legacy ? '<p class="rweek">Wochenwertung kommt nach dem nächsten Server-Update.</p>' : `<p class="rweek">${fTag}<b>Ewige Wertung</b> · alle Partien seit Beginn</p>`) + lastW;
+    // no friends yet: say how to get some instead of an empty list
+    if (friends && (board.circle || 0) <= 1) { el.innerHTML = head + `<div class="empty small">${IC().users}<b>Noch keine Freunde</b><p>Füg Freunde hinzu, dann seht ihr hier, wer von euch vorne liegt.</p><button class="btn primary sm" id="rfadd"><span>${IC().plus}Freunde hinzufügen</span></button></div>`; const a = el.querySelector('#rfadd'); if (a) a.onclick = () => { V.sfx.ui(); addFriends(); }; return; }
     const pct = r => (r.played ? Math.round(r.wins / r.played * 100) : 0);
     const mine = !C().user() ? '' : me
-      ? `<div class="rmine"><span class="rp">#${me.pos}</span><div><small>Dein Platz in ${esc(scope)}${week ? ' diese Woche' : ''}</small><b>${me.wins} ${me.wins === 1 ? 'Sieg' : 'Siege'}</b><span>${me.played} Partien · ${me.losses || 0} verloren · ${me.draws || 0} remis · ${pct(me)} %</span></div></div>`
+      ? `<div class="rmine"><span class="rp">#${me.pos}</span><div><small>Dein Platz ${friends ? 'unter Freunden ' : ''}in ${esc(scope)}${week ? ' diese Woche' : ''}</small><b>${me.wins} ${me.wins === 1 ? 'Sieg' : 'Siege'}</b><span>${me.played} Partien · ${me.losses || 0} verloren · ${me.draws || 0} remis · ${pct(me)} %</span></div></div>`
       : `<div class="rmine none"><div><small>Dein Platz in ${esc(scope)}</small><b>${week ? 'Diese Woche noch keine Partie' : 'Noch keine Partie'}</b><span>Spiel online gegen einen Freund oder über „Online“ im Spiel-Panel, dann stehst du hier.</span></div></div>`;
-    if (!top.length) { el.innerHTML = head + mine + `<div class="empty small">${IC().trophy}<b>Noch leer</b><p>${week ? 'Diese Woche hat noch niemand' : 'Hier hat noch niemand'} eine Online-Partie in ${esc(scope)} gewonnen.${week ? ' Deine Chance auf Platz 1!' : ''}</p></div>`; return; }
+    if (!top.length) { el.innerHTML = head + mine + `<div class="empty small">${IC().trophy}<b>Noch leer</b><p>${friends ? (week ? 'Diese Woche hat noch keiner von euch' : 'Noch keiner von euch hat') : week ? 'Diese Woche hat noch niemand' : 'Hier hat noch niemand'} eine Online-Partie in ${esc(scope)} gewonnen.${week ? ' Deine Chance auf Platz 1!' : ''}</p></div>`; return; }
     const pod = top.slice(0, 3);
     const order = [pod[1], pod[0], pod[2]].filter(Boolean);
     const podium = `<div class="podium">${order.map(r => `<div class="pod p${Math.min(r.pos, 3)}${r.username === myName ? ' me' : ''}">
@@ -558,7 +574,7 @@
     el.innerHTML = head + mine + podium +
       (rest.length ? `<div class="rhead"><span>#</span><span>Spieler</span><span>Siegquote</span><span>Siege</span></div>${rest.map(r => row(r, r.username === myName ? 'me' : '')).join('')}` : '') +
       (me && me.pos > top[top.length - 1].pos ? '<div class="rgap">…</div>' + row(me, 'me') : '') +
-      `<p class="fine">${board.players || top.length} Spieler in ${esc(scope)}. Gezählt werden gewonnene Online-Partien gegen andere Spieler, gleiche Siege sortiert nach weniger Partien.</p>`;
+      `<p class="fine">${board.players || top.length} ${friends ? 'von ' + board.circle + ' (du und deine Freunde)' : 'Spieler'} in ${esc(scope)}. Gezählt werden gewonnene Online-Partien gegen andere Spieler, gleiche Siege sortiert nach weniger Partien.</p>`;
   }
 
   // ---------- game panel: pick a friend to invite ----------
