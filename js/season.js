@@ -1,4 +1,5 @@
-// Versus: seasonal looks for the whole app (moon and bats at Halloween, snow and fairy lights in winter) plus tinted
+// Versus: seasonal looks for the whole app (moon and bats at Halloween; snow, fairy lights and baubles at Christmas,
+// stored as 'winter' on the server) plus tinted
 // background lights; nothing changes in the games. Which look runs, the team decides in the admin panel (site_state.season,
 // read with site_notice); players can only switch it off (setting seasonOn). The last known look is kept on the device,
 // so it shows at once on the next start and offline. Effects off: the decoration stands still, no snow falls.
@@ -35,7 +36,9 @@
       back.innerHTML = '<i class="drift"></i>';
       // fairy lights along the top edge, the bulbs take turns glowing
       const n = Math.max(12, Math.min(40, Math.round(innerWidth / 42)));
-      layer.innerHTML = `<i class="lights">${Array.from({ length: n }, (_, k) => `<b style="--k:${k % 4};--x:${((k + 0.5) / n * 100).toFixed(2)}%"></b>`).join('')}</i><canvas class="snow"></canvas>`;
+      // and three baubles hanging from the lights on the right, swinging a little
+      const baubles = [[88, 70, 0], [80, 110, 1], [94, 46, 2]].map(([x, h, k]) => `<i class="bauble k${k}" style="--x:${x}%;--h:${h}px"><b></b></i>`).join('');
+      layer.innerHTML = `<i class="lights">${Array.from({ length: n }, (_, k) => `<b style="--k:${k % 4};--x:${((k + 0.5) / n * 100).toFixed(2)}%"></b>`).join('')}</i>${baubles}<canvas class="snow"></canvas>`;
     }
     (document.querySelector('.bgfx') || document.body).appendChild(back);
     document.body.appendChild(layer);

@@ -2877,8 +2877,8 @@ html.lowfx::view-transition-group(*),html.lowfx::view-transition-old(*),html.low
 /* a pumpkin on the logo */
 .ss-halloween .sd-logo::after{content:'🎃';font-size:.8em;margin-left:.3em}
 /* Winter: icy lights, fairy lights on top, snow, a snow drift at the bottom */
-.ss-winter .bgfx .blob.a{background:radial-gradient(closest-side,rgba(120,200,255,.26),transparent)}
-.ss-winter .bgfx .blob.b{background:radial-gradient(closest-side,rgba(255,80,110,.16),transparent)}
+.ss-winter .bgfx .blob.a{background:radial-gradient(closest-side,rgba(255,70,90,.24),transparent)}
+.ss-winter .bgfx .blob.b{background:radial-gradient(closest-side,rgba(60,200,120,.18),transparent)}
 .season.winter .snow{position:absolute;inset:0;width:100%;height:100%}
 .season.winter .lights{left:0;right:0;top:-6px;height:34px}
 .season.winter .lights::before{content:'';position:absolute;left:-2%;right:-2%;top:0;height:22px;border-bottom:1.5px solid rgba(40,50,70,.9);border-radius:0 0 50% 50%/0 0 100% 100%}
@@ -2886,7 +2886,7 @@ html.lowfx::view-transition-group(*),html.lowfx::view-transition-old(*),html.low
 .season.winter .lights b:nth-child(4n+1){--c:#ff4f6d} .season.winter .lights b:nth-child(4n+2){--c:#ffd84f} .season.winter .lights b:nth-child(4n+3){--c:#5dff9d} .season.winter .lights b:nth-child(4n){--c:#62c8ff}
 .season.winter .drift{left:-5%;right:-5%;bottom:-30px;height:70px;background:radial-gradient(40% 60% at 20% 100%,rgba(235,245,255,.14),transparent 70%),radial-gradient(45% 70% at 70% 100%,rgba(235,245,255,.12),transparent 70%)}
 @keyframes ssBulb{0%,100%{opacity:1}50%{opacity:.35;box-shadow:none}}
-.ss-winter .sd-logo::after{content:'❄';font-size:.75em;margin-left:.3em;color:#cfeaff}
+.ss-winter .sd-logo::after{content:'★';font-size:.75em;margin-left:.3em;color:#ffd84f;text-shadow:0 0 10px rgba(255,216,79,.8)}
 /* calmer during a match, still with effects off */
 body:has(.view.play) .season{opacity:.45}
 body:has(.view.play) .season.halloween .bat{display:none}
@@ -2902,7 +2902,16 @@ body:has(.view.play) .season.halloween .bat{display:none}
 @keyframes ssDropB{0%,100%{transform:scaleY(1.8)}50%{transform:scaleY(1)}}
 /* the big cards get a touch of the season */
 .ss-halloween .hcard.hw{box-shadow:0 0 0 1px rgba(255,122,24,.45),0 0 40px -12px rgba(255,122,24,.7)}
-.ss-winter .hcard.hw{box-shadow:0 0 0 1px rgba(160,220,255,.5),0 0 40px -12px rgba(140,210,255,.7)}
+.ss-winter .hcard.hw{box-shadow:0 0 0 1px rgba(255,216,79,.5),0 0 40px -12px rgba(255,80,100,.7)}
+/* Christmas baubles: a thread from the lights, a shiny ball, swinging gently */
+.season.winter .bauble{left:var(--x);top:8px;width:1px;height:var(--h);background:rgba(255,230,160,.45);transform-origin:top;animation:ssSwing 5s ease-in-out infinite}
+.season.winter .bauble.k1{animation-delay:-1.6s} .season.winter .bauble.k2{animation-delay:-3.1s}
+.season.winter .bauble b{position:absolute;left:-11px;bottom:-22px;width:22px;height:22px;border-radius:50%;background:radial-gradient(circle at 35% 30%,rgba(255,255,255,.85) 0 8%,var(--bc) 30%,color-mix(in srgb,var(--bc) 55%,#000) 100%);box-shadow:0 0 14px -2px var(--bc)}
+.season.winter .bauble b::before{content:'';position:absolute;left:7px;top:-4px;width:8px;height:5px;border-radius:2px;background:#d9b44a}
+.season.winter .bauble.k0 b{--bc:#e8253f} .season.winter .bauble.k1 b{--bc:#ffc83d} .season.winter .bauble.k2 b{--bc:#24b860}
+@keyframes ssSwing{0%,100%{transform:rotate(5deg)}50%{transform:rotate(-5deg)}}
+body:has(.view.play) .season.winter .bauble{display:none}
+@media (max-width:959px){ .season.winter .bauble{top:4px} .season.winter .bauble.k2{display:none} }
 body:has(.view.play) .season.front{opacity:.35}
 body:has(.view.play) .season.halloween .spider{display:none}
 /* phone game bar: rules and restart are in the pause menu (the back arrow), so the game's name has room */

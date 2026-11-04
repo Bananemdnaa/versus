@@ -539,7 +539,7 @@
         <div class="chips mini" id="ah">${[[0, 'Aus'], [2, 'Ab 2'], [3, 'Ab 3'], [5, 'Ab 5']].map(([k, l]) => `<button data-ah="${k}" class="${(s.auto_hide ?? 3) === k ? 'on' : ''}">${l}</button>`).join('')}</div></div>
       <div class="apanel"><h3>Saison-Look</h3>
         <p class="fine">Deko für die ganze App, für alle Spieler. Wer sie nicht mag, schaltet sie in den Optionen für sich aus. Nur ihr legt fest, welcher Look läuft.</p>
-        <div class="chips mini" id="ss">${[['', 'Keiner'], ['halloween', 'Halloween'], ['winter', 'Winter &amp; Weihnachten']].map(([k, l]) => `<button data-ss="${k}" class="${(s.season || '') === k ? 'on' : ''}">${l}</button>`).join('')}</div></div>
+        <div class="chips mini" id="ss">${[['', 'Keiner'], ['halloween', 'Halloween'], ['winter', 'Weihnachten']].map(([k, l]) => `<button data-ss="${k}" class="${(s.season || '') === k ? 'on' : ''}">${l}</button>`).join('')}</div></div>
       ${owner ? `<div class="apanel"><h3>Gäste aufräumen</h3>
         <p class="fine">Löscht Gastkonten, die seit 30 Tagen nicht mehr da waren, samt ihren Partien. Gäste zählen nirgends, ihr Fortschritt bleibt im Browser.</p>
         <p>${purge == null ? '' : purge ? `<b>${purge}</b> Gastkonten sind älter als 30 Tage.` : 'Gerade keine alten Gastkonten.'}</p>

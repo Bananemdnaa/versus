@@ -1417,7 +1417,7 @@
         ${sw('o_cb', !!settings.cb, 'Farbenblind-Modus', 'Muster auf den Steinen, Formen an den Namen, Nummern auf den Figuren', IC.eye)}
         ${pop ? '' : `<div class="opt orow">${IC.globe}<span><b>Sprache</b><small>Language · Deutsch oder Englisch</small></span>${seg('lang', V.lang, [['de', 'Deutsch'], ['en', 'English']])}</div>`}
         <div class="opt orow">${IC.grid}<span><b>Spielbrett</b><small>Schach, Dame und Reversi</small></span>${seg('board', settings.board || 'std', [['std', 'Standard'], ['neon', 'Neon'], ['wood', 'Holz']])}</div>
-        ${sw('o_season', settings.seasonOn !== false, 'Saison-Look', V.season && V.season.active() ? 'Gerade: ' + ({ halloween: 'Halloween', winter: 'Winter' })[V.season.active()] + ' · Deko für die ganze App' : 'Gerade ist kein Saison-Look aktiv', IC.star)}
+        ${sw('o_season', settings.seasonOn !== false, 'Saison-Look', V.season && V.season.active() ? 'Gerade: ' + ({ halloween: 'Halloween', winter: 'Weihnachten' })[V.season.active()] + ' · Deko für die ganze App' : 'Gerade ist kein Saison-Look aktiv', IC.star)}
         <div class="bprev" aria-hidden="true">${[['std', 'Standard'], ['neon', 'Neon'], ['wood', 'Holz']].map(([k, l]) => `<button tabindex="-1" data-bp="${k}" class="bp bp-${k}${(settings.board || 'std') === k ? ' on' : ''}"><i></i><span>${l}</span></button>`).join('')}</div>
       </div></div>
       <div class="ogroup" data-oc="game"><h2 class="oh"><button class="oh-b" data-ot="game" aria-expanded="true">Spiel</button></h2>

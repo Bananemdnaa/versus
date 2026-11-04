@@ -295,7 +295,7 @@
 
   // ---------- quick phrases in online matches ----------
   A({
-    'Saison-Look': 'Seasonal look', 'Gerade: Halloween': 'Now: Halloween', 'Gerade: Winter': 'Now: winter', 'Deko für die ganze App': 'Decoration for the whole app', 'Gerade ist kein Saison-Look aktiv': 'No seasonal look right now',
+    'Saison-Look': 'Seasonal look', 'Gerade: Halloween': 'Now: Halloween', 'Gerade: Weihnachten': 'Now: Christmas', 'Weihnachten': 'Christmas', 'Deko für die ganze App': 'Decoration for the whole app', 'Gerade ist kein Saison-Look aktiv': 'No seasonal look right now',
     'Viel Glück!': 'Good luck!', 'Guter Zug!': 'Nice move!', 'Gut gespielt!': 'Well played!', 'Das war knapp!': 'That was close!', 'Moment, ich überlege …': 'Hold on, thinking …',
     'Na los, du bist dran!': 'Come on, your turn!', 'Upps!': 'Oops!', 'Glück gehabt!': 'Lucky!', 'Danke!': 'Thanks!', 'Sorry!': 'Sorry!', 'Revanche?': 'Rematch?', 'Bis gleich!': 'See you soon!'
   });
