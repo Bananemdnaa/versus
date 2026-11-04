@@ -3032,3 +3032,55 @@ body:has(.view.play) .season.halloween .spider{display:none}
 .rtag.fr{background:color-mix(in srgb,var(--cyan) 20%,transparent);color:var(--cyan)}
 #oboard .empty .btn svg{width:16px;height:16px;margin:0}
 @media (max-width:480px){ .rtop .rper{width:100%} .rtop .rper button{flex:1} }
+
+/* tutorial practice tasks ("Probier's aus", js/tutor.js) */
+.tq-tag{display:inline-flex;align-items:center;gap:4px;margin-left:8px;padding:3px 8px;border-radius:999px;background:color-mix(in srgb,var(--cyan) 18%,transparent);color:var(--cyan);font:700 italic 11px/1 var(--f-d);letter-spacing:.08em;font-style:normal;vertical-align:middle}
+.tq-tag svg{width:13px;height:13px}
+.tut .dots i.tqd{background:color-mix(in srgb,var(--cyan) 35%,var(--line2))} .tut .dots i.tqd.on{background:var(--cyan)} .tut .dots i.ok{background:var(--good)!important}
+.tq-q{margin:0;font-size:15.5px;line-height:1.45;color:var(--fg);font-weight:600}
+.tq-demo{display:flex;justify-content:center}
+.tq-box{flex-direction:column;gap:10px;transition:border-color .2s,box-shadow .2s}
+.tq-box.solved{border-color:color-mix(in srgb,var(--good) 60%,var(--line));box-shadow:0 0 0 3px color-mix(in srgb,var(--good) 18%,transparent)}
+.tq-box .mc.tap{cursor:pointer;transition:transform .12s,filter .12s}
+.tq-box .mc.tap:hover{filter:brightness(1.35)}
+.tq-box .mc.tap:active{transform:scale(.9)}
+.tq-box .mc.tap:focus-visible{outline:2px solid var(--cyan);outline-offset:1px}
+.tq-box .mc.tok{box-shadow:inset 0 0 0 2px var(--good),0 0 14px -2px var(--good);animation:tqPop .4s var(--spring)}
+.tq-box .mc.tno{animation:tqNo .45s ease;background:color-mix(in srgb,var(--bad) 45%,transparent)!important}
+@keyframes tqPop{0%{transform:scale(.6)}100%{transform:scale(1)}}
+@keyframes tqNo{20%,60%{transform:translateX(-4px)}40%,80%{transform:translateX(4px)}}
+.tq-box .mc.kst{background:var(--panel3);border-radius:8px;font:800 italic 16px/1 var(--f-d)}
+.tq-fb{min-height:22px;margin:0;display:flex;align-items:flex-start;gap:8px;font-size:14px;line-height:1.4}
+.tq-fb svg{flex:none;width:20px;height:20px;margin-top:-1px}
+.tq-fb.ok{color:var(--good)} .tq-fb.ok span{color:var(--fg)}
+.tq-fb.no{color:#ffb3c0} .tq-fb.part{color:var(--cyan)}
+.tq-chs{align-items:stretch!important;padding:10px!important}
+.tq-ch{position:relative;display:flex;align-items:center;justify-content:center;gap:10px;min-height:46px;padding:8px 14px;border-radius:10px;background:var(--panel2);border:1.5px solid var(--line);color:var(--fg);font:600 14.5px/1.3 var(--f-b);text-align:center;cursor:pointer;transition:border-color .15s,background .15s,transform .12s}
+.tq-ch:hover{border-color:var(--line2)} .tq-ch:active{transform:scale(.98)}
+.tq-ch kbd{position:absolute;left:8px;top:50%;transform:translateY(-50%);font-size:10px;opacity:.6}
+.tq-ch.ok{border-color:var(--good);background:color-mix(in srgb,var(--good) 14%,var(--panel2))}
+.tq-ch.bad{border-color:var(--bad);background:color-mix(in srgb,var(--bad) 12%,var(--panel2));animation:tqNo .45s ease}
+.tq-cards{display:inline-flex;gap:4px;flex-wrap:wrap;justify-content:center}
+.tq-cards .card{width:38px;height:54px;font-size:12px;flex:none}
+.tq-dice{display:inline-flex;gap:6px}
+.tq-dice i{width:34px;height:34px;border-radius:8px;display:grid;place-items:center;background:#f4f4fb;color:#151527;font:800 18px/1 var(--f-d);font-style:normal;box-shadow:inset 0 -3px 0 rgba(0,0,0,.18)}
+.tq-tile{display:inline-flex;border-radius:7px;background:#f4f1e6;color:#1a1a26;box-shadow:inset 0 -2px 0 rgba(0,0,0,.2);overflow:hidden}
+.tq-tile i{width:30px;height:30px;display:grid;place-items:center;font:800 17px/1 var(--f-d);font-style:normal}
+.tq-tile i+i{border-left:2px solid rgba(0,0,0,.35)}
+.tq-ends{display:inline-flex;align-items:center;gap:8px;color:var(--muted)}
+.tq-memo{display:grid;grid-template-columns:repeat(3,64px);gap:8px;justify-content:center}
+.tq-mc{width:64px;height:64px;border-radius:10px;border:1.5px solid var(--line2);background:repeating-linear-gradient(45deg,var(--panel3) 0 6px,var(--panel2) 6px 12px);cursor:pointer;transition:transform .3s var(--ease),background .2s}
+.tq-mc b{font-size:30px;opacity:0;transition:opacity .15s}
+.tq-mc.up{background:var(--panel2);transform:rotateY(0)} .tq-mc.up b{opacity:1}
+.tq-mc.pair{border-color:var(--good);box-shadow:0 0 12px -3px var(--good)}
+.tq-react{width:100%;max-width:300px;height:120px;border-radius:12px;border:0;background:var(--panel3);color:var(--fg);font:800 italic 20px/1.1 var(--f-d);text-transform:uppercase;cursor:pointer;transition:background .1s}
+.tq-react.wait{background:#3a2440} .tq-react.fake{background:var(--warn,#ff9a3d);color:#1a0f05} .tq-react.green{background:var(--good);color:#06210f} .tq-react.done{background:var(--panel3)}
+.tq-end{display:flex;flex-direction:column;align-items:center;gap:2px;padding:14px;border-radius:10px;background:var(--ink2);border:1px solid var(--line)}
+.tq-end b{font:800 italic 40px/1 var(--f-d);color:var(--cyan)} .tq-end.all b{color:var(--good)} .tq-end.none b{color:var(--muted)}
+.tq-end span{font-size:13px;color:var(--muted);text-transform:uppercase;letter-spacing:.1em}
+.tq-practice{align-self:center}
+.lowfx .tq-box .mc.tok,.lowfx .tq-ch.bad,.lowfx .tq-box .mc.tno{animation:none}
+.tq-chs.tq-grid{display:grid!important;grid-template-columns:repeat(auto-fit,minmax(72px,1fr));gap:8px}
+.tq-grid .tq-ch{min-height:0;padding:10px 6px}
+.tq-ch .card.tq-card{width:46px;height:66px;font-size:13px;flex:none}
+.tq-demo .card.tq-card{width:52px;height:74px}

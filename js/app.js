@@ -871,7 +871,7 @@
       const k = b.dataset.c;
       if (k === 'play') { if (locked(g)) return selectTile(g); const c = loadCfg(g); if (c.mode === 'ai' || c.mode === 'local') return play(g, c); return selectTile(g); }
       if (k === 'fav') return toggleFav(g);
-      if (k === 'rules') return tutorial(g);
+      if (k === 'rules') return tutorial(g, null, { practice: true });
       if (k === 'room') return V.online.linkInvite(g, loadCfg(g).opts);
       if (k === 'link') {
         const url = location.origin + location.pathname + '?game=' + g.id;
@@ -1153,7 +1153,7 @@
     const rer = () => renderPanel(root, g, full);
     const body = gp.querySelector('.gp-body');
     // in the sheet the rules close it and open it again afterwards
-    const tut = () => tutorial(g, full ? () => setup(g) : rer);
+    const tut = () => tutorial(g, full ? () => setup(g) : rer, { practice: true });
     const head = (full ? `<button class="iconbtn gpx" id="gpx" aria-label="Schließen">${IC.x}</button>` : '')
       + `<button class="iconbtn fav${isFav(g) ? ' on' : ''}" id="fav" aria-pressed="${isFav(g)}" aria-label="Favorit" title="${isFav(g) ? 'Aus Favoriten entfernen' : 'Zu Favoriten'}">${IC.star}</button>`;
     // the help button shows only its icon on the phone and next to a long main button
@@ -1677,33 +1677,143 @@
   }
   addEventListener('online', () => netState(true));
 
-  function tutorial(g, onDone) {
-    let i = 0;
-    const steps = g.tutorial;
-    let done = false;
-    function finish() {
+  // The tutorial: the game's own slides plus its practice tasks from js/tutor.js ("Probier's aus"): tap the right field,
+  // pick the right answer, find pairs or tap at green. A wrong try explains why, a task can be skipped. Opened from the
+  // game panel (practice: true), the end offers a practice match against the AI on Leicht.
+  function tutorial(g, onDone, opt = {}) {
+    let i = 0, done = false;
+    const steps = (g.tutorial || []).slice();
+    (V.TUTOR && V.TUTOR[g.id] || []).slice().sort((a, b) => (b.after ?? 99) - (a.after ?? 99))
+      .forEach(t => steps.splice(Math.min(steps.length, (t.after ?? 99) + 1), 0, Object.assign({ task: true }, t)));
+    const tasks = steps.filter(s => s.task).length, solved = new Set();
+    const canPractice = opt.practice && tasks && !g.noAI && !locked(g) && !inDiscord();
+    if (canPractice) steps.push({ end: true, t: 'Bereit?' });
+    function finish(then) {
       if (done) return; done = true;
-      P.seen[g.id] = 1; S.set('seen', P.seen); closeModal(); onDone && onDone();
+      P.seen[g.id] = 1; S.set('seen', P.seen); closeModal();
+      if (then) then(); else onDone && onDone();
     }
+    const nextLabel = st => (i === steps.length - 1 ? (st.end ? 'Fertig' : 'Verstanden') : st.task && !solved.has(i) ? 'Überspringen' : 'Weiter');
     function render(dir) {
       const st = steps[i];
-      const m = openModal(`<div class="tut ${dir ? 'go' + dir : ''}" data-g="${g.id}">
-        <div class="tk"><span>${g.name}</span><b>${i + 1}/${steps.length}</b></div>
+      const body = st.end
+        ? `<div class="tq-end${solved.size === tasks ? ' all' : solved.size ? '' : ' none'}"><b>${solved.size} von ${tasks}</b><span>Aufgaben gelöst</span></div><p class="txt">${solved.size === tasks ? 'Stark! Jetzt eine Runde zum Üben?' : 'Am besten lernst du beim Spielen. Die KI auf Leicht lässt dir Zeit.'}</p>
+          <button class="btn primary tq-practice" id="tqp"><span>${IC.play}Übungspartie gegen Leicht</span></button>`
+        : st.task
+          ? `<p class="tq-q">${st.q}</p>${st.demo ? `<div class="tq-demo">${st.demo}</div>` : ''}<div class="demo tq-box" id="tqb"></div><p class="tq-fb" id="tqf" aria-live="polite"></p>`
+          : `${st.demo ? `<div class="demo">${st.demo}</div>` : ''}<p class="txt">${st.d}</p>`;
+      const m = openModal(`<div class="tut ${dir ? 'go' + dir : ''}${st.task ? ' tq' : ''}" data-g="${g.id}">
+        <div class="tk"><span>${g.name}${st.task ? ` <em class="tq-tag">${IC.hand}Probier’s aus</em>` : ''}</span><b>${i + 1}/${steps.length}</b></div>
         <h3>${st.t}</h3>
-        ${st.demo ? `<div class="demo">${st.demo}</div>` : ''}
-        <p class="txt">${st.d}</p>
+        ${body}
         <div class="nav"><button class="btn ghost sm" id="tp"><span>${i ? 'Zurück' : 'Schließen'}</span></button>
-          <div class="dots">${steps.map((_, k) => `<i class="${k === i ? 'on' : k < i ? 'past' : ''}"></i>`).join('')}</div>
-          <button class="btn sm ${i === steps.length - 1 ? 'primary' : ''}" id="tn"><span>${i === steps.length - 1 ? 'Verstanden' : 'Weiter'}</span></button></div></div>`, 'tutm', () => finish(), true, e => {
+          <div class="dots">${steps.map((s2, k) => `<i class="${k === i ? 'on' : k < i ? 'past' : ''}${s2.task ? ' tqd' : ''}${solved.has(k) ? ' ok' : ''}"></i>`).join('')}</div>
+          <button class="btn sm ${st.end || (st.task && !solved.has(i)) ? 'ghost' : i === steps.length - 1 || (st.task && solved.has(i)) ? 'primary' : ''}" id="tn"><span>${nextLabel(st)}</span></button></div></div>`, 'tutm', () => finish(), true, e => {
+        if (st.task && st.choices && /^[1-9]$/.test(e.key)) { const c = m.querySelectorAll('.tq-ch')[+e.key - 1]; if (c) c.click(); return true; }
         if (e.key === 'ArrowRight' || e.key === 'Enter' || e.key === ' ') { next(); return true; }
         if (e.key === 'ArrowLeft') { prev(); return true; }
         return false;
       });
       m.querySelector('#tp').onclick = prev;
       m.querySelector('#tn').onclick = next;
+      const pr = m.querySelector('#tqp');
+      if (pr) pr.onclick = () => finish(() => { const cfg = loadCfg(g); cfg.mode = 'ai'; cfg.level = 0; cfg.first = 'me'; V.sfx.go(); play(g, cfg); });
+      if (st.task) task(m, st);
       let sx = null;
-      m.onpointerdown = e => { sx = e.clientX; };
+      m.onpointerdown = e => { sx = e.target.closest('.tq-box, .tq-chs') ? null : e.clientX; };
       m.onpointerup = e => { if (sx != null && Math.abs(e.clientX - sx) > 60 && !e.target.closest('button')) { e.clientX < sx ? next() : prev(); } sx = null; };
+    }
+    // ---------- the task kinds ----------
+    function task(m, st) {
+      const box = m.querySelector('#tqb'), fb = m.querySelector('#tqf'), k = i;
+      const say = (t, cls) => { fb.className = 'tq-fb ' + (cls || ''); fb.innerHTML = t || ''; if (t && V.fxOn()) V.fx.pop(fb, 'fx-pop'); };
+      const win = extra => {
+        if (solved.has(k)) return;
+        solved.add(k); V.sfx.goal(); V.buzz(15);
+        say(`${IC.check}<span>${extra || st.yes || 'Richtig!'}</span>`, 'ok');
+        const nb = m.querySelector('#tn'); nb.className = 'btn sm primary'; nb.querySelector('span').textContent = nextLabel(st);
+        const d = m.querySelectorAll('.dots i')[k]; if (d) d.classList.add('ok');
+        box.classList.add('solved');
+      };
+      const miss = why => { V.sfx.bad(); V.buzz(8); say(`<span>${why || st.no || 'Nicht ganz. Probier’s nochmal.'}</span>`, 'no'); };
+      if (solved.has(k)) say(`${IC.check}<span>${st.yes || 'Gelöst.'}</span>`, 'ok');
+      if (st.pick) {
+        const P2 = st.pick, cols = P2.rows[0].length, ok = new Set(P2.ok), found = new Set();
+        box.innerHTML = V.mini(P2.rows, P2.map || {}, P2.o || {});
+        const cells = [...box.querySelectorAll('.mc')];
+        const mark = el => {
+          el.classList.remove('tno');
+          if (P2.put) { if (P2.put.c) el.classList.add(...P2.put.c.split(' ')); if (P2.put.t) el.textContent = P2.put.t; }
+          el.classList.add('tok');
+        };
+        cells.forEach((el, n) => {
+          const ch = P2.rows[Math.floor(n / cols)][n % cols];
+          if (el.classList.contains('nb')) return;
+          el.classList.add('tap'); el.setAttribute('role', 'button'); el.tabIndex = 0;
+          el.onkeydown = e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); el.click(); } };
+          el.onclick = () => {
+            if (solved.has(k) && !P2.all) return;
+            const key = P2.col ? n % cols : n;
+            if (!ok.has(key)) { el.classList.remove('tno'); void el.offsetWidth; el.classList.add('tno'); return miss(); }
+            if (found.has(key)) return;
+            found.add(key);
+            let tgt = el;
+            // a column: the disc falls to the lowest free cell
+            if (P2.col) for (let r = P2.rows.length - 1; r >= 0; r--) if (P2.rows[r][key] === '.') { tgt = cells[r * cols + key]; break; }
+            mark(tgt); V.sfx.tick();
+            if (P2.all && found.size < ok.size) return say(`<span>${found.size} von ${ok.size} gefunden</span>`, 'part');
+            win();
+          };
+          if (ch === undefined) el.onclick = null;
+        });
+      } else if (st.choices) {
+        box.classList.add('tq-chs');
+        // cards, tiles or dice as answers sit side by side
+        box.classList.toggle('tq-grid', st.choices.every(c => /class="(card|tq-tile|tq-dice|tq-cards)/.test(c.h)) && !st.choices.some(c => /tq-cards/.test(c.h)));
+        box.innerHTML = st.choices.map((c, n) => `<button type="button" class="tq-ch" data-n="${n}"><kbd class="only-fine">${n + 1}</kbd>${c.h}</button>`).join('');
+        box.querySelectorAll('.tq-ch').forEach(b => b.onclick = () => {
+          const c = st.choices[+b.dataset.n];
+          if (c.ok) { b.classList.add('ok'); win(c.why && st.yes ? `<span>${c.why}</span> <span>${st.yes}</span>` : c.why || st.yes); }
+          else { b.classList.remove('bad'); void b.offsetWidth; b.classList.add('bad'); miss(c.why); }
+        });
+      } else if (st.memo) {
+        // Memory in small: all face up for a moment, then turned; find the pairs
+        const L = st.memo, open = [], got = new Set();
+        box.innerHTML = `<div class="tq-memo">${L.map((s, n) => `<button type="button" class="tq-mc up" data-n="${n}"><b>${s}</b></button>`).join('')}</div>`;
+        const btns = [...box.querySelectorAll('.tq-mc')];
+        let ready = false;
+        say('<span>Merk dir die Bilder …</span>', 'part');
+        const t0 = setTimeout(() => { if (!box.isConnected) return; btns.forEach(b => b.classList.remove('up')); ready = true; say(''); }, 2600);
+        btns.forEach(b => b.onclick = () => {
+          const n = +b.dataset.n;
+          if (!ready || got.has(n) || open.includes(n) || open.length > 1) return;
+          b.classList.add('up'); open.push(n); V.sfx.tick();
+          if (open.length < 2) return;
+          const [x, y] = open;
+          if (L[x] === L[y]) { got.add(x); got.add(y); btns[x].classList.add('pair'); btns[y].classList.add('pair'); open.length = 0; if (got.size === L.length) win(); else say(`<span>Ein Paar! Noch ${(L.length - got.size) / 2}.</span>`, 'part'); }
+          else { miss(); setTimeout(() => { btns[x].classList.remove('up'); btns[y].classList.remove('up'); open.length = 0; }, 800); }
+        });
+        if (solved.has(k)) { clearTimeout(t0); btns.forEach(b => b.classList.add('up', 'pair')); }
+      } else if (st.react) {
+        // Reaktionsduell in small: wait (maybe a fake orange), then green; tapping early starts again
+        box.innerHTML = '<button type="button" class="tq-react">Tippen zum Starten</button>';
+        const btn = box.querySelector('.tq-react');
+        let phase = 'idle', t = null, at = 0;
+        const set = (ph, text) => { phase = ph; btn.className = 'tq-react ' + ph; btn.textContent = text; };
+        const go = () => {
+          set('wait', 'Warte …'); say('');
+          t = setTimeout(() => {
+            if (!btn.isConnected) return;
+            if (Math.random() < 0.5) { set('fake', 'Nicht tippen!'); t = setTimeout(() => { if (btn.isConnected) { set('green', 'JETZT!'); at = performance.now(); } }, 900 + Math.random() * 700); }
+            else { set('green', 'JETZT!'); at = performance.now(); }
+          }, 1100 + Math.random() * 1600);
+        };
+        btn.onclick = () => {
+          if (phase === 'idle' || phase === 'done') return go();
+          if (phase === 'green') { const ms = Math.round(performance.now() - at); set('done', ms + ' ms · nochmal?'); return win(`<span>${ms} ms!</span> <span>Im Spiel gewinnt, wer schneller ist als der andere.</span>`); }
+          clearTimeout(t); set('idle', 'Zu früh! Tippen für einen neuen Versuch'); miss(phase === 'fake' ? 'Orange war eine Falle. Erst bei Grün tippen.' : 'Zu früh: Im Spiel bekommt dann der Gegner den Punkt.');
+        };
+      }
     }
     function next() { V.sfx.tick(); if (i < steps.length - 1) { i++; render('r'); } else finish(); }
     function prev() { V.sfx.tick(); if (i) { i--; render('l'); } else finish(); }

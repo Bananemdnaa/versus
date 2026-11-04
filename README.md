@@ -60,6 +60,15 @@ Kein Wettbewerb: Niemand muss jedes Spiel können.
 
 Gäste sehen den Banner „Kostenloses Konto: … Spiele mehr“ am Handy erst, wenn sie eine Partie gespielt haben. Ab der dritten Partie zeigt der Ergebnis-Bildschirm höchstens alle drei Tage einmal „Bilanz sichern – Kostenloses Konto“ als nächsten Schritt; ein Tipp öffnet die Anmeldung.
 
+## Tutorials zum Mitmachen
+
+Jedes der 35 Tutorials hat am Ende ein bis zwei Aufgaben („Probier’s aus“, zusammen 59, in `js/tutor.js`), die nach den erklärenden Seiten kommen:
+- **Brett-Aufgaben:** das richtige Feld antippen, z. B. 4 Gewinnt gewinnen und blocken, Tic Tac Toe, Fünf in einer Reihe, Reversi (alle erlaubten Felder finden), Schiffe versenken (nachschießen), Dame (Schlagzwang), Schach (alle Springerfelder, Matt in eins), Go (Stein fangen), Kalaha (Extrazug), Ultimate und 3D Tic Tac Toe. Spalten bei 4 Gewinnt zählen als Ganzes, der Stein fällt nach unten.
+- **Auswahl-Fragen:** mit Karten (Mau-Mau, Poker), Würfeln (Würfelblock, Backgammon, Leiterspiel), Dominosteinen oder Text für die übrigen Spiele.
+- **Memory** im Kleinen (Bilder merken, Paare finden) und ein **Reaktionstest** mit Orange-Falle.
+
+Falsche Antworten erklären, warum; jede Aufgabe lässt sich überspringen. Die Punkte unten zeigen Aufgaben türkis und gelöste grün. Öffnet man das Tutorial aus dem Spiel-Panel oder dem Kachel-Menü, zeigt die letzte Seite „x von y Aufgaben gelöst“ und einen Knopf **Übungspartie gegen Leicht** (nur Spiele mit KI, die man spielen darf). Am PC wählen die Zahlentasten eine Antwort. Englische Texte stehen in `js/lang/en.js`.
+
 ## Rangliste: Woche, für immer, Freunde
 
 Im Online-Tab zwei Umschalter: **Diese Woche / Für immer** und **Alle / Freunde** (Freunde nur mit Konto), beliebig kombinierbar, dazu die Spielauswahl. „Freunde“ zeigt nur dich und deine Freunde mit Plätzen unter euch, die besten drei der letzten Woche unter euch und deinen Platz; ohne Freunde einen Knopf zum Hinzufügen. **Server:** `supabase/migrations/20261127000000_friends_board.sql` im SQL-Editor ausführen (`friends_board(gm, period)`, gleiche Antwort wie `leaderboard`); ohne die Migration sagt die App, dass es nach dem nächsten Server-Update kommt.
