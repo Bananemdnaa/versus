@@ -3084,3 +3084,4 @@ body:has(.view.play) .season.halloween .spider{display:none}
 .tq-grid .tq-ch{min-height:0;padding:10px 6px}
 .tq-ch .card.tq-card{width:46px;height:66px;font-size:13px;flex:none}
 .tq-demo .card.tq-card{width:52px;height:74px}
+.ko h2.long{font-size:clamp(38px,9.5vw,100px)}

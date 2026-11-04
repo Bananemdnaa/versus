@@ -60,6 +60,15 @@ Kein Wettbewerb: Niemand muss jedes Spiel können.
 
 Gäste sehen den Banner „Kostenloses Konto: … Spiele mehr“ am Handy erst, wenn sie eine Partie gespielt haben. Ab der dritten Partie zeigt der Ergebnis-Bildschirm höchstens alle drei Tage einmal „Bilanz sichern – Kostenloses Konto“ als nächsten Schritt; ein Tipp öffnet die Anmeldung.
 
+## Schach
+
+Aufgebaut wie auf großen Schachseiten (`js/games/chess.js`):
+- **Brett und Figuren:** grünes Brett (Option „Brett“: Grün oder Neon; Holz kommt aus Optionen → Spielbrett), Figuren als Grafik (Set „cburnett“ von Colin M.L. Burnett, CC BY-SA 3.0, Hinweis in `rechtliches.html`), letzter Zug gelb, mögliche Ziele als graue Punkte, Schlagziele als Ring, Koordinaten auf den Randfeldern, König im Schach rot.
+- **Ziehen:** antippen und Ziel antippen oder die Figur mit Finger bzw. Maus ziehen; Umwandlung mit Figurenauswahl.
+- **Zugliste** unter dem Brett in Schachnotation (deutsch K D T L S, englisch K Q R B N, mit + und #), dazu der **Eröffnungsname** (rund 50 Eröffnungen, längster passender Anfang). ⏮ ◀ ▶ ⏭ blättern durch die Partie, ein Zug in der Liste zeigt seine Stellung; ziehen oder ⏭ geht zurück zur laufenden Partie.
+- **Partie-Analyse** nach dem Ende (Knopf im Ergebnis-Fenster und „Analyse“ unter dem Brett): jede Stellung wird drei Halbzüge tief durchgerechnet, jeder Zug nach der verlorenen Gewinnchance bewertet (Bester Zug, Exzellent, Gut, Ungenauigkeit ?!, Fehler ?, Patzer ??), dazu Genauigkeit in Prozent pro Seite und ein Verlauf. In der Zugliste stehen die Zeichen, auf dem Brett am Zielfeld, und bei schwächeren Zügen „Besser: …“.
+- **Am Gerät:** Mit „Gegenüber sitzen“ drehen sich die Figuren um 180°, wenn Schwarz dran ist (das Brett bleibt, Schwarz sitzt oben). Sitzt ihr nebeneinander, dreht die Option „Brett drehen: Mitdrehen“ das ganze Brett zu dem, der dran ist.
+
 ## Tutorials zum Mitmachen
 
 Jedes der 35 Tutorials hat am Ende ein bis zwei Aufgaben („Probier’s aus“, zusammen 59, in `js/tutor.js`), die nach den erklärenden Seiten kommen:

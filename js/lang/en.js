@@ -71,6 +71,33 @@
     'Geht erst nach dem nächsten Server-Update': 'Works after the next server update',
     'Alle Tutorials sind wieder neu': 'All tutorials are new again', 'Einstellungen zurückgesetzt': 'Settings reset', 'Bilanz gelöscht': 'Stats deleted',
     // tutorial dialog, welcome
+    // chess: review, move list, openings, board options
+    "Partie analysieren": "Review the game", "Analyse": "Review", "Partie-Analyse": "Game review",
+    "Versus rechnet jede Stellung durch …": "Versus is working through every position …", "Genauigkeit": "Accuracy", "Bester Zug": "Best move",
+    "Exzellent": "Excellent", "Gut": "Good", "Ungenauigkeit": "Inaccuracy",
+    "Fehler": "Mistake", "Patzer": "Blunder", "Tipp: In der Zugliste unter dem Brett sind die Züge jetzt markiert. Tippe einen an, dann siehst du die Stellung und den besseren Zug.": "Tip: the moves in the list below the board are marked now. Tap one to see the position and the better move.",
+    "Züge ansehen": "See the moves", "{0} · Besser: {1}": "{0} · Better: {1}", "Rückblick · Zug #": "Looking back · move #",
+    "Hier stehen gleich die Züge.": "The moves will show up here.", "Zum Anfang": "To the start", "Zug zurück": "Move back",
+    "Zug vor": "Move forward", "Zum aktuellen Zug": "To the current move", "Grün": "Green",
+    "Neon": "Neon", "Grün wie im Schachverein oder im Versus-Neon.": "Green like at a chess club, or in Versus neon.", "Neon-Brett": "Neon board",
+    "Brett drehen": "Flip board", "Mitdrehen": "Auto-flip", "Brett dreht mit": "Board flips",
+    "Am Gerät nebeneinander: Das Brett dreht sich zu dem, der dran ist. Sitzt ihr euch gegenüber, drehen sich stattdessen die Figuren.": "Side by side at one device: the board turns to whoever is to move. Sitting opposite each other, the pieces turn instead.", "Königsbauernspiel": "King's Pawn Game", "Damenbauernspiel": "Queen's Pawn Game",
+    "Englische Eröffnung": "English Opening", "Réti-Eröffnung": "Réti Opening", "Bird-Eröffnung": "Bird's Opening",
+    "Offene Partie": "Open Game", "Königsspringerspiel": "King's Knight Opening", "Italienische Partie": "Italian Game",
+    "Italienisch: Giuoco Piano": "Italian: Giuoco Piano", "Zweispringerspiel im Nachzug": "Two Knights Defence", "Spanische Partie": "Ruy Lopez",
+    "Spanisch: Morphy-Verteidigung": "Ruy Lopez: Morphy Defence", "Schottische Partie": "Scotch Game", "Vierspringerspiel": "Four Knights Game",
+    "Russische Verteidigung": "Petrov's Defence", "Philidor-Verteidigung": "Philidor Defence", "Königsgambit": "King's Gambit",
+    "Wiener Partie": "Vienna Game", "Läuferspiel": "Bishop's Opening", "Damenangriff": "Wayward Queen Attack",
+    "Sizilianische Verteidigung": "Sicilian Defence", "Sizilianisch: Hauptvariante": "Sicilian: Open", "Sizilianisch: Klassisch": "Sicilian: Old Sicilian",
+    "Sizilianisch: Französische Variante": "Sicilian: French Variation", "Sizilianisch: Geschlossen": "Sicilian: Closed", "Sizilianisch: Alapin": "Sicilian: Alapin",
+    "Französische Verteidigung": "French Defence", "Französisch: Hauptvariante": "French Defence: Main Line", "Caro-Kann-Verteidigung": "Caro-Kann Defence",
+    "Skandinavische Verteidigung": "Scandinavian Defence", "Aljechin-Verteidigung": "Alekhine's Defence", "Pirc-Verteidigung": "Pirc Defence",
+    "Moderne Verteidigung": "Modern Defence", "Nimzowitsch-Verteidigung": "Nimzowitsch Defence", "Geschlossene Partie": "Closed Game",
+    "Damengambit": "Queen's Gambit", "Abgelehntes Damengambit": "Queen's Gambit Declined", "Angenommenes Damengambit": "Queen's Gambit Accepted",
+    "Slawische Verteidigung": "Slav Defence", "Londoner System": "London System", "Indische Verteidigung": "Indian Defence",
+    "Königsindische Verteidigung": "King's Indian Defence", "Grünfeld-Indisch": "Grünfeld Defence", "Indisch: Hauptvariante": "Indian Defence: Main Line",
+    "Nimzowitsch-Indische Verteidigung": "Nimzo-Indian Defence", "Damenindische Verteidigung": "Queen's Indian Defence", "Benoni-Verteidigung": "Benoni Defence",
+    "Holländische Verteidigung": "Dutch Defence", "Englisch: Umgekehrtes Sizilianisch": "English: Reversed Sicilian",
     // tutorial practice tasks (js/tutor.js) and the task screens
     "Probier’s: Gewinnen": "Try it: win", "Du bist Pink. In welche Spalte wirfst du, um sofort zu gewinnen?": "You are pink. Which column wins right away?", "Genau: vier Pinke unten in einer Reihe.": "Exactly: four pink discs in a row at the bottom.",
     "Schau dir die untere Reihe an: Wo fehlt dir nur noch ein Stein?": "Look at the bottom row: where are you just one disc short?", "Probier’s: Blocken": "Try it: block", "Gelb hat drei übereinander. Wo musst du hin?": "Yellow has three stacked up. Where do you have to go?",
@@ -1485,6 +1512,7 @@
   });
   V.i18n.ctx('[data-g=code]', { 'Treffer': 'Hits', 'Fast': 'Close' });
   V.i18n.ctx('[data-g=ttt3]', { 'Ecken': 'corners' });
+  V.i18n.ctx('.chr, .chx', { 'Fehler': 'Mistake', 'Gut': 'Good' });
   V.i18n.pat([[/^Spalte ([a-d])$/, 'Column $1']]);
   V.i18n.pat([[/^Ebene (\d), ([a-d]\d)$/, 'Layer $1, $2']]);
 

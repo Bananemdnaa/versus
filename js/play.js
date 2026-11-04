@@ -395,7 +395,7 @@
         ctx.later(() => {
           const m = openModal(`<div class="ko ${tone}">
             <div class="band"><div class="band-in"><span class="kicker">${esc(note || sublabel)}${online && net && net.last && net.last.ranked === false ? ' · zählt nicht für die Rangliste' : ''}</span>
-              <h2 aria-label="${esc(big)}">${[...big].map((ch, k) => `<span aria-hidden="true" style="--k:${k}">${ch === ' ' ? '&nbsp;' : esc(ch)}</span>`).join('')}</h2></div></div>
+              <h2 class="${big.length > 11 ? 'long' : ''}" aria-label="${esc(big)}">${[...big].map((ch, k) => `<span aria-hidden="true" style="--k:${k}">${ch === ' ' ? '&nbsp;' : esc(ch)}</span>`).join('')}</h2></div></div>
             ${party ? `<div class="eparty">${SIDES.map(k => `<span class="ep c${k}"><b>${series[k]}</b><small>${esc(names[k])}</small></span>`).join('')}</div>` : `<div class="eseries"><span class="nl">${esc(names[L])}</span><b class="sl${winner === L && !off ? ' up' : ''}" data-n="${series[L]}">${winner === L && !off ? series[L] - 1 : series[L]}</b><i>:</i><b class="sr${winner === R && !off ? ' up' : ''}" data-n="${series[R]}">${winner === R && !off ? series[R] - 1 : series[R]}</b><span class="nr">${esc(names[R])}</span></div>`}
             ${dWon ? `<div class="kdaily">${IC.bolt}<b>Spiel des Tages erledigt</b><span>Serie: ${dWon} ${dWon === 1 ? 'Tag' : 'Tage'}</span></div>` : ''}
             ${fresh.length ? `<div class="kbadges">${fresh.map(b => `<div class="kbdg bt${b.tier}" title="${esc(b.d)}"><span class="abz-ic">${b.ic}</span><span><small>${b.tier === 3 ? 'Legendäres Abzeichen' : b.tier === 2 ? 'Seltenes Abzeichen' : 'Neues Abzeichen'}</small><b>${b.t}</b></span></div>`).join('')}</div>` : ''}
@@ -406,6 +406,7 @@
             ${watch ? '' : `<button class="btn ${meWon && !off ? '' : 'ghost '}sm eshare" id="es"><span>${IC.share}${meWon && !off ? 'Freund herausfordern' : 'Ergebnis teilen'}</span></button>`}
             ${online && V.online.report ? `<button class="link erep" id="erep">${esc(M.opp)} melden</button>` : ''}
             ${step ? step.html : ''}
+            ${ctx.endBtn && !off ? `<button class="btn sm ekx" id="ekx"><span>${IC.chart}${esc(ctx.endBtn.l)}</span></button>` : ''}
             <div class="actions">${watch ? '' : `<button class="btn primary" id="er"><span>${IC.redo}${online ? 'Revanche anfragen' : table ? 'Neuer Tisch' : 'Revanche'}</span><kbd class="only-fine">R</kbd></button>`}<button class="btn" id="eb"><span>Brett ansehen</span></button><button class="btn ghost" id="em"><span>${watch ? 'Zurück' : 'Menü'}</span></button></div></div>`, 'endm', null, false, e => {
             if ((e.key === 'Enter' || e.key === 'n' || e.key === 'N' || e.key === 'r' || e.key === 'R') && !watch) { again(); return true; }
             if (e.key === 'Escape') { closeModal(); return true; }
@@ -415,6 +416,7 @@
           // the winner's number counts up and pulses once the band is in
           m.querySelectorAll('.eseries b.up').forEach(b => ctx.later(() => { b.textContent = b.dataset.n; V.fx.pop(b, 'bump'); }, 450));
           const er = m.querySelector('#er'); if (er) er.onclick = again;
+          const ekx = m.querySelector('#ekx'); if (ekx) ekx.onclick = () => { V.sfx.ui(); closeModal(); ctx.endBtn.fn(); };
           const kn = m.querySelector('#knext'); if (kn) kn.onclick = () => { V.sfx.go(); V.buzz(12); closeModal(); step.go(); };
           m.querySelectorAll('[data-emo]').forEach(b => b.onclick = () => sendEmote(b.dataset.emo));
           const efr = m.querySelector('#efr');
