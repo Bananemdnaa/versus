@@ -246,12 +246,126 @@
   // win chance from the centipawns (like the common accuracy formulas), move accuracy from the lost win chance
   const winP = cp => 50 + 50 * (2 / (1 + Math.exp(-0.00368208 * cp)) - 1);
   const accOf = d => Math.max(0, Math.min(100, 103.1668 * Math.exp(-0.04354 * d) - 3.1669));
+  // the move kinds of a game review (like the big chess sites); "excellent" shows a thumbs-up-like mark
   const KIND = [
-    ['best', '★', 'Bester Zug'], ['exc', '!', 'Exzellent'], ['good', '✓', 'Gut'],
-    ['inacc', '?!', 'Ungenauigkeit'], ['mist', '?', 'Fehler'], ['blun', '??', 'Patzer']
+    ['brill', '!!', 'Brillant'], ['great', '!', 'Großartiger Zug'], ['best', '★', 'Bester Zug'], ['exc', '👍', 'Exzellent'], ['good', '✓', 'Gut'],
+    ['book', '📖', 'Buchzug'], ['inacc', '?!', 'Ungenauigkeit'], ['mist', '?', 'Fehler'], ['miss', '✕', 'Verpasst'], ['blun', '??', 'Patzer']
   ];
   function rateMove(d, isBest) { return isBest || d <= 1 ? 'best' : d <= 3 ? 'exc' : d <= 7 ? 'good' : d <= 14 ? 'inacc' : d <= 25 ? 'mist' : 'blun'; }
   // positions: the game from the start; cb(progress) while working; resolves with ratings per move
+  // ---------- Stockfish (js/vendor/stockfish, GPLv3) for the review: loaded only when a review starts ----------
+  const fen = (P, ply) => {
+    const rows = [];
+    for (let r = 0; r < 8; r++) { let row = '', e = 0; for (let c = 0; c < 8; c++) { const p = P.b[r * 8 + c]; if (!p) e++; else { if (e) row += e; e = 0; row += p; } } rows.push(row + (e || '')); }
+    const cs = ['K', 'Q', 'k', 'q'].filter(k => P.cs[k]).join('') || '-';
+    return `${rows.join('/')} ${P.turn} ${cs} ${P.ep >= 0 ? sqn(P.ep) : '-'} ${P.half} ${Math.floor(ply / 2) + 1}`;
+  };
+  const sqi = s => (8 - +s[1]) * 8 + 'abcdefgh'.indexOf(s[0]);
+  const fromUci = (P, u) => u && legal(P).find(m => m.f === sqi(u.slice(0, 2)) && m.t === sqi(u.slice(2, 4)) && (m.promo || '') === (u[4] || ''));
+  let SF = null;
+  function engine() {
+    if (SF) return SF;
+    SF = new Promise((ok, fail) => {
+      let w;
+      try { w = new Worker('js/vendor/stockfish/stockfish-19-lite-single.js'); } catch (e) { return fail(e); }
+      const api = { w, fn: null, send: c => w.postMessage(c) };
+      const t = setTimeout(() => fail(new Error('Stockfish lädt nicht')), 20000);
+      w.onmessage = e => { const l = String(e.data); if (api.fn) api.fn(l); };
+      w.onerror = e => { clearTimeout(t); fail(new Error(e.message || 'Stockfish-Fehler')); };
+      api.fn = l => { if (l === 'readyok') { clearTimeout(t); api.fn = null; ok(api); } };
+      api.send('uci'); api.send('setoption name MultiPV value 2'); api.send('isready');
+    });
+    SF.catch(() => { SF = null; });
+    return SF;
+  }
+  // the two best lines of a position, scores for the side to move (mate as ±100000 minus the distance)
+  function sfLines(api, P, ply, ms) {
+    return new Promise(done => {
+      const lines = [];
+      api.fn = l => {
+        if (l.startsWith('info') && / pv /.test(l) && / multipv /.test(l)) {
+          const k = +/ multipv (\d+)/.exec(l)[1] - 1, mt = / score mate (-?\d+)/.exec(l), cp = / score cp (-?\d+)/.exec(l);
+          const s = mt ? (+mt[1] > 0 ? 100000 - +mt[1] : -100000 - +mt[1]) : cp ? +cp[1] : 0;
+          lines[k] = { s, pv: l.split(' pv ')[1].trim().split(' ') };
+        } else if (l.startsWith('bestmove')) { api.fn = null; done(lines.filter(Boolean)); }
+      };
+      api.send('position fen ' + fen(P, ply)); api.send(`go depth 18 movetime ${ms}`);
+    });
+  }
+  // a piece given up on purpose: after the move it can be taken by something cheaper (or for free) and it is worth
+  // clearly more than what it took
+  function sacrifice(P, m) {
+    const p = P.b[m.f], t = p.toLowerCase(); if (t === 'p' || t === 'k') return false;
+    const Q = clone(P); make(Q, m);
+    const caps = legal(Q).filter(x => x.t === m.t);
+    if (!caps.length) return false;
+    const low = Math.min(...caps.map(x => VAL[Q.b[x.f].toLowerCase()]));
+    const v = VAL[(m.promo || t)], got = m.cap ? VAL[m.cap.toLowerCase()] : 0;
+    const guarded = attacked(Q, m.t, P.turn);
+    return v - got >= 200 && (low < v || !guarded);
+  }
+  // the opening moves that are in the book (they are not rated)
+  function bookLen(sans) {
+    let n = 0;
+    for (const [seq] of BOOK) if (seq.length > n && seq.length <= sans.length && seq.every((x, k) => sans[k] === x)) n = seq.length;
+    return n;
+  }
+  // a line as notation with move numbers, e.g. "12. Sxe5 Dg5 13. Sf3"
+  function lineSan(P0, ply, pv, n = 6) {
+    const P = clone(P0), out = [];
+    for (let i = 0; i < Math.min(n, pv.length); i++) {
+      const m = fromUci(P, pv[i]); if (!m) break;
+      const num = (ply + i) % 2 === 0 ? `${Math.floor((ply + i) / 2) + 1}. ` : i === 0 ? `${Math.floor((ply + i) / 2) + 1}… ` : '';
+      out.push(num + show(san(P, m, legal(P)))); make(P, m);
+    }
+    return out.join(' ');
+  }
+  // review with Stockfish, rated like the big sites: lost winning chance in percent points
+  // (Exzellent up to 2, Gut up to 5, Ungenauigkeit up to 10, Fehler up to 20, Patzer above)
+  async function reviewSF(start, plies, prog) {
+    const api = await engine();
+    const pos = [clone(start)];
+    { const P = clone(start); for (const h of plies) { make(P, h.m); pos.push(clone(P)); } }
+    const book = bookLen(plies.map(h => h.san.replace(/[+#]/g, '')));
+    const info = [];
+    for (let i = 0; i < pos.length; i++) {
+      const P = pos[i], ms = legal(P);
+      if (!ms.length) info.push({ lines: [{ s: inCheck(P, P.turn) ? -100000 : 0, pv: [] }] });
+      else info.push({ lines: await sfLines(api, P, i, plies.length > 80 ? 220 : 320) });
+      prog && prog(i + 1, pos.length);
+    }
+    const clamp = v => Math.max(-2000, Math.min(2000, v));
+    const res = [];
+    for (let k = 0; k < plies.length; k++) {
+      const P = pos[k], m = plies[k].m, L = info[k].lines, top = L[0] || { s: 0, pv: [] };
+      const bestV = clamp(top.s), played = clamp(-((info[k + 1].lines[0] || { s: 0 }).s));
+      const uci = sqn(m.f) + sqn(m.t) + (m.promo || '');
+      const isBest = top.pv[0] === uci;
+      const wB = winP(bestV), wP = winP(isBest ? bestV : Math.min(played, bestV)), loss = Math.max(0, wB - wP);
+      const prev = res[k - 1];
+      let kind;
+      if (k < book) kind = 'book';
+      else if (isBest || loss <= 0.6) {
+        const second = L[1] ? winP(clamp(L[1].s)) : null;
+        const recapture = k > 0 && plies[k - 1].m.cap && plies[k - 1].m.t === m.t;
+        if (sacrifice(P, m) && wP >= 50 && wB < 97) kind = 'brill';
+        else if (isBest && second !== null && wB - second >= 12 && wB < 97 && !recapture) kind = 'great';
+        else kind = isBest ? 'best' : 'exc';
+      }
+      else if (loss <= 2) kind = 'exc';
+      else if (loss <= 5) kind = 'good';
+      else if (prev && (prev.kind === 'mist' || prev.kind === 'blun') && wB >= 65 && loss >= 10 && loss <= 30) kind = 'miss';
+      else kind = loss <= 10 ? 'inacc' : loss <= 20 ? 'mist' : 'blun';
+      const better = !isBest && top.pv[0] && ['inacc', 'mist', 'miss', 'blun', 'good'].includes(kind) ? fromUci(P, top.pv[0]) : null;
+      res.push({
+        kind, acc: kind === 'book' ? 100 : accOf(loss),
+        best: better ? san(P, better, legal(P)) : '', bestM: better ? { f: better.f, t: better.t } : null,
+        line: better ? lineSan(P, k, top.pv) : ''
+      });
+    }
+    return { moves: res, evals: info.map((x, i) => { const s = clamp((x.lines[0] || { s: 0 }).s); return pos[i].turn === 'w' ? s : -s; }), sf: true };
+  }
+
   function review(start, plies, prog) {
     // Both values of a move come from the same depth: the best move of the position (4 plies) against the move that was
     // played (that move plus 3 plies for the answer). Different depths would make most moves look like blunders.
@@ -339,8 +453,16 @@
   .chx-ml button.cur{background:var(--panel3)}
   .chx-ml button i{font-style:normal;font-weight:800;font-size:11px}
   .chx-view{font:600 12px/1.2 var(--f-b);color:var(--cyan)}
-  .k-best{background:#5c8bb0} .k-exc{background:#3fa463} .k-good{background:#82a75a} .k-inacc{background:#e6a22e} .k-mist{background:#e5762b} .k-blun{background:#ca3431}
-  .t-best{color:#78a9d1} .t-exc{color:#4cc778} .t-good{color:#9cc46e} .t-inacc{color:#f2b543} .t-mist{color:#f08a45} .t-blun{color:#f0504c}
+  .chev{position:relative;height:16px;border-radius:4px;overflow:hidden;background:#403d39}
+  .chev i{position:absolute;left:0;top:0;bottom:0;background:#f4f4f4;transition:width .35s var(--ease)}
+  .chev b{position:absolute;right:6px;top:50%;transform:translateY(-50%);font:800 11px/1 var(--f-b);color:#9a9a9a;mix-blend-mode:difference}
+  .charrow{position:absolute;inset:0;width:100%;height:100%;z-index:6;pointer-events:none}
+  .charrow line{stroke:rgba(129,182,76,.9);stroke-width:.22;stroke-linecap:round;marker-end:url(#charh)}
+  .chx-line{display:block;margin-top:3px;font-weight:600;color:var(--fg)} .chx-line span:first-child{color:var(--muted)}
+  .k-brill{background:#1baca6} .k-great{background:#5c8bb0} .k-book{background:#a88865} .k-miss{background:#ee6b55}
+  .t-brill{color:#26c2bb} .t-great{color:#7aa6d4} .t-book{color:#c9a37a} .t-miss{color:#ff8a75}
+  .k-best{background:#81b64c} .k-exc{background:#5aa53c} .k-good{background:#82a75a} .k-inacc{background:#e6a22e} .k-mist{background:#e5762b} .k-blun{background:#ca3431}
+  .t-best{color:#95c95f} .t-exc{color:#4cc778} .t-good{color:#9cc46e} .t-inacc{color:#f2b543} .t-mist{color:#f08a45} .t-blun{color:#f0504c}
   .promo{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
   .promo button{aspect-ratio:1;border-radius:12px;background:#ebecd0;display:grid;place-items:center;border:2px solid transparent;padding:6px}
   .promo button svg{width:78%;height:78%}
@@ -404,8 +526,13 @@
       const panel = V.el('div', 'chx', `<div class="chx-top"><span class="chx-op" id="chop"></span><span class="chx-nav">
           <button id="chf" aria-label="Zum Anfang">⏮</button><button id="chp" aria-label="Zug zurück">◀</button><button id="chn" aria-label="Zug vor">▶</button><button id="chl" aria-label="Zum aktuellen Zug">⏭</button></span></div>
         <div class="chx-ml" id="chml" data-empty="${V.t ? V.t('Hier stehen gleich die Züge.') : 'Hier stehen gleich die Züge.'}"></div>`);
-      wrap.append(topC, board, botC, panel); ctx.stage.appendChild(wrap);
+      const evb = V.el('div', 'chev', '<i></i><b></b>'), arrow = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+      evb.hidden = true;
+      arrow.setAttribute('class', 'charrow'); arrow.setAttribute('viewBox', '0 0 8 8');
+      arrow.innerHTML = '<defs><marker id="charh" markerWidth="3" markerHeight="3" refX="1.6" refY="1.5" orient="auto"><path d="M0 0L3 1.5L0 3z" fill="rgba(129,182,76,.9)"/></marker></defs><line/>';
+      wrap.append(topC, evb, board, botC, panel); ctx.stage.appendChild(wrap);
       for (let sq = 0; sq < 64; sq++) { const d = V.el('div', 'sq ' + (((sq >> 3) + (sq & 7)) % 2 ? 'dk' : 'lt')); d.dataset.sq = sq; board.appendChild(d); }
+      board.appendChild(arrow);
       const cells = {}; [...board.children].forEach(d => cells[+d.dataset.sq] = d);
       // at one device, side by side: the board can turn to whoever moves (option "Brett drehen"); facing each other only the pieces turn (CSS)
       const facing = () => !!ctx.stage.closest('.facing');
@@ -416,10 +543,10 @@
         if (f === flip) return;
         flip = f;
         const order = [...Array(64).keys()]; if (flip) order.reverse();
-        order.forEach(sq => board.appendChild(cells[sq]));
+        order.forEach(sq => board.appendChild(cells[sq])); board.appendChild(arrow);
       }
       layout();
-      ctx.nav(() => [...board.children], { pad: 1, start: () => 52 - (flip ? 41 : 0) });
+      ctx.nav(() => [...board.querySelectorAll('.sq')], { pad: 1, start: () => 52 - (flip ? 41 : 0) });
 
       // ---------- drawing ----------
       function render() {
@@ -447,6 +574,21 @@
           d.innerHTML = (p ? `<span class="pc">${pc(p)}</span>` : '') + co + mk;
         }
         board.style.setProperty('--sq', (board.clientWidth / 8 || 40) + 'px');
+        // after a review: the eval bar for the position shown and an arrow for the better move
+        const at = view === null ? hist.length : view;
+        evb.hidden = !rev;
+        if (rev) {
+          const e = rev.evals[at] ?? 0, mate = Math.abs(e) >= 1990;
+          evb.querySelector('i').style.width = winP(e).toFixed(1) + '%';
+          evb.querySelector('b').textContent = mate ? (e > 0 ? '+M' : '-M') : (e > 0 ? '+' : '') + (e / 100).toFixed(1);
+        }
+        const bm = rev && at > 0 && rev.moves[at - 1] && rev.moves[at - 1].bestM;
+        arrow.style.display = bm ? '' : 'none';
+        if (bm) {
+          const xy = q => { let c = q & 7, r = q >> 3; if (flip) { c = 7 - c; r = 7 - r; } return [c + 0.5, r + 0.5]; };
+          const [x1, y1] = xy(bm.f), [x2, y2] = xy(bm.t), ln = arrow.querySelector('line'), d = Math.hypot(x2 - x1, y2 - y1) || 1;
+          ln.setAttribute('x1', x1); ln.setAttribute('y1', y1); ln.setAttribute('x2', x2 - (x2 - x1) / d * 0.35); ln.setAttribute('y2', y2 - (y2 - y1) / d * 0.35);
+        }
         const mat = s => capd[s].reduce((a, p) => a + VAL[p.toLowerCase()], 0);
         const line = s => {
           const diff = (mat(s) - mat(s === 'w' ? 'b' : 'w')) / 100;
@@ -472,7 +614,7 @@
         const op = opening(hist.map(x => x.san.replace(/[+#]/g, '')));
         const r = rev && view !== null && view > 0 ? rev.moves[view - 1] : null;
         const kd = r && KIND.find(z => z[0] === r.kind);
-        panel.querySelector('#chop').innerHTML = r ? `<span class="t-${r.kind}"><b>${show(hist[view - 1].san)}</b> <span>${kd[2]}</span></span>${r.best ? ` · Besser: <b>${show(r.best)}</b>` : ''}`
+        panel.querySelector('#chop').innerHTML = r ? `<span class="t-${r.kind}"><b>${show(hist[view - 1].san)}</b> <span>${kd[2]}</span></span>${r.best ? ` · Besser: <b>${show(r.best)}</b>` : ''}${r.line ? `<small class="chx-line"><span>Beste Fortsetzung:</span> <span>${r.line}</span></small>` : ''}`
           : view !== null ? `<span class="chx-view">Rückblick · Zug ${Math.ceil(view / 2) || 0}</span>` : op ? `<b>${op}</b>` : '';
         panel.querySelector('#chf').disabled = panel.querySelector('#chp').disabled = cur === 0;
         panel.querySelector('#chn').disabled = panel.querySelector('#chl').disabled = cur === hist.length;
@@ -596,12 +738,16 @@
       }
 
       // ---------- review (like a game review: accuracy, rated moves, the better move) ----------
+      let busy = false;
       function analyse() {
         if (rev) return showReview();
-        const m = V.openModal(`<div class="chr"><h3>Partie-Analyse</h3><p class="chr-hint">Versus rechnet jede Stellung durch …</p><div class="chr-prog"><i style="--w:0%"></i></div></div>`, 'chrm');
+        if (busy) return;
+        const m = V.openModal(`<div class="chr"><h3>Partie-Analyse</h3><p class="chr-hint">Stockfish rechnet jede Stellung durch …</p><div class="chr-prog"><i style="--w:0%"></i></div></div>`, 'chrm');
         const bar = m.querySelector('.chr-prog i');
-        review(START, hist, (i, n) => { if (bar.isConnected) bar.style.setProperty('--w', Math.round(i / n * 100) + '%'); }).then(r => {
-          rev = r; render();
+        const prog = (i, n) => { if (bar.isConnected) bar.style.setProperty('--w', Math.round(i / n * 100) + '%'); };
+        busy = true;
+        reviewSF(START, hist, prog).catch(() => review(START, hist, prog)).then(r => {
+          busy = false; rev = r; render();
           if (m.isConnected) showReview();
         });
       }
@@ -612,7 +758,7 @@
         // the eval graph: white's winning chance over the game
         const pts = rev.evals.map((e, k) => [k / Math.max(1, rev.evals.length - 1) * 100, 100 - winP(e)]);
         const graph = `<svg class="chr-graph" viewBox="0 0 100 100" preserveAspectRatio="none"><path d="M0 100 ${pts.map(p => 'L' + p[0].toFixed(2) + ' ' + p[1].toFixed(2)).join(' ')} L100 100Z" fill="#f4f4f4"/><path d="M0 50H100" stroke="#888" stroke-width=".6"/></svg>`;
-        const m = V.openModal(`<div class="chr"><h3>Partie-Analyse</h3>
+        const m = V.openModal(`<div class="chr"><h3>Partie-Analyse</h3><p class="chr-hint">${rev.sf ? 'Mit Stockfish 19' : 'Mit der Versus-Engine (Stockfish war nicht erreichbar)'}</p>
           <div class="chr-acc"><div class="w"><small><span>${esc(nm('w'))}</span> · <span>Weiß</span></small><b>${acc('w').toFixed(1)}</b><small>Genauigkeit</small></div><div class="b"><small><span>${esc(nm('b'))}</span> · <span>Schwarz</span></small><b>${acc('b').toFixed(1)}</b><small>Genauigkeit</small></div></div>
           ${graph}
           <div class="chr-tab">${KIND.map(([k, sym, label]) => `<span class="kd k-${k}">${sym}</span><span>${label}</span><span class="c">${count('w', k)}</span><span class="c">${count('b', k)}</span>`).join('')}</div>

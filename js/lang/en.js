@@ -72,6 +72,7 @@
     'Alle Tutorials sind wieder neu': 'All tutorials are new again', 'Einstellungen zurückgesetzt': 'Settings reset', 'Bilanz gelöscht': 'Stats deleted',
     // tutorial dialog, welcome
     // chess: review, move list, openings, board options
+    "Brillant": "Brilliant", "Großartiger Zug": "Great move", "Buchzug": "Book move", "Verpasst": "Miss", "Mit Stockfish 19": "With Stockfish 19", "Mit der Versus-Engine (Stockfish war nicht erreichbar)": "With the Versus engine (Stockfish could not be reached)", "Stockfish rechnet jede Stellung durch …": "Stockfish is working through every position …", "Beste Fortsetzung:": "Best line:",
     "Schach, Dame und Reversi · Standard ist beim Schach grün": "Chess, checkers and Reversi · Standard is green for chess",
     "Partie analysieren": "Review the game", "Analyse": "Review", "Partie-Analyse": "Game review",
     "Versus rechnet jede Stellung durch …": "Versus is working through every position …", "Genauigkeit": "Accuracy", "Bester Zug": "Best move",
@@ -1513,7 +1514,7 @@
   });
   V.i18n.ctx('[data-g=code]', { 'Treffer': 'Hits', 'Fast': 'Close' });
   V.i18n.ctx('[data-g=ttt3]', { 'Ecken': 'corners' });
-  V.i18n.ctx('.chr, .chx', { 'Fehler': 'Mistake', 'Gut': 'Good' });
+  V.i18n.ctx('.chr, .chx', { 'Fehler': 'Mistake', 'Gut': 'Good', 'Verpasst': 'Miss' });
   V.i18n.pat([[/^Spalte ([a-d])$/, 'Column $1']]);
   V.i18n.pat([[/^Ebene (\d), ([a-d]\d)$/, 'Layer $1, $2']]);
 
