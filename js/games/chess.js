@@ -253,32 +253,41 @@
   function rateMove(d, isBest) { return isBest || d <= 1 ? 'best' : d <= 3 ? 'exc' : d <= 7 ? 'good' : d <= 14 ? 'inacc' : d <= 25 ? 'mist' : 'blun'; }
   // positions: the game from the start; cb(progress) while working; resolves with ratings per move
   function review(start, plies, prog) {
+    // Both values of a move come from the same depth: the best move of the position (4 plies) against the move that was
+    // played (that move plus 3 plies for the answer). Different depths would make most moves look like blunders.
     return new Promise(done => {
-      const pos = [clone(start)], res = [];
+      const pos = [clone(start)], res = [], evals = [];
       { const P = clone(start); for (const h of plies) { make(P, h.m); pos.push(clone(P)); } }
-      const evals = [];
-      let i = 0;
+      const clamp = v => Math.max(-2000, Math.min(2000, v));
+      // value for the side to move in P, searched d plies deep (no moves: mate or stalemate)
+      const value = (P, d) => {
+        const ms = legal(P);
+        if (!ms.length) return { s: inCheck(P, P.turn) ? -100000 : 0, best: null };
+        const r = think(P, d, 300, 0); return { s: r.score, best: r.move };
+      };
+      let k = 0;
       const step = () => {
-        const P = pos[i], ms = legal(P);
-        let s, best = null;
-        if (!ms.length) s = inCheck(P, P.turn) ? -100000 : 0;
-        else { const r = think(P, 3, 260, 0); s = r.score; best = r.move; }
-        const cp = Math.max(-2000, Math.min(2000, s));
-        evals.push({ w: P.turn === 'w' ? cp : -cp, best, turn: P.turn });
-        i++; prog && prog(i, pos.length);
-        if (i < pos.length) return setTimeout(step, 0);
-        for (let k = 0; k < plies.length; k++) {
-          const e = evals[k], w = e.turn === 'w';
-          const bestV = w ? e.w : -e.w, played = w ? evals[k + 1].w : -evals[k + 1].w;
-          const dW = Math.max(0, winP(bestV) - winP(played));
-          const isBest = !!(e.best && e.best.f === plies[k].m.f && e.best.t === plies[k].m.t && (e.best.promo || '') === (plies[k].m.promo || ''));
-          res.push({ kind: rateMove(dW, isBest), acc: accOf(dW), best: e.best && !isBest && dW > 7 ? san(pos[k], e.best, legal(pos[k])) : '' });
+        if (k < plies.length) {
+          const P = pos[k], w = P.turn === 'w', m = plies[k].m;
+          const b = value(P, 4), after = value(clone(pos[k + 1]), 3);
+          const bestV = clamp(b.s), played = clamp(-after.s);
+          evals.push(w ? bestV : -bestV);
+          const isBest = !!(b.best && b.best.f === m.f && b.best.t === m.t && (b.best.promo || '') === (m.promo || ''));
+          // the played move can't be better than the best one (a deeper look at it can only find more for the answer)
+          const dW = isBest ? 0 : Math.max(0, winP(bestV) - winP(Math.min(played, bestV)));
+          res.push({ kind: rateMove(dW, isBest), acc: accOf(dW), best: b.best && !isBest && dW > 7 ? san(P, b.best, legal(P)) : '' });
+          k++; prog && prog(k, plies.length + 1);
+          return setTimeout(step, 0);
         }
-        done({ moves: res, evals: evals.map(e => e.w) });
+        const last = pos[plies.length], f = clamp(value(clone(last), 4).s);
+        evals.push(last.turn === 'w' ? f : -f);
+        prog && prog(plies.length + 1, plies.length + 1);
+        done({ moves: res, evals });
       };
       setTimeout(step, 30);
     });
   }
+
   V.css(`
   .chesswrap{width:min(var(--bw),620px,100%);display:flex;flex-direction:column;gap:6px;--lt:#ebecd0;--dk:#739552;--lml:#f5f682;--lmd:#b9ca43;--dot:rgba(0,0,0,.16);--col:#739552;--cod:#ebecd0}
   .chesswrap.th-neon{--lt:#272c5c;--dk:#1a1d40;--lml:#3b3474;--lmd:#2f2963;--dot:rgba(98,240,255,.5);--col:#8189d0;--cod:#6b73ba}
@@ -321,9 +330,11 @@
   .chx-nav button{width:34px;height:32px;border-radius:7px;background:var(--panel2);border:1px solid var(--line);color:var(--fg);display:grid;place-items:center;font:700 14px/1 var(--f-b)}
   .chx-nav button:disabled{opacity:.35}
   .chx-nav .chrv{width:auto;padding:0 10px;font:800 italic 12px/1 var(--f-d);text-transform:uppercase;letter-spacing:.06em;background:var(--good);color:#06210f;border-color:transparent}
-  .chx-ml{display:flex;flex-wrap:wrap;gap:2px 4px;max-height:76px;overflow-y:auto;font:600 13px/1.2 var(--f-b);scrollbar-width:thin}
+  .chx-ml{display:grid;grid-template-columns:auto 1fr 1fr;gap:1px 6px;align-items:center;max-height:118px;overflow-y:auto;font:600 14px/1.2 var(--f-b);scrollbar-width:thin}
+  .chx-ml:empty{display:block}
+  .chx-ml button{justify-content:flex-start;text-align:left}
   .chx-ml:empty::before{content:attr(data-empty);color:var(--dim);font-weight:500}
-  .chx-ml .n{color:var(--dim);padding:4px 0 4px 4px;font-variant-numeric:tabular-nums}
+  .chx-ml .n{color:var(--dim);padding:4px 2px 4px 4px;font-variant-numeric:tabular-nums;text-align:right;min-width:2.2em}
   .chx-ml button{padding:4px 6px;border-radius:5px;color:var(--fg);display:inline-flex;align-items:center;gap:3px;font:inherit}
   .chx-ml button.cur{background:var(--panel3)}
   .chx-ml button i{font-style:normal;font-weight:800;font-size:11px}
@@ -448,12 +459,14 @@
       }
       function moveList() {
         const ml = panel.querySelector('#chml'), cur = view === null ? hist.length : view;
-        let h = '';
-        hist.forEach((x, k) => {
-          if (k % 2 === 0) h += `<span class="n">${k / 2 + 1}.</span>`;
+        // one row per move number like on the big chess sites: number | White | Black
+        const cellOf = k => {
+          const x = hist[k]; if (!x) return '<span></span>';
           const r = rev && rev.moves[k], kd = r ? KIND.find(z => z[0] === r.kind) : null;
-          h += `<button data-k="${k + 1}" class="${cur === k + 1 ? 'cur' : ''}${r ? ' t-' + r.kind : ''}">${show(x.san)}${kd && r.kind !== 'good' ? `<i>${kd[1]}</i>` : ''}</button>`;
-        });
+          return `<button data-k="${k + 1}" class="${cur === k + 1 ? 'cur' : ''}${r ? ' t-' + r.kind : ''}">${show(x.san)}${kd && r.kind !== 'good' ? `<i>${kd[1]}</i>` : ''}</button>`;
+        };
+        let h = '';
+        for (let k = 0; k < hist.length; k += 2) h += `<span class="n">${k / 2 + 1}.</span>${cellOf(k)}${cellOf(k + 1)}`;
         ml.innerHTML = h;
         ml.querySelectorAll('[data-k]').forEach(b => b.onclick = () => go(+b.dataset.k));
         const c = ml.querySelector('.cur'); if (c) c.scrollIntoView({ block: 'nearest', inline: 'nearest' }); else ml.scrollTop = ml.scrollHeight;
@@ -569,9 +582,11 @@
         next(chk);
       }
       // after the game: the review is offered on the end screen and below the board
+      let finished = false;
       function finish() {
-        over = true;
-        if (hist.length < 2) return;
+        over = true; sel = -1;
+        if (finished || hist.length < 2) return;
+        finished = true;
         ctx.endBtn = { l: 'Partie analysieren', fn: analyse };
         const nav = panel.querySelector('.chx-nav');
         if (!nav.querySelector('.chrv')) { const b = V.el('button', 'chrv', 'Analyse'); b.onclick = analyse; nav.prepend(b); }
@@ -638,6 +653,8 @@
       }
       addEventListener('resize', () => board.style.setProperty('--sq', (board.clientWidth / 8 || 40) + 'px'));
       render(); next(false);
+      // giving up, the clock or a dropped opponent end the game from outside: the review is offered there too
+      return { ended() { finish(); render(); } };
     }
   });
 })();

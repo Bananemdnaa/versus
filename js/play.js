@@ -347,6 +347,8 @@
       // off: the match was called off (opponent offline, voided) – no winner, nothing counts
       end(winner, note, fromServer, off) {
         if (ended || !alive) return; ended = true;
+        // the game hears about every end (also giving up, the clock, a dropped opponent), e.g. to offer its review
+        if (inst && inst.ended) try { inst.ended(winner, note, off); } catch (e) { }
         undoBtn();
         if (off) winner = 0;
         SIDES.forEach(k => pls[k].classList.remove('on'));
