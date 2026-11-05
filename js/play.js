@@ -1053,14 +1053,19 @@
     // When the match does not fit on the screen: on the phone the player cards get smaller first (up to three steps),
     // then (phone and laptop) boards that size themselves with --bw shrink by what is still missing, so the board and
     // your own card stay visible without scrolling. Checked again whenever the stage changes size.
-    let fitF = 0;
+    let fitF = 0, fitW = 0, fitH = 0, lastW = innerWidth;
     const fit = () => {
       fitF = 0;
       if (!alive) return;
       // the page scrolls on the phone, the main area (#app) on the laptop
       // parts marked .nofit (the chess move list and review below the board) may go below the screen: they don't count
       const loose = () => [...ctx.stage.querySelectorAll('.nofit')].reduce((h, e) => h + e.offsetHeight + 6, 0);
-      const sc = V.ui.wide() ? document.getElementById('app') : document.documentElement, extra = () => sc.scrollHeight - (sc === document.documentElement ? innerHeight : sc.clientHeight) - loose();
+      // the height to fit into: the smallest one seen at this width, so Safari's address bar coming and going while
+      // scrolling (iPad, iPhone) doesn't make the board grow and shrink again and again
+      const sc = V.ui.wide() ? document.getElementById('app') : document.documentElement;
+      const viewH = () => { const h = sc === document.documentElement ? innerHeight : sc.clientHeight; if (fitW !== innerWidth) { fitW = innerWidth; fitH = h; } fitH = Math.min(fitH, h); return fitH; };
+      const extra = () => sc.scrollHeight - viewH() - loose();
+      const was = ctx.stage.style.getPropertyValue('--bw');
       const over = () => extra() > 2;
       // the entrance animation moves everything down a little; measure once it is over
       if (v.classList.contains('enter')) { fitF = setTimeout(fit, 120); return; }
@@ -1075,7 +1080,11 @@
       const b = ctx.stage.firstElementChild; if (!b) return;
       b.style.zoom = '';
       let miss = extra();
-      if (miss > 2 && b.offsetWidth > 280) ctx.stage.style.setProperty('--bw', Math.max(260, b.offsetWidth - miss - 4) + 'px');
+      if (miss > 2 && b.offsetWidth > 280) {
+        // a few pixels more or less are not worth a jump of the board (no back and forth)
+        const want = Math.max(260, b.offsetWidth - miss - 4), old = parseFloat(was);
+        ctx.stage.style.setProperty('--bw', (old && Math.abs(old - want) < 10 && old <= want + 2 ? old : want) + 'px');
+      }
       // boards that do not follow --bw (Poker table, Würfelblock sheet) are scaled down, at most to 72 %;
       // not Schiffe versenken, whose own fleet sits below the sea on purpose and whose ships are dragged
       miss = extra();
@@ -1087,7 +1096,10 @@
     };
     const askFit = () => { if (!fitF) fitF = setTimeout(fit, 40); };
     if (window.ResizeObserver) { const ro = new ResizeObserver(askFit); ro.observe(ctx.stage); cleanups.push(() => ro.disconnect()); }
-    addEventListener('resize', askFit); cleanups.push(() => { removeEventListener('resize', askFit); clearTimeout(fitF); });
+    // only a new width (turning the device, a resized window) is a reason to fit again; a height change alone is the
+    // browser's toolbar showing or hiding while scrolling
+    const onResize = () => { if (Math.abs(innerWidth - lastW) < 2) return; lastW = innerWidth; askFit(); };
+    addEventListener('resize', onResize); cleanups.push(() => { removeEventListener('resize', onResize); clearTimeout(fitF); });
     askFit();
     // some games build part of their screen a moment later (the fleet dock in Schiffe versenken): measure again
     [700, 1600].forEach(ms => ctx.later(askFit, ms));

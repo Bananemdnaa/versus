@@ -67,7 +67,7 @@
   .klh .src{box-shadow:inset 0 4px 10px rgba(0,0,0,.75),0 0 0 3px var(--sc)}
   .klh.lock .pit{cursor:default}
   .klh-lab{display:flex;justify-content:space-between;width:min(var(--bw),640px);font:700 italic 12px/1 var(--f-d);letter-spacing:.14em;text-transform:uppercase;color:var(--muted);padding:0 14px}
-  .klh.vert{grid-template-columns:repeat(2,1fr);grid-template-rows:1.1fr repeat(6,1fr) 1.1fr;height:min(calc(100dvh - 330px),600px);width:auto;aspect-ratio:2.2/8.6;border-radius:40%/999px}
+  .klh.vert{grid-template-columns:repeat(2,1fr);grid-template-rows:1.1fr repeat(6,1fr) 1.1fr;height:min(calc(100svh - 330px),600px);width:auto;aspect-ratio:2.2/8.6;border-radius:40%/999px}
   .klh.vert .store{grid-row:auto;grid-column:1/3}
   .klh.vert .pit{height:100%;width:auto;max-width:100%;justify-self:center}
   .klh.vert+.klh-lab,.klh-lab:has(+.klh.vert){justify-content:center}`);

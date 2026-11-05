@@ -321,12 +321,12 @@ kbd{display:inline-grid;place-items:center;min-width:22px;height:21px;padding:0 
 .c1{color:var(--p1);font-weight:600} .c2{color:var(--p2);font-weight:600}
 .thinking::after{content:'';display:inline-block;width:1.2em;text-align:left;animation:dots 1s steps(4) infinite}
 @keyframes dots{0%{content:''}25%{content:'.'}50%{content:'..'}75%{content:'...'}}
-.stage{--bw:min(100%,calc(100dvh - 250px),620px);display:flex;flex-direction:column;align-items:center;gap:12px;position:relative;width:100%;padding-bottom:max(8px,env(safe-area-inset-bottom,0px))}
+.stage{--bw:min(100%,calc(100vh - 250px),620px);--bw:min(100%,calc(100svh - 250px),620px);display:flex;flex-direction:column;align-items:center;gap:12px;position:relative;width:100%;padding-bottom:max(8px,env(safe-area-inset-bottom,0px))}
 @media (max-width:959px){.stage{--bw:min(100%,620px)}}
 @media (min-width:960px){
   .duel{grid-template-columns:210px minmax(0,1fr) 210px;grid-template-areas:"l c r";gap:28px;align-items:start}
   .score{display:none}
-  .stage{--bw:min(100%,calc(100dvh - 180px),660px)}
+  .stage{--bw:min(100%,calc(100vh - 180px),660px);--bw:min(100%,calc(100svh - 180px),660px)}
   .pcard{flex-direction:column;align-items:flex-start;gap:12px;padding:18px 16px;margin-top:44px}
   .pcard-r{align-items:flex-end}
   .pcard .av{width:60px;height:60px;font-size:20px}
@@ -1225,7 +1225,7 @@ html,body{-webkit-tap-highlight-color:transparent}
 /* ---------- play: board in the free space (phone), facing seats for two at one device ---------- */
 @media (max-width:959px){
   #app:has(.view.play){padding-bottom:4px}
-  .view.play{min-height:calc(100dvh - max(12px,env(safe-area-inset-top,0px)) - 4px)}
+  .view.play{min-height:calc(100svh - max(12px,env(safe-area-inset-top,0px)) - 4px)}
   .play .duel{flex:1;grid-template-rows:auto 1fr}
   .play .center{align-self:stretch}
   .play .stage{margin-top:auto;margin-bottom:max(10px,4vh)}
@@ -1677,7 +1677,7 @@ textarea.inp{height:auto}
   .tight .duel.party .pcard{height:auto;min-height:0;padding:5px 8px}
   .tight .duel.party .pcard .av{width:28px;height:28px}
   /* the reaction duel fills the room between the cards */
-  .stage .rx{height:max(320px,calc(100dvh - 290px));min-height:0}
+  .stage .rx{height:max(320px,calc(100svh - 290px));min-height:0}
 }
 /* hand-over screen: over the whole screen, so nothing of the hidden cards or fleet shows */
 .pass{position:fixed;inset:0;z-index:45;border-radius:0;padding:max(24px,env(safe-area-inset-top,0px)) 24px max(24px,env(safe-area-inset-bottom,0px))}
@@ -3085,3 +3085,5 @@ body:has(.view.play) .season.halloween .spider{display:none}
 .tq-ch .card.tq-card{width:46px;height:66px;font-size:13px;flex:none}
 .tq-demo .card.tq-card{width:52px;height:74px}
 .ko h2.long{font-size:clamp(38px,9.5vw,100px)}
+/* no double-tap zoom while playing (two quick taps next to the board zoomed in on iPad); pinch zoom still works */
+.view.play{touch-action:manipulation}
