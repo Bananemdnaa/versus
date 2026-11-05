@@ -218,8 +218,8 @@
     const u = make(P, m), chk = inCheck(P, P.turn), mate = chk && !legal(P).length; unmake(P, u);
     return s + (mate ? '#' : chk ? '+' : '');
   }
-  const DE_L = { N: 'S', B: 'L', R: 'T', Q: 'D' };
-  const show = s => (V.lang === 'en' ? s : s.replace(/[NBRQ]/g, c => DE_L[c]));
+  // on screen the piece letter becomes a small piece symbol (♞xe5 instead of Sxe5), easier to read without chess knowledge
+  const show = s => String(s).replace(/[KNBRQ]/g, c => g(c));
 
   // ---------- openings: the longest known start of the game gives the name ----------
   const BOOK = [
@@ -398,6 +398,8 @@
   // the coach: one or two sentences why a move is rated as it is (mate, material, the missed chance)
   const PNAME = { p: 'einen Bauern', n: 'einen Springer', b: 'einen Läufer', r: 'einen Turm', q: 'die Dame' };
   const PACC = { p: 'den Bauern', n: 'den Springer', b: 'den Läufer', r: 'den Turm', q: 'die Dame', k: 'den König' };
+  const PNOM = { p: 'der gegnerische Bauer', n: 'der gegnerische Springer', b: 'der gegnerische Läufer', r: 'der gegnerische Turm', q: 'die gegnerische Dame', k: 'der gegnerische König' };
+  const PDAT = { p: 'dem Bauern', n: 'dem Springer', b: 'dem Läufer', r: 'dem Turm', q: 'der Dame', k: 'dem König' };
   function explain(pos, info, plies, k, item, bestV) {
     const P = pos[k], after = pos[k + 1], me = P.turn, top = info[k].lines[0] || { s: 0, pv: [] }, reply = info[k + 1].lines[0] || { s: 0, pv: [] };
     const mat = (Q, s) => { let v = 0; for (const p of Q.b) if (p && p.toLowerCase() !== 'k') v += (side(p) === s ? 1 : -1) * VAL[p.toLowerCase()]; return v; };
@@ -426,24 +428,24 @@
       const Q = clone(after); let best = null;
       for (let i = 0; i < Math.min(4, reply.pv.length); i++) {
         const m = fromUci(Q, reply.pv[i]); if (!m) break;
-        if (m.cap && side(m.cap) === me && (!best || VAL[m.cap.toLowerCase()] > VAL[best.p])) best = { p: m.cap.toLowerCase(), t: m.t, san: show(san(Q, m, legal(Q))) };
+        if (m.cap && side(m.cap) === me && (!best || VAL[m.cap.toLowerCase()] > VAL[best.p])) best = { p: m.cap.toLowerCase(), t: m.t, f: m.f, by: Q.b[m.f].toLowerCase() };
         make(Q, m);
       }
       if (best) best.before = P.b[best.t] && P.b[best.t].toLowerCase() === best.p && side(P.b[best.t]) === me && attacked(P, best.t, opp);
       return best;
     })();
     // what the better move takes right away
-    const bm = fromUci(P, top.pv[0]), took = bm && bm.cap ? { p: bm.cap.toLowerCase(), t: bm.t } : null;
+    const bm = fromUci(P, top.pv[0]), took = bm && bm.cap ? { p: bm.cap.toLowerCase(), t: bm.t, f: bm.f, by: P.b[bm.f].toLowerCase() } : null;
     const weak = ['inacc', 'mist', 'miss', 'blun'].includes(item.kind);
     if (item.kind === 'miss' && gainBest >= 250 && item.best && !took) return `Verpasst: Mit ${b(show(item.best))} hätte man Material gewonnen.`;
     const say = [];
     if (weak && loss && (VAL[loss.p] >= 300 || lost >= 150)) {
-      say.push(`<span>Danach schlägt der Gegner mit ${b(loss.san)} ${b(PACC[loss.p])} auf ${b(sqn(loss.t))}.</span>`);
+      say.push(`<span>Danach schlägt ${b(PNOM[loss.by])} von ${b(sqn(loss.f))} ${b(PACC[loss.p])} auf ${b(sqn(loss.t))}.</span>`);
       if (loss.before) say.push('<span>Die Figur war schon vor dem Zug angegriffen.</span>');
     }
     if (weak && took && item.best && VAL[took.p] >= 300) say.push(loss && loss.before
-      ? `<span>Mit ${b(show(item.best))} schlägt man zuerst ${b(PACC[took.p])} auf ${b(sqn(took.t))} und bekommt so wenigstens etwas dafür.</span>`
-      : `<span>Mit ${b(show(item.best))} schlägt man ${b(PACC[took.p])} auf ${b(sqn(took.t))}.</span>`);
+      ? `<span>Besser schlägt man zuerst mit ${b(PDAT[took.by])} von ${b(sqn(took.f))} ${b(PACC[took.p])} auf ${b(sqn(took.t))} und bekommt so wenigstens etwas dafür.</span>`
+      : `<span>Besser schlägt man mit ${b(PDAT[took.by])} von ${b(sqn(took.f))} ${b(PACC[took.p])} auf ${b(sqn(took.t))}.</span>`);
     if (say.length) return say.join(' ');
     if (lost >= 250) return `Das kostet Material. Der Gegner antwortet am besten mit ${b(sanOf(after, reply.pv[0]))}.`;
     if (gainBest >= 250 && item.best) return `Mit ${b(show(item.best))} hätte man Material gewonnen.`;
@@ -851,7 +853,7 @@
           // back to the position after a moment; from the second try on a hint names the piece
           setTimeout(() => {
             if (!retry || retry.k !== k) return;
-            const bm = rev.moves[k].bestM, hint = retry.tries >= 2 && bm ? `<span>Tipp: Schau dir</span> <b>${show(rev.pos[k].b[bm.f].toUpperCase() === 'P' ? 'den Bauern' : NAME_A[rev.pos[k].b[bm.f].toLowerCase()])}</b> <span>auf</span> <b>${sqn(bm.f)}</b> <span>an.</span>` : retry.msg;
+            const bm = rev.moves[k].bestM, hint = retry.tries >= 2 && bm ? `<span>Tipp: Schau dir</span> <b>${rev.pos[k].b[bm.f].toUpperCase() === 'P' ? 'den Bauern' : NAME_A[rev.pos[k].b[bm.f].toLowerCase()]}</b> <span>auf</span> <b>${sqn(bm.f)}</b> <span>an.</span>` : retry.msg;
             Object.assign(retry, { P: clone(rev.pos[k]), state: 'ask', tried: null, msg: hint }); retry.moves = legal(retry.P); render();
           }, 1100);
         }
