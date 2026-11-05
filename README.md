@@ -88,6 +88,13 @@ Im Online-Tab zwei Umschalter: **Diese Woche / Für immer** und **Alle / Freunde
 
 Nur mit Konto (`js/night.js`): Gäste, auch Gast-Sitzungen aus dem schnellen Spiel, sehen die Zeile mit Schloss und „Konto“; ein Tipp führt zur Anmeldung. Ein Abend, der als Gast begonnen wurde, ruht, bis man eingeloggt ist. Läuft der Server nicht, bleibt er wie alles andere offen.
 
+## Einstellungen, geprüft
+
+- **Schnelle KI:** keine Ziel-Animation, 60 ms Pause, und die Rechenzeit sinkt auf etwa ein Drittel, höchstens 0,9 s (`V.aiMs` in `js/ai.js`, genutzt von `V.search`, `V.searchAll`, `V.mcts` und den eigenen Budgets von Schach, Go, Hex und Kalaha). Gemessen auf Profi: Schach 3,3 → 0,9 s, Go 3,3 → 0,9 s, Dame 2,9 → 0,7 s, 4 Gewinnt 2,5 → 0,7 s.
+- **Effekte aus** (und „Bewegung reduzieren“ im System): alle CSS-Animationen und Übergänge springen sofort ans Ende (Regel unter `.lowfx`), dazu wie bisher kein Konfetti, keine Partikel, kein Schnee.
+- **Farbenblind-Modus:** Muster jetzt auch auf den Steinen von 3D Tic Tac Toe.
+- Zughilfen (Schach, Dame, Reversi, Mühle), Koordinaten, Spielbrett, Ton, Musik, Vibration, Intros, Gegenüber sitzen, Saison-Look und offene Herausforderungen im Browser geprüft.
+
 ## Modi
 
 Am Laptop ist die Startseite ein Auswahlbildschirm: links die Spiele, rechts direkt die Einstellungen des gewählten Spiels. Im Spiel stehen die Spielerkarten links und rechts neben dem Brett. Am Handy öffnet ein Tipp auf ein Spiel dessen Einstellungen.

@@ -1739,6 +1739,10 @@ textarea.inp{height:auto}
 :root{--cbpink:repeating-linear-gradient(45deg,rgba(8,9,15,.4) 0 3px,transparent 3px 8px);--cbyel:radial-gradient(circle,rgba(8,9,15,.55) 0 1.8px,transparent 2.4px) 0 0/8px 8px;--pat1:var(--cbpink);--pat2:var(--cbyel)}
 :root.swap{--pat1:var(--cbyel);--pat2:var(--cbpink)}
 .cb .rv .st,.cb .ck .pc{position:relative}
+/* 3D Tic Tac Toe: the same patterns on its stones */
+.cb .t3-c.p1 i,.cb .t3-c.p2 i{position:relative;overflow:hidden}
+.cb .t3-c.p1 i::before,.cb .t3-c.p2 i::before{content:'';position:absolute;inset:0;border-radius:inherit;pointer-events:none;background:var(--pat1)}
+.cb .t3-c.p2 i::before{background:var(--pat2)}
 .cb .c4b .disc.p1::before,.cb .c4ghost .p1::before,.cb .gmk .st.p1::before,.cb .rv .st.s1::before,.cb .ck .pc.s1::before,
 .cb .c4b .disc.p2::before,.cb .c4ghost .p2::before,.cb .gmk .st.p2::before,.cb .rv .st.s2::before,.cb .ck .pc.s2::before{content:'';position:absolute;inset:0;border-radius:50%;pointer-events:none;background:var(--pat1)}
 .cb .c4b .disc.p2::before,.cb .c4ghost .p2::before,.cb .gmk .st.p2::before,.cb .rv .st.s2::before,.cb .ck .pc.s2::before{background:var(--pat2)}
@@ -3087,3 +3091,6 @@ body:has(.view.play) .season.halloween .spider{display:none}
 .ko h2.long{font-size:clamp(38px,9.5vw,100px)}
 /* no double-tap zoom while playing (two quick taps next to the board zoomed in on iPad); pinch zoom still works */
 .view.play{touch-action:manipulation}
+/* Effekte aus (and "reduce motion" in the system): every animation and transition jumps to its end, nothing pulses
+   or loops; the games' own moves still happen, just without the motion */
+.lowfx *,.lowfx *::before,.lowfx *::after{animation-duration:.01ms!important;animation-delay:0s!important;animation-iteration-count:1!important;transition-duration:.01ms!important;transition-delay:0s!important}

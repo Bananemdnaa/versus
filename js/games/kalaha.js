@@ -24,7 +24,7 @@
   const moves = s => pitsOf(s.turn).filter(p => s.b[p] > 0);
   // negamax that keeps the sign when a move earns an extra turn
   function search(s, depth, timeMs) {
-    const deadline = performance.now() + timeMs; let nodes = 0, stop = false;
+    const deadline = performance.now() + V.aiMs(timeMs); let nodes = 0, stop = false;
     const val = (st, me) => (st.b[STORE[me]] - st.b[STORE[3 - me]]) + (st.done ? 0 : 0.25 * (pitsOf(me).reduce((a, p) => a + st.b[p], 0) - pitsOf(3 - me).reduce((a, p) => a + st.b[p], 0)));
     function nm(st, d, a, b) {
       if (st.done) { const v = st.b[STORE[st.turn]] - st.b[STORE[3 - st.turn]]; return v > 0 ? 1000 + v : v < 0 ? -1000 + v : 0; }

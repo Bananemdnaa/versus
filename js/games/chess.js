@@ -995,7 +995,7 @@
           // Schwer: 4 plies exact. Profi: iterative deepening up to 8 plies within ~2.8 s.
           think: () => {
             const L = ctx.level;
-            const r = L === 0 && Math.random() < 0.25 ? { move: V.pick(moves), score: 0 } : think(P, [1, 1, 3, 8][L], [1500, 1500, 1200, 2600][L], [220, 60, 0, 0][L]);
+            const r = L === 0 && Math.random() < 0.25 ? { move: V.pick(moves), score: 0 } : think(P, [1, 1, 3, 8][L], V.aiMs([1500, 1500, 1200, 2600][L]), [220, 60, 0, 0][L]);
             return { move: r.move, mood: V.mood(r.score, 450) };
           },
           targets: m => [cells[m.f], cells[m.t]],

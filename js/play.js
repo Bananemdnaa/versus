@@ -334,14 +334,14 @@
         const s = o.side || aiSide, card = pls[s];
         card.classList.add('thinking');
         setStatus(`<span class="c${s}">${esc(names[s])}</span> <span class="thinking">${o.quick ? 'macht weiter' : 'denkt'}</span>`);
-        const minT = auto ? 0 : settings.aiFast ? 160 : o.quick ? 380 : [650, 850, 1050, 1250][cfg.level] + Math.random() * 450;
+        const minT = auto ? 0 : settings.aiFast ? 60 : o.quick ? 380 : [650, 850, 1050, 1250][cfg.level] + Math.random() * 450;
         const t0 = performance.now();
         ctx.later(() => {
           const res = o.think();
           ctx.later(() => aimAt(o, res, card, true, false, party ? s : 0), Math.max(0, minT - (performance.now() - t0)));
         }, 70);
       },
-      think(fn, ms = 380) { setStatus(`<span class="c${aiSide}">KI</span> <span class="thinking">denkt</span>`); ctx.later(fn, ms); },
+      think(fn, ms = 380) { if (settings.aiFast) ms = Math.min(ms, 60); setStatus(`<span class="c${aiSide}">KI</span> <span class="thinking">denkt</span>`); ctx.later(fn, ms); },
       nav(fn, o) { navFn = fn; nav.set(fn, o); },
       keys(fn) { keyFn = fn; },
       // off: the match was called off (opponent offline, voided) – no winner, nothing counts
@@ -446,7 +446,7 @@
         if (isAI) speak(lastNote, res.mood);
         o.apply(res.move);
       };
-      if (!V.fxOn() || !path.length || fast) return done();
+      if (!V.fxOn() || !path.length || fast || (isAI && settings.aiFast)) return done();
       let i = 0;
       const step = () => {
         if (i >= path.length) { aim.lock(); return ctx.later(done, 170); }

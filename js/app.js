@@ -1410,7 +1410,7 @@
       </div></div>
       <div class="ogroup" data-oc="look"><h2 class="oh"><button class="oh-b" data-ot="look" aria-expanded="true">Anzeige</button></h2>
       <div class="optlist">
-        ${sw('o_fx', settings.fx !== 'low', 'Effekte', 'Konfetti, Partikel, Animationen. Aus spart Akku.', IC.spark)}
+        ${sw('o_fx', settings.fx !== 'low', 'Effekte', 'Konfetti, Partikel, Animationen. Aus stoppt alle Bewegungen und spart Akku.', IC.spark)}
         ${sw('o_intro', settings.intro !== false, 'Intros', 'Start-Animation und VS-Einblendung vor jeder Partie', IC.film)}
         ${sw('o_coords', settings.coords !== false, 'Koordinaten', 'Buchstaben und Zahlen am Schachbrett', IC.hash)}
         ${sw('o_hints', settings.hints !== false, 'Zughilfen', 'Zeigt, wohin du ziehen kannst (Schach, Dame, Reversi, Mühle)', IC.bulb)}
@@ -1422,7 +1422,7 @@
       </div></div>
       <div class="ogroup" data-oc="game"><h2 class="oh"><button class="oh-b" data-ot="game" aria-expanded="true">Spiel</button></h2>
       <div class="optlist">
-        ${sw('o_fast', !!settings.aiFast, 'Schnelle KI', 'Die KI zieht sofort, ohne Nachdenken und Zielen', IC.bolt)}
+        ${sw('o_fast', !!settings.aiFast, 'Schnelle KI', 'Die KI zieht sofort, ohne Zielen, und rechnet kürzer (auf Profi dadurch etwas schwächer)', IC.bolt)}
         ${sw('o_face', !!settings.face, 'Gegenüber sitzen', 'Zu zweit am Handy: Name und Hinweise für Spieler 2 stehen auf dem Kopf', IC.users)}
       </div></div>
       ${V.coarse ? '' : `<div class="ogroup" data-oc="keys"><h2 class="oh"><button class="oh-b" data-ot="keys" aria-expanded="true">Tastatur</button></h2>

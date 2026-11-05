@@ -208,7 +208,7 @@
         ctx.aiTurn({
           think: () => {
             const L = ctx.level, budget = n === 9 ? [60, 500, 1400, 2800][L] : [60, 600, 1600, 3000][L];
-            const r = think(n, b, turn, ko, budget, [150, 2500, 1e9, 1e9][L]);
+            const r = think(n, b, turn, ko, V.aiMs(budget), [150, 2500, 1e9, 1e9][L]);
             // pass only when counting the board as it is would win (dead stones are not removed at the end),
             // otherwise keep playing and capture them first
             const now = area(n, b).s - KOMI, ahead = turn === 1 ? now > 0 : now < 0;

@@ -2,10 +2,13 @@
 (function () {
   'use strict';
 
+  // "Schnelle KI" (Optionen): the AI thinks about a third as long, at most 0.9 s, so every game answers quickly
+  V.aiMs = ms => (V.settings && V.settings.aiFast ? Math.min(ms, 900, Math.max(150, Math.round(ms * 0.3))) : ms);
+
   // Negamax with alpha-beta and iterative deepening.
   // g.moves(s), g.play(s,m) -> new state, g.over(s,ply) -> null | score for side to move, g.eval(s) -> score for side to move.
   V.search = function (g, s, maxDepth, timeMs = 1500) {
-    const deadline = performance.now() + timeMs;
+    const deadline = performance.now() + V.aiMs(timeMs);
     let nodes = 0, stop = false;
     function nm(s, d, a, b, ply) {
       const t = g.over(s, ply); if (t !== null) return t;
@@ -43,7 +46,7 @@
   // Exact score for every root move (full window). The weaker levels use it to play like a person:
   // usually a good move, sometimes a decent one, almost never a terrible one.
   V.searchAll = function (g, s, depth, timeMs = 1200) {
-    const deadline = performance.now() + timeMs;
+    const deadline = performance.now() + V.aiMs(timeMs);
     let nodes = 0, stop = false;
     function nm(s, d, a, b, ply) {
       const t = g.over(s, ply); if (t !== null) return t;
@@ -82,7 +85,7 @@
 
   // Monte Carlo tree search. g.moves, g.play (immutable), g.result(s) -> null|0|1|2, g.turn(s) -> 1|2
   V.mcts = function (g, root, iters, timeMs = 2500) {
-    const deadline = performance.now() + timeMs;
+    const deadline = performance.now() + V.aiMs(timeMs);
     const R = { s: root, kids: [], untried: null, w: 0, n: 0, p: 0, m: null, parent: null };
     for (let i = 0; i < iters; i++) {
       if ((i & 63) === 0 && performance.now() > deadline) break;

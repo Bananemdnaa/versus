@@ -115,7 +115,7 @@
         for (let i = 0; i < NN; i++) if (!b[i]) free.push(i);
         // a move that wins, then a move that stops the other from winning
         if (L >= 1) for (const p of [me, op]) for (const i of free) { b[i] = p; const w = path(b, N, p); b[i] = 0; if (w) return { move: i, mood: p === me ? 1 : -0.6 }; }
-        const runs = [40, 400, 2500, 9000][L], ms = [300, 700, 1600, 2600][L], deadline = performance.now() + ms;
+        const runs = [40, 400, 2500, 9000][L], ms = V.aiMs([300, 700, 1600, 2600][L]), deadline = performance.now() + ms;
         const won = new Float64Array(NN), cnt = new Float64Array(NN), fill = b.slice();
         const rest = free.slice(); let wins = 0, k = 0;
         // first move of the fill-up is ours, the stones then alternate
