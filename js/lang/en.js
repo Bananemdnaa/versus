@@ -72,6 +72,7 @@
     'Alle Tutorials sind wieder neu': 'All tutorials are new again', 'Einstellungen zurückgesetzt': 'Settings reset', 'Bilanz gelöscht': 'Stats deleted',
     // tutorial dialog, welcome
     // chess review: coach, practice, summary
+    "Auf allen Geräten": "On all devices", "Teilen": "Share", "Schau dir meine Partie an": "Watch my game", "Zum Teilen brauchst du ein kostenloses Konto": "Sharing needs a free account", "Teilen kommt nach dem nächsten Server-Update.": "Sharing comes with the next server update.", "Diese Partie gibt es nicht mehr.": "This game no longer exists.", "Die Partie konnte nicht geladen werden.": "The game could not be loaded.", "Mit deinem Konto sind die letzten 100 Partien auf jedem Gerät dabei, Online-Partien kommen vom Server.": "With your account the last 100 games are on every device; online games come from the server.", "Die letzten 40 Partien bleiben auf diesem Gerät. Mit einem kostenlosen Konto sind sie auf jedem Gerät dabei und lassen sich teilen.": "The last 40 games stay on this device. With a free account they come along on every device and can be shared.", "Brettspiele ohne Würfel und Karten lassen sich Zug für Zug nachspielen, bei Schach mit Analyse.": "Board games without dice and cards can be replayed move by move, chess with a review.",
     "Letzte Partien": "Recent games", "Leeren": "Clear", "Wirklich leeren?": "Really clear?", "Ansehen": "Watch", "Nur Ergebnis": "Result only", "Die letzten 40 Partien bleiben auf diesem Gerät. Brettspiele ohne Würfel und Karten lassen sich Zug für Zug nachspielen, bei Schach mit Analyse.": "The last 40 games stay on this device. Board games without dice and cards can be replayed move by move, chess with a review.", "Zug # von #": "Move # of #", "Ende der Aufzeichnung": "End of the recording", "Zum Ende": "To the end", "Aufzeichnung": "Recording",
     "Gelegenheitsspieler (Stockfish, Stufe 3): spielt vernünftig, macht aber echte Fehler.": "Casual player (Stockfish, level 3): plays sensibly but makes real mistakes.", "Starker Vereinsspieler (Stockfish, Stufe 10): Fehler werden bestraft.": "Strong club player (Stockfish, level 10): mistakes get punished.", "Stockfish mit voller Stärke. Viel Glück.": "Stockfish at full strength. Good luck.",
     "Schachmatt!": "Checkmate!", "Ein bekannter Eröffnungszug: {0}": "A known opening move: {0}", "Ein bekannter Eröffnungszug.": "A known opening move.",
@@ -1538,7 +1539,7 @@
   V.i18n.ctx('.chco, .chr', { 'auf': 'on', 'an.': '.', 'die Dame': 'the queen' });
   V.i18n.ctx('.chr, .chx', { 'Fehler': 'Mistake', 'Gut': 'Good', 'Verpasst': 'Miss' });
   V.i18n.pat([[/^Spalte ([a-d])$/, 'Column $1']]);
-  V.i18n.pat([[/^Aufzeichnung · (.+?) · (.+)$/, (m, l, d) => 'Recording · ' + V.t(l) + ' · ' + d]]);
+  V.i18n.pat([[/^Aufzeichnung · (.+?) · (.+)$/, (m, l, d) => 'Recording · ' + V.t(l) + ' · ' + d], [/^Geteilt von (.+?) · (.+)$/, (m, n, d) => 'Shared by ' + n + ' · ' + d], [/^Online gegen (.+)$/, (m, n) => 'Online vs ' + n]]);
   V.i18n.pat([[/^Ebene (\d), ([a-d]\d)$/, 'Layer $1, $2']]);
 
   // ---------- words that differ by game ----------

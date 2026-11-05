@@ -53,7 +53,7 @@
   const ALTERNATE = ['c4', 'ttt', 'uttt', 'gomoku', 'chess', 'checkers', 'mill', 'go', 'backgammon', 'hex', 'ttt3', 'hardcore'];
   // games without luck where you may take a move back against the AI on Leicht and Mittel
   // the games whose matches can be replayed from their moves (no dice, cards or real time): undo and the history
-  const UNDO = ['c4', 'ttt', 'uttt', 'gomoku', 'dots', 'checkers', 'mill', 'chess', 'reversi', 'kalaha', 'go', 'hex', 'ttt3', 'hardcore'];
+  const UNDO = V.REPLAYABLE = ['c4', 'ttt', 'uttt', 'gomoku', 'dots', 'checkers', 'mill', 'chess', 'reversi', 'kalaha', 'go', 'hex', 'ttt3', 'hardcore'];
   // Modes: 'ai' (vs. computer), 'local' (two players, one device), 'online' (vs. a friend over the server),
   // 'watch' (admins follow or replay a match). A remote player is handled like the AI: the game calls
   // ctx.aiTurn() and gets the move from the network instead of from a search.
@@ -129,7 +129,7 @@
       <span class="nm"><b>${esc(shown(s))}</b><small>${sub(s)}</small></span>
       ${clockMin ? `<span class="clk" id="ck${s}"></span>` : ''}${thinker(s) ? '<span class="tdots" aria-hidden="true"><i></i><i></i><i></i></span>' : ''}<span class="wins"><b>${series[s]}</b><small>Siege</small></span><em class="tag">am Zug</em>
       ${ai && s === aiSide ? '<div class="bubble" aria-live="polite"></div>' : ''}</div>`;
-    const sublabel = review ? 'Aufzeichnung · ' + esc(RV.label || '') + ' · ' + new Date(RV.at || Date.now()).toLocaleDateString(V.locale(), { day: 'numeric', month: 'short' }) : table ? `Online-Tisch · ${N} Spieler` : party ? (ai ? `Gegen ${N > 2 ? N - 1 + ' KIs' : 'KI'} · ` + V.LEVELS[cfg.level] : N + ' Spieler') : ai ? 'Gegen KI · ' + V.LEVELS[cfg.level] : slow ? 'Über Tage gegen ' + esc(M.opp) : online ? 'Online gegen ' + esc(M.opp) : watch ? 'Zuschauen · ' + esc(M.aName) + ' gegen ' + esc(M.bName) : 'Am Gerät';
+    const sublabel = review && RV.shared ? 'Geteilt von ' + esc(RV.shared) + ' · ' + new Date(RV.at || Date.now()).toLocaleDateString(V.locale(), { day: 'numeric', month: 'short' }) : review ? 'Aufzeichnung · ' + esc(RV.label || '') + ' · ' + new Date(RV.at || Date.now()).toLocaleDateString(V.locale(), { day: 'numeric', month: 'short' }) : table ? `Online-Tisch · ${N} Spieler` : party ? (ai ? `Gegen ${N > 2 ? N - 1 + ' KIs' : 'KI'} · ` + V.LEVELS[cfg.level] : N + ' Spieler') : ai ? 'Gegen KI · ' + V.LEVELS[cfg.level] : slow ? 'Über Tage gegen ' + esc(M.opp) : online ? 'Online gegen ' + esc(M.opp) : watch ? 'Zuschauen · ' + esc(M.aName) + ' gegen ' + esc(M.bName) : 'Am Gerät';
     // Discord status (Rich Presence, js/discord.js): the game and how it is played, never an opponent's name
     V.discord.status(g.name, table ? V.t('Online-Tisch') + ' · ' + V.t(N + ' Spieler') : ai ? V.t('Gegen die KI') + ' · ' + V.t(V.LEVELS[cfg.level]) : online ? V.t('Online-Duell') : watch ? V.t('Zuschauen') : V.t('Am Gerät'), g.id);
     // two people at one phone, sitting opposite: player 2's card (and the status on their turn) is turned around
@@ -521,12 +521,14 @@
         const e = {
           id: Date.now().toString(36) + Math.random().toString(36).slice(2, 5), g: g.id, mode: cfg.mode, level: cfg.level, label, at: Date.now(),
           opts: cfg.opts || {}, names: Object.fromEntries(SIDES.map(s => [s, shown(s)])), me, winner, note: note || '', plies,
-          moves: recOn && recd.length ? recd : null
+          moves: recOn && recd.length ? recd : null, mid: online ? M.id || null : null
         };
         // a match too big to keep whole (very long games) keeps only its result
         if (e.moves && JSON.stringify(e.moves).length > 60000) e.moves = null;
         const list = S.get('archive', []).filter(x => x && x.id); list.unshift(e);
         S.set('archive', list.slice(0, 40));
+        // with an account it goes to the server too, so every device has it (online duels are there already)
+        if (P.archiveUp) P.archiveUp(e);
       } catch (x) { }
     }
     let rvShown = false;

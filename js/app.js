@@ -1335,7 +1335,7 @@
     const days = lastDays(14), dmax = Math.max(1, ...days.map(x => x.w + x.l + x.d + x.n));
     const kpi = (v, l, sub, s = '') => `<div class="kpi"><b data-v="${v}"${s ? ` data-s="${s}"` : ''}>${v}${s}</b><span>${l}</span>${sub ? `<small class="up">${sub}</small>` : ''}</div>`;
     if (!recs.length && statMode === 'all') return `<section class="stats page"><h1 class="title"><span>Deine</span> Bilanz</h1>
-      <div class="empty sempty">${IC.trophy}<b>Noch keine Partien</b><p>Spiel eine Runde, dann steht hier deine Bilanz pro Spiel: gegen die KI, online und zu zweit.</p><button class="btn primary" data-tab="games"><span>Spiel aussuchen</span></button></div></section>`;
+      <div class="empty sempty">${IC.trophy}<b>Noch keine Partien</b><p>Spiel eine Runde, dann steht hier deine Bilanz pro Spiel: gegen die KI, online und zu zweit.</p><button class="btn primary" data-tab="games"><span>Spiel aussuchen</span></button></div>${historyPanel()}</section>`;
     const sorted = recs.slice().sort((a, b) => {
       const k = statSort.k, x = k === 'name' ? a.g.name.localeCompare(b.g.name) : (a[k] - b[k]);
       return x * statSort.d || b.n - a.n;
@@ -1362,33 +1362,104 @@
       </div>
     </section>`;
   }
-  // ---------- Letzte Partien: the history of finished matches (js/play.js archive), replayable ones can be watched ----------
+  // ---------- Letzte Partien: the history of finished matches ----------
+  // On this device (versus.archive, js/play.js) and, with an account, on the server: game_archive for matches against the
+  // AI and at one device, matches for online duels. Replayable ones can be watched and shared by link (?replay=CODE).
+  const acctOn = () => { const u = V.cloud && V.cloud.available() && V.cloud.user(); return !!(u && !u.anon); };
+  const cidOf = e => e.mid ? 'm' + e.mid.replace(/-/g, '').slice(0, 20) : e.id;
+  function archiveUp(e) {
+    if (!acctOn() || e.mode === 'online' || e.mode === 'table' || e.up) return Promise.resolve();
+    return V.cloud.rpc('archive_save', { p_cid: e.id, d: e }).then(() => {
+      const list = S.get('archive', []); const x = list.find(y => y && y.id === e.id); if (x) { x.up = true; S.set('archive', list); }
+    }, () => { });
+  }
+  P.archiveUp = archiveUp;
+  // after logging in: the matches played before (also as a guest on this device) go up once
+  function syncArchive() { if (!acctOn()) return; S.get('archive', []).filter(e => e && !e.up && e.mode !== 'online').slice(0, 40).forEach(e => archiveUp(e)); }
+  let histServer = null, histLoading = false;
+  function loadHistory(then) {
+    if (!acctOn() || histLoading) return;
+    histLoading = true;
+    const conv = m => {
+      const me = +m.me || 1, opp = m.opp || '?', mine = V.cloud.user().username;
+      return { id: 'm' + String(m.id).replace(/-/g, '').slice(0, 20), mid: m.id, g: m.game, mode: 'online', label: 'Online gegen ' + opp, at: Date.parse(m.at) || Date.now(),
+        opts: m.opts || {}, names: { [me]: mine, [3 - me]: opp }, me, winner: +m.winner || 0, note: '',
+        moves: (V.REPLAYABLE || []).includes(m.game) && Array.isArray(m.moves) && m.moves.length ? m.moves.map(x => ({ s: x.s, m: x.m })) : null };
+    };
+    Promise.all([V.cloud.rpc('archive_list').catch(() => []), V.cloud.rpc('my_matches', { lim: 40 }).catch(() => [])]).then(([arch, mm]) => {
+      histServer = [...(arch || []).map(x => Object.assign({}, x.data, { up: true, share: x.share })), ...(mm || []).map(conv)];
+      histLoading = false; then && then();
+    }, () => { histLoading = false; });
+  }
+  // local and server, newest first, each match once
+  function historyList() {
+    const seen = new Set(), out = [];
+    for (const e of [...S.get('archive', []), ...(histServer || [])]) {
+      if (!e || !V.byId[e.g]) continue;
+      const k = e.mid || e.id; if (seen.has(k)) continue; seen.add(k); out.push(e);
+    }
+    return out.sort((a, b) => (b.at || 0) - (a.at || 0)).slice(0, 100);
+  }
   function historyPanel() {
-    const list = S.get('archive', []).filter(e => e && V.byId[e.g]);
-    if (!list.length) return '';
+    const list = historyList();
+    if (!list.length) return acctOn() ? '<div class="apanel shist" id="shist"></div>' : '';
     const when = t => { const d = new Date(t), today = new Date().toDateString() === d.toDateString(); return today ? d.toLocaleTimeString(V.locale(), { hour: '2-digit', minute: '2-digit' }) : d.toLocaleDateString(V.locale(), { day: 'numeric', month: 'short' }); };
     const res = e => !e.winner ? ['d', 'Remis'] : e.me ? (e.winner === e.me ? ['w', 'Sieg'] : ['l', 'Niederlage']) : ['n', (e.names && e.names[e.winner] || 'Spieler ' + e.winner) + ' gewinnt'];
-    return `<div class="apanel shist"><h3>Letzte Partien<small>${list.length}</small><button class="link" id="hclr">Leeren</button></h3>
-      <div class="hlist">${list.slice(0, 25).map(e => {
+    const acc = acctOn();
+    return `<div class="apanel shist" id="shist"><h3>Letzte Partien<small>${list.length}</small>${acc ? `<small class="hsync">${IC.sync || ''}<span>Auf allen Geräten</span></small>` : ''}<button class="link" id="hclr">Leeren</button></h3>
+      <div class="hlist">${list.slice(0, 40).map(e => {
         const g = V.byId[e.g], [rc, rl] = res(e), opp = e.names ? Object.entries(e.names).filter(([k]) => +k !== e.me).map(([, n]) => n).join(', ') : '';
         return `<div class="hrow" style="--acc:${g.accent || 'var(--pink)'}"><span class="ic">${g.icon}</span>
-          <span class="ht"><b>${g.name}</b><small><span>${escA(e.label || '')}</span>${opp && e.mode !== 'ai' && e.mode !== 'local' ? ` · <span>${escA(opp)}</span>` : ''} · <span>${when(e.at)}</span></small></span>
+          <span class="ht"><b>${g.name}</b><small><span>${escA(e.label || '')}</span>${opp && e.mode !== 'ai' && e.mode !== 'local' && e.mode !== 'online' ? ` · <span>${escA(opp)}</span>` : ''} · <span>${when(e.at)}</span></small></span>
           <em class="hres ${rc}">${escA(rl)}</em>
-          <span class="hact">${e.moves ? `<button class="btn sm" data-rv="${e.id}"><span>${IC.play}Ansehen</span></button>${e.g === 'chess' ? `<button class="btn sm ghost" data-rva="${e.id}"><span>${IC.chart}Analyse</span></button>` : ''}` : '<small class="hnone">Nur Ergebnis</small>'}</span></div>`;
+          <span class="hact">${e.moves ? `<button class="btn sm" data-rv="${escA(e.id)}"><span>${IC.play}Ansehen</span></button>${e.g === 'chess' ? `<button class="btn sm ghost" data-rva="${escA(e.id)}"><span>${IC.chart}Analyse</span></button>` : ''}<button class="btn sm ghost hshare" data-rvs="${escA(e.id)}" aria-label="Teilen" title="Teilen"><span>${IC.share}</span></button>` : '<small class="hnone">Nur Ergebnis</small>'}</span></div>`;
       }).join('')}</div>
-      <p class="fine">Die letzten 40 Partien bleiben auf diesem Gerät. Brettspiele ohne Würfel und Karten lassen sich Zug für Zug nachspielen, bei Schach mit Analyse.</p></div>`;
+      <p class="fine"><span>${acc ? 'Mit deinem Konto sind die letzten 100 Partien auf jedem Gerät dabei, Online-Partien kommen vom Server.' : 'Die letzten 40 Partien bleiben auf diesem Gerät. Mit einem kostenlosen Konto sind sie auf jedem Gerät dabei und lassen sich teilen.'}</span> <span>Brettspiele ohne Würfel und Karten lassen sich Zug für Zug nachspielen, bei Schach mit Analyse.</span></p></div>`;
   }
-  function openArchived(id, analyse) {
-    const e = S.get('archive', []).find(x => x && x.id === id), g = e && V.byId[e.g];
+  function openEntry(e, analyse) {
+    const g = e && V.byId[e.g];
     if (!g || !e.moves) return;
     V.sfx.ui();
     play(g, { mode: 'review', level: e.level, first: 'me', opts: e.opts || {}, replay: e.moves.slice(), rvk: e.moves.length, rv: Object.assign({}, e, { analyse: !!analyse }) });
   }
+  const findEntry = id => historyList().find(x => x.id === id);
+  function openArchived(id, analyse) { openEntry(findEntry(id), analyse); }
+  // the share link: the match goes to the server (if it isn't there yet), gets a code, the link is shared or copied
+  async function shareEntry(id) {
+    const e = findEntry(id); if (!e) return;
+    if (!acctOn()) { toast('Zum Teilen brauchst du ein kostenloses Konto'); return home('profile'); }
+    V.sfx.ui();
+    try {
+      const cid = cidOf(e), d = Object.assign({}, e, { id: cid, up: undefined, share: undefined });
+      await V.cloud.rpc('archive_save', { p_cid: cid, d });
+      const code = await V.cloud.rpc('archive_share', { p_cid: cid });
+      const url = location.origin + location.pathname + '?replay=' + code, g = V.byId[e.g];
+      const text = V.t('Schau dir meine Partie an') + ': ' + g.name + ' · Versus';
+      if (navigator.share && V.coarse) { try { await navigator.share({ title: g.name, text, url }); return; } catch (x) { if (x && x.name === 'AbortError') return; } }
+      (navigator.clipboard ? navigator.clipboard.writeText(url) : Promise.reject()).then(() => toast('Link kopiert'), () => toast(url, 4000));
+    } catch (x) { toast(/archive_|function/i.test(x.message || '') ? 'Teilen kommt nach dem nächsten Server-Update.' : x.message); }
+  }
+  // a shared link (?replay=CODE): load the match and show it, with or without an account
+  function openShared(code) {
+    if (!V.cloud || !V.cloud.available()) return;
+    V.cloud.rpc('archive_shared', { code }).then(r => {
+      if (!r || !r.data) return toast('Diese Partie gibt es nicht mehr.');
+      openEntry(Object.assign({}, r.data, { shared: r.by, at: Date.parse(r.at) || r.data.at }), false);
+    }, () => toast('Die Partie konnte nicht geladen werden.'));
+  }
   function wireStats(b) {
     b.querySelectorAll('[data-rv]').forEach(x => x.onclick = () => openArchived(x.dataset.rv));
     b.querySelectorAll('[data-rva]').forEach(x => x.onclick = () => openArchived(x.dataset.rva, true));
+    b.querySelectorAll('[data-rvs]').forEach(x => x.onclick = () => shareEntry(x.dataset.rvs));
     const hc = b.querySelector('#hclr');
-    if (hc) hc.onclick = () => { if (!hc.classList.contains('bad')) { hc.classList.add('bad'); hc.textContent = V.t('Wirklich leeren?'); return; } S.set('archive', []); V.sfx.ui(); home('stats'); };
+    if (hc) hc.onclick = () => {
+      if (!hc.classList.contains('bad')) { hc.classList.add('bad'); hc.textContent = V.t('Wirklich leeren?'); return; }
+      S.set('archive', []); histServer = (histServer || []).filter(e => e.mode === 'online');
+      if (acctOn()) V.cloud.rpc('archive_clear').catch(() => { });
+      V.sfx.ui(); home('stats');
+    };
+    // the server part of the list comes a moment later
+    if (acctOn() && !histServer) loadHistory(() => { if (view === 'home' && homeTab === 'stats') home('stats'); });
     b.querySelectorAll('[data-sm]').forEach(x => x.onclick = () => { statMode = x.dataset.sm; V.sfx.ui(); home('stats'); });
     b.querySelectorAll('[data-sort]').forEach(x => x.onclick = () => { const k = x.dataset.sort; statSort = { k, d: statSort.k === k ? -statSort.d : k === 'name' ? 1 : -1 }; V.sfx.tick(); home('stats'); });
     b.querySelectorAll('[data-sg]').forEach(x => x.onclick = () => { const g = V.byId[x.dataset.sg]; V.sfx.ui(); homeSpot = 'lib'; if (wide()) { home('games', g); setTimeout(() => selectTile(g), 180); } else setup(g); });
@@ -2255,7 +2326,8 @@
       cloudUser = id; cloudKnown = known;
       if (id && settings.stealth) V.cloud.rpc('set_stealth', { hide: true }).catch(() => { });
       // the team sees which language a player reads, and warnings from the team show up once
-      if (id) { V.cloud.rpc('set_lang', { l: V.lang }).catch(() => { }); checkWarnings(); setTimeout(pushAwards, 4000); }
+      if (id) { V.cloud.rpc('set_lang', { l: V.lang }).catch(() => { }); checkWarnings(); setTimeout(pushAwards, 4000); setTimeout(syncArchive, 5000); }
+      histServer = null;
       // an open game sheet shows the new locks and modes too
       if (sheetRoot && sheetRoot.isConnected && selected) renderPanel(sheetRoot, selected, true);
       // the account tab is drawn again too when the login changed (a restored session must not leave the login form up)
@@ -2282,9 +2354,11 @@
     if (qt && TABS.some(t => t[0] === qt)) homeTab = qt;
     // ?game=chess (from the game pages in /games/ and /de/spiele/): open that game's setup instead of the welcome
     const qg = V.byId[q.get('game')] || null;
-    const start = () => { home(qg ? 'games' : undefined); if (qg) setup(qg); };
-    const greet = () => { if (!qg) welcome(); };
-    if (['tab', 'app', 'add', 'table', 'join', 'match', 'game'].some(k => q.has(k))) try { history.replaceState(null, '', location.pathname); } catch (e) { }
+    // a shared match (?replay=CODE): shown right after the start, no welcome in front of it
+    const qr = /^[a-z0-9]{6,16}$/.test(q.get('replay') || '') ? q.get('replay') : '';
+    const start = () => { home(qg ? 'games' : undefined); if (qg) setup(qg); if (qr) setTimeout(() => openShared(qr), 400); };
+    const greet = () => { if (!qg && !qr) welcome(); };
+    if (['tab', 'app', 'add', 'table', 'join', 'match', 'game', 'replay'].some(k => q.has(k))) try { history.replaceState(null, '', location.pathname); } catch (e) { }
     registerSW();
     netState();
     if (!document.getElementById('fx')) { const f = V.el('div'); f.id = 'fx'; document.body.appendChild(f); }

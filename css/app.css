@@ -3111,3 +3111,5 @@ body:has(.view.play) .season.halloween .spider{display:none}
 .hres{grid-area:r;font:800 italic 12px/1 var(--f-d);text-transform:uppercase;font-style:normal;padding:4px 8px;border-radius:6px;background:var(--panel3)}
 .hres.w{color:var(--good)} .hres.l{color:#ff8a8a} .hres.d{color:var(--muted)} .hres.n{color:var(--cyan)}
 .hact{grid-area:a;display:flex;gap:6px;justify-content:flex-end} .hnone{font-size:11.5px;color:var(--dim)}
+.shist h3 .hsync{display:inline-flex;align-items:center;gap:4px;color:var(--good)} .shist h3 .hsync svg{width:13px;height:13px}
+.hact .hshare{width:38px;padding:0;justify-content:center} .hact .hshare svg{width:16px;height:16px;margin:0}
