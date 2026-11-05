@@ -52,6 +52,7 @@
   // duels where the turn always alternates and side 1 begins (same list as match_move on the server)
   const ALTERNATE = ['c4', 'ttt', 'uttt', 'gomoku', 'chess', 'checkers', 'mill', 'go', 'backgammon', 'hex', 'ttt3', 'hardcore'];
   // games without luck where you may take a move back against the AI on Leicht and Mittel
+  // the games whose matches can be replayed from their moves (no dice, cards or real time): undo and the history
   const UNDO = ['c4', 'ttt', 'uttt', 'gomoku', 'dots', 'checkers', 'mill', 'chess', 'reversi', 'kalaha', 'go', 'hex', 'ttt3', 'hardcore'];
   // Modes: 'ai' (vs. computer), 'local' (two players, one device), 'online' (vs. a friend over the server),
   // 'watch' (admins follow or replay a match). A remote player is handled like the AI: the game calls
@@ -63,7 +64,9 @@
     const session = V.cloud && V.cloud.user();
     // (a table inside the Discord activity is open to guests: the voice channel plays together)
     const dcTable = cfg.mode === 'table' && V.discord && V.discord.on;
-    if (cfg.mode !== 'watch' && !dcTable && (locked(g) || (guest() && (cfg.mode === 'table' || (['online', 'open'].includes(cfg.mode) && !session))))) { toast('Dafür brauchst du ein Konto'); return home('profile'); }
+    // 'review': a finished match from the history (Bilanz → Letzte Partien), replayed from its moves, nothing counts
+    const review = cfg.mode === 'review', RV = cfg.rv || {};
+    if (cfg.mode !== 'watch' && !review && !dcTable && (locked(g) || (guest() && (cfg.mode === 'table' || (['online', 'open'].includes(cfg.mode) && !session))))) { toast('Dafür brauchst du ein Konto'); return home('profile'); }
     P.enterPlay(g);
     const online = cfg.mode === 'online', watch = cfg.mode === 'watch', M = cfg.match || {};
     // a match over days: no offline countdown, leaving just puts it aside (it waits for your next move)
@@ -75,8 +78,8 @@
     let thost = table ? T.host : 0;
     // test.html: the AI plays every seat, nothing is saved
     const auto = !!cfg.auto;
-    if (!watch && !auto) { S.set('recent', g.id); S.set('recents', [g.id, ...S.get('recents', []).filter(id => id !== g.id)].slice(0, 6)); }
-    if (V.cloud && !auto) V.cloud.touch(g.id);
+    if (!watch && !auto && !review) { S.set('recent', g.id); S.set('recents', [g.id, ...S.get('recents', []).filter(id => id !== g.id)].slice(0, 6)); }
+    if (V.cloud && !auto && !review) V.cloud.touch(g.id);
     // an online rematch keeps the score between the same two players (sides may have swapped)
     if (online && !series && rematchCarry && rematchCarry.opp === M.opp) { series = { [M.side]: rematchCarry.me, [3 - M.side]: rematchCarry.them, d: rematchCarry.d }; rematch = true; }
     rematchCarry = null;
@@ -92,6 +95,8 @@
     if (cfg.replay || cfg.firstWas) cfg = Object.assign({}, cfg, { replay: null, first: cfg.firstWas || cfg.first, firstWas: null });
     const canUndo = ai && !party && cfg.level <= 1 && UNDO.includes(g.id) && !auto;
     const hist = [], rep = replay ? { queue: replay } : null;
+    // the moves for the history (replayable games, not when watching, testing or replaying)
+    const recOn = UNDO.includes(g.id) && !watch && !auto && !review && !party, recd = []; // replayed moves (undo) are recorded again as they are made
     const mySide = online ? M.side : table ? M.seat : 0;
     // you are always left and pink: against the AI, in online duels and at online tables with two seats (only the look;
     // the game keeps its own sides)
@@ -111,6 +116,7 @@
     const amHost = () => table && thost === mySide;
     if (online) { names[mySide] = 'Du'; names[oppSide] = M.opp; }
     if (watch) { names[M.aSide] = M.aName; names[3 - M.aSide] = M.bName; }
+    if (review) Object.assign(names, RV.names || {});
     const esc = t => String(t).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
     // your own card shows your account name (the logic keeps calling you "Du")
     const acct = V.cloud && V.cloud.user() && !V.cloud.user().anon ? V.cloud.user().username : '';
@@ -123,13 +129,13 @@
       <span class="nm"><b>${esc(shown(s))}</b><small>${sub(s)}</small></span>
       ${clockMin ? `<span class="clk" id="ck${s}"></span>` : ''}${thinker(s) ? '<span class="tdots" aria-hidden="true"><i></i><i></i><i></i></span>' : ''}<span class="wins"><b>${series[s]}</b><small>Siege</small></span><em class="tag">am Zug</em>
       ${ai && s === aiSide ? '<div class="bubble" aria-live="polite"></div>' : ''}</div>`;
-    const sublabel = table ? `Online-Tisch · ${N} Spieler` : party ? (ai ? `Gegen ${N > 2 ? N - 1 + ' KIs' : 'KI'} · ` + V.LEVELS[cfg.level] : N + ' Spieler') : ai ? 'Gegen KI · ' + V.LEVELS[cfg.level] : slow ? 'Über Tage gegen ' + esc(M.opp) : online ? 'Online gegen ' + esc(M.opp) : watch ? 'Zuschauen · ' + esc(M.aName) + ' gegen ' + esc(M.bName) : 'Am Gerät';
+    const sublabel = review ? 'Aufzeichnung · ' + esc(RV.label || '') + ' · ' + new Date(RV.at || Date.now()).toLocaleDateString(V.locale(), { day: 'numeric', month: 'short' }) : table ? `Online-Tisch · ${N} Spieler` : party ? (ai ? `Gegen ${N > 2 ? N - 1 + ' KIs' : 'KI'} · ` + V.LEVELS[cfg.level] : N + ' Spieler') : ai ? 'Gegen KI · ' + V.LEVELS[cfg.level] : slow ? 'Über Tage gegen ' + esc(M.opp) : online ? 'Online gegen ' + esc(M.opp) : watch ? 'Zuschauen · ' + esc(M.aName) + ' gegen ' + esc(M.bName) : 'Am Gerät';
     // Discord status (Rich Presence, js/discord.js): the game and how it is played, never an opponent's name
     V.discord.status(g.name, table ? V.t('Online-Tisch') + ' · ' + V.t(N + ' Spieler') : ai ? V.t('Gegen die KI') + ' · ' + V.t(V.LEVELS[cfg.level]) : online ? V.t('Online-Duell') : watch ? V.t('Zuschauen') : V.t('Am Gerät'), g.id);
     // two people at one phone, sitting opposite: player 2's card (and the status on their turn) is turned around
     const facing = cfg.mode === 'local' && settings.face && !party && g.cat !== 'Action';
     let plies = 0;
-    const v = mount(`<div class="view play${online || table ? ' net' : ''}${watch ? ' watch' : ''}${facing ? ' facing' + (g.turnBoard ? ' rotboard' : '') : ''}" data-g="${g.id}" style="--acc:${g.accent || 'var(--pink)'}">
+    const v = mount(`<div class="view play${online || table ? ' net' : ''}${watch ? ' watch' : ''}${review ? ' review' : ''}${facing ? ' facing' + (g.turnBoard ? ' rotboard' : '') : ''}" data-g="${g.id}" style="--acc:${g.accent || 'var(--pink)'}">
       <div class="pbar"><button class="iconbtn" id="pb" aria-label="Zurück">${IC.back}</button><div class="ttl"><b>${g.name}</b><small>${sublabel}</small></div>
         <span class="watchn" id="pw" hidden title="Zuschauer">${IC.eye}<b></b></span>
         ${online || (watch && !M.admin) ? `<button class="iconbtn" id="pe" aria-label="Reaktion senden" title="Reaktion">${IC.smile}</button>` : ''}
@@ -185,7 +191,7 @@
       stEl.innerHTML = html; if (V.fxOn()) V.fx.pop(stEl, 'st-in');
     };
     // "Du bist dran" / "Gelb ist dran" in the player's colour over the board; the first one waits for the VS intro
-    const t0 = performance.now(), introMs = !replay && V.fxOn() && settings.intro !== false ? (rematch || watch ? 650 : 1150) : 0;
+    const t0 = performance.now(), introMs = !replay && !review && V.fxOn() && settings.intro !== false ? (rematch || watch ? 650 : 1150) : 0;
     function turnBanner(s) {
       const show = () => {
         if (!alive || ended || lastTurn !== s) return;
@@ -264,7 +270,7 @@
     // a few seconds of grace, so the poke of a last action (resign, leaving the table) still goes out
     const closeChan = () => { const c = chan; if (c) setTimeout(() => c.close(), 3000); };
     let clock = null, listener = null, handSeen = 0;
-    const remote = s => (rep && rep.queue.length > 0) || watch || (online && (s === oppSide || (net && net.queue.length > 0))) || (table && (s !== mySide || (tnet && tnet.queue.length > 0)));
+    const remote = s => (rep && rep.queue.length > 0) || watch || review || (online && (s === oppSide || (net && net.queue.length > 0))) || (table && (s !== mySide || (tnet && tnet.queue.length > 0)));
     // dice, shuffled cards and other luck: online every browser draws the same numbers from a shared seed
     // (tables get it from the server, duels derive it from the match id)
     const idSeed = id => { let h = 2166136261; for (const ch of String(id)) h = Math.imul(h ^ ch.charCodeAt(0), 16777619); return h >>> 0; };
@@ -272,7 +278,7 @@
     const rng = seed ? () => { seed = (seed + 0x6D2B79F5) >>> 0; let t = seed; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; } : Math.random;
     const ctx = {
       stage: v.querySelector('#stage'), mode: cfg.mode, level: cfg.level, aiSide, opts: cfg.opts, sides: g.sides, n: N, players: SIDES,
-      mySide, watchSides: watch ? { a: M.aSide } : null, rng, auto,
+      mySide: review ? RV.me || 0 : mySide, review: review ? RV : null, watchSides: watch ? { a: M.aSide } : null, rng, auto,
       // true while a table catches up on moves that were already played (after joining late or reloading)
       fast: () => !!(tnet && tnet.queue.length > 1) || !!(rep && rep.queue.length),
       // games where everybody acts at the same time (Stadt Land Fluss): listen(fn) gets every action (s, m) in
@@ -320,7 +326,7 @@
         nav.refresh();
       },
       // Every move goes through here (all modes). Online, your own moves are sent to the server.
-      moved(s, m) { plies++; if (net) net.moved(s, m); if (tnet) tnet.moved(s, m); if (canUndo) { hist.push({ s, m: JSON.parse(JSON.stringify(m ?? null)) }); undoBtn(); } },
+      moved(s, m) { plies++; if (net) net.moved(s, m); if (tnet) tnet.moved(s, m); if (recOn) recd.push({ s, m: JSON.parse(JSON.stringify(m ?? null)) }); if (canUndo) { hist.push({ s, m: JSON.parse(JSON.stringify(m ?? null)) }); undoBtn(); } },
       // One AI move with a bit of theatre: think (min. time per level), let the crosshair hover over
       // a couple of alternatives, lock on the real target(s), then move and comment in the bubble.
       // o.think() -> { move, mood? }, o.targets(move) -> [elements], o.decoys(move) -> [elements],
@@ -328,6 +334,7 @@
       // o.decode(raw) -> legal move or null (online: turns the received move back into the game's own form)
       aiTurn(o) {
         if (rep && rep.queue.length) return replayStep(o);
+        if (review) return reviewDone();
         if (net) return net.take(o);
         // at a table only the host plays the AI seats; everything else (and any backlog) comes from the server
         if (tnet && (tnet.queue.length || !(tbots.has(o.side) && amHost()))) return tnet.take(o);
@@ -337,8 +344,11 @@
         const minT = auto ? 0 : settings.aiFast ? 60 : o.quick ? 380 : [650, 850, 1050, 1250][cfg.level] + Math.random() * 450;
         const t0 = performance.now();
         ctx.later(() => {
-          const res = o.think();
-          ctx.later(() => aimAt(o, res, card, true, false, party ? s : 0), Math.max(0, minT - (performance.now() - t0)));
+          // think() may also answer later (a Promise, e.g. Stockfish in a worker): the match must still be running then
+          const out = o.think();
+          const go = res => ctx.later(() => aimAt(o, res, card, true, false, party ? s : 0), Math.max(0, minT - (performance.now() - t0)));
+          if (out && typeof out.then === 'function') out.then(res => { if (alive && !ended && res && res.move) go(res); }, () => { });
+          else go(out);
         }, 70);
       },
       think(fn, ms = 380) { if (settings.aiFast) ms = Math.min(ms, 60); setStatus(`<span class="c${aiSide}">KI</span> <span class="thinking">denkt</span>`); ctx.later(fn, ms); },
@@ -349,6 +359,7 @@
         if (ended || !alive) return; ended = true;
         // the game hears about every end (also giving up, the clock, a dropped opponent), e.g. to offer its review
         if (inst && inst.ended) try { inst.ended(winner, note, off); } catch (e) { }
+        if (review) { reviewDone(note); return; }
         undoBtn();
         if (off) winner = 0;
         SIDES.forEach(k => pls[k].classList.remove('on'));
@@ -363,6 +374,7 @@
           else if (online || table) { s.on = s.on || { w: 0, l: 0, d: 0 }; if (winner === 0) s.on.d++; else if (winner === mySide) s.on.w++; else s.on.l++; }
           else { if (winner === 0) s.local.d++; else if (winner === 1) s.local.a++; else s.local.b++; }
           S.set('stats', P.stats);
+          archive(winner, note);
           // per day for the chart in Bilanz (last 60 days): wins and losses of your own games, games at one device
           const day = new Date().toLocaleDateString('sv'), daily = S.get('daily', {}), dd = daily[day] = daily[day] || { w: 0, l: 0, d: 0, n: 0 };
           if (ai || online || table) { if (winner === 0) dd.d++; else if (winner === me) dd.w++; else dd.l++; } else dd.n++;
@@ -501,6 +513,32 @@
       const mv = rep.queue.shift(), m = o.decode ? o.decode(mv.m) : mv.m;
       if (m == null) { rep.queue.length = 0; toast('Zurücknehmen ging hier nicht'); return ctx.aiTurn(o); }
       ctx.later(() => aimAt(o, { move: m }, pls[mv.s], false, true, mv.s), 0);
+    }
+    // ---------- the history: save a finished match, show a recorded one ----------
+    function archive(winner, note) {
+      try {
+        const label = ai ? 'Gegen KI · ' + V.LEVELS[cfg.level] : online ? 'Online gegen ' + (M.opp || '?') : table ? 'Online-Tisch' : party ? N + ' Spieler' : 'Am Gerät';
+        const e = {
+          id: Date.now().toString(36) + Math.random().toString(36).slice(2, 5), g: g.id, mode: cfg.mode, level: cfg.level, label, at: Date.now(),
+          opts: cfg.opts || {}, names: Object.fromEntries(SIDES.map(s => [s, shown(s)])), me, winner, note: note || '', plies,
+          moves: recOn && recd.length ? recd : null
+        };
+        // a match too big to keep whole (very long games) keeps only its result
+        if (e.moves && JSON.stringify(e.moves).length > 60000) e.moves = null;
+        const list = S.get('archive', []).filter(x => x && x.id); list.unshift(e);
+        S.set('archive', list.slice(0, 40));
+      } catch (x) { }
+    }
+    let rvShown = false;
+    function reviewDone(note) {
+      if (rvShown && !note) return;
+      rvShown = true; ended = true;
+      SIDES.forEach(k => pls[k].classList.remove('on', 'thinking'));
+      turnPill(0);
+      const k = RV.moves ? (cfg.rvk ?? RV.moves.length) : 0, all = RV.moves ? RV.moves.length : 0;
+      const result = note || RV.note || (RV.winner ? `${shown(RV.winner)} gewinnt` : RV.winner === 0 ? 'Remis' : 'Ende der Aufzeichnung');
+      setStatus(k < all ? `Zug ${k} von ${all}` : esc(result));
+      if (inst && inst.ended) try { inst.ended(RV.winner, RV.note, false); } catch (e) { }
     }
     function undoBtn() { const b = v.querySelector('#pu'); if (b) b.disabled = ended || !hist.some(h => h.s === me); }
     function undo() {
@@ -1048,6 +1086,16 @@
     else if (party && N > 2) vsIntro({ name: names[1], sub: sideLabel(1) }, { name: ai ? N - 1 + ' KIs' : 'Alle', sub: ai ? V.LEVELS[cfg.level] : N + ' Spieler' }, rematch);
     else vsIntro({ name: names[L], sub: sideLabel(L) }, { name: names[R], sub: ai ? 'KI · ' + V.LEVELS[cfg.level] : online ? 'online' : sideLabel(R) }, rematch || watch);
     inst = g.start(ctx) || {};
+    // a recorded match: step through it (chess has its own move list with the review)
+    if (review && RV.moves && g.id !== 'chess') {
+      const all = RV.moves.length, k = Math.max(0, Math.min(all, cfg.rvk ?? all));
+      const bar = V.el('div', 'rvbar', `<button data-k="0" aria-label="Zum Anfang"${k ? '' : ' disabled'}>⏮</button><button data-k="${k - 1}" aria-label="Zug zurück"${k ? '' : ' disabled'}>◀</button>
+        <b>${k} / ${all}</b><button data-k="${k + 1}" aria-label="Zug vor"${k < all ? '' : ' disabled'}>▶</button><button data-k="${all}" aria-label="Zum Ende"${k < all ? '' : ' disabled'}>⏭</button>`);
+      ctx.stage.after(bar);
+      bar.querySelectorAll('[data-k]').forEach(b => b.onclick = () => { V.sfx.tick(); play(g, Object.assign({}, cfg, { replay: RV.moves.slice(0, +b.dataset.k), rvk: +b.dataset.k })); });
+      const keyStep = e => { if (e.key === 'ArrowLeft' && k > 0) bar.querySelectorAll('button')[1].click(); else if (e.key === 'ArrowRight' && k < all) bar.querySelectorAll('button')[2].click(); };
+      addEventListener('keydown', keyStep); cleanups.push(() => removeEventListener('keydown', keyStep));
+    }
     if (ai && !party && cfg.first === 'rand' && !rep && !auto && V.fxOn()) ctx.later(coinToss, introMs);
     if (cfg.mode === 'local' && !party && g.cat !== 'Action' && V.coarse && !settings.face && !V.ui.wide()) ctx.later(offerFacing, introMs + 500);
     // When the match does not fit on the screen: on the phone the player cards get smaller first (up to three steps),

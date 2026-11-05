@@ -1358,11 +1358,37 @@
               ${statMode === 'local' ? '' : `<span>${r.best >= 0 ? `<em class="lvt ${LVL_CLS[r.best]}">${V.LEVELS[r.best]}</em>` : '–'}</span>`}</button>`).join('') : '<p class="muted st-none">In diesem Modus noch keine Partie.</p>'}
             ${statMode === 'local' ? '<p class="fine">Am Gerät: S = Spieler 1 gewinnt, N = Spieler 2 gewinnt.</p>' : ''}</div>
         </div>
-        <div class="scol side-col">${badgePanel()}</div>
+        <div class="scol side-col">${historyPanel()}${badgePanel()}</div>
       </div>
     </section>`;
   }
+  // ---------- Letzte Partien: the history of finished matches (js/play.js archive), replayable ones can be watched ----------
+  function historyPanel() {
+    const list = S.get('archive', []).filter(e => e && V.byId[e.g]);
+    if (!list.length) return '';
+    const when = t => { const d = new Date(t), today = new Date().toDateString() === d.toDateString(); return today ? d.toLocaleTimeString(V.locale(), { hour: '2-digit', minute: '2-digit' }) : d.toLocaleDateString(V.locale(), { day: 'numeric', month: 'short' }); };
+    const res = e => !e.winner ? ['d', 'Remis'] : e.me ? (e.winner === e.me ? ['w', 'Sieg'] : ['l', 'Niederlage']) : ['n', (e.names && e.names[e.winner] || 'Spieler ' + e.winner) + ' gewinnt'];
+    return `<div class="apanel shist"><h3>Letzte Partien<small>${list.length}</small><button class="link" id="hclr">Leeren</button></h3>
+      <div class="hlist">${list.slice(0, 25).map(e => {
+        const g = V.byId[e.g], [rc, rl] = res(e), opp = e.names ? Object.entries(e.names).filter(([k]) => +k !== e.me).map(([, n]) => n).join(', ') : '';
+        return `<div class="hrow" style="--acc:${g.accent || 'var(--pink)'}"><span class="ic">${g.icon}</span>
+          <span class="ht"><b>${g.name}</b><small><span>${escA(e.label || '')}</span>${opp && e.mode !== 'ai' && e.mode !== 'local' ? ` · <span>${escA(opp)}</span>` : ''} · <span>${when(e.at)}</span></small></span>
+          <em class="hres ${rc}">${escA(rl)}</em>
+          <span class="hact">${e.moves ? `<button class="btn sm" data-rv="${e.id}"><span>${IC.play}Ansehen</span></button>${e.g === 'chess' ? `<button class="btn sm ghost" data-rva="${e.id}"><span>${IC.chart}Analyse</span></button>` : ''}` : '<small class="hnone">Nur Ergebnis</small>'}</span></div>`;
+      }).join('')}</div>
+      <p class="fine">Die letzten 40 Partien bleiben auf diesem Gerät. Brettspiele ohne Würfel und Karten lassen sich Zug für Zug nachspielen, bei Schach mit Analyse.</p></div>`;
+  }
+  function openArchived(id, analyse) {
+    const e = S.get('archive', []).find(x => x && x.id === id), g = e && V.byId[e.g];
+    if (!g || !e.moves) return;
+    V.sfx.ui();
+    play(g, { mode: 'review', level: e.level, first: 'me', opts: e.opts || {}, replay: e.moves.slice(), rvk: e.moves.length, rv: Object.assign({}, e, { analyse: !!analyse }) });
+  }
   function wireStats(b) {
+    b.querySelectorAll('[data-rv]').forEach(x => x.onclick = () => openArchived(x.dataset.rv));
+    b.querySelectorAll('[data-rva]').forEach(x => x.onclick = () => openArchived(x.dataset.rva, true));
+    const hc = b.querySelector('#hclr');
+    if (hc) hc.onclick = () => { if (!hc.classList.contains('bad')) { hc.classList.add('bad'); hc.textContent = V.t('Wirklich leeren?'); return; } S.set('archive', []); V.sfx.ui(); home('stats'); };
     b.querySelectorAll('[data-sm]').forEach(x => x.onclick = () => { statMode = x.dataset.sm; V.sfx.ui(); home('stats'); });
     b.querySelectorAll('[data-sort]').forEach(x => x.onclick = () => { const k = x.dataset.sort; statSort = { k, d: statSort.k === k ? -statSort.d : k === 'name' ? 1 : -1 }; V.sfx.tick(); home('stats'); });
     b.querySelectorAll('[data-sg]').forEach(x => x.onclick = () => { const g = V.byId[x.dataset.sg]; V.sfx.ui(); homeSpot = 'lib'; if (wide()) { home('games', g); setTimeout(() => selectTile(g), 180); } else setup(g); });

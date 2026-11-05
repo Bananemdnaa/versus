@@ -292,6 +292,23 @@
       api.send('position fen ' + fen(P, ply)); api.send(`go depth 18 movetime ${ms}`);
     });
   }
+  // one job at a time on the worker (a review and a move never mix their messages)
+  let sfQueue = Promise.resolve();
+  const sfRun = fn => { const r = sfQueue.then(fn); sfQueue = r.catch(() => { }); return r; };
+  // a move for the AI: Stockfish's skill level (0-20) makes it weaker in a human way, ms is the thinking time
+  function sfMove(api, P, ply, skill, ms) {
+    return new Promise(done => {
+      let score = 0;
+      api.fn = l => {
+        if (l.startsWith('info') && / score /.test(l)) {
+          const mt = / score mate (-?\d+)/.exec(l), cp = / score cp (-?\d+)/.exec(l);
+          score = mt ? (+mt[1] > 0 ? 100000 - +mt[1] : -100000 - +mt[1]) : cp ? +cp[1] : score;
+        } else if (l.startsWith('bestmove')) { api.fn = null; done({ uci: l.split(' ')[1], score }); }
+      };
+      api.send('setoption name MultiPV value 1'); api.send('setoption name Skill Level value ' + skill);
+      api.send('position fen ' + fen(P, ply)); api.send('go movetime ' + ms);
+    });
+  }
   // a piece given up on purpose: after the move it can be taken by something cheaper (or for free) and it is worth
   // clearly more than what it took
   function sacrifice(P, m) {
@@ -322,8 +339,10 @@
   }
   // review with Stockfish, rated like the big sites: lost winning chance in percent points
   // (Exzellent up to 2, Gut up to 5, Ungenauigkeit up to 10, Fehler up to 20, Patzer above)
-  async function reviewSF(start, plies, prog) {
+  function reviewSF(start, plies, prog) { return sfRun(() => reviewSF2(start, plies, prog)); }
+  async function reviewSF2(start, plies, prog) {
     const api = await engine();
+    api.send('setoption name Skill Level value 20'); api.send('setoption name MultiPV value 2');
     const pos = [clone(start)];
     { const P = clone(start); for (const h of plies) { make(P, h.m); pos.push(clone(P)); } }
     const book = bookLen(plies.map(h => h.san.replace(/[+#]/g, '')));
@@ -583,7 +602,7 @@
     firstTitle: 'Deine Farbe', firstLabels: ['Weiß', 'Schwarz', 'Zufall'],
     options: [{ id: 'flipb', label: 'Brett drehen', group: 'board', desc: 'Am Gerät nebeneinander: Das Brett dreht sich zu dem, der dran ist. Sitzt ihr euch gegenüber, drehen sich stattdessen die Figuren.', short: v => v ? 'Brett dreht mit' : '', def: 0, modes: ['local'], choices: [[0, 'Aus'], [1, 'Mitdrehen']] },
       { id: 'clock', label: 'Schachuhr', group: 'time', inline: 'local', desc: 'Jeder hat so viel Zeit für alle Züge.', short: v => v ? `Uhr ${v} Min.` : '', def: 0, modes: ['local', 'online', 'open'], choices: [[0, 'Aus'], [3, '3 Min'], [5, '5 Min'], [10, '10 Min']] }],
-    levelInfo: ['Anfänger: zieht oft planlos und lässt Figuren hängen.', 'Schlägt, was offen herumsteht, übersieht aber Gabeln und Fesselungen.', 'Rechnet drei Halbzüge genau. Hängende Figuren verzeiht sie nicht.', 'Rechnet bis zu acht Halbzüge tief und nimmt sich Zeit dafür.'],
+    levelInfo: ['Anfänger: zieht oft planlos und lässt Figuren hängen.', 'Gelegenheitsspieler (Stockfish, Stufe 3): spielt vernünftig, macht aber echte Fehler.', 'Starker Vereinsspieler (Stockfish, Stufe 10): Fehler werden bestraft.', 'Stockfish mit voller Stärke. Viel Glück.'],
     endDelay: 1300,
     icon: `<svg viewBox="0 0 48 48"><rect x="3" y="3" width="42" height="42" rx="6" fill="#585e9c"/><path d="M3 3h10.5v10.5H3zM24 3h10.5v10.5H24zM13.5 13.5H24V24H13.5zM34.5 13.5H45V24H34.5zM3 24h10.5v10.5H3zM24 24h10.5v10.5H24zM13.5 34.5H24V45H13.5zM34.5 34.5H45V45H34.5z" fill="#b9bce6"/><text x="24" y="34" text-anchor="middle" font-size="30" fill="#fafaff" stroke="#14142a" stroke-width="1">♞&#xFE0E;</text></svg>`,
     tutorial: [
@@ -995,10 +1014,20 @@
         if (ctx.isAI(s)) ctx.aiTurn({
           // Leicht: 1 ply + captures, soft choice (misses tactics). Mittel: 2 plies + captures, small slips.
           // Schwer: 4 plies exact. Profi: iterative deepening up to 8 plies within ~2.8 s.
+          // Leicht: the own beginner engine. Mittel, Schwer, Profi: Stockfish on skill 3, 10 and 20 (a casual player, a
+          // strong club player, full strength). Without Stockfish (offline) the own engine plays every level.
           think: () => {
             const L = ctx.level;
-            const r = L === 0 && Math.random() < 0.25 ? { move: V.pick(moves), score: 0 } : think(P, [1, 1, 3, 8][L], V.aiMs([1500, 1500, 1200, 2600][L]), [220, 60, 0, 0][L]);
-            return { move: r.move, mood: V.mood(r.score, 450) };
+            const own = () => {
+              const r = L === 0 && Math.random() < 0.25 ? { move: V.pick(moves), score: 0 } : think(P, [1, 2, 4, 8][L], V.aiMs([1500, 1500, 1500, 2600][L]), [220, 40, 0, 0][L]);
+              return { move: r.move, mood: V.mood(r.score, 450) };
+            };
+            if (L === 0 || noSF) return own();
+            const Q = clone(P), ply = hist.length;
+            return sfRun(() => engine().then(api => sfMove(api, Q, ply, [0, 3, 10, 20][L], V.aiMs([0, 350, 700, 1400][L])))).then(r => {
+              const m = fromUci(P, r.uci); if (!m) throw new Error('kein Zug');
+              return { move: m, mood: V.mood(r.score, 450) };
+            }).catch(() => { noSF = true; return own(); });
           },
           targets: m => [cells[m.f], cells[m.t]],
           decoys: m => V.shuffle(moves.filter(x => x.f !== m.f).map(x => cells[x.f])),
@@ -1014,9 +1043,13 @@
       // the square size for dots and rings, kept up to date whenever the board changes size
       const sqSize = () => board.style.setProperty('--sq', (board.clientWidth / 8 || 40) + 'px');
       if (window.ResizeObserver) new ResizeObserver(sqSize).observe(board); else addEventListener('resize', sqSize);
+      // Stockfish plays from Mittel on: start loading it right away, so the first answer doesn't wait for it
+      let noSF = false;
+      if (ctx.mode === 'ai' && ctx.level > 0 && !ctx.auto) engine().catch(() => { noSF = true; });
       render(); next(false);
       // giving up, the clock or a dropped opponent end the game from outside: the review is offered there too
-      return { ended() { finish(); render(); } };
+      // a recorded match from the history: "Analyse" there opens the review right away
+      return { ended() { finish(); render(); if (ctx.review && ctx.review.analyse && !rev && !busy) analyse(); } };
     }
   });
 })();

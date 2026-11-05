@@ -72,6 +72,8 @@
     'Alle Tutorials sind wieder neu': 'All tutorials are new again', 'Einstellungen zurückgesetzt': 'Settings reset', 'Bilanz gelöscht': 'Stats deleted',
     // tutorial dialog, welcome
     // chess review: coach, practice, summary
+    "Letzte Partien": "Recent games", "Leeren": "Clear", "Wirklich leeren?": "Really clear?", "Ansehen": "Watch", "Nur Ergebnis": "Result only", "Die letzten 40 Partien bleiben auf diesem Gerät. Brettspiele ohne Würfel und Karten lassen sich Zug für Zug nachspielen, bei Schach mit Analyse.": "The last 40 games stay on this device. Board games without dice and cards can be replayed move by move, chess with a review.", "Zug # von #": "Move # of #", "Ende der Aufzeichnung": "End of the recording", "Zum Ende": "To the end", "Aufzeichnung": "Recording",
+    "Gelegenheitsspieler (Stockfish, Stufe 3): spielt vernünftig, macht aber echte Fehler.": "Casual player (Stockfish, level 3): plays sensibly but makes real mistakes.", "Starker Vereinsspieler (Stockfish, Stufe 10): Fehler werden bestraft.": "Strong club player (Stockfish, level 10): mistakes get punished.", "Stockfish mit voller Stärke. Viel Glück.": "Stockfish at full strength. Good luck.",
     "Schachmatt!": "Checkmate!", "Ein bekannter Eröffnungszug: {0}": "A known opening move: {0}", "Ein bekannter Eröffnungszug.": "A known opening move.",
     "Danach setzt der Gegner sofort matt: {0}.": "The opponent mates right away: {0}.", "Danach setzt der Gegner in {0} Zügen matt, los geht es mit {1}.": "The opponent mates in {0} moves, starting with {1}.", "Hier gab es ein Matt in {0} mit {1}.": "There was mate in {0} with {1}.",
     "Ein starkes Opfer: Die Figur darf geschlagen werden, aber das lohnt sich für den Gegner nicht.": "A strong sacrifice: the piece can be taken, but that doesn't pay off for the opponent.", "Der einzige Zug, der die Stellung hält. Alles andere wäre deutlich schlechter.": "The only move that holds the position. Everything else would be clearly worse.", "Der stärkste Zug in dieser Stellung.": "The strongest move in this position.",
@@ -1536,6 +1538,7 @@
   V.i18n.ctx('.chco, .chr', { 'auf': 'on', 'an.': '.', 'die Dame': 'the queen' });
   V.i18n.ctx('.chr, .chx', { 'Fehler': 'Mistake', 'Gut': 'Good', 'Verpasst': 'Miss' });
   V.i18n.pat([[/^Spalte ([a-d])$/, 'Column $1']]);
+  V.i18n.pat([[/^Aufzeichnung · (.+?) · (.+)$/, (m, l, d) => 'Recording · ' + V.t(l) + ' · ' + d]]);
   V.i18n.pat([[/^Ebene (\d), ([a-d]\d)$/, 'Layer $1, $2']]);
 
   // ---------- words that differ by game ----------
