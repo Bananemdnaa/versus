@@ -350,7 +350,7 @@
     for (let i = 0; i < pos.length; i++) {
       const P = pos[i], ms = legal(P);
       if (!ms.length) info.push({ lines: [{ s: inCheck(P, P.turn) ? -100000 : 0, pv: [] }] });
-      else info.push({ lines: await sfLines(api, P, i, plies.length > 80 ? 220 : 320) });
+      else info.push({ lines: await sfLines(api, P, i, plies.length > 80 ? 320 : 550) });
       prog && prog(i + 1, pos.length);
     }
     const clamp = v => Math.max(-2000, Math.min(2000, v));
@@ -382,6 +382,9 @@
         line: better ? lineSan(P, k, top.pv) : ''
       };
       item.why = explain(pos, info, plies, k, item, bestV);
+      // what happens after the played move (the move and the strongest answers), to compare with the better line
+      const rp = (info[k + 1].lines[0] || { pv: [] }).pv;
+      if (['inacc', 'mist', 'miss', 'blun'].includes(kind) && rp.length) item.refute = lineSan(P, k, [uci, ...rp], 5);
       res.push(item);
     }
     return { moves: res, evals: info.map((x, i) => { const s = clamp((x.lines[0] || { s: 0 }).s); return pos[i].turn === 'w' ? s : -s; }), sf: true, info, pos };
@@ -394,6 +397,7 @@
   }
   // the coach: one or two sentences why a move is rated as it is (mate, material, the missed chance)
   const PNAME = { p: 'einen Bauern', n: 'einen Springer', b: 'einen Läufer', r: 'einen Turm', q: 'die Dame' };
+  const PACC = { p: 'den Bauern', n: 'den Springer', b: 'den Läufer', r: 'den Turm', q: 'die Dame', k: 'den König' };
   function explain(pos, info, plies, k, item, bestV) {
     const P = pos[k], after = pos[k + 1], me = P.turn, top = info[k].lines[0] || { s: 0, pv: [] }, reply = info[k + 1].lines[0] || { s: 0, pv: [] };
     const mat = (Q, s) => { let v = 0; for (const p of Q.b) if (p && p.toLowerCase() !== 'k') v += (side(p) === s ? 1 : -1) * VAL[p.toLowerCase()]; return v; };
@@ -415,10 +419,32 @@
     // followed by the strongest answer, five plies each
     const gainBest = mat(run(P, top.pv, 5), me) - mat(P, me);
     const lost = mat(run(P, top.pv, 5), me) - mat(run(after, reply.pv, 5), me);
-    // the most valuable own piece the opponent takes in the answer line
-    const takenBy = (() => { const Q = clone(after); let best = null; for (let i = 0; i < Math.min(5, reply.pv.length); i++) { const m = fromUci(Q, reply.pv[i]); if (!m) break; if (m.cap && side(m.cap) === me && (!best || VAL[m.cap.toLowerCase()] > VAL[best.toLowerCase()])) best = m.cap; make(Q, m); } return best; })();
-    if (item.kind === 'miss' && gainBest >= 250 && item.best) return `Verpasst: Mit ${b(show(item.best))} hätte man Material gewonnen.`;
-    if (lost >= 250 && takenBy) return `Danach verliert man ${b(PNAME[takenBy.toLowerCase()])}. Der Gegner beginnt mit ${b(sanOf(after, reply.pv[0]))}.`;
+    const opp = me === 'w' ? 'b' : 'w';
+    // the most valuable own piece the opponent takes in its best answer (four plies): which, where, with which move,
+    // and whether it stood there unprotected already before the move (a piece that was hanging)
+    const loss = (() => {
+      const Q = clone(after); let best = null;
+      for (let i = 0; i < Math.min(4, reply.pv.length); i++) {
+        const m = fromUci(Q, reply.pv[i]); if (!m) break;
+        if (m.cap && side(m.cap) === me && (!best || VAL[m.cap.toLowerCase()] > VAL[best.p])) best = { p: m.cap.toLowerCase(), t: m.t, san: show(san(Q, m, legal(Q))) };
+        make(Q, m);
+      }
+      if (best) best.before = P.b[best.t] && P.b[best.t].toLowerCase() === best.p && side(P.b[best.t]) === me && attacked(P, best.t, opp);
+      return best;
+    })();
+    // what the better move takes right away
+    const bm = fromUci(P, top.pv[0]), took = bm && bm.cap ? { p: bm.cap.toLowerCase(), t: bm.t } : null;
+    const weak = ['inacc', 'mist', 'miss', 'blun'].includes(item.kind);
+    if (item.kind === 'miss' && gainBest >= 250 && item.best && !took) return `Verpasst: Mit ${b(show(item.best))} hätte man Material gewonnen.`;
+    const say = [];
+    if (weak && loss && (VAL[loss.p] >= 300 || lost >= 150)) {
+      say.push(`<span>Danach schlägt der Gegner mit ${b(loss.san)} ${b(PACC[loss.p])} auf ${b(sqn(loss.t))}.</span>`);
+      if (loss.before) say.push('<span>Die Figur war schon vor dem Zug angegriffen.</span>');
+    }
+    if (weak && took && item.best && VAL[took.p] >= 300) say.push(loss && loss.before
+      ? `<span>Mit ${b(show(item.best))} schlägt man zuerst ${b(PACC[took.p])} auf ${b(sqn(took.t))} und bekommt so wenigstens etwas dafür.</span>`
+      : `<span>Mit ${b(show(item.best))} schlägt man ${b(PACC[took.p])} auf ${b(sqn(took.t))}.</span>`);
+    if (say.length) return say.join(' ');
     if (lost >= 250) return `Das kostet Material. Der Gegner antwortet am besten mit ${b(sanOf(after, reply.pv[0]))}.`;
     if (gainBest >= 250 && item.best) return `Mit ${b(show(item.best))} hätte man Material gewonnen.`;
     if (item.kind === 'inacc') return `Nicht ganz genau. ${b(show(item.best))} war besser.`;
@@ -750,6 +776,7 @@
         el.innerHTML = `<span class="chco-ic k-${r.kind}">${kd[1]}</span><div class="chco-tx">
             <b class="chco-h"><span>${show(hist[at - 1].san)}</span> <span>${kd[2]}</span></b>
             ${r.why ? `<p>${r.why}</p>` : ''}
+            ${r.refute ? `<p class="chco-b"><span>Gespielt:</span> <b>${r.refute}</b></p>` : ''}
             ${r.best ? `<p class="chco-b"><span>Besser:</span> <b>${r.line || show(r.best)}</b></p>` : ''}
             ${canTry ? '<button class="btn sm chco-try" id="chtry"><span>Besseren Zug selbst finden</span></button>' : ''}</div>
           <i class="chco-side ${mover}"></i>`;

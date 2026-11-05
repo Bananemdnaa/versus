@@ -83,7 +83,7 @@
     "einen Läufer": "a bishop", "einen Turm": "a rook", "Das kostet Material. Der Gegner antwortet am besten mit {0}.": "This costs material. The best answer is {0}.",
     "Mit {0} hätte man Material gewonnen.": "{0} would have won material.", "Nicht ganz genau. {0} war besser.": "Not quite accurate. {0} was better.", "Damit gibt man einen großen Teil des Vorteils her.": "This gives away a large part of the advantage.",
     "Danach steht man deutlich schlechter.": "After this the position is clearly worse.", "Damit ist der Vorteil weg.": "The advantage is gone.", "Danach ist die Stellung kaum noch zu halten.": "After this the position is hard to hold.",
-    "Stärkste Antwort:": "Strongest answer:", "Besser:": "Better:", "Besseren Zug selbst finden": "Find a better move yourself",
+    "Stärkste Antwort:": "Strongest answer:", "Besser:": "Better:", "Gespielt:": "Played:", "Danach schlägt der Gegner mit {0} {1} auf {2}.": "Then the opponent takes {1} on {2} with {0}.", "Die Figur war schon vor dem Zug angegriffen.": "That piece was already under attack before the move.", "Mit {0} schlägt man zuerst {1} auf {2} und bekommt so wenigstens etwas dafür.": "With {0} you take {1} on {2} first and at least get something for it.", "Mit {0} schlägt man {1} auf {2}.": "With {0} you take {1} on {2}.", "Besseren Zug selbst finden": "Find a better move yourself",
     "Nicht ganz.": "Not quite.", "Die Lösung:": "The solution:", "Stockfish prüft …": "Stockfish is checking …",
     "Weiß ist am Zug.": "White to move.", "Schwarz ist am Zug.": "Black to move.", "Finde einen besseren Zug als": "Find a better move than",
     "Lösung zeigen": "Show solution", "Nächster Fehler": "Next mistake", "Gut geübt!": "Well practised!",
