@@ -445,7 +445,7 @@
   }
 
   V.css(`
-  .chesswrap{width:min(var(--bw),620px,100%);display:flex;flex-direction:column;gap:6px;--lt:#ebecd0;--dk:#739552;--lml:#f5f682;--lmd:#b9ca43;--dot:rgba(0,0,0,.16);--col:#739552;--cod:#ebecd0}
+  .chesswrap{width:min(var(--bw),620px,100%);display:flex;flex-direction:column;gap:6px;--lt:#ebecd0;--dk:#739552;--lml:#f5f682;--lmd:#b9ca43;--dot:rgba(0,0,0,.22);--col:#739552;--cod:#ebecd0}
   .bd-neon .chesswrap{--lt:#272c5c;--dk:#1a1d40;--lml:#3b3474;--lmd:#2f2963;--dot:rgba(98,240,255,.5);--col:#8189d0;--cod:#6b73ba}
   .bd-wood .chesswrap{--lt:#ecd3a6;--dk:#b5835a;--lml:#e8d47c;--lmd:#c9a24f;--dot:rgba(60,30,10,.3);--col:#9a6a40;--cod:#f0d9b0}
   .capt{display:flex;gap:0;min-height:22px;align-items:center;flex-wrap:wrap}
@@ -463,8 +463,9 @@
   .chess .pc{display:block;position:relative;z-index:2;width:100%;height:100%;transition:transform .15s,rotate .45s var(--ease)}
   .chess .pc svg{width:100%;height:100%;display:block;filter:drop-shadow(0 2px 1px rgba(0,0,0,.25))}
   .chess .pc.dragsrc{opacity:.35}
-  .chess .dot::after{content:'';position:absolute;width:32%;height:32%;border-radius:50%;background:var(--dot);z-index:3;pointer-events:none}
-  .chess .ring::after{content:'';position:absolute;inset:0;border-radius:50%;box-shadow:inset 0 0 0 calc(var(--sq,40px) * .09) var(--dot);z-index:3;pointer-events:none}
+  /* sizes from the square size in px (--sq): Safari can resolve percent heights inside aspect-ratio squares to 0 */
+  .chess .dot::after{content:'';position:absolute;left:50%;top:50%;width:calc(var(--sq,40px) * .32);height:calc(var(--sq,40px) * .32);margin:calc(var(--sq,40px) * -.16) 0 0 calc(var(--sq,40px) * -.16);border-radius:50%;background:var(--dot);z-index:3;pointer-events:none}
+  .chess .ring::after{content:'';position:absolute;left:0;top:0;width:var(--sq,40px);height:var(--sq,40px);border-radius:50%;box-shadow:inset 0 0 0 calc(var(--sq,40px) * .09) var(--dot);z-index:3;pointer-events:none}
   .chess .co{position:absolute;font:700 clamp(9px,2.4vw,13px)/1 var(--f-b);z-index:1;pointer-events:none}
   .chess .co.f{bottom:2px;right:3px} .chess .co.r{top:2px;left:3px}
   .chess .lt .co{color:var(--col)} .chess .dk .co{color:var(--cod)}
@@ -533,6 +534,7 @@
     .chev.fl b{bottom:auto;top:4px}
   }
   /* the coach card */
+  .chco[hidden],.chg[hidden],.chev[hidden]{display:none!important}
   .chco{position:relative;display:flex;gap:10px;align-items:flex-start;padding:10px 12px;border-radius:10px;background:var(--panel2);border:1px solid var(--line);animation:wpop .3s var(--spring)}
   .chco-ic{flex:none;width:34px;height:34px;border-radius:50%;display:grid;place-items:center;color:#fff;font:800 14px/1 var(--f-b);box-shadow:0 2px 6px rgba(0,0,0,.35)}
   .chco-tx{flex:1;min-width:0;display:flex;flex-direction:column;gap:4px}
@@ -1009,7 +1011,9 @@
           }
         });
       }
-      addEventListener('resize', () => board.style.setProperty('--sq', (board.clientWidth / 8 || 40) + 'px'));
+      // the square size for dots and rings, kept up to date whenever the board changes size
+      const sqSize = () => board.style.setProperty('--sq', (board.clientWidth / 8 || 40) + 'px');
+      if (window.ResizeObserver) new ResizeObserver(sqSize).observe(board); else addEventListener('resize', sqSize);
       render(); next(false);
       // giving up, the clock or a dropped opponent end the game from outside: the review is offered there too
       return { ended() { finish(); render(); } };
