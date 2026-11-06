@@ -960,7 +960,7 @@ html,body{-webkit-tap-highlight-color:transparent}
 .pgames{display:flex;flex-direction:column;gap:6px}
 .pgame{display:grid;grid-template-columns:30px minmax(0,1fr) 30% auto;align-items:center;gap:10px}
 .pgame .ic,.prec .ic{width:30px;height:30px} .pgame .ic svg,.prec .ic svg{width:100%;height:100%}
-.pg-n{display:flex;flex-direction:column;line-height:1.2;min-width:0} .pg-n b{font-size:14px} .pg-n small{color:var(--muted);font-size:12px}
+.pg-n{display:flex;flex-direction:column;line-height:1.2;min-width:0} .pg-n b{font-size:14px} .pg-n small{color:var(--muted);font-size:12px} .pg-n small b.pg-elo{font-size:12px;color:var(--yellow)}
 .pg-bar{display:flex;height:6px;gap:2px;overflow:hidden;background:var(--panel3);transform:skewX(-20deg)}
 .pg-bar .w{background:var(--good)} .pg-bar .d{background:var(--dim)} .pg-bar .l{background:var(--bad)}
 .pgame em{font:700 italic 15px/1 var(--f-d);font-style:normal;font-variant-numeric:tabular-nums}
@@ -2681,6 +2681,19 @@ html.lowfx::view-transition-group(*),html.lowfx::view-transition-old(*),html.low
 .lv-row .lvb.on{background:var(--c);border-color:var(--c)}
 .lv-row .lvb.on b{color:var(--ink)}
 .gp-sub{margin:6px 0 0;font-size:14px;line-height:1.35;color:var(--muted)}
+/* "Passend zu dir": the AI plays at your KI-Elo (a switch under the four levels) */
+.lv-top b.lfit{color:var(--violet,#b98cff)}
+.lv-fit{display:flex;align-items:center;gap:12px;width:calc(100% - 8px);margin:8px 4px 0;padding:9px 16px;border:1px solid var(--line2);background:var(--panel2);text-align:left;color:var(--fg);transform:skewX(var(--sk));transition:border-color var(--t-fast),background var(--t-fast),transform var(--t-fast)}
+.lv-fit>*{transform:skewX(10deg)}
+.lv-fit:active{transform:skewX(var(--sk)) scale(.97)}
+.lv-fit .lf-t{display:flex;flex-direction:column;gap:2px;flex:1;min-width:0}
+.lv-fit .lf-t b{font:800 italic 15px/1.1 var(--f-d);text-transform:uppercase}
+.lv-fit .lf-t small{font-size:12.5px;color:var(--muted)}
+.lv-fit .lf-sw{width:42px;height:24px;flex:none;position:relative;background:var(--panel3);transform:none;transition:background .2s}
+.lv-fit .lf-sw::after{content:'';position:absolute;top:3px;left:3px;width:18px;height:18px;background:#cfd2f0;transition:transform .25s var(--spring),background .2s}
+.lv-fit.on{border-color:var(--violet,#b98cff);background:color-mix(in srgb,var(--violet,#b98cff) 12%,var(--panel2))}
+.lv-fit.on .lf-sw{background:var(--violet,#b98cff)} .lv-fit.on .lf-sw::after{transform:translateX(18px);background:var(--ink)}
+@media (hover:hover) and (pointer:fine){.lv-fit:hover{border-color:var(--violet,#b98cff)}}
 
 /* one setting right in the panel, and "Wer fängt an?" */
 .gp-inl{display:flex;align-items:center;justify-content:space-between;gap:6px 12px;flex-wrap:wrap}
@@ -2959,6 +2972,13 @@ body:has(.view.play) .season.halloween .spider{display:none}
 /* end screen: the Tagesduell was won */
 .ko .kdaily{display:flex;align-items:center;gap:8px;padding:8px 14px;border-radius:999px;background:color-mix(in srgb,var(--yellow) 14%,var(--panel2));border:1px solid color-mix(in srgb,var(--yellow) 50%,var(--line));color:var(--yellow);animation:qsIn .4s .4s var(--spring) backwards}
 .ko .kdaily svg{width:18px;height:18px;fill:currentColor}
+/* the Elo after the match (KI-Elo against the AI, Elo online) */
+.ko .kelo{display:flex;align-items:baseline;gap:8px;padding:7px 14px;border-radius:999px;background:var(--panel2);border:1px solid var(--line2);animation:qsIn .4s .35s var(--spring) backwards}
+.ko .kelo[hidden]{display:none}
+.ko .kelo span{font:700 italic 12px/1 var(--f-d);letter-spacing:.14em;text-transform:uppercase;color:var(--dim)}
+.ko .kelo b{font:800 italic 20px/1 var(--f-d);font-variant-numeric:tabular-nums}
+.ko .kelo em{font-style:normal;font-weight:800;font-size:14px;font-variant-numeric:tabular-nums}
+.ko .kelo.up em{color:var(--good)} .ko .kelo.down em{color:var(--bad)}
 .ko .kdaily b{font:800 italic 15px/1 var(--f-d);text-transform:uppercase}
 .ko .kdaily span{font-size:13px;color:var(--fg)}
 .knext.acct .kn-ic svg{width:26px;height:26px}

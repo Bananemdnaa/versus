@@ -343,7 +343,7 @@
     const rg = V.byId[S.get('recent')];
     if (ok(rg)) {
       const c = loadCfg(rg), s = P.stats[rg.id], r = s && c.mode === 'ai' ? s.ai[c.level] : null;
-      const how = c.mode === 'local' ? 'Am Gerät' : c.mode === 'ai' ? 'Gegen KI · ' + V.LEVELS[c.level] : c.mode === 'voice' ? 'Mit dem Sprachkanal' : 'Online';
+      const how = c.mode === 'local' ? 'Am Gerät' : c.mode === 'ai' ? 'Gegen KI · ' + (c.fit ? 'Passend' : V.LEVELS[c.level]) : c.mode === 'voice' ? 'Mit dem Sprachkanal' : 'Online';
       cards.push({ g: rg, kick: 'Weiterspielen', sub: how + (r && r.w + r.l ? ` · ${r.w}:${r.l}` : ''), act: 'cont' });
     }
     let pop = null, most = 0;
@@ -480,7 +480,7 @@
   }
   function playDaily() {
     const t = daily(); if (!t) return;
-    const cfg = loadCfg(t.g); cfg.mode = 'ai'; cfg.level = t.level; cfg.daily = t.key;
+    const cfg = loadCfg(t.g); cfg.mode = 'ai'; cfg.level = t.level; cfg.fit = false; cfg.daily = t.key;
     V.sfx.go(); V.buzz(12); play(t.g, cfg);
   }
   function dailyCard() {
@@ -921,7 +921,7 @@
     const saved = S.get('setup', {})[g.id] || {};
     // tables: 'table' is a private table for friends ("Freund"), 'tpub' a public one ("Online")
     const tbl = saved.mode === 'table' || saved.mode === 'tpub';
-    const cfg = { mode: g.noAI ? (tbl && g.table ? saved.mode : 'local') : ((saved.mode === 'online' || saved.mode === 'open') && !g.online) || (tbl && !g.table) ? 'ai' : (saved.mode || 'ai'), level: saved.level ?? 1, first: saved.first || 'me', opts: {} };
+    const cfg = { mode: g.noAI ? (tbl && g.table ? saved.mode : 'local') : ((saved.mode === 'online' || saved.mode === 'open') && !g.online) || (tbl && !g.table) ? 'ai' : (saved.mode || 'ai'), level: saved.level ?? 1, fit: !!saved.fit, first: saved.first || 'me', opts: {} };
     // inside the Discord activity there are only two modes: against the AI (only you see it) or with the voice channel
     if (inDiscord()) { if (cfg.mode !== 'ai' && cfg.mode !== 'voice') cfg.mode = g.noAI ? 'voice' : 'ai'; if (cfg.mode === 'voice' && !(g.table || g.online)) cfg.mode = 'ai'; }
     else if (cfg.mode === 'voice') cfg.mode = g.noAI ? 'local' : 'ai';
@@ -1087,7 +1087,7 @@
     el.querySelectorAll('[data-pre]').forEach(x => x.onclick = () => { Object.assign(opts, g.presets.find(p => p.id === x.dataset.pre).opts); done(); });
     const pg = el.querySelector('.rv-pre'); if (pg) arrowGroup(pg);
     const lv = el.querySelector('#rvlvl');
-    if (lv) { arrowGroup(lv); lv.querySelectorAll('button').forEach(x => x.onclick = () => { cfg.level = +x.dataset.v; done(); }); }
+    if (lv) { arrowGroup(lv); lv.querySelectorAll('button').forEach(x => x.onclick = () => { cfg.level = +x.dataset.v; cfg.fit = false; done(); }); }
     const xe = el.querySelector('#rvx');
     if (xe) ex.wire(xe, opts, v => { Object.assign(opts, v); done(); }, msg => {
       V.sfx.bad();
@@ -1225,7 +1225,7 @@
     };
     panelApi = {
       g, go, tut,
-      level(i) { if (cfg.mode !== 'ai' || root._rules) return; cfg.level = Math.max(0, Math.min(3, i)); saveCfg(g, cfg); V.sfx.tick(); rer(); },
+      level(i) { if (cfg.mode !== 'ai' || root._rules) return; cfg.level = Math.max(0, Math.min(3, i)); cfg.fit = false; saveCfg(g, cfg); V.sfx.tick(); rer(); },
       step(d) { this.level(cfg.level + d); },
       mode() { if (g.noAI || root._rules) return; cfg.mode = cfg.mode !== 'ai' ? 'ai' : !dc ? 'local' : g.table || g.online ? 'voice' : 'ai'; saveCfg(g, cfg); V.sfx.tick(); rer(); },
       fav() { toggleFav(g); rer(); },
@@ -1244,9 +1244,12 @@
     const inl = inlineOpt(g, cfg.mode);
     let content = '';
     if (cfg.mode === 'ai' && !dcNone) {
-      content = `<div class="gp-lvl"><div class="lv-top"><span>KI-Stärke</span><b class="l${lvl}">${V.LEVELS[lvl]}</b><em>Bilanz ${s.ai[lvl].w}:${s.ai[lvl].l}</em></div>
-        <div class="lv-row" role="radiogroup" aria-label="KI-Stärke" id="level">${V.LEVELS.map((l, i) => `<button type="button" role="radio" data-v="${i}" class="lvb l${i}${i === lvl ? ' on' : ''}" aria-checked="${i === lvl}"><b>${l}</b></button>`).join('')}</div>
-        <p class="gp-sub">${(g.levelInfo || LEVEL_INFO)[lvl]}</p></div>
+      // "Passend zu dir": the AI plays at your KI-Elo in this game (V.aiElo, core.js); a level button switches it off
+      const ke = V.aiElo.get(g.id), fit = !!cfg.fit;
+      content = `<div class="gp-lvl"><div class="lv-top"><span>KI-Stärke</span>${fit ? '<b class="lfit">Passend</b>' : `<b class="l${lvl}">${V.LEVELS[lvl]}</b>`}<em>${ke.n ? `KI-Elo ${ke.e}` : `Bilanz ${s.ai[lvl].w}:${s.ai[lvl].l}`}</em></div>
+        <div class="lv-row" role="radiogroup" aria-label="KI-Stärke" id="level">${V.LEVELS.map((l, i) => `<button type="button" role="radio" data-v="${i}" class="lvb l${i}${i === lvl && !fit ? ' on' : ''}" aria-checked="${i === lvl && !fit}"><b>${l}</b></button>`).join('')}</div>
+        <button type="button" class="lv-fit${fit ? ' on' : ''}" id="lvfit" aria-pressed="${fit}"><span class="lf-t"><b>Passend zu dir</b><small>Die KI spielt auf deiner KI-Elo: ${ke.e}</small></span><i class="lf-sw" aria-hidden="true"></i></button>
+        <p class="gp-sub">${fit ? 'Gewinnst du, steigt deine KI-Elo und die KI wird stärker. Verlierst du, wird sie schwächer.' : (g.levelInfo || LEVEL_INFO)[lvl]}</p></div>
         ${g.noFirst ? '' : `<div class="gp-inl dash"><span>${g.firstTitle || 'Wer fängt an?'}</span><div class="mini-seg" role="radiogroup" aria-label="${g.firstTitle || 'Wer fängt an?'}" id="first">${[['me', firstLabel[0]], ['ai', firstLabel[1]], ['rand', firstLabel[2]]].map(([v, l]) => `<button type="button" role="radio" data-v="${v}" aria-checked="${cfg.first === v}" class="${cfg.first === v ? 'on' : ''}">${l}</button>`).join('')}</div></div>`}`;
     } else if (netMode(cfg.mode) || cfg.mode === 'table' || cfg.mode === 'tpub') content = '<div class="gp-online" id="ofr"></div>';
     if (inl) content += `<div class="gp-inl"><span>${inl.label}</span>${segHtml(inl.id, inl, cfg.opts[inl.id])}</div>`;
@@ -1272,7 +1275,8 @@
       const f = root.querySelector(`#${id} [data-v="${b.dataset.v}"]`); if (f && had) f.focus({ preventScroll: true });
     }); };
     on('mode', x => cfg.mode = x);
-    on('level', x => cfg.level = +x);
+    on('level', x => { cfg.level = +x; cfg.fit = false; });
+    const lf = root.querySelector('#lvfit'); if (lf) lf.onclick = () => { cfg.fit = !cfg.fit; saveCfg(g, cfg); V.sfx.ui(); rer(); };
     on('first', x => cfg.first = x);
     const ie = inl && root.querySelector(`[data-o="${inl.id}"]`);
     if (ie) { arrowGroup(ie); ie.querySelectorAll('button').forEach(b => b.onclick = () => { const v = b.dataset.v; cfg.opts[inl.id] = isNaN(+v) ? v : +v; saveCfg(g, cfg); V.sfx.ui(); rer(); }); }
@@ -1667,7 +1671,7 @@
       sndIcons();
       toast('Einstellungen zurückgesetzt'); home('opts');
     });
-    sure(v.querySelector('#o_rst'), () => { P.stats = {}; S.set('stats', P.stats); toast('Bilanz gelöscht'); home('opts'); });
+    sure(v.querySelector('#o_rst'), () => { P.stats = {}; S.set('stats', P.stats); S.set('aiElo', {}); toast('Bilanz gelöscht'); home('opts'); });
   }
 
   // ---------- modal ----------
@@ -1814,7 +1818,7 @@
       m.querySelector('#tp').onclick = prev;
       m.querySelector('#tn').onclick = next;
       const pr = m.querySelector('#tqp');
-      if (pr) pr.onclick = () => finish(() => { const cfg = loadCfg(g); cfg.mode = 'ai'; cfg.level = 0; cfg.first = 'me'; V.sfx.go(); play(g, cfg); });
+      if (pr) pr.onclick = () => finish(() => { const cfg = loadCfg(g); cfg.mode = 'ai'; cfg.level = 0; cfg.fit = false; cfg.first = 'me'; V.sfx.go(); play(g, cfg); });
       if (st.task) task(m, st);
       let sx = null;
       m.onpointerdown = e => { sx = e.target.closest('.tq-box, .tq-chs') ? null : e.clientX; };
@@ -1950,7 +1954,7 @@
       const g = V.byId[b.dataset.g], cfg = loadCfg(g);
       finish(); closeModal(); V.buzz(12);
       if (pick === 'link') { V.sfx.ui(); return V.online.linkInvite(g, cfg.opts); }
-      cfg.mode = pick; if (pick === 'ai') { cfg.level = 0; cfg.first = 'me'; }
+      cfg.mode = pick; if (pick === 'ai') { cfg.level = 0; cfg.fit = false; cfg.first = 'me'; }
       saveCfg(g, cfg); V.sfx.go(); play(g, cfg);
     });
     wire();

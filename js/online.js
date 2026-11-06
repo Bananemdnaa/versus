@@ -550,31 +550,35 @@
     const scope = boardGame ? gname(boardGame) : 'allen Spielen';
     const friends = !!board.friends;
     const week = board.period === 'week';
+    // all-time in one game: sorted by Elo (server: elo_rows)
+    const elo = !!board.elo;
     const left = week && board.until ? untilText(board.until) : '';
     const lastW = week && (board.last || []).length ? `<div class="rlast">${IC().trophy}<span><small>Sieger letzte Woche</small>${board.last.map(r => `<b class="l${r.pos}">${r.pos}. ${esc(r.username)}</b>`).join('')}</span></div>` : '';
     // the countdown sits as a chip next to the title
     const chip = b.querySelector('#rleft'); if (chip) { chip.hidden = !left; chip.textContent = left ? 'noch ' + left : ''; }
     const fTag = friends ? '<em class="rtag fr">Freunde</em> ' : '';
-    const head = (week ? `<p class="rweek">${fTag}<b>Wochenwertung</b> · startet jeden Montag neu</p>` : board.legacy ? '<p class="rweek">Wochenwertung kommt nach dem nächsten Server-Update.</p>' : `<p class="rweek">${fTag}<b>Ewige Wertung</b> · alle Partien seit Beginn</p>`) + lastW;
+    const head = (week ? `<p class="rweek">${fTag}<b>Wochenwertung</b> · startet jeden Montag neu</p>` : elo ? `<p class="rweek">${fTag}<b>Elo-Wertung</b> · alle gewerteten Online-Partien</p>` : board.legacy ? '<p class="rweek">Wochenwertung kommt nach dem nächsten Server-Update.</p>' : `<p class="rweek">${fTag}<b>Ewige Wertung</b> · alle Partien seit Beginn</p>`) + lastW;
     // no friends yet: say how to get some instead of an empty list
     if (friends && (board.circle || 0) <= 1) { el.innerHTML = head + `<div class="empty small">${IC().users}<b>Noch keine Freunde</b><p>Füg Freunde hinzu, dann seht ihr hier, wer von euch vorne liegt.</p><button class="btn primary sm" id="rfadd"><span>${IC().plus}Freunde hinzufügen</span></button></div>`; const a = el.querySelector('#rfadd'); if (a) a.onclick = () => { V.sfx.ui(); addFriends(); }; return; }
     const pct = r => (r.played ? Math.round(r.wins / r.played * 100) : 0);
-    const mine = !C().user() ? '' : me
+    const mine = !C().user() ? '' : me && elo
+      ? `<div class="rmine"><span class="rp">#${me.pos}</span><div><small>Deine Elo ${friends ? 'unter Freunden ' : ''}in ${esc(scope)}</small><b>${me.elo} Elo</b><span>${me.played} Partien · ${me.wins} gewonnen · ${me.losses || 0} verloren · Bestwert ${me.peak}</span></div></div>`
+      : me
       ? `<div class="rmine"><span class="rp">#${me.pos}</span><div><small>Dein Platz ${friends ? 'unter Freunden ' : ''}in ${esc(scope)}${week ? ' diese Woche' : ''}</small><b>${me.wins} ${me.wins === 1 ? 'Sieg' : 'Siege'}</b><span>${me.played} Partien · ${me.losses || 0} verloren · ${me.draws || 0} remis · ${pct(me)} %</span></div></div>`
       : `<div class="rmine none"><div><small>Dein Platz in ${esc(scope)}</small><b>${week ? 'Diese Woche noch keine Partie' : 'Noch keine Partie'}</b><span>Spiel online gegen einen Freund oder über „Online“ im Spiel-Panel, dann stehst du hier.</span></div></div>`;
     if (!top.length) { el.innerHTML = head + mine + `<div class="empty small">${IC().trophy}<b>Noch leer</b><p>${friends ? (week ? 'Diese Woche hat noch keiner von euch' : 'Noch keiner von euch hat') : week ? 'Diese Woche hat noch niemand' : 'Hier hat noch niemand'} eine Online-Partie in ${esc(scope)} gewonnen.${week ? ' Deine Chance auf Platz 1!' : ''}</p></div>`; return; }
     const pod = top.slice(0, 3);
     const order = [pod[1], pod[0], pod[2]].filter(Boolean);
     const podium = `<div class="podium">${order.map(r => `<div class="pod p${Math.min(r.pos, 3)}${r.username === myName ? ' me' : ''}">
-        <span class="pav" data-prof="${esc(r.username)}">${initials(r.username).slice(0, 1)}</span><b class="plink" data-prof="${esc(r.username)}">${esc(r.username)}${V.flag.tag(r.username)}</b><small>${r.wins === 1 ? '1 Sieg' : r.wins + ' Siege'} · ${pct(r)} %</small><i class="step"><span class="medal">${r.pos}</span></i></div>`).join('')}</div>`;
+        <span class="pav" data-prof="${esc(r.username)}">${initials(r.username).slice(0, 1)}</span><b class="plink" data-prof="${esc(r.username)}">${esc(r.username)}${V.flag.tag(r.username)}</b><small>${elo ? r.elo + ' Elo · ' + r.played + ' Partien' : (r.wins === 1 ? '1 Sieg' : r.wins + ' Siege') + ' · ' + pct(r) + ' %'}</small><i class="step"><span class="medal">${r.pos}</span></i></div>`).join('')}</div>`;
     const row = (r, cls = '') => `<div class="rrow ${cls}"><span class="pos">${r.pos}</span>
         <span class="who"><b class="plink" data-prof="${esc(r.username)}">${esc(r.username)}${V.flag.tag(r.username)}</b>${r.username === myName ? '<em class="rtag">Du</em>' : ''}<small>${r.played} Partien</small></span>
-        <span class="rate"><i style="--w:${pct(r)}%"></i><small>${pct(r)} %</small></span><span class="w">${r.wins}</span></div>`;
+        <span class="rate"><i style="--w:${pct(r)}%"></i><small>${pct(r)} %</small></span><span class="w">${elo ? r.elo : r.wins}</span></div>`;
     const rest = top.slice(3);
     el.innerHTML = head + mine + podium +
-      (rest.length ? `<div class="rhead"><span>#</span><span>Spieler</span><span>Siegquote</span><span>Siege</span></div>${rest.map(r => row(r, r.username === myName ? 'me' : '')).join('')}` : '') +
+      (rest.length ? `<div class="rhead"><span>#</span><span>Spieler</span><span>Siegquote</span><span>${elo ? 'Elo' : 'Siege'}</span></div>${rest.map(r => row(r, r.username === myName ? 'me' : '')).join('')}` : '') +
       (me && me.pos > top[top.length - 1].pos ? '<div class="rgap">…</div>' + row(me, 'me') : '') +
-      `<p class="fine">${board.players || top.length} ${friends ? 'von ' + board.circle + ' (du und deine Freunde)' : 'Spieler'} in ${esc(scope)}. Gezählt werden gewonnene Online-Partien gegen andere Spieler, gleiche Siege sortiert nach weniger Partien.</p>`;
+      `<p class="fine">${board.players || top.length} ${friends ? 'von ' + board.circle + ' (du und deine Freunde)' : 'Spieler'} in ${esc(scope)}. ${elo ? 'Elo aus gewerteten Online-Partien gegen andere Spieler: Start bei 1000, ein Sieg gegen Stärkere bringt mehr als gegen Schwächere.' : 'Gezählt werden gewonnene Online-Partien gegen andere Spieler, gleiche Siege sortiert nach weniger Partien.'}${!week && !boardGame ? ' Wähl ein Spiel, dann siehst du dort die Elo-Wertung.' : ''}</p>`;
   }
 
   // ---------- game panel: pick a friend to invite ----------
@@ -802,7 +806,7 @@
     const t = p.total || {}, pct = (w, n) => (n ? Math.round(w / n * 100) : 0);
     const RES = { win: ['S', 'Sieg'], loss: ['N', 'Niederlage'], draw: ['R', 'Remis'], void: ['–', 'annulliert'] };
     const status = p.me ? 'Das bist du' : p.online ? '<b class="good">online</b>' : p.seen ? 'zuletzt ' + ago(p.seen) : 'Status verborgen';
-    const games = (p.games || []).map(g => `<div class="pgame"><span class="ic">${V.byId[g.game] ? V.byId[g.game].icon : ''}</span><span class="pg-n"><b>${esc(gname(g.game))}</b><small>${g.played} Partien</small></span>
+    const games = (p.games || []).map(g => `<div class="pgame" data-g="${esc(g.game)}"><span class="ic">${V.byId[g.game] ? V.byId[g.game].icon : ''}</span><span class="pg-n"><b>${esc(gname(g.game))}</b><small>${g.played} Partien</small></span>
       <span class="pg-bar"><i class="w" style="flex:${g.wins}"></i><i class="d" style="flex:${g.played - g.wins - g.losses}"></i><i class="l" style="flex:${g.losses}"></i></span><em>${g.wins}:${g.losses}</em></div>`).join('');
     const recent = (p.recent || []).map(r => `<div class="prec ${r.res}"><span class="pr-r" title="${RES[r.res][1]}">${RES[r.res][0]}</span>
       <span class="ic">${V.byId[r.game] ? V.byId[r.game].icon : ''}</span><span class="pr-t"><b>${esc(gname(r.game))}</b><small>gegen ${r.opp ? `<button class="link" data-prof="${esc(r.opp)}">${esc(r.opp)}</button>` : '?'}${r.result === 'resign' ? ' · aufgegeben' : r.result === 'abandon' ? ' · verlassen' : r.result === 'time' ? ' · Zeit' : ''}${r.ranked ? '' : ' · nicht gewertet'}</small></span>
@@ -834,6 +838,10 @@
         ${p.me ? '' : `<div class="psafe">${blk ? '' : `<button class="link" id="pblk">Blockieren</button>`}<button class="link" id="prep">Melden</button></div>`}</div>` : ''}
     </div>`;
     m.querySelector('#pc').onclick = V.ui.closeModal;
+    // the Elo in each game (server: player_elo), next to the number of matches
+    C().rpc('player_elo', { pname: p.username }).then(list => {
+      (list || []).forEach(r => { const x = [...m.querySelectorAll('.pgame')].find(e => e.dataset.g === r.game); if (x) x.querySelector('.pg-n small').insertAdjacentHTML('beforeend', ` · <b class="pg-elo">${r.elo} Elo</b>`); });
+    }, () => { });
     // badges next to the name: the team role (Owner, Admin), Dev, and how many players joined through this player's link
     C().rpc('player_badges', { name: p.username }).then(b => {
       const h = m.querySelector('#ptags'); if (!h || !b) return;

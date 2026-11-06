@@ -13,7 +13,7 @@
   // Supabase needs an e-mail address internally; this domain is ours (GitHub Pages), no mails are sent.
   const MAIL = 'bananemdnaa.github.io';
   const NAME_RE = /^[a-z0-9_-]{3,16}$/;
-  const KEYS = ['stats', 'seen', 'settings', 'setup', 'recent', 'recents', 'favs', 'dailyCh', 'badges'];
+  const KEYS = ['stats', 'seen', 'settings', 'setup', 'recent', 'recents', 'favs', 'dailyCh', 'badges', 'aiElo'];
 
   let sb = null, user = null, info = null, timer = null, beat = null, busy = false, again = false, leaving = false;
   const state = { status: 'off', last: 0, error: '' };
@@ -111,6 +111,10 @@
     const bl = local.badges || {}, bc = cloud.badges || {};
     merged.badges = Object.assign({}, bc);
     for (const k in bl) if (!merged.badges[k] || bl[k] < merged.badges[k]) merged.badges[k] = bl[k];
+    // KI-Elo per game: the one with more rated matches (an admin reset of the Bilanz clears it too)
+    const el = local.aiElo || {}, ec = cloud.aiElo || {};
+    merged.aiElo = resetNewer && mine ? {} : Object.assign({}, ec);
+    if (!(resetNewer && mine)) for (const k in el) if (!merged.aiElo[k] || (el[k].n || 0) > (merged.aiElo[k].n || 0)) merged.aiElo[k] = el[k];
     writeLocal(merged);
     setMeta({ uid: user.id, rev: row.rev, sync: Date.now() });
     state.status = 'ok'; state.last = Date.now(); emit();
@@ -336,7 +340,7 @@
       leaving = true; try { await sb.auth.signOut(); } catch (e) { } leaving = false;
       user = null; info = null; state.status = 'guest';
       // the account keeps its data; this browser goes back to a fresh guest
-      ['stats', 'seen', 'setup', 'recent', 'recents', 'favs', 'cloudmeta'].forEach(k => { try { localStorage.removeItem('versus.' + k); } catch (e) { } });
+      ['stats', 'seen', 'setup', 'recent', 'recents', 'favs', 'aiElo', 'cloudmeta'].forEach(k => { try { localStorage.removeItem('versus.' + k); } catch (e) { } });
       if (V.reloadLocal) V.reloadLocal();
       emit();
     },
@@ -354,7 +358,7 @@
       check(await sb.rpc('delete_account'));
       leaving = true; try { await sb.auth.signOut(); } catch (e) { } leaving = false;
       user = null; info = null; state.status = 'guest';
-      ['stats', 'seen', 'setup', 'recent', 'recents', 'favs', 'cloudmeta'].forEach(k => { try { localStorage.removeItem('versus.' + k); } catch (e) { } });
+      ['stats', 'seen', 'setup', 'recent', 'recents', 'favs', 'aiElo', 'cloudmeta'].forEach(k => { try { localStorage.removeItem('versus.' + k); } catch (e) { } });
       if (V.reloadLocal) V.reloadLocal();
       emit();
     },

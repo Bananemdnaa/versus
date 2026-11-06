@@ -93,7 +93,17 @@
     // undo: the match is set up again and every move but your last one (and what followed) is replayed at once
     const replay = cfg.replay && cfg.replay.length ? cfg.replay.slice() : null;
     if (cfg.replay || cfg.firstWas) cfg = Object.assign({}, cfg, { replay: null, first: cfg.firstWas || cfg.first, firstWas: null });
-    const canUndo = ai && !party && cfg.level <= 1 && UNDO.includes(g.id) && !auto;
+    // a match in which a move was taken back does not change the KI-Elo (the flag is not passed on to a rematch)
+    const undone = !!cfg.undone;
+    if (undone) cfg = Object.assign({}, cfg, { undone: null });
+    // "Passend zu dir": the AI plays at your KI-Elo in this game (V.aiElo in core.js; daily challenges keep their level).
+    // cfg.level becomes the closest level, for everything that needs one level (labels, thinking time, Bilanz).
+    const fitE = ai && cfg.fit && !cfg.daily && !auto ? V.aiElo.get(g.id).e : 0;
+    if (fitE) cfg = Object.assign({}, cfg, { level: V.aiElo.near(g, fitE) });
+    const lvName = fitE ? 'Passend' : V.LEVELS[cfg.level];
+    // the level the AI uses right now: with "Passend" picked anew for every AI turn
+    let lvNow = cfg.level, eloRes = null;
+    const canUndo = ai && !party && cfg.level <= 1 && UNDO.includes(g.id) && !auto && !fitE;
     const hist = [], rep = replay ? { queue: replay } : null;
     // the moves for the history (replayable games, not when watching, testing or replaying)
     const recOn = UNDO.includes(g.id) && !watch && !auto && !review && !party, recd = []; // replayed moves (undo) are recorded again as they are made
@@ -122,7 +132,7 @@
     const acct = V.cloud && V.cloud.user() && !V.cloud.user().anon ? V.cloud.user().username : '';
     const shown = s => s === me && acct ? acct : names[s];
     const remoteSide = s => (online && s === oppSide) || (table && s !== mySide && !botSide(s));
-    const sub = s => botSide(s) ? V.LEVELS[cfg.level] + ' · ' + sideLabel(s) : remoteSide(s) ? 'Online · ' + sideLabel(s) : s === me && acct ? 'Du · ' + sideLabel(s) : sideLabel(s);
+    const sub = s => botSide(s) ? lvName + ' · ' + sideLabel(s) : remoteSide(s) ? 'Online · ' + sideLabel(s) : s === me && acct ? 'Du · ' + sideLabel(s) : sideLabel(s);
     const av = s => botSide(s) ? IC.robot : s === me ? (acct && V.look ? `<span class="lav">${V.look.text(acct, V.look.mine(), 1)}</span>` : `<span>${esc(acct ? acct.slice(0, 1).toUpperCase() : 'DU')}</span>`) : remoteSide(s) ? IC.user : watch ? `<span>${esc(names[s].slice(0, 2).toUpperCase())}</span>` : `<span>P${s}</span>`;
     const thinker = s => botSide(s) || (online && s === oppSide) || (table && s !== mySide) || watch;
     // the country flag (js/flag.js) for real players: you (also as a guest online), the opponent online, both when watching
@@ -136,9 +146,9 @@
       <span class="nm"><b>${esc(shown(s))}${flagOf(s)}</b><small>${sub(s)}</small></span>
       ${clockMin ? `<span class="clk" id="ck${s}"></span>` : ''}${thinker(s) ? '<span class="tdots" aria-hidden="true"><i></i><i></i><i></i></span>' : ''}<span class="wins"><b>${series[s]}</b><small>Siege</small></span><em class="tag">am Zug</em>
       ${ai && s === aiSide ? '<div class="bubble" aria-live="polite"></div>' : ''}</div>`;
-    const sublabel = review && RV.shared ? 'Geteilt von ' + esc(RV.shared) + ' · ' + new Date(RV.at || Date.now()).toLocaleDateString(V.locale(), { day: 'numeric', month: 'short' }) : review ? 'Aufzeichnung · ' + esc(RV.label || '') + ' · ' + new Date(RV.at || Date.now()).toLocaleDateString(V.locale(), { day: 'numeric', month: 'short' }) : table ? `Online-Tisch · ${N} Spieler` : party ? (ai ? `Gegen ${N > 2 ? N - 1 + ' KIs' : 'KI'} · ` + V.LEVELS[cfg.level] : N + ' Spieler') : ai ? 'Gegen KI · ' + V.LEVELS[cfg.level] : slow ? 'Über Tage gegen ' + esc(M.opp) : online ? 'Online gegen ' + esc(M.opp) : watch ? 'Zuschauen · ' + esc(M.aName) + ' gegen ' + esc(M.bName) : 'Am Gerät';
+    const sublabel = review && RV.shared ? 'Geteilt von ' + esc(RV.shared) + ' · ' + new Date(RV.at || Date.now()).toLocaleDateString(V.locale(), { day: 'numeric', month: 'short' }) : review ? 'Aufzeichnung · ' + esc(RV.label || '') + ' · ' + new Date(RV.at || Date.now()).toLocaleDateString(V.locale(), { day: 'numeric', month: 'short' }) : table ? `Online-Tisch · ${N} Spieler` : party ? (ai ? `Gegen ${N > 2 ? N - 1 + ' KIs' : 'KI'} · ` + lvName : N + ' Spieler') : ai ? 'Gegen KI · ' + lvName : slow ? 'Über Tage gegen ' + esc(M.opp) : online ? 'Online gegen ' + esc(M.opp) : watch ? 'Zuschauen · ' + esc(M.aName) + ' gegen ' + esc(M.bName) : 'Am Gerät';
     // Discord status (Rich Presence, js/discord.js): the game and how it is played, never an opponent's name
-    V.discord.status(g.name, table ? V.t('Online-Tisch') + ' · ' + V.t(N + ' Spieler') : ai ? V.t('Gegen die KI') + ' · ' + V.t(V.LEVELS[cfg.level]) : online ? V.t('Online-Duell') : watch ? V.t('Zuschauen') : V.t('Am Gerät'), g.id);
+    V.discord.status(g.name, table ? V.t('Online-Tisch') + ' · ' + V.t(N + ' Spieler') : ai ? V.t('Gegen die KI') + ' · ' + V.t(lvName) : online ? V.t('Online-Duell') : watch ? V.t('Zuschauen') : V.t('Am Gerät'), g.id);
     // two people at one phone, sitting opposite: player 2's card (and the status on their turn) is turned around
     const facing = cfg.mode === 'local' && settings.face && !party && g.cat !== 'Action';
     let plies = 0;
@@ -284,7 +294,7 @@
     let seed = table ? (T.seed >>> 0) || 1 : online || watch ? idSeed(M.id) || 1 : 0;
     const rng = seed ? () => { seed = (seed + 0x6D2B79F5) >>> 0; let t = seed; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; } : Math.random;
     const ctx = {
-      stage: v.querySelector('#stage'), mode: cfg.mode, level: cfg.level, aiSide, opts: cfg.opts, sides: g.sides, n: N, players: SIDES,
+      stage: v.querySelector('#stage'), mode: cfg.mode, get level() { return lvNow; }, fitElo: fitE, aiSide, opts: cfg.opts, sides: g.sides, n: N, players: SIDES,
       mySide: review ? RV.me || 0 : mySide, review: review ? RV : null, watchSides: watch ? { a: M.aSide } : null, rng, auto,
       // true while a table catches up on moves that were already played (after joining late or reloading)
       fast: () => !!(tnet && tnet.queue.length > 1) || !!(rep && rep.queue.length),
@@ -351,6 +361,7 @@
         const minT = auto ? 0 : settings.aiFast ? 60 : o.quick ? 380 : [650, 850, 1050, 1250][cfg.level] + Math.random() * 450;
         const t0 = performance.now();
         ctx.later(() => {
+          if (fitE) lvNow = V.aiElo.pick(g, fitE);
           // think() may also answer later (a Promise, e.g. Stockfish in a worker): the match must still be running then
           const out = o.think();
           const go = res => ctx.later(() => aimAt(o, res, card, true, false, party ? s : 0), Math.max(0, minT - (performance.now() - t0)));
@@ -358,7 +369,7 @@
           else go(out);
         }, 70);
       },
-      think(fn, ms = 380) { if (settings.aiFast) ms = Math.min(ms, 60); setStatus(`<span class="c${aiSide}">KI</span> <span class="thinking">denkt</span>`); ctx.later(fn, ms); },
+      think(fn, ms = 380) { if (settings.aiFast) ms = Math.min(ms, 60); if (fitE) lvNow = V.aiElo.pick(g, fitE); setStatus(`<span class="c${aiSide}">KI</span> <span class="thinking">denkt</span>`); ctx.later(fn, ms); },
       nav(fn, o) { navFn = fn; nav.set(fn, o); },
       keys(fn) { keyFn = fn; },
       // off: the match was called off (opponent offline, voided) – no winner, nothing counts
@@ -378,6 +389,8 @@
         if (!watch && !auto && !off) {
           const s = stat(g.id);
           if (ai) { const r = s.ai[cfg.level]; if (winner === 0) r.d++; else if (winner === me) r.w++; else r.l++; }
+          // KI-Elo: only you against one AI, not after taking a move back
+          if (ai && N === 2 && me && !undone) eloRes = V.aiElo.add(g.id, fitE || V.aiElo.levels(g)[cfg.level], winner === 0 ? 0.5 : winner === me ? 1 : 0);
           else if (online || table) { s.on = s.on || { w: 0, l: 0, d: 0 }; if (winner === 0) s.on.d++; else if (winner === mySide) s.on.w++; else s.on.l++; }
           else { if (winner === 0) s.local.d++; else if (winner === 1) s.local.a++; else s.local.b++; }
           S.set('stats', P.stats);
@@ -418,6 +431,8 @@
             <div class="band"><div class="band-in"><span class="kicker">${esc(note || sublabel)}${online && net && net.last && net.last.ranked === false ? ' · zählt nicht für die Rangliste' : ''}</span>
               <h2 class="${big.length > 11 ? 'long' : ''}" aria-label="${esc(big)}">${[...big].map((ch, k) => `<span aria-hidden="true" style="--k:${k}">${ch === ' ' ? '&nbsp;' : esc(ch)}</span>`).join('')}</h2></div></div>
             ${party ? `<div class="eparty">${SIDES.map(k => `<span class="ep c${k}"><b>${series[k]}</b><small>${esc(names[k])}</small></span>`).join('')}</div>` : `<div class="eseries"><span class="nl">${esc(names[L])}</span><b class="sl${winner === L && !off ? ' up' : ''}" data-n="${series[L]}">${winner === L && !off ? series[L] - 1 : series[L]}</b><i>:</i><b class="sr${winner === R && !off ? ' up' : ''}" data-n="${series[R]}">${winner === R && !off ? series[R] - 1 : series[R]}</b><span class="nr">${esc(names[R])}</span></div>`}
+            ${eloRes ? `<div class="kelo ${eloRes.delta >= 0 ? 'up' : 'down'}"><span>KI-Elo</span><b>${eloRes.to}</b><em>${eloRes.delta >= 0 ? '+' : '−'}${Math.abs(eloRes.delta)}</em></div>` : ''}
+            ${online && !off && !watch && !(net && net.last && net.last.ranked === false) ? '<div class="kelo" id="kelo" hidden></div>' : ''}
             ${dWon ? `<div class="kdaily">${IC.bolt}<b>Spiel des Tages erledigt</b><span>Serie: ${dWon} ${dWon === 1 ? 'Tag' : 'Tage'}</span></div>` : ''}
             ${fresh.length ? `<div class="kbadges">${fresh.map(b => `<div class="kbdg bt${b.tier}" title="${esc(b.d)}"><span class="abz-ic">${b.ic}</span><span><small>${b.tier === 3 ? 'Legendäres Abzeichen' : b.tier === 2 ? 'Seltenes Abzeichen' : 'Neues Abzeichen'}</small><b>${b.t}</b></span></div>`).join('')}</div>` : ''}
             ${ai && winner && winner !== me && !off && tipFor() ? `<div class="ktip">${IC.bulb}<div><b>Tipp für die Revanche</b><p>${tipFor()}</p></div></div>` : ''}
@@ -436,6 +451,17 @@
           });
           // the winner's number counts up and pulses once the band is in
           m.querySelectorAll('.eseries b.up').forEach(b => ctx.later(() => { b.textContent = b.dataset.n; V.fx.pop(b, 'bump'); }, 450));
+          // the Elo change of an online match, once the server has rated it (it waits for both results)
+          const ke = m.querySelector('#kelo');
+          if (ke) {
+            let tries = 0;
+            const look = () => V.cloud.rpc('match_elo', { mid: M.id }).then(r => {
+              if (!ke.isConnected) return;
+              if (r && r.delta != null) { ke.hidden = false; ke.className = 'kelo ' + (r.delta >= 0 ? 'up' : 'down'); ke.innerHTML = `<span>Elo</span><b>${r.elo}</b><em>${r.delta >= 0 ? '+' : '−'}${Math.abs(r.delta)}</em>`; }
+              else if (++tries < 5) ctx.later(look, 1500 * tries);
+            }, () => { });
+            ctx.later(look, 700);
+          }
           const er = m.querySelector('#er'); if (er) er.onclick = again;
           const ekx = m.querySelector('#ekx'); if (ekx) ekx.onclick = () => { V.sfx.ui(); closeModal(); ctx.endBtn.fn(); };
           const kn = m.querySelector('#knext'); if (kn) kn.onclick = () => { V.sfx.go(); V.buzz(12); closeModal(); step.go(); };
@@ -490,7 +516,7 @@
           go() { home('profile'); }
         };
       }
-      if (ai && won && cfg.level < 3) {
+      if (ai && won && cfg.level < 3 && !fitE) {
         const lv = cfg.level + 1;
         const all = S.get('setup', {}); all[g.id] = Object.assign({}, all[g.id] || {}, cfg, { level: lv }); delete all[g.id].replay; delete all[g.id].firstWas; delete all[g.id].daily;
         return {
@@ -524,7 +550,7 @@
     // ---------- the history: save a finished match, show a recorded one ----------
     function archive(winner, note) {
       try {
-        const label = ai ? 'Gegen KI · ' + V.LEVELS[cfg.level] : online ? 'Online gegen ' + (M.opp || '?') : table ? 'Online-Tisch' : party ? N + ' Spieler' : 'Am Gerät';
+        const label = ai ? 'Gegen KI · ' + lvName : online ? 'Online gegen ' + (M.opp || '?') : table ? 'Online-Tisch' : party ? N + ' Spieler' : 'Am Gerät';
         const e = {
           id: Date.now().toString(36) + Math.random().toString(36).slice(2, 5), g: g.id, mode: cfg.mode, level: cfg.level, label, at: Date.now(),
           opts: cfg.opts || {}, names: Object.fromEntries(SIDES.map(s => [s, shown(s)])), me, winner, note: note || '', plies,
@@ -554,7 +580,7 @@
       const k = hist.map(h => h.s).lastIndexOf(me);
       if (k < 0 || ended) return;
       V.sfx.ui();
-      play(g, Object.assign({}, cfg, { replay: hist.slice(0, k), first: aiSide === 2 ? 'me' : 'ai', firstWas: cfg.first }), series);
+      play(g, Object.assign({}, cfg, { replay: hist.slice(0, k), first: aiSide === 2 ? 'me' : 'ai', firstWas: cfg.first, undone: true }), series);
     }
 
     // ---------- first match of a game: a hand shows where to tap ----------
@@ -817,7 +843,7 @@
       g.name.toLowerCase().replace(/ä/g, 'ae').replace(/ö/g, 'oe').replace(/ü/g, 'ue').replace(/ß/g, 'ss').replace(/['’]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') + '/';
     // the words that go with the picture: after beating the AI a challenge, otherwise the score and an invitation
     function shareText(winner) {
-      const en = V.lang === 'en', nm = s => V.t(names[s]), lvl = V.t(V.LEVELS[cfg.level]);
+      const en = V.lang === 'en', nm = s => V.t(names[s]), lvl = V.t(lvName);
       if (ai && !party && me) {
         const a = series[me], b = series[aiSide];
         if (winner === me) return en ? `I beat the AI at ${g.name} (${lvl}, ${a}:${b}). Can you beat it too?` : `Ich habe die KI in ${g.name} geschlagen (${lvl}, ${a}:${b}). Schaffst du das auch?`;
@@ -1092,8 +1118,8 @@
     };
     const pu = v.querySelector('#pu'); if (pu) pu.onclick = undo;
     if (rep) { /* replaying after an undo: no intro */ }
-    else if (party && N > 2) vsIntro({ name: names[1], sub: sideLabel(1) }, { name: ai ? N - 1 + ' KIs' : 'Alle', sub: ai ? V.LEVELS[cfg.level] : N + ' Spieler' }, rematch);
-    else vsIntro({ name: names[L], sub: sideLabel(L) }, { name: names[R], sub: ai ? 'KI · ' + V.LEVELS[cfg.level] : online ? 'online' : sideLabel(R) }, rematch || watch);
+    else if (party && N > 2) vsIntro({ name: names[1], sub: sideLabel(1) }, { name: ai ? N - 1 + ' KIs' : 'Alle', sub: ai ? lvName : N + ' Spieler' }, rematch);
+    else vsIntro({ name: names[L], sub: sideLabel(L) }, { name: names[R], sub: ai ? 'KI · ' + lvName : online ? 'online' : sideLabel(R) }, rematch || watch);
     inst = g.start(ctx) || {};
     // a recorded match: step through it (chess has its own move list with the review)
     if (review && RV.moves && g.id !== 'chess') {

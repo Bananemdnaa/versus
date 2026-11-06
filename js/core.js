@@ -33,6 +33,39 @@
     if (!P.stats[id]) P.stats[id] = { ai: [0, 1, 2, 3].map(() => ({ w: 0, l: 0, d: 0 })), local: { a: 0, b: 0, d: 0 } };
     return P.stats[id];
   };
+  // ---------- KI-Elo: your strength against the AI, per game ----------
+  // Every AI level has a rating (g.levelElo, else LEVEL_ELO). A finished match against the AI changes yours like Elo
+  // (start 1000, K 40 for the first 20 matches of a game, then 24, never below 100; the same as online on the server).
+  // "Passend zu dir" (cfg.fit) lets the AI play at your rating: every AI turn uses one of the two levels around it,
+  // mixed so that on average it plays at your rating. Stored as aiElo { id: { e, n, p } } (rating, matches, best).
+  const LEVEL_ELO = [600, 1000, 1400, 1800];
+  V.aiElo = {
+    levels: g => (g && g.levelElo) || LEVEL_ELO,
+    get(id) {
+      const r = (S.get('aiElo', {}) || {})[id];
+      const e = r && r.e > 0 ? r.e : 1000;
+      return { e, n: (r && r.n) || 0, p: Math.max(e, (r && r.p) || 0) };
+    },
+    // the level closest to a rating (labels, the AI's thinking time, the Bilanz per level)
+    near(g, e) { const L = this.levels(g); let k = 0; L.forEach((x, i) => { if (Math.abs(x - e) < Math.abs(L[k] - e)) k = i; }); return k; },
+    // the level for one AI turn: below the easiest level the easiest, above the hardest the hardest, else a mix
+    pick(g, e) {
+      const L = this.levels(g);
+      if (e <= L[0]) return 0;
+      if (e >= L[3]) return 3;
+      let i = 0; while (e >= L[i + 1]) i++;
+      return Math.random() < (e - L[i]) / (L[i + 1] - L[i]) ? i + 1 : i;
+    },
+    // score 1 (win), 0.5 (draw) or 0 (loss) against an opponent rated opp: { from, to, delta }
+    add(id, opp, score) {
+      const all = S.get('aiElo', {}) || {}, r = this.get(id);
+      const exp = 1 / (1 + Math.pow(10, (opp - r.e) / 400));
+      const to = Math.max(100, r.e + Math.round((r.n < 20 ? 40 : 24) * (score - exp)));
+      all[id] = { e: to, n: r.n + 1, p: Math.max(r.p, to) };
+      S.set('aiElo', all);
+      return { from: r.e, to, delta: to - r.e };
+    }
+  };
 
   // ---------- utils ----------
   V.rand = n => Math.floor(Math.random() * n);

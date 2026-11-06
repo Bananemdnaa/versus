@@ -295,8 +295,11 @@
   // one job at a time on the worker (a review and a move never mix their messages)
   let sfQueue = Promise.resolve();
   const sfRun = fn => { const r = sfQueue.then(fn); sfQueue = r.catch(() => { }); return r; };
-  // a move for the AI: Stockfish's skill level (0-20) makes it weaker in a human way, ms is the thinking time
-  function sfMove(api, P, ply, skill, ms) {
+  // full strength with the two best lines, for the review and "Fehler üben" (an AI move may have limited it before)
+  const sfFull = api => { api.send('setoption name UCI_LimitStrength value false'); api.send('setoption name Skill Level value 20'); api.send('setoption name MultiPV value 2'); };
+  // a move for the AI: Stockfish's skill level (0-20) makes it weaker in a human way, ms is the thinking time;
+  // with elo ("Passend zu dir", 1320-3190) Stockfish limits itself to that rating instead
+  function sfMove(api, P, ply, skill, ms, elo) {
     return new Promise(done => {
       let score = 0;
       api.fn = l => {
@@ -305,7 +308,9 @@
           score = mt ? (+mt[1] > 0 ? 100000 - +mt[1] : -100000 - +mt[1]) : cp ? +cp[1] : score;
         } else if (l.startsWith('bestmove')) { api.fn = null; done({ uci: l.split(' ')[1], score }); }
       };
-      api.send('setoption name MultiPV value 1'); api.send('setoption name Skill Level value ' + skill);
+      api.send('setoption name MultiPV value 1');
+      if (elo) { api.send('setoption name Skill Level value 20'); api.send('setoption name UCI_LimitStrength value true'); api.send('setoption name UCI_Elo value ' + elo); }
+      else { api.send('setoption name UCI_LimitStrength value false'); api.send('setoption name Skill Level value ' + skill); }
       api.send('position fen ' + fen(P, ply)); api.send('go movetime ' + ms);
     });
   }
@@ -370,8 +375,8 @@
   async function runJob(api, pos, job, cache, deep) {
     const P = pos[job.i], key = fen(P, job.i);
     if (!legal(P).length) { cache.set(key, { lines: [{ s: inCheck(P, P.turn) ? -100000 : 0, pv: [] }], deep: true }); return; }
-    // the AI moves switch skill and MultiPV, so both are set again for every position
-    api.send('setoption name Skill Level value 20'); api.send('setoption name MultiPV value 2');
+    // the AI moves switch skill, strength limit and MultiPV, so they are set again for every position
+    sfFull(api);
     const lines = await sfLines(api, P, job.i, job.ms, job.ms >= deep ? 18 : 13);
     cache.set(key, { lines, deep: job.ms >= deep });
   }
@@ -685,6 +690,8 @@
     firstTitle: 'Deine Farbe', firstLabels: ['Weiß', 'Schwarz', 'Zufall'],
     options: [{ id: 'flipb', label: 'Brett drehen', group: 'board', desc: 'Am Gerät nebeneinander: Das Brett dreht sich zu dem, der dran ist. Sitzt ihr euch gegenüber, drehen sich stattdessen die Figuren.', short: v => v ? 'Brett dreht mit' : '', def: 0, modes: ['local'], choices: [[0, 'Aus'], [1, 'Mitdrehen']] },
       { id: 'clock', label: 'Schachuhr', group: 'time', inline: 'local', desc: 'Jeder hat so viel Zeit für alle Züge.', short: v => v ? `Uhr ${v} Min.` : '', def: 0, modes: ['local', 'online', 'open'], choices: [[0, 'Aus'], [3, '3 Min'], [5, '5 Min'], [10, '10 Min']] }],
+    // KI-Elo of the levels (estimates): the own beginner engine, Stockfish on skill 3, 10 and 20
+    levelElo: [600, 1400, 2000, 2800],
     levelInfo: ['Anfänger: zieht oft planlos und lässt Figuren hängen.', 'Gelegenheitsspieler (Stockfish, Stufe 3): spielt vernünftig, macht aber echte Fehler.', 'Starker Vereinsspieler (Stockfish, Stufe 10): Fehler werden bestraft.', 'Stockfish mit voller Stärke. Viel Glück.'],
     endDelay: 1300,
     icon: `<svg viewBox="0 0 48 48"><rect x="3" y="3" width="42" height="42" rx="6" fill="#585e9c"/><path d="M3 3h10.5v10.5H3zM24 3h10.5v10.5H24zM13.5 13.5H24V24H13.5zM34.5 13.5H45V24H34.5zM3 24h10.5v10.5H3zM24 24h10.5v10.5H24zM13.5 34.5H24V45H13.5zM34.5 34.5H45V45H34.5z" fill="#b9bce6"/><text x="24" y="34" text-anchor="middle" font-size="30" fill="#fafaff" stroke="#14142a" stroke-width="1">♞&#xFE0E;</text></svg>`,
@@ -897,7 +904,7 @@
           // other moves count when they keep (almost) as much as the best one
           let val;
           if (!legal(Q).length) val = inCheck(Q, Q.turn) ? 100000 : 0;
-          else { try { val = -((await sfRun(() => engine().then(api => sfLines(api, Q, k + 1, 450))))[0] || { s: 0 }).s; } catch (e) { val = -100000; } }
+          else { try { val = -((await sfRun(() => engine().then(api => { sfFull(api); return sfLines(api, Q, k + 1, 450); })))[0] || { s: 0 }).s; } catch (e) { val = -100000; } }
           const bestV = Math.max(-2000, Math.min(2000, top.s || 0)), v = Math.max(-2000, Math.min(2000, val));
           const loss = winP(bestV) - winP(v);
           ok = loss <= 5;
@@ -1118,14 +1125,15 @@
           // Leicht: the own beginner engine. Mittel, Schwer, Profi: Stockfish on skill 3, 10 and 20 (a casual player, a
           // strong club player, full strength). Without Stockfish (offline) the own engine plays every level.
           think: () => {
-            const L = ctx.level;
+            // "Passend zu dir" from 1320 on: Stockfish at your rating; below that the levels are mixed (play.js)
+            const L = ctx.level, fe = ctx.fitElo >= 1320 ? Math.min(3190, Math.round(ctx.fitElo)) : 0;
             const own = () => {
               const r = L === 0 && Math.random() < 0.25 ? { move: V.pick(moves), score: 0 } : think(P, [1, 2, 4, 8][L], V.aiMs([1500, 1500, 1500, 2600][L]), [220, 40, 0, 0][L]);
               return { move: r.move, mood: V.mood(r.score, 450) };
             };
-            if (L === 0 || noSF) return own();
+            if ((L === 0 && !fe) || noSF) return own();
             const Q = clone(P), ply = hist.length;
-            return sfRun(() => engine().then(api => sfMove(api, Q, ply, [0, 3, 10, 20][L], V.aiMs([0, 350, 700, 1400][L])))).then(r => {
+            return sfRun(() => engine().then(api => sfMove(api, Q, ply, [0, 3, 10, 20][L], V.aiMs(fe ? 700 : [0, 350, 700, 1400][L]), fe))).then(r => {
               const m = fromUci(P, r.uci); if (!m) throw new Error('kein Zug');
               return { move: m, mood: V.mood(r.score, 450) };
             }).catch(() => { noSF = true; return own(); });
@@ -1146,7 +1154,7 @@
       if (window.ResizeObserver) new ResizeObserver(sqSize).observe(board); else addEventListener('resize', sqSize);
       // Stockfish plays from Mittel on: start loading it right away, so the first answer doesn't wait for it
       let noSF = false;
-      if (ctx.mode === 'ai' && ctx.level > 0 && !ctx.auto) engine().catch(() => { noSF = true; });
+      if (ctx.mode === 'ai' && (ctx.level > 0 || ctx.fitElo >= 1320) && !ctx.auto) engine().catch(() => { noSF = true; });
       render(); next(false);
       // giving up, the clock or a dropped opponent end the game from outside: the review is offered there too
       // a recorded match from the history: "Analyse" there opens the review right away
