@@ -279,7 +279,7 @@
     return SF;
   }
   // the two best lines of a position, scores for the side to move (mate as ±100000 minus the distance)
-  function sfLines(api, P, ply, ms) {
+  function sfLines(api, P, ply, ms, depth = 18) {
     return new Promise(done => {
       const lines = [];
       api.fn = l => {
@@ -289,7 +289,7 @@
           lines[k] = { s, pv: l.split(' pv ')[1].trim().split(' ') };
         } else if (l.startsWith('bestmove')) { api.fn = null; done(lines.filter(Boolean)); }
       };
-      api.send('position fen ' + fen(P, ply)); api.send(`go depth 18 movetime ${ms}`);
+      api.send('position fen ' + fen(P, ply)); api.send(`go depth ${depth} movetime ${ms}`);
     });
   }
   // one job at a time on the worker (a review and a move never mix their messages)
@@ -339,28 +339,59 @@
   }
   // review with Stockfish, rated like the big sites: lost winning chance in percent points
   // (Exzellent up to 2, Gut up to 5, Ungenauigkeit up to 10, Fehler up to 20, Patzer above)
-  function reviewSF(start, plies, prog) { return sfRun(() => reviewSF2(start, plies, prog)); }
-  async function reviewSF2(start, plies, prog) {
-    const api = await engine();
-    api.send('setoption name Skill Level value 20'); api.send('setoption name MultiPV value 2');
-    const pos = [clone(start)];
-    { const P = clone(start); for (const h of plies) { make(P, h.m); pos.push(clone(P)); } }
-    const book = bookLen(plies.map(h => h.san.replace(/[+#]/g, '')));
-    const info = [];
-    for (let i = 0; i < pos.length; i++) {
-      const P = pos[i], ms = legal(P);
-      if (!ms.length) info.push({ lines: [{ s: inCheck(P, P.turn) ? -100000 : 0, pv: [] }] });
-      else info.push({ lines: await sfLines(api, P, i, plies.length > 80 ? 320 : 550) });
-      prog && prog(i + 1, pos.length);
+  // Two passes: every position gets a quick look first, then only the moves that might be more than "Exzellent" (or a
+  // brilliant/great move) get the full time. The results are kept per position (cache, a Map by FEN), so the game can
+  // fill it in the background while it is still running and the review at the end only does what is left.
+  const clamp = v => Math.max(-2000, Math.min(2000, v));
+  const QUICK = 200, BOOK_MS = 60, deepMs = n => n > 80 ? 320 : 550;
+  const positions = (start, plies) => { const pos = [clone(start)], P = clone(start); for (const h of plies) { make(P, h.m); pos.push(clone(P)); } return pos; };
+  // how much winning chance the move at ply k gave away, from the lines before and after it
+  function judge(info, plies, k) {
+    const m = plies[k].m, L = info[k].lines, top = L[0] || { s: 0, pv: [] };
+    const bestV = clamp(top.s), played = clamp(-((info[k + 1].lines[0] || { s: 0 }).s));
+    const uci = sqn(m.f) + sqn(m.t) + (m.promo || '');
+    const isBest = top.pv[0] === uci;
+    const wB = winP(bestV), wP = winP(isBest ? bestV : Math.min(played, bestV)), loss = Math.max(0, wB - wP);
+    return { L, top, bestV, uci, isBest, wB, wP, loss, second: L[1] ? winP(clamp(L[1].s)) : null };
+  }
+  // the work still to do for these positions: first the missing quick looks, then the full time where it matters
+  function todo(pos, plies, cache) {
+    const book = bookLen(plies.map(h => h.san.replace(/[+#]/g, ''))), deep = deepMs(plies.length), out = [];
+    pos.forEach((P, i) => { if (!cache.has(fen(P, i))) out.push({ i, ms: i < book ? BOOK_MS : QUICK }); });
+    if (out.length) return out;
+    const info = pos.map((P, i) => cache.get(fen(P, i))), want = new Set();
+    for (let k = book; k < plies.length; k++) {
+      if (info[k].deep && info[k + 1].deep) continue;
+      const j = judge(info, plies, k);
+      if (j.loss > 2 || (j.isBest && j.second !== null && j.wB - j.second >= 8) || sacrifice(pos[k], plies[k].m)) { want.add(k); want.add(k + 1); }
     }
-    const clamp = v => Math.max(-2000, Math.min(2000, v));
+    return [...want].filter(i => !info[i].deep).map(i => ({ i, ms: deep }));
+  }
+  async function runJob(api, pos, job, cache, deep) {
+    const P = pos[job.i], key = fen(P, job.i);
+    if (!legal(P).length) { cache.set(key, { lines: [{ s: inCheck(P, P.turn) ? -100000 : 0, pv: [] }], deep: true }); return; }
+    // the AI moves switch skill and MultiPV, so both are set again for every position
+    api.send('setoption name Skill Level value 20'); api.send('setoption name MultiPV value 2');
+    const lines = await sfLines(api, P, job.i, job.ms, job.ms >= deep ? 18 : 13);
+    cache.set(key, { lines, deep: job.ms >= deep });
+  }
+  function reviewSF(start, plies, prog, cache) { return sfRun(() => reviewSF2(start, plies, prog, cache || new Map())); }
+  async function reviewSF2(start, plies, prog, cache) {
+    const api = await engine();
+    const pos = positions(start, plies), deep = deepMs(plies.length);
+    const book = bookLen(plies.map(h => h.san.replace(/[+#]/g, '')));
+    // progress: the quick pass is most of the bar, the full-time rounds fill the rest
+    let list, pct = 0;
+    const step = p => { pct = Math.max(pct, Math.min(100, p)); prog && prog(pct, 100); };
+    while ((list = todo(pos, plies, cache)).length) {
+      const quick = list[0].ms < deep, from = pct, span = quick ? 75 - pct : (100 - pct) * 0.8;
+      for (let n = 0; n < list.length; n++) { await runJob(api, pos, list[n], cache, deep); step(from + span * (n + 1) / list.length); }
+    }
+    step(100);
+    const info = pos.map((P, i) => cache.get(fen(P, i)));
     const res = [];
     for (let k = 0; k < plies.length; k++) {
-      const P = pos[k], m = plies[k].m, L = info[k].lines, top = L[0] || { s: 0, pv: [] };
-      const bestV = clamp(top.s), played = clamp(-((info[k + 1].lines[0] || { s: 0 }).s));
-      const uci = sqn(m.f) + sqn(m.t) + (m.promo || '');
-      const isBest = top.pv[0] === uci;
-      const wB = winP(bestV), wP = winP(isBest ? bestV : Math.min(played, bestV)), loss = Math.max(0, wB - wP);
+      const P = pos[k], m = plies[k].m, { L, top, bestV, uci, isBest, wB, wP, loss } = judge(info, plies, k);
       const prev = res[k - 1];
       let kind;
       if (k < book) kind = 'book';
@@ -580,6 +611,13 @@
     .chev b{right:auto;left:50%;top:auto;bottom:4px;transform:translateX(-50%);font-size:9px;writing-mode:horizontal-tb}
     .chev.fl b{bottom:auto;top:4px}
   }
+  .duel.chside{grid-template-columns:200px minmax(0,1fr) 340px;grid-template-areas:"l c r" "l c p";grid-template-rows:auto 1fr}
+  .duel.chside>.chx{grid-area:p;align-self:start;position:sticky;top:12px;margin-top:4px}
+  /* the panel must end above the bottom of the screen, or the board would shrink to make room for it */
+  .duel.chside>.chx{max-height:calc(100vh - 370px);max-height:calc(100svh - 370px);min-height:200px;overflow:hidden}
+  .duel.chside .chx>*{flex-shrink:0} .duel.chside .chx-ml{flex:1 1 auto;min-height:48px;max-height:none}
+  .duel.chside .chg{height:70px}
+  .duel.chside>.pcard-r{flex-direction:row;align-items:center;flex-wrap:wrap;padding:12px 14px;gap:10px 12px}
   /* the coach card */
   .chco[hidden],.chg[hidden],.chev[hidden]{display:none!important}
   .chco{position:relative;display:flex;gap:10px;align-items:flex-start;padding:10px 12px;border-radius:10px;background:var(--panel2);border:1px solid var(--line);animation:wpop .3s var(--spring)}
@@ -612,8 +650,25 @@
   .chr-key .kd{grid-row:span 2} .chr-key .km{font-size:13.5px} .chr-key .kw{font-size:12.5px;color:var(--muted)} .chr-key .kw b{color:var(--fg)}
   .chr-ph{display:grid;grid-template-columns:1fr auto auto;gap:6px 16px;align-items:center;font-size:13.5px}
   .chr-ph b{font-size:12px;color:var(--muted);text-align:center} .chr-ph .ph{display:inline-block;min-width:34px;text-align:center;padding:3px 6px;border-radius:6px;color:#fff;font:800 13px/1 var(--f-b)}
-  .chr{max-height:min(84vh,780px);overflow-y:auto} .chr>*{flex-shrink:0}
-  .chr .actions{position:sticky;bottom:-1px;padding-top:8px;background:linear-gradient(transparent,var(--panel) 30%);z-index:2}`);
+  .chr{max-height:min(84vh,780px);overflow-y:auto;overflow-x:hidden} .chr>*,.chr-l>*,.chr-r>*{flex-shrink:0}
+  .chr .actions{position:sticky;bottom:-1px;padding-top:8px;background:linear-gradient(transparent,var(--panel) 30%);z-index:2}
+  /* phones: one column (the two halves only group, the phases come after the table); wide screens: two columns */
+  .chr-l,.chr-r{display:contents} .chr-ph{order:1} .chr .actions{order:2} .chr-hint{order:3}
+  @media (min-width:900px) and (min-height:560px){
+    .modal.chrm{width:min(960px,94vw);max-width:none}
+    .chr{display:grid;grid-template-columns:1fr 1fr;gap:16px 26px;align-items:start}
+    .chr-h,.chr .actions,.chr-hint{grid-column:1/-1}
+    .chr-l,.chr-r{display:flex;flex-direction:column;gap:14px;min-width:0}
+    .chr-h h3{font-size:24px}
+    .chr-acc b{font-size:42px} .chr-acc div{padding:16px 12px}
+    .chr .chg.big{height:130px}
+    .chr-ph{padding:12px 14px;border-radius:10px;background:var(--panel2);font-size:14px}
+    .chr-tab{padding:10px 14px;border-radius:10px;background:var(--panel2);gap:6px 12px}
+    .chr-key{padding:10px 12px} .chr-key .km{font-size:14.5px} .chr-key .kw{font-size:13px}
+    .chr-key:hover{border-color:var(--line2);background:var(--panel3)}
+    .chr .actions{justify-content:center} .chr .actions .btn{flex:0 1 280px}
+    .chr-hint{text-align:center}
+  }`);
 
   const cm = (rows, extra) => V.mini(rows, Object.assign({
     K: { c: 'pw', t: '♚︎' }, Q: { c: 'pw', t: '♛︎' }, R: { c: 'pw', t: '♜︎' }, B: { c: 'pw', t: '♝︎' }, N: { c: 'pw', t: '♞︎' }, P: { c: 'pw', t: '♟︎' },
@@ -670,6 +725,10 @@
       arrow.innerHTML = '<defs><marker id="charh" markerWidth="3" markerHeight="3" refX="1.6" refY="1.5" orient="auto"><path d="M0 0L3 1.5L0 3z" fill="rgba(129,182,76,.9)"/></marker></defs><line/>';
       const brow = V.el('div', 'chbrow'); brow.append(evb, board);
       wrap.append(topC, brow, botC, panel); ctx.stage.appendChild(wrap);
+      // big screens: the move list, the coach and the graph stand beside the board, under the right player card
+      const duel = ctx.stage.closest('.duel'), sideMQ = matchMedia('(min-width:1280px) and (min-height:600px)');
+      const place = () => { const side = !!duel && sideMQ.matches; if (duel) duel.classList.toggle('chside', side); (side ? duel : wrap).appendChild(panel); };
+      place(); sideMQ.addEventListener('change', place);
       for (let sq = 0; sq < 64; sq++) { const d = V.el('div', 'sq ' + (((sq >> 3) + (sq & 7)) % 2 ? 'dk' : 'lt')); d.dataset.sq = sq; board.appendChild(d); }
       board.appendChild(arrow);
       const cells = {}; [...board.children].forEach(d => cells[+d.dataset.sq] = d);
@@ -838,7 +897,7 @@
           // other moves count when they keep (almost) as much as the best one
           let val;
           if (!legal(Q).length) val = inCheck(Q, Q.turn) ? 100000 : 0;
-          else { try { const api = await engine(); val = -((await sfLines(api, Q, k + 1, 450))[0] || { s: 0 }).s; } catch (e) { val = -100000; } }
+          else { try { val = -((await sfRun(() => engine().then(api => sfLines(api, Q, k + 1, 450))))[0] || { s: 0 }).s; } catch (e) { val = -100000; } }
           const bestV = Math.max(-2000, Math.min(2000, top.s || 0)), v = Math.max(-2000, Math.min(2000, val));
           const loss = winP(bestV) - winP(v);
           ok = loss <= 5;
@@ -960,6 +1019,7 @@
         const rep = bump();
         const flipNow = flip; layout();
         render();
+        ctx.later(bgReview, 400);
         if (!dragged && flipNow === flip) V.fx.slide(cells[m.t].querySelector('.pc'), fromR, 200);
         if (rook && flipNow === flip) V.fx.slide(cells[rook[1]].querySelector('.pc'), rookR, 260);
         if (m.promo) ctx.later(() => { V.fx.ringAt(cells[m.t], '#ffd84f'); V.fx.floatAt(cells[m.t], NAME[m.promo] + '!', '#ffd84f'); }, 220);
@@ -968,6 +1028,18 @@
         if (P.half >= 100) { finish(); ctx.end(0, '50-Züge-Regel'); return; }
         if (insufficient()) { finish(); ctx.end(0, 'Kein Matt mehr möglich'); return; }
         next(chk);
+      }
+      // the review starts during the game: while a person is to move (the AI needs the worker then), Stockfish looks at
+      // the positions so far one at a time, so after the game only the last few are left
+      const sfCache = new Map();
+      let bgOn = false, bgOff = !!ctx.auto;
+      function bgReview() {
+        if (bgOn || bgOff || rev || busy || (!over && ctx.isAI(numOf[P.turn]))) return;
+        const pos = positions(START, hist), job = todo(pos, hist, sfCache)[0];
+        if (!job) return;
+        bgOn = true;
+        sfRun(() => engine().then(api => runJob(api, pos, job, sfCache, deepMs(hist.length))))
+          .then(() => { bgOn = false; ctx.later(bgReview, 20); }, () => { bgOn = false; bgOff = true; });
       }
       // after the game: the review is offered on the end screen and below the board
       let finished = false;
@@ -993,7 +1065,7 @@
         const bar = m.querySelector('.chr-prog i');
         const prog = (i, n) => { if (bar.isConnected) bar.style.setProperty('--w', Math.round(i / n * 100) + '%'); };
         busy = true;
-        reviewSF(START, hist, prog).catch(() => review(START, hist, prog)).then(r => {
+        reviewSF(START, hist, prog, sfCache).catch(() => review(START, hist, prog)).then(r => {
           busy = false; rev = r; render();
           if (m.isConnected) showReview();
         });
@@ -1018,12 +1090,12 @@
         const pts = rev.evals.map((e, k) => [k / Math.max(1, rev.evals.length - 1) * 100, 100 - winP(e)]);
         const graphSvg = `<div class="chg big"><svg viewBox="0 0 100 100" preserveAspectRatio="none"><path d="M0 100 ${pts.map(p => 'L' + p[0].toFixed(2) + ' ' + p[1].toFixed(2)).join(' ')} L100 100Z" fill="#f2f2f2"/><path d="M0 50H100" class="mid"/></svg><span class="chg-dots">${rev.moves.map((x, k) => ['mist', 'blun', 'miss', 'brill', 'great'].includes(x.kind) ? `<i class="k-${x.kind}" style="left:${pts[k + 1][0].toFixed(2)}%;top:${pts[k + 1][1].toFixed(2)}%"></i>` : '').join('')}</span></div>`;
         const m = V.openModal(`<div class="chr"><div class="chr-h"><h3>Partie-Analyse</h3><small>${rev.sf ? 'Stockfish 19' : 'Versus-Engine'}</small></div>
-          <div class="chr-acc">${sides.map(s => `<div class="${s}"><small><span>${n1(s)}</span> · <span>${s === 'w' ? 'Weiß' : 'Schwarz'}</span></small><b>${acc(s).toFixed(1)}</b><small>Genauigkeit</small>
+          <div class="chr-l"><div class="chr-acc">${sides.map(s => `<div class="${s}"><small><span>${n1(s)}</span> · <span>${s === 'w' ? 'Weiß' : 'Schwarz'}</span></small><b>${acc(s).toFixed(1)}</b><small>Genauigkeit</small>
             ${rev.sf && mv(s).length >= 8 ? `<em class="chr-elo"><span>Spielstärke ca.</span> <span>${elo(acc(s))}</span></em>` : ''}</div>`).join('')}</div>
           ${graphSvg}
-          ${keys.length ? `<div class="chr-keys"><h4>Schlüsselmomente</h4>${keys.map(x => { const kd = KIND.find(z => z[0] === x.kind); return `<button data-go="${x.k + 1}" class="chr-key"><span class="kd k-${x.kind}">${kd[1]}</span><span class="km"><b>${Math.floor(x.k / 2) + 1}${x.k % 2 ? '…' : '.'} ${show(hist[x.k].san)}</b> <span>${kd[2]}</span></span><span class="kw">${x.why || ''}</span></button>`; }).join('')}</div>` : ''}
-          <div class="chr-tab">${KIND.map(([k, sym, label]) => `<span class="kd k-${k}">${sym}</span><span>${label}</span><span class="c">${count('w', k)}</span><span class="c">${count('b', k)}</span>`).join('')}</div>
-          ${rev.sf && rev.moves.length >= 12 ? `<div class="chr-ph"><span></span><b>Weiß</b><b>Schwarz</b>${PH.map(([k, l]) => `<span>${l}</span>${phase('w', k)}${phase('b', k)}`).join('')}</div>` : ''}
+          ${rev.sf && rev.moves.length >= 12 ? `<div class="chr-ph"><span></span><b>Weiß</b><b>Schwarz</b>${PH.map(([k, l]) => `<span>${l}</span>${phase('w', k)}${phase('b', k)}`).join('')}</div>` : ''}</div>
+          <div class="chr-r">${keys.length ? `<div class="chr-keys"><h4>Schlüsselmomente</h4>${keys.map(x => { const kd = KIND.find(z => z[0] === x.kind); return `<button data-go="${x.k + 1}" class="chr-key"><span class="kd k-${x.kind}">${kd[1]}</span><span class="km"><b>${Math.floor(x.k / 2) + 1}${x.k % 2 ? '…' : '.'} ${show(hist[x.k].san)}</b> <span>${kd[2]}</span></span><span class="kw">${x.why || ''}</span></button>`; }).join('')}</div>` : ''}
+          <div class="chr-tab">${KIND.map(([k, sym, label]) => `<span class="kd k-${k}">${sym}</span><span>${label}</span><span class="c">${count('w', k)}</span><span class="c">${count('b', k)}</span>`).join('')}</div></div>
           <div class="actions">${practice.length ? `<button class="btn primary" id="chrtry"><span>Fehler üben (${practice.length})</span></button>` : ''}<button class="btn ${practice.length ? '' : 'primary'}" id="chrgo"><span>Züge ansehen</span></button></div>
           <p class="chr-hint">Kostenlos und so oft du willst. Tippe auf einen Schlüsselmoment oder in der Zugliste auf einen Zug, dann erklärt dir der Coach, was dort passiert ist.</p></div>`, 'chrm');
         m.querySelector('#chrgo').onclick = () => {
@@ -1078,7 +1150,10 @@
       render(); next(false);
       // giving up, the clock or a dropped opponent end the game from outside: the review is offered there too
       // a recorded match from the history: "Analyse" there opens the review right away
-      return { ended() { finish(); render(); if (ctx.review && ctx.review.analyse && !rev && !busy) analyse(); } };
+      return {
+        ended() { finish(); render(); if (ctx.review && ctx.review.analyse && !rev && !busy) analyse(); },
+        destroy() { sideMQ.removeEventListener('change', place); }
+      };
     }
   });
 })();
