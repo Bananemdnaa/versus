@@ -1,5 +1,5 @@
 -- Versus: die erste Umfrage (Deutsch und Englisch getrennt), gleich live.
--- Braucht 20261126000000_flags_surveys.sql. Läuft sie zweimal, legt sie nichts doppelt an.
+-- Braucht 20261129000000_flags_surveys.sql. Läuft sie zweimal, legt sie nichts doppelt an.
 -- Ergebnis und Beenden: Admin-Panel, Tab "Umfragen".
 
 insert into public.surveys (title, intro, lang, questions, status, created_by, started_at)
