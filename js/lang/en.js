@@ -507,7 +507,7 @@
     c4: 'Connect 4', ships: 'Battleship', ttt: 'Tic Tac Toe', gomoku: 'Five in a Row', uttt: 'Ultimate Tic Tac Toe', dots: 'Dots and Boxes',
     hangman: 'Hangman', slf: 'City Country River', schnapsen: 'Schnapsen', guess: 'Estimation Quiz', hex: 'Hex', ttt3: '3D Tic Tac Toe', code: 'Code Breaker', domino: 'Dominoes', ludo: 'Ludo', ladder: 'Snakes and Ladders', checkers: 'Checkers', mill: "Nine Men's Morris",
     yacht: 'Dice Block', maumau: 'Mau-Mau', memory: 'Memory', poker: 'Poker', chess: 'Chess', reversi: 'Reversi', kalaha: 'Kalah', go: 'Go',
-    backgammon: 'Backgammon', reaction: 'Reaction Duel', pong: 'Pong', hockey: 'Air Hockey', billiard: 'Pool', draw: 'Draw & Guess', tron: 'Light Racer', sumo: 'Sumo Arena'
+    backgammon: 'Backgammon', reaction: 'Reaction Duel', pong: 'Pong', hockey: 'Air Hockey', billiard: 'Pool', draw: 'Draw & Guess', tron: 'Light Racer', sumo: 'Sumo Arena', blockade: 'Blockade'
   });
 
   // ---------- games: shared words ----------
@@ -695,6 +695,28 @@
     'Dreht gern viele Steine um und mag Ecken, denkt aber nicht voraus.': "Likes to flip many discs and likes corners, but doesn't think ahead.",
     'Rechnet vier Halbzüge tief.': 'Calculates four half-moves deep.', 'Rechnet acht Züge tief und spielt die letzten # Felder perfekt.': 'Calculates eight moves deep and plays the last # squares perfectly.',
     'Rechnet drei Züge tief und spielt die letzten acht Felder perfekt.': 'Calculates three moves deep and plays the last eight squares perfectly.'
+  });
+
+  // ---------- Blockade ----------
+  A({
+    'Teile Ecke an Ecke legen, den anderen den Weg versperren.': 'Lay pieces corner to corner and block the others.',
+    'Jeder hat dieselben 21 Teile aus 1 bis 5 Kästchen. Deine Teile dürfen sich nur an den Ecken berühren, nie an einer Kante. Leg möglichst viel aufs Brett und versperr den anderen den Platz. Für 2 bis 4 Spieler, am Gerät oder gegen die KI.': 'Everyone has the same 21 pieces of 1 to 5 squares. Your pieces may only touch at the corners, never along an edge. Get as much onto the board as you can and take the space away from the others. For 2 to 4 players, on one device or against the AI.',
+    'Legt irgendein Teil, das passt, auch kleine viel zu früh.': 'Lays any piece that fits, even small ones far too early.',
+    'Legt große Teile zuerst und sucht sich neue Ecken.': 'Lays big pieces first and looks for new corners.',
+    'Drängt zur Mitte, hält sich Ecken offen und stellt deine zu.': 'Pushes to the middle, keeps corners open and blocks yours.',
+    'Rechnet nach, wie viel Platz ihm und euch nach dem Zug bleibt.': 'Works out how much room it and you have left after the move.',
+    'Q / E': 'Q / E', 'Teil wechseln': 'Switch piece', 'Drehen': 'Rotate', 'Spiegeln': 'Flip', 'Teil verschieben': 'Move the piece', 'Enter / Klick': 'Enter / click', 'Teil legen': 'Lay the piece', 'Abwählen': 'Deselect',
+    'Jeder hat {0} aus 1 bis 5 Kästchen. Ihr legt reihum je ein Teil. Wer am Ende {1} auf dem Brett hat, gewinnt.': 'Everyone has {0} of 1 to 5 squares. You take turns laying one piece each. Whoever has {1} on the board at the end wins.',
+    'dieselben 21 Teile': 'the same 21 pieces', 'die meisten Kästchen': 'the most squares',
+    'Der Start': 'The start', 'Dein erstes Teil muss {0} bedecken: den Ring in deiner Farbe. Zu viert liegt es in deiner Ecke, zu zweit kurz vor der Mitte.': 'Your first piece must cover {0}: the ring in your colour. With four players it is in your corner, with two just off the middle.', 'dein Startfeld': 'your start square',
+    'Ecke an Ecke': 'Corner to corner', 'Jedes weitere Teil muss ein eigenes Teil {0} berühren. An einer {1} dürfen sich deine Teile nie berühren. Die Punkte zeigen dir, wo es weitergeht.': 'Every further piece must touch one of your pieces {0}. Your pieces may never touch along an {1}. The dots show you where you can go on.', 'an einer Ecke': 'at a corner', 'Kante': 'edge',
+    'Fremde Farben': 'Other colours', 'Teile der anderen darfst du überall berühren, auch an Kanten. So schiebst du dich zwischen sie und {0}.': "You may touch the others' pieces anywhere, edges included. That way you push in between them and {0}.", 'stellst ihre Ecken zu': 'block their corners',
+    'Bedienung': 'Controls', '{0}, dann aufs Brett tippen oder mit dem Finger schieben. Mit {1} und {2} passt du es an. Grün heißt: passt. Dann {3} oder Setzen. Am PC folgt das Teil der Maus, ein Klick legt es; R dreht, F spiegelt.': '{0}, then tap the board or slide it with your finger. Adjust it with {1} and {2}. Green means it fits. Then {3} or Place. On a computer the piece follows the mouse and a click lays it; R rotates, F flips.',
+    'Teil unten antippen': 'Tap a piece below', 'nochmal aufs Teil tippen': 'tap the piece again',
+    'Ende und Punkte': 'End and points', 'Wer kein Teil mehr legen kann, ist raus, die anderen spielen weiter. Jedes gelegte Kästchen zählt einen Punkt. Alle 21 Teile gelegt: {0}, und war das Einzelkästchen das letzte: {1}.': 'Whoever cannot lay a piece any more is out, the others play on. Every square laid counts one point. All 21 pieces laid: {0}, and if the single square came last: {1}.', 'noch +5': 'another +5',
+    'Tipps': 'Tips', '{0}, die kleinen passen später noch in Lücken. Arbeite dich schnell {1} vor und halte dir mehrere Ecken offen. Wer den anderen die Ecken zustellt, nimmt ihnen ganze Teile weg.': '{0}, the small ones still fit into gaps later. Work your way {1} quickly and keep several corners open. Blocking the others\' corners takes whole pieces away from them.', 'Große Teile zuerst': 'Big pieces first', 'zur Mitte': 'to the middle',
+    'Wähl unten ein Teil': 'Pick a piece below', 'Tipp aufs Brett, wo das Teil hin soll': 'Tap the board where the piece should go', 'Nochmal aufs Teil tippen oder Setzen': 'Tap the piece again or Place', 'Klick legt das Teil': 'Click lays the piece', 'Passt hier nicht: Ecke an Ecke, nie Kante an Kante': "Doesn't fit here: corner to corner, never edge to edge", 'Dein erstes Teil muss dein Startfeld bedecken': 'Your first piece must cover your start square',
+    '# Kästchen': '# squares', 'kannst nichts mehr legen': "can't lay anything more", 'kann nichts mehr legen': "can't lay anything more"
   });
 
   // ---------- Mill ----------

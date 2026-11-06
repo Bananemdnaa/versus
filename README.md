@@ -8,14 +8,15 @@ Spiele für zwei bis vier Spieler an einem Gerät, online oder allein gegen die 
 
 - **Klassiker:** 4 Gewinnt, Schiffe versenken, Tic Tac Toe, Fünf in einer Reihe, Ultimate Tic Tac Toe, Hardcore Tic Tac Toe, Käsekästchen, Galgenmännchen (2–4), Stadt Land Fluss (2–4), Schätzfragen (2–4), Zeichnen & Raten (2–4), 3D Tic Tac Toe, Zahlencode knacken
 - **Brettspiele:** Ludo (wie Mensch ärgere dich nicht, 2–4), Leiterspiel (2–4), Dame, Mühle, Würfelblock (wie Kniffel, 2–4), Mau-Mau (2–4), Memory (2–4), Poker (Texas Hold'em, 2–4), Schnapsen, Domino (2–4); mit Holzbrett-Look, Spielfiguren, 3D-Würfeln und Karten
-- **Strategie:** Schach, Reversi, Kalaha, Go (9×9 oder 13×13), Backgammon, Hex (7×7, 9×9 oder 11×11)
+- **Strategie:** Schach, Reversi, Blockade (Teile Ecke an Ecke legen, 2–4), Kalaha, Go (9×9 oder 13×13), Backgammon, Hex (7×7, 9×9 oder 11×11)
 - **Action:** Reaktionsduell, Pong, Air Hockey (beide spielen gleichzeitig am selben Handy, jeder auf seiner Hälfte), Billard (8-Ball, abwechselnd am selben Gerät), Lichtrenner (2–4), Sumo-Arena (2–4)
 
 ## Bis zu vier Spieler
 
-Ludo, Leiterspiel, Lichtrenner und Sumo-Arena gehen mit 2, 3 oder 4 Spielern (Einstellung „Spieler“). Gegen die KI bist du immer Pink, die anderen Plätze übernehmen Computer-Spieler in der gewählten Stärke; zu zweit, dritt oder viert spielt ihr am selben Gerät. Farben: Spieler 1 Pink, 2 Gelb, 3 Cyan, 4 Grün.
+Ludo, Leiterspiel, Blockade, Lichtrenner und Sumo-Arena gehen mit 2, 3 oder 4 Spielern (Einstellung „Spieler“). Gegen die KI bist du immer Pink, die anderen Plätze übernehmen Computer-Spieler in der gewählten Stärke; zu zweit, dritt oder viert spielt ihr am selben Gerät. Farben: Spieler 1 Pink, 2 Gelb, 3 Cyan, 4 Grün.
 
 - **Ludo:** jeder vier Figuren; mit einer 6 raus (Pflicht, wenn das Startfeld frei ist), nach einer 6 nochmal, drei Versuche, wenn keine Figur draußen steht; Rauswerfen, genaue Augenzahl im Ziel.
+- **Blockade:** jeder hat dieselben 21 Teile aus 1 bis 5 Kästchen (alle freien Formen); das erste Teil bedeckt das eigene Startfeld, jedes weitere berührt ein eigenes Teil an einer Ecke, nie an einer Kante. Wer nicht mehr legen kann, ist raus. Punkte: gelegte Kästchen, +15 für alle 21 Teile, +5 wenn das Einzelkästchen zuletzt kam. Zu zweit 14×14 mit Startfeldern vor der Mitte, zu dritt und viert 20×20 aus den Ecken. Am Handy Teil antippen, aufs Brett tippen oder schieben, nochmal tippen legt es; am PC folgt das Teil der Maus (R dreht, F spiegelt, Mausrad dreht).
 - **Leiterspiel:** 100 Felder, Leitern hoch, Schlangen runter, genau 100 gewinnt (zu viel prallt zurück). Reines Glück.
 - **Würfelblock:** 5 Würfel, bis zu 3 Würfe, Würfel zum Behalten antippen, 13 Felder wie bei Kniffel, Bonus 35 ab 63 oben.
 - **Mau-Mau:** 32 Karten, 5 auf die Hand; 7 = zwei ziehen (stapelbar), 8 = aussetzen, Bube passt immer und wünscht eine Farbe. Am selben Gerät kommt vor jedem Zug „Gib das Gerät an …“, damit niemand fremde Karten sieht.
