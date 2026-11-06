@@ -66,13 +66,14 @@
       <h1 class="title"><span>Dein</span> Konto</h1>
       <div class="acard me lkc ${V.look.banner(lk)}" style="--lc:${V.look.color(lk)}">
         <div class="ahead"><span class="abig${V.look.isIcon(lk) ? ' sym' : ''}" style="${V.look.style(lk)}">${V.look.text(u.username, lk)}</span>
-          <div><b>${esc(u.username)}</b>${role ? `<em class="rtag ${role}">${ROLE[role]}</em>` : ''}${info.dev ? '<em class="rtag dev">Dev</em>' : ''}
+          <div><b>${esc(u.username)}${V.flag ? V.flag.tag(u.username) : ''}</b>${role ? `<em class="rtag ${role}">${ROLE[role]}</em>` : ''}${info.dev ? '<em class="rtag dev">Dev</em>' : ''}
             ${lk.m ? `<small class="p2-m">„${esc(lk.m)}“</small>` : ''}<small>Dabei seit ${day(info.joined)}</small>
             ${lk.g && V.byId[lk.g] ? `<span class="p2-fav"><span class="ic">${V.byId[lk.g].icon}</span>${esc(V.byId[lk.g].name)}</span>` : ''}</div></div>
         <div class="sync ${sync[0]}"><i></i><span>${sync[1]}</span><button class="btn ghost sm" id="a_sync"><span>${IC().redo}Abgleichen</span></button></div>
         <div class="arow">
           ${role ? `<button class="btn primary" id="a_admin"><span>${IC().shield}Admin-Panel</span></button>` : ''}
           <button class="btn" id="a_look"><span>${IC().spark}Dein Look</span></button>
+          <button class="btn" id="a_flag"><span>${IC().globe}Flagge</span></button>
           <button class="btn" id="a_prof"><span>${IC().trophy}Profil und Verlauf</span></button>
           <button class="btn" id="a_out"><span>Abmelden</span></button>
         </div>
@@ -123,7 +124,8 @@
       <h1 class="title"><span>Dein</span> Konto</h1>
       <div class="acard me">
         <div class="ahead"><span class="abig">${IC().user}</span>
-          <div><b>${esc(u.username)}</b><em class="rtag muted">Gast</em><small>Gilt nur in diesem Browser</small></div></div>
+          <div><b>${esc(u.username)}${V.flag ? V.flag.tag(u.username) : ''}</b><em class="rtag muted">Gast</em><small>Gilt nur in diesem Browser</small></div></div>
+        <div class="arow"><button class="btn" id="a_flag"><span>${IC().globe}Flagge</span></button></div>
         <p class="lead">Du spielst als Gast. Wähl einen Namen und ein Passwort, dann wird daraus ein richtiges Konto: alle ${V.games.length} Spiele, Freunde, Rangliste und deine Bilanz auf jedem Gerät.</p>
         <form class="aform" id="gform" autocomplete="on">
           <label for="g_name">Benutzername</label>
@@ -237,6 +239,7 @@
     if (q('#a_admin')) q('#a_admin').onclick = () => { V.sfx.ui(); admin(); };
     if (q('#akpis')) fillMe(b);
     if (q('#a_look')) q('#a_look').onclick = () => { V.sfx.ui(); V.look.editor(); };
+    if (q('#a_flag')) q('#a_flag').onclick = () => { V.sfx.ui(); V.flag.picker(); };
     if (q('#a_hist')) q('#a_hist').onclick = () => { V.sfx.ui(); V.online.profile(C().user().username); };
     if (q('#a_prof')) q('#a_prof').onclick = () => { V.sfx.ui(); V.online.profile(c.user().username); };
     b.querySelectorAll('[data-box]').forEach(x => x.onclick = () => { openBox = openBox === x.dataset.box ? null : x.dataset.box; V.sfx.ui(); V.ui.home('profile'); });
@@ -291,7 +294,7 @@
     const v = V.ui.show('admin', `<div class="view admin">
       <div class="sbar"><button class="iconbtn" id="bk" aria-label="Zurück">${IC().back}</button><span class="crumb">Admin-Panel</span>
         ${C().role() ? `<em class="rtag ${C().role()}">${ROLE[C().role()]}</em>` : ''}<div class="aattn" id="aattn"></div></div>
-      <div class="chips" id="atabs">${[['overview', 'Übersicht'], ['matches', 'Partien'], ['players', 'Spieler'], ['reports', 'Meldungen'], ['feedback', 'Feedback'], ['site', 'Seite'], ['log', 'Protokoll']].map(([k, l]) => `<button data-t="${k}" class="${aTab === k ? 'on' : ''}">${l}${k === 'reports' && reports && reports.open ? ` <small class="nb">${reports.open}</small>` : ''}${k === 'feedback' && fb && fb.open ? ` <small class="nb">${fb.open}</small>` : ''}</button>`).join('')}</div>
+      <div class="chips" id="atabs">${[['overview', 'Übersicht'], ['matches', 'Partien'], ['players', 'Spieler'], ['reports', 'Meldungen'], ['feedback', 'Feedback'], ['survey', 'Umfragen'], ['site', 'Seite'], ['log', 'Protokoll']].map(([k, l]) => `<button data-t="${k}" class="${aTab === k ? 'on' : ''}">${l}${k === 'reports' && reports && reports.open ? ` <small class="nb">${reports.open}</small>` : ''}${k === 'feedback' && fb && fb.open ? ` <small class="nb">${fb.open}</small>` : ''}</button>`).join('')}</div>
       <div id="abody" class="abody"></div></div>`);
     v.querySelector('#bk').onclick = () => { stopLive(); V.ui.home('profile'); };
     v.querySelectorAll('#atabs button').forEach(x => x.onclick = () => { aTab = x.dataset.t; aErr = ''; box = null; sure = null; V.sfx.ui(); v.querySelectorAll('#atabs button').forEach(y => y.classList.toggle('on', y === x)); draw(); load(); });
@@ -346,8 +349,9 @@
     const host = document.getElementById('abody'); if (!host) return;
     const keep = document.activeElement && host.contains(document.activeElement) && /INPUT|TEXTAREA/.test(document.activeElement.tagName);
     if (keep && !force) return;
-    host.innerHTML = (aErr ? `<p class="aerr big">${esc(aErr)}</p>` : '') + (aTab === 'overview' ? overview() : aTab === 'matches' ? matchList() : aTab === 'players' ? playerList() : aTab === 'reports' ? reportList() : aTab === 'feedback' ? feedbackList() : aTab === 'site' ? sitePage() : logList());
+    host.innerHTML = (aErr ? `<p class="aerr big">${esc(aErr)}</p>` : '') + (aTab === 'overview' ? overview() : aTab === 'matches' ? matchList() : aTab === 'players' ? playerList() : aTab === 'reports' ? reportList() : aTab === 'feedback' ? feedbackList() : aTab === 'survey' ? '<div id="asv"></div>' : aTab === 'site' ? sitePage() : logList());
     wireAdmin(host);
+    if (aTab === 'survey' && V.survey) V.survey.admin(host.querySelector('#asv'));
   }
   function overview() {
     if (!stats) return V.skel();
@@ -501,7 +505,7 @@
   }
   function logList() {
     const L = { hide: 'ausgeblendet', show: 'eingeblendet', ban: 'gesperrt', unban: 'entsperrt', note: 'Notiz', rename: 'umbenannt', reset_stats: 'Bilanz zurückgesetzt', admin_on: 'zum Admin gemacht', admin_off: 'Admin entzogen', dev_on: 'Dev-Konto an', dev_off: 'Dev-Konto aus', void_match: 'Partie annulliert', report_done: 'Meldung erledigt', report_open: 'Meldung wieder offen',
-      warn: 'verwarnt', auto_hide: 'automatisch ausgeblendet', void_table: 'Tisch annulliert', notice: 'Ankündigung', notice_off: 'Ankündigung entfernt', site: 'Seiteneinstellungen', season: 'Saison-Look', purge_guests: 'Gäste aufgeräumt' };
+      warn: 'verwarnt', auto_hide: 'automatisch ausgeblendet', void_table: 'Tisch annulliert', notice: 'Ankündigung', notice_off: 'Ankündigung entfernt', site: 'Seiteneinstellungen', season: 'Saison-Look', purge_guests: 'Gäste aufgeräumt', survey: 'Umfrage' };
     if (!logs) return V.skel();
     if (!logs.length) return '<p class="muted">Noch keine Admin-Aktionen.</p>';
     // a void_table target is a table code, not a player

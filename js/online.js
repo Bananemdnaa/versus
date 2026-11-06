@@ -298,10 +298,10 @@
     const d = friendsData, fr = d.friends || [];
     const cnt = b.querySelector('#fcount'); if (cnt) cnt.textContent = fr.length ? `${fr.length} · ${fr.filter(f => f.online).length} online` : '';
     const inc = (d.incoming || []).map(n => `<div class="frow req" data-prof="${esc(n)}"><span class="fav">${initials(n)}</span>
-      <div class="ft"><b>${esc(n)}</b><small>möchte dein Freund sein</small></div>
+      <div class="ft"><b>${esc(n)}${V.flag.tag(n)}</b><small>möchte dein Freund sein</small></div>
       <button class="btn primary sm" data-yes="${esc(n)}"><span>Annehmen</span></button><button class="iconbtn sm" data-no="${esc(n)}" aria-label="Anfrage von ${esc(n)} ablehnen" title="Ablehnen">${IC().x}</button></div>`).join('');
     const rows = fr.map(f => `<div class="frow${f.online ? ' on' : ''}" data-prof="${esc(f.username)}"><span class="fav">${initials(f.username)}<i></i></span>
-      <div class="ft"><b>${esc(f.username)}</b><small>${fstatus(f)}</small></div>
+      <div class="ft"><b>${esc(f.username)}${V.flag.tag(f.username)}</b><small>${fstatus(f)}</small></div>
       ${f.watchable && f.match ? `<button class="btn sm primary" data-watchf="${esc(f.match)}"><span>${IC().eye}Zuschauen</span></button>`
         : `<button class="btn sm${f.online && !f.busy ? ' primary' : ''}" data-play="${esc(f.username)}"><span>${IC().play}Spielen</span></button>`}</div>`).join('');
     const out = (d.outgoing || []).length ? `<div class="fout"><small>Angefragt</small>${d.outgoing.map(n => `<span class="fchip">${esc(n)}<button data-rm="${esc(n)}" aria-label="Anfrage an ${esc(n)} zurückziehen" title="Zurückziehen">${IC().x}</button></span>`).join('')}</div>` : '';
@@ -309,7 +309,7 @@
       <div class="arow"><button class="btn primary sm" data-addt="code"><span>${IC().qr}Mein Code</span></button><button class="btn sm" data-addt="search"><span>Name suchen</span></button></div></div>`;
     // friends online right now as a row of big avatar cards above the full list
     const onl = fr.filter(f => f.online || f.busy);
-    const orow = onl.length ? `<div class="fon">${onl.map((f, k) => `<button class="fcard on" data-prof="${esc(f.username)}" style="--fc:${['var(--pink)', 'var(--yellow)', 'var(--cyan)', 'var(--good)'][k % 4]}"><span class="fav">${initials(f.username).slice(0, 1)}<i></i></span><b>${esc(f.username)}</b><small>${f.busy && f.match_game ? 'spielt ' + esc(gname(f.match_game)) : f.game && V.byId[f.game] ? 'spielt ' + esc(gname(f.game)) : 'online'}</small></button>`).join('')}</div>` : '';
+    const orow = onl.length ? `<div class="fon">${onl.map((f, k) => `<button class="fcard on" data-prof="${esc(f.username)}" style="--fc:${['var(--pink)', 'var(--yellow)', 'var(--cyan)', 'var(--good)'][k % 4]}"><span class="fav">${initials(f.username).slice(0, 1)}<i></i></span><b>${esc(f.username)}${V.flag.tag(f.username)}</b><small>${f.busy && f.match_game ? 'spielt ' + esc(gname(f.match_game)) : f.game && V.byId[f.game] ? 'spielt ' + esc(gname(f.game)) : 'online'}</small></button>`).join('')}</div>` : '';
     el.innerHTML = orow + (inc ? `<div class="freqs"><h4>Anfragen</h4>${inc}</div>` : '') + (rows ? `<div class="flist">${rows}</div>` : empty) + out;
     el.querySelectorAll('[data-yes]').forEach(x => x.onclick = e => { e.stopPropagation(); respond(x.dataset.yes, true); });
     el.querySelectorAll('[data-no]').forEach(x => x.onclick = e => { e.stopPropagation(); respond(x.dataset.no, false); });
@@ -351,7 +351,7 @@
       <section class="fsec" id="fmine"><h4>Dein Code</h4><div id="fcodebox"></div></section></div>`, 'faddm');
     m.querySelector('#fclose').onclick = V.ui.closeModal;
     const q = m.querySelector('#fq'), res = m.querySelector('#fres');
-    const row = (name, st) => `<div class="frow" data-prof="${esc(name)}"><span class="fav">${initials(name)}</span><div class="ft"><b>${esc(name)}</b></div>${stateBtn(name, st)}</div>`;
+    const row = (name, st) => `<div class="frow" data-prof="${esc(name)}"><span class="fav">${initials(name)}</span><div class="ft"><b>${esc(name)}${V.flag.tag(name)}</b></div>${stateBtn(name, st)}</div>`;
     const wireRows = el => {
       el.querySelectorAll('[data-prof]').forEach(x => x.onclick = () => { V.sfx.ui(); profile(x.dataset.prof); });
       el.querySelectorAll('[data-req]').forEach(x => x.onclick = async e => {
@@ -385,7 +385,7 @@
     const inc = friendsData && friendsData.incoming || [];
     if (inc.length) {
       const fr = m.querySelector('#freq');
-      fr.innerHTML = `<section class="fsec"><h4>Anfragen an dich</h4>${inc.map(n => `<div class="frow req" data-prof="${esc(n)}"><span class="fav">${initials(n)}</span><div class="ft"><b>${esc(n)}</b><small>möchte dein Freund sein</small></div>
+      fr.innerHTML = `<section class="fsec"><h4>Anfragen an dich</h4>${inc.map(n => `<div class="frow req" data-prof="${esc(n)}"><span class="fav">${initials(n)}</span><div class="ft"><b>${esc(n)}${V.flag.tag(n)}</b><small>möchte dein Freund sein</small></div>
         <button class="btn primary sm" data-yes="${esc(n)}"><span>Annehmen</span></button><button class="iconbtn sm" data-no="${esc(n)}" aria-label="Ablehnen">${IC().x}</button></div>`).join('')}</section>`;
       fr.querySelectorAll('[data-yes]').forEach(x => x.onclick = e => { e.stopPropagation(); respond(x.dataset.yes, true); x.closest('.frow').remove(); });
       fr.querySelectorAll('[data-no]').forEach(x => x.onclick = e => { e.stopPropagation(); respond(x.dataset.no, false); x.closest('.frow').remove(); });
@@ -566,9 +566,9 @@
     const pod = top.slice(0, 3);
     const order = [pod[1], pod[0], pod[2]].filter(Boolean);
     const podium = `<div class="podium">${order.map(r => `<div class="pod p${Math.min(r.pos, 3)}${r.username === myName ? ' me' : ''}">
-        <span class="pav" data-prof="${esc(r.username)}">${initials(r.username).slice(0, 1)}</span><b class="plink" data-prof="${esc(r.username)}">${esc(r.username)}</b><small>${r.wins === 1 ? '1 Sieg' : r.wins + ' Siege'} · ${pct(r)} %</small><i class="step"><span class="medal">${r.pos}</span></i></div>`).join('')}</div>`;
+        <span class="pav" data-prof="${esc(r.username)}">${initials(r.username).slice(0, 1)}</span><b class="plink" data-prof="${esc(r.username)}">${esc(r.username)}${V.flag.tag(r.username)}</b><small>${r.wins === 1 ? '1 Sieg' : r.wins + ' Siege'} · ${pct(r)} %</small><i class="step"><span class="medal">${r.pos}</span></i></div>`).join('')}</div>`;
     const row = (r, cls = '') => `<div class="rrow ${cls}"><span class="pos">${r.pos}</span>
-        <span class="who"><b class="plink" data-prof="${esc(r.username)}">${esc(r.username)}</b>${r.username === myName ? '<em class="rtag">Du</em>' : ''}<small>${r.played} Partien</small></span>
+        <span class="who"><b class="plink" data-prof="${esc(r.username)}">${esc(r.username)}${V.flag.tag(r.username)}</b>${r.username === myName ? '<em class="rtag">Du</em>' : ''}<small>${r.played} Partien</small></span>
         <span class="rate"><i style="--w:${pct(r)}%"></i><small>${pct(r)} %</small></span><span class="w">${r.wins}</span></div>`;
     const rest = top.slice(3);
     el.innerHTML = head + mine + podium +
@@ -585,7 +585,7 @@
   // is the big button at the bottom of the panel; these lists stay short so nothing has to scroll.
   const AVC = ['var(--pink)', 'var(--yellow)', 'var(--cyan)', 'var(--good)', 'var(--warn)'];
   const pAv = name => `<span class="pav" style="--c:${AVC[[...name].reduce((a, c) => a + c.charCodeAt(0), 0) % AVC.length]}">${esc(name.slice(0, 1).toUpperCase())}</span>`;
-  const pLine = (name, status, cls, btn) => `<div class="pline${cls ? ' ' + cls : ''}">${pAv(name)}<span class="pl-t"><b>${esc(name)}</b><small>${status}</small></span>${btn}</div>`;
+  const pLine = (name, status, cls, btn) => `<div class="pline${cls ? ' ' + cls : ''}">${pAv(name)}<span class="pl-t"><b>${esc(name)}${V.flag.tag(name)}</b><small>${status}</small></span>${btn}</div>`;
   const pLogin = (el, text) => { el.innerHTML = `<p class="gp-note">${text}</p><button class="link" id="plog">Anmelden</button>`; el.querySelector('#plog').onclick = () => V.ui.home('profile'); };
   const pLink = (el, g, opts) => { const b = el.querySelector('#plink'); if (b) b.onclick = () => { V.sfx.ui(); linkInvite(g, opts); }; };
   async function picker(el, g, opts, all) {
@@ -809,7 +809,7 @@
       <span class="pr-d">${ago(r.at)}</span></div>`).join('');
     const vs = p.vs && p.vs.played ? `<div class="pvs"><small>Ihr beide</small><b><span class="me">${p.vs.wins}</span><i>:</i><span>${p.vs.losses}</span></b><small>${p.vs.played} Partien${p.vs.draws ? ' · ' + p.vs.draws + ' remis' : ''}</small></div>` : '';
     const blk = isBlocked(p.username);
-    const act = p.me ? (isAnon() ? '' : `<button class="btn primary" id="plook"><span>${IC().spark}Look ändern</span></button><button class="btn" id="pcode"><span>${IC().qr}Mein Freundescode</span></button>`)
+    const act = p.me ? (isAnon() ? `<button class="btn" id="pflag"><span>${IC().globe}Flagge</span></button>` : `<button class="btn primary" id="plook"><span>${IC().spark}Look ändern</span></button><button class="btn" id="pflag"><span>${IC().globe}Flagge</span></button><button class="btn" id="pcode"><span>${IC().qr}Mein Freundescode</span></button>`)
       : blk ? `<button class="btn" id="punb"><span>Nicht mehr blockieren</span></button>`
       : isAnon() ? ''
       : p.friend === 'friend' ? `<button class="btn primary" id="pch"><span>${IC().play}Herausfordern</span></button><button class="btn ghost" id="prm"><span>Freund entfernen</span></button>`
@@ -820,7 +820,7 @@
     m.innerHTML = `<div class="prof p2">
       <div class="p2-top"><i class="p2-st" aria-hidden="true"></i>
         <span class="p2-av">${esc(p.username.slice(0, 2).toUpperCase())}</span>
-        <div class="p2-id"><b>${esc(p.username)}</b><div class="p2-tags" id="ptags">${p.dev ? '<em class="p2-b r-dev">Dev</em>' : ''}</div>
+        <div class="p2-id"><b>${esc(p.username)}${V.flag.tag(p.username)}</b><div class="p2-tags" id="ptags">${p.dev ? '<em class="p2-b r-dev">Dev</em>' : ''}</div>
           <small>${status} · dabei seit ${new Date(p.since).toLocaleDateString(V.locale(), { month: 'long', year: 'numeric' })}</small></div>
         <button class="iconbtn p2-x" id="pc" aria-label="Schließen">${IC().x}</button></div>
       <div class="p2-stats">${stat(t.wins || 0, 'Siege', 'p')}${stat(t.losses || 0, 'Niederlagen', 'y')}${stat(pct(t.wins, t.played) + ' %', 'Siegquote', 'c')}${stat(p.week ? '#' + p.week.pos : '–', 'Diese Woche', 'g')}</div>
@@ -861,6 +861,7 @@
     on('pch', () => { V.sfx.ui(); challenge(p.username); });
     on('pcode', () => { V.sfx.ui(); addFriends('code'); });
     on('plook', () => { V.sfx.ui(); V.ui.closeModal(); V.look.editor(); });
+    on('pflag', () => { V.sfx.ui(); V.ui.closeModal(); V.flag.picker(); });
     on('prep', () => { V.sfx.ui(); report(p.username); });
     on('punb', () => block(p.username, false).then(again));
     // blocking needs a second tap

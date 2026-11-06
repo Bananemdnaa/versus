@@ -175,7 +175,7 @@
       const onl = fr ? fr.filter(f => f.online) : [];
       const frRows = fr ? fr.slice().sort((x, y) => y.online - x.online).slice(0, 6).map(f => `<div class="sd-fr${f.online ? ' on' : ''}">
           <button class="sd-fav" data-prof="${escA(f.name)}" aria-label="Profil von ${escA(f.name)}"><span>${escA(f.name.slice(0, 2).toUpperCase())}</span><i></i></button>
-          <span class="sd-ft"><b>${escA(f.name)}</b><small>${f.status}</small></span>
+          <span class="sd-ft"><b>${escA(f.name)}${V.flag ? V.flag.tag(f.name) : ''}</b><small>${f.status}</small></span>
           ${f.match ? `<button class="sd-mini" data-watchf="${escA(f.match)}">Zuschauen</button>` : f.online && !f.busy ? `<button class="sd-mini" data-play="${escA(f.name)}">Einladen</button>` : ''}</div>`).join('') : '';
       el.innerHTML = `<div class="sd-top">
           <button class="sd-logo" data-go="start" aria-label="Versus Startseite"><span class="l1">VER</span><i class="slash"></i><span class="l2">SUS</span><b class="sd-vs">VS</b></button>

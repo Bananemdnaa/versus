@@ -1596,6 +1596,30 @@
     'Dieser Browser kann keine Benachrichtigungen': 'This browser cannot show notifications', 'Dieser Browser kann keine Benachrichtigungen.': 'This browser cannot show notifications.',
     'Benachrichtigungen sind im Browser blockiert': 'Notifications are blocked in the browser', 'Benachrichtigungen kommen nach dem nächsten Server-Update.': 'Notifications arrive with the next server update.'
   });
+  // ---------- country flag and surveys (js/flag.js, js/survey.js) ----------
+  A({
+    'Flagge': 'Flag', 'Deine Flagge': 'Your flag', 'Land suchen': 'Search country', 'Keine Flagge': 'No flag', 'Kein Land gefunden.': 'No country found.',
+    'Sie weht neben deinem Namen, in Partien, bei Freunden und in der Rangliste. Am Anfang passend zu deinem Gerät, hier kannst du sie ändern oder entfernen.': 'It waves next to your name, in matches, with friends and in the ranking. It starts out matching your device; change or remove it here.',
+    'Deine Flagge weht jetzt': 'Your flag is flying now', 'Flagge entfernt': 'Flag removed', 'Flaggen kommen nach dem nächsten Server-Update.': 'Flags come with the next server update.', 'Unbekanntes Land.': 'Unknown country.',
+    'Kurze Umfrage': 'Quick survey', 'Mitmachen': 'Take part', 'Die Umfrage kommt in ein paar Tagen nochmal': 'The survey will come back in a few days',
+    'Mehrere möglich': 'Pick as many as you like', 'Deine Antwort (freiwillig)': 'Your answer (optional)', 'gar nicht': 'not at all', 'sehr': 'very much',
+    'Freiwillig: Jede Frage darf leer bleiben. Die Antworten sieht nur das Team, ohne deinen Namen.': 'Optional: you can skip any question. Only the team sees the answers, without your name.',
+    'Absenden': 'Send', 'Nicht teilnehmen': 'No thanks', 'Alles klar, keine Umfrage': 'Alright, no survey', 'Beantworte mindestens eine Frage.': 'Please answer at least one question.',
+    'Danke fürs Mitmachen!': 'Thanks for taking part!', 'Diese Umfrage ist schon vorbei.': 'This survey has already ended.', 'Du hast hier schon mitgemacht. Danke!': 'You already took part. Thanks!',
+    'Gerade kommen zu viele Antworten. Versuch es später nochmal.': 'Too many answers right now. Please try again later.', 'Das hat leider nicht geklappt.': 'Sorry, that did not work.',
+    'Umfragen': 'Surveys', 'Umfrage': 'Survey', 'Neue Umfrage': 'New survey', 'Umfrage bearbeiten': 'Edit survey', 'Titel': 'Title', 'Einleitung (freiwillig)': 'Intro (optional)', 'Für': 'For',
+    'Frage #': 'Question #', 'Frage': 'Question', 'Frage hinzufügen': 'Add question', 'Speichern und starten': 'Save and start', 'Als Entwurf speichern': 'Save as draft',
+    'Ergebnisse': 'Results', 'Ergebnisse zu': 'Hide results', 'Bearbeiten': 'Edit', 'Starten': 'Start', 'Wieder starten': 'Start again', 'Beenden': 'End', 'Wirklich löschen?': 'Really delete?',
+    'Entwurf': 'Draft', 'Läuft': 'Running', 'Beendet': 'Ended', '1 Antwort': '1 answer', '# Antworten': '# answers', '1 Frage': '1 question', '# Fragen': '# questions',
+    'Eine Antwort': 'One answer', 'Mehrere Antworten': 'Several answers', 'Skala 1 bis 5': 'Scale 1 to 5', 'Freier Text': 'Free text',
+    'Antworten, eine pro Zeile (2 bis 8)': 'Answers, one per line (2 to 8)', 'Ein Satz, worum es geht': 'One sentence on what it is about', 'z. B. Wie gefällt dir Versus?': 'e.g. How do you like Versus?',
+    'Noch keine Umfrage.': 'No survey yet.', 'Noch keine Texte.': 'No texts yet.', 'Entwurf gespeichert.': 'Draft saved.', 'Umfrage gelöscht.': 'Survey deleted.',
+    'Die Umfrage läuft. Spieler sehen jetzt das Banner.': 'The survey is running. Players see the banner now.', 'Die Umfrage ist beendet.': 'The survey has ended.',
+    'Die Texte werden nicht übersetzt. Für Englisch am besten eine eigene Umfrage nur für Englisch anlegen.': 'The texts are not translated. For English, best create a separate survey for English only.',
+    'Eine laufende Umfrage erscheint als Banner. Mitmachen ist freiwillig, jede Frage darf leer bleiben. Du siehst nur die Summen und die Texte, keine Namen.': 'A running survey shows as a banner. Taking part is optional, any question may be skipped. You only see the totals and the texts, no names.',
+    'Die Umfrage braucht einen Titel.': 'The survey needs a title.', 'Die Umfrage braucht mindestens eine Frage.': 'The survey needs at least one question.', 'Jede Frage braucht einen Text.': 'Every question needs a text.'
+  });
+
   V.i18n.pat([[/^Wie wär’s mit (.+)\?$/, (m, n) => 'How about ' + t(n) + '?'], [/^Einladung an (.+) verschickt$/, (m, n) => 'Invitation sent to ' + n], [/^Über Tage gegen (.+)$/, (m, n) => 'Over days vs. ' + n], [/^Wartet auf (.+)$/, (m, n) => 'Waiting for ' + n], [/^(.+) lädt dich ein$/, (m, n) => n + ' invites you']]);
   V.i18n.pat([[/^(.+) ist dran$/, (m, n) => t(n) + ' to move'], [/^spielt (.+)$/, (m, n) => 'playing ' + t(n)]]);
   // last resort for "A · B · C" lines (colour · level, game · level …): every part on its own

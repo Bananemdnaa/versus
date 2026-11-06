@@ -285,7 +285,7 @@ Versus läuft als Activity direkt im Discord-Sprachkanal (`js/discord.js`, SDK 2
 
 ## Rechtliches
 
-`rechtliches.html` (Deutsch/Englisch): Offenlegung nach § 25 MediengesetzG und Datenschutzerklärung, verlinkt unter Optionen, auf der Konto-Seite und beim Konto-Erstellen. Neue Funktionen, die Daten speichern oder fremde Dienste einbinden (z. B. das Turnstile-Captcha), müssen dort ergänzt werden. Schriften (`fonts/`, SIL OFL) und Bibliotheken (`js/vendor/`: supabase-js 2.49.4, qrcode-generator 1.4.4) liegen im Projekt, damit keine IP-Adressen an Google Fonts oder CDNs gehen.
+`rechtliches.html` (Deutsch/Englisch): Offenlegung nach § 25 MediengesetzG und Datenschutzerklärung, verlinkt unter Optionen, auf der Konto-Seite und beim Konto-Erstellen. Neue Funktionen, die Daten speichern oder fremde Dienste einbinden (z. B. das Turnstile-Captcha), müssen dort ergänzt werden. Schriften (`fonts/`, SIL OFL) und Bibliotheken (`js/vendor/`: supabase-js 2.49.4, qrcode-generator 1.4.4) und die Länderflaggen (`icons/flags/`, flag-icons 7.2.3, MIT) liegen im Projekt, damit keine IP-Adressen an Google Fonts oder CDNs gehen.
 
 ## Entwicklung
 
