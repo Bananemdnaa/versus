@@ -20,6 +20,8 @@
   const dice = s => `<span class="tq-dice">${[...s].map(n => `<i>${n}</i>`).join('')}</span>`;
   const tile = (a, b) => `<span class="tq-tile"><i>${a}</i><i>${b}</i></span>`;
   const txt = (h, ok, why) => ({ h, ok: !!ok, why });
+  // Minenjagd: . hidden, 0-2 numbers (classes from js/games/mines.js)
+  const MINES = { '.': { c: 'mjh' }, '0': { c: 'mjo' }, '1': { c: 'mjo mjn1', t: '1' }, '2': { c: 'mjo mjn2', t: '2' } };
 
   V.TUTOR = {
     c4: [
@@ -214,6 +216,16 @@
     tron: [
       { t: 'Probier’s', q: 'Zwei Räder fahren frontal ineinander. Was passiert?',
         choices: [txt('Beide sind raus', 1), txt('Das schnellere gewinnt', 0, 'Frontal sind beide raus.'), txt('Sie prallen ab', 0, 'Bei Lichtrenner gibt es kein Abprallen.')] }
+    ],
+    mines: [
+      { after: 2, t: 'Probier’s: Mine gefunden', q: 'Du deckst eine Mine auf. Was passiert?',
+        choices: [txt('Sie gehört mir und ich bin nochmal dran', 1), txt('Ich habe verloren', 0, 'Hier ist eine Mine etwas Gutes: Sie bringt dir einen Punkt.'), txt('Ich bekomme einen Punkt, dann ist der Nächste dran', 0, 'Nach einer Mine bist du sofort nochmal dran. Erst ein sicheres Feld beendet deinen Zug.')] },
+      { after: 2, t: 'Probier’s: Sichere Mine', q: 'Tippe auf ein Feld, unter dem ganz sicher eine Mine liegt.',
+        pick: { rows: ['00000', '11011', '.101.'], map: MINES, ok: [10, 14], put: { c: 'mjg1 mjflag' }, o: { w: 200 } },
+        yes: 'Genau: Die 1 daneben hat nur noch dieses eine verdeckte Feld, also muss die Mine dort liegen.', no: 'Such eine 1, die nur ein einziges verdecktes Feld neben sich hat.' },
+      { after: 2, t: 'Probier’s: 1-2-1', q: 'Unter der Reihe 1 2 1 liegen genau zwei Minen. Finde beide.',
+        pick: { rows: ['...', '121', '000'], map: MINES, ok: [0, 2], all: true, put: { c: 'mjg1 mjflag' }, o: { w: 150 } },
+        yes: 'Richtig. Läge die Mine in der Mitte, hätten beide Einsen schon ihre Mine und die 2 bekäme keine zweite.', no: 'Probier es aus: Was wäre, wenn die Mine über der 2 läge? Passen die beiden Einsen dann noch?' }
     ],
     sumo: [
       { t: 'Probier’s', q: 'Wie schiebst du in eine bestimmte Richtung?',
