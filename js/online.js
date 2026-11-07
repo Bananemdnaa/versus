@@ -640,6 +640,7 @@
   const isAnon = () => !!(C().user() && C().user().anon);
   const guestOk = id => !id || GUEST_ONLINE.includes(id);
   let quickBusy = false;
+  let lastQuickFb = null;
   async function quick(g) {
     if (quickBusy || !C() || !C().available()) return;
     if (g && !g.online) return V.ui.toast('Dieses Spiel gibt es online noch nicht.');
@@ -650,7 +651,17 @@
         V.ui.toast('Du spielst als Gast');
         await C().signInGuest();
       } else if (isAnon() && !guestOk(g && g.id)) { V.ui.toast('Dafür brauchst du ein Konto'); return V.ui.home('profile'); }
-      const fb = g ? g.id : (V.store.get('recent') && guestOk(V.store.get('recent')) && V.byId[V.store.get('recent')] && V.byId[V.store.get('recent')].online ? V.store.get('recent') : 'c4');
+      // "Egal": whoever is waiting is taken in any game; if nobody waits, this player waits in a random game they may
+      // play online (guests: the guest games; not one the team paused), and not the same one twice in a row.
+      // Another "Egal" player joins it whatever it is, so the random pick never keeps two players apart.
+      let fb = g ? g.id : null;
+      if (!fb) {
+        const guest = !C().user() || isAnon(), block = V._ && V._.siteBlock;
+        const pool = ONLINE.filter(id => V.byId[id] && (!guest || guestOk(id)) && !(block && block(V.byId[id], 'online')));
+        const fresh = pool.filter(id => id !== lastQuickFb);
+        fb = (fresh.length ? fresh : pool)[Math.floor(Math.random() * (fresh.length || pool.length))] || 'c4';
+        lastQuickFb = fb;
+      }
       const r = await C().rpc('quick_match', { gm: g ? g.id : null, fb, op: g ? optsFor(g) : {} });
       if (r.status === 'live') { V.sfx.goal(); return start(r); }
       waitQuick(r, g);
@@ -728,7 +739,7 @@
     const anon = !C().user() || isAnon();
     const ids = ONLINE.filter(id => V.byId[id]).sort((a, b) => guestOk(b) - guestOk(a));
     if (anon && !guestOk(qGame)) qGame = '';
-    const m = V.ui.openModal(`<div class="qsheet"><h3>Schnelles Spiel</h3><p class="fhint">Welches Spiel? Bei „Egal“ nimmt Versus das, wofür gerade jemand wartet.</p>
+    const m = V.ui.openModal(`<div class="qsheet"><h3>Schnelles Spiel</h3><p class="fhint">Welches Spiel? Bei „Egal“ nimmt Versus das, wofür gerade jemand wartet, sonst ein zufälliges.</p>
       <div class="rgames qgames" id="qg">${[''].concat(ids).map(id => {
         const lock = anon && !guestOk(id);
         return `<button data-q="${id}" class="${qGame === id ? 'on' : ''}${lock ? ' lockd' : ''}" title="${esc(id ? gname(id) : 'Egal')}">${id ? `<span class="ic">${V.byId[id].icon}</span>` : `<span class="ic all">${IC().spark}</span>`}<small>${esc(id ? gname(id) : 'Egal')}</small>${lock ? `<i class="ql">${IC().lock}</i>` : ''}</button>`;

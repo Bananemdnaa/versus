@@ -3326,3 +3326,9 @@ body:has(.view.play) .season.halloween .spider{display:none}
 /* admin player card: an action button is never wider than the card, a long one may wrap its text */
 .pcard-a .arow .btn{max-width:100%;height:auto;min-height:38px;padding-block:6px}
 .pcard-a .arow .btn>span{white-space:normal;text-align:center}
+/* online search radar: the sweep leads with its bright edge and fades behind it (it ran backwards), over a faint scope disc */
+.radar::before{content:'';position:absolute;inset:0;border-radius:50%;border:1px solid rgba(98,240,255,.28);
+  background:radial-gradient(circle,transparent 0 32%,rgba(98,240,255,.1) 32.5% 33%,transparent 33.5% 65%,rgba(98,240,255,.1) 65.5% 66%,transparent 66.5%),
+    linear-gradient(rgba(98,240,255,.08),rgba(98,240,255,.08)) center/1px 100% no-repeat,linear-gradient(rgba(98,240,255,.08),rgba(98,240,255,.08)) center/100% 1px no-repeat,
+    radial-gradient(circle,rgba(98,240,255,.06),transparent 70%)}
+.radar .rc{background:conic-gradient(from 0deg,transparent 0 70%,rgba(98,240,255,.12) 85%,rgba(98,240,255,.42) 99.4%,rgba(98,240,255,.95) 99.6% 100%)}
