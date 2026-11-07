@@ -85,7 +85,7 @@
   .yz-tab th.p{color:var(--pc)} .yz-tab th.p.on{background:color-mix(in srgb,var(--pc) 22%,transparent);color:#fff}
   .yz-tab td.l{text-align:left;color:var(--fg);white-space:nowrap;font-weight:600}
   .yz-tab td.v{font:800 italic 16px/1 var(--f-d);font-variant-numeric:tabular-nums;min-width:36px}
-  .yz-tab td.opt{color:var(--cyan);opacity:.55;cursor:pointer;font-weight:600}
+  .yz-tab td.opt{color:var(--cyan);opacity:.55;cursor:var(--cur-p,pointer);font-weight:600}
   .yz-tab td.opt.zero{color:var(--muted);opacity:.4}
   .yz-tab td.opt:hover,.yz-tab td.opt.kf{opacity:1;background:rgba(98,240,255,.12)}
   .yz-tab td.new{animation:yznew .5s var(--spring);color:var(--good)}

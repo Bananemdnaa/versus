@@ -35,7 +35,7 @@
   .ut .sb.act{border-color:var(--cy);box-shadow:0 0 0 1px var(--cy),0 0 22px -6px var(--cy)}
   .ut .sb.dim{opacity:.5}
   .ut .cl{min-width:0;min-height:0;border-radius:6px;background:var(--panel2);display:grid;place-items:center;font-family:var(--f-d);font-weight:700;font-size:clamp(14px,4.2vw,26px);line-height:1}
-  .ut .sb.act .cl:empty:hover{background:#24355a;cursor:pointer}
+  .ut .sb.act .cl:empty:hover{background:#24355a;cursor:var(--cur-p,pointer)}
   .ut .cl.x{color:var(--p1)} .ut .cl.o{color:var(--p2)}
   .ut .cl.last{box-shadow:inset 0 0 0 2px rgba(255,255,255,.4)}
   .ut .won{position:absolute;inset:0;display:grid;place-items:center;border-radius:8px;background:rgba(11,12,21,.74);font-family:var(--f-d);font-weight:700;font-size:clamp(54px,17vw,120px);line-height:1;animation:pop .3s}

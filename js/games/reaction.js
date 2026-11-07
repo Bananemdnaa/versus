@@ -1,7 +1,7 @@
 (function () {
   V.css(`
   .rx{width:min(100%,560px);height:min(66vh,560px);min-height:360px;display:flex;flex-direction:column;gap:8px;user-select:none;-webkit-user-select:none;touch-action:none}
-  .rx .half{flex:1;border-radius:18px;border:2px solid var(--line);background:var(--panel);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;text-align:center;padding:12px;transition:background .08s,border-color .15s;cursor:pointer;position:relative}
+  .rx .half{flex:1;border-radius:18px;border:2px solid var(--line);background:var(--panel);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;text-align:center;padding:12px;transition:background .08s,border-color .15s;cursor:var(--cur-p,pointer);position:relative}
   .rx .half.top{transform:rotate(180deg)}
   .rx .half b{font-family:var(--f-d);font-size:clamp(26px,7vw,44px);line-height:1}
   .rx .half span{color:var(--muted);font-size:14px}

@@ -1,6 +1,7 @@
 // Small motion touches that work on every screen without the views knowing about them:
 // light under the mouse, cards that come in while scrolling, the sliding marker in the sidebar,
-// a quiet hover sound on the PC, the favourite star. All off with "Effekte: wenig" or reduced motion.
+// a quiet hover sound on the PC, the favourite star, the background depth, the leaning player card,
+// button prompts once the keyboard is used. Motion is off with "Effekte: wenig" or reduced motion.
 (function () {
   const fine = matchMedia('(hover:hover) and (pointer:fine)');
   const fxOn = () => V.fxOn && V.fxOn();
@@ -137,6 +138,80 @@
     }, 0);
   }, true);
 
-  function start() { watch(); sideMarker(); }
+  // ---------- PC: the background has depth, its layers follow the mouse a little ----------
+  const wideMQ = matchMedia('(min-width:960px)');
+  let bg = null, pxPlanned = false, px = 0, py = 0;
+  document.addEventListener('pointermove', e => {
+    if (e.pointerType !== 'mouse' || !fine.matches || !wideMQ.matches || !fxOn()) return;
+    px = e.clientX / innerWidth * 2 - 1; py = e.clientY / innerHeight * 2 - 1;
+    if (pxPlanned) return; pxPlanned = true;
+    setTimeout(() => {
+      pxPlanned = false; bg = bg && bg.isConnected ? bg : document.querySelector('.bgfx'); if (!bg) return;
+      bg.style.setProperty('--px', px.toFixed(3)); bg.style.setProperty('--py', py.toFixed(3));
+    }, 50);
+  }, { passive: true });
+
+  // ---------- PC: the player card leans towards the mouse ----------
+  const CARD = '.acctp .acard.me,.p2-top';
+  document.addEventListener('pointermove', e => {
+    if (e.pointerType !== 'mouse' || !fine.matches || !fxOn()) return;
+    const el = e.target.closest ? e.target.closest(CARD) : null;
+    document.querySelectorAll('.tilt').forEach(x => { if (x !== el) { x.classList.remove('tilt'); x.style.removeProperty('--rx'); x.style.removeProperty('--ry'); } });
+    if (!el) return;
+    const r = el.getBoundingClientRect(), x = (e.clientX - r.left) / r.width - 0.5, y = (e.clientY - r.top) / r.height - 0.5;
+    el.classList.add('tilt');
+    el.style.setProperty('--ry', (x * 5).toFixed(2) + 'deg'); el.style.setProperty('--rx', (-y * 6).toFixed(2) + 'deg');
+    el.style.setProperty('--mx', ((x + 0.5) * 100).toFixed(1) + '%'); el.style.setProperty('--my', ((y + 0.5) * 100).toFixed(1) + '%');
+  }, { passive: true });
+
+  // ---------- rank from the Elo (Start 1000): shown on the player card and in profiles ----------
+  const RANKS = [[1450, 'dia', 'Diamant'], [1300, 'pla', 'Platin'], [1150, 'gold', 'Gold'], [1000, 'sil', 'Silber'], [-Infinity, 'bro', 'Bronze']];
+  V.rank = elo => { const r = RANKS.find(x => elo >= x[0]); return { k: r[1], name: r[2] }; };
+  // a chip with the rank of the best game, e.g. "Gold · 1210 Elo in 4 Gewinnt"
+  V.rankChip = list => {
+    const best = (list || []).filter(x => x && x.elo).sort((a, b) => b.elo - a.elo)[0]; if (!best) return '';
+    const r = V.rank(best.elo), g = V.byId[best.game];
+    return `<em class="rank r-${r.k}" title="${V.t('Beste Elo')}: ${best.elo}${g ? ' · ' + g.name : ''}"><i></i>${V.t(r.name)}<small>${best.elo}</small></em>`;
+  };
+
+  // ---------- PC: button prompts like in a console game, shown once the keyboard is used ----------
+  let hintEl = null, keyMode = false, hintPlanned = false, mouseSince = 0;
+  const K = s => s.split(' ').map(x => `<kbd>${x}</kbd>`).join('');
+  function hintsFor() {
+    if (document.querySelector('.modal-back')) return [[K('Esc'), 'Schließen']];
+    if (document.querySelector('.view.play')) return [[K('Esc'), 'Menü'], [K('Z'), 'Zug zurück'], [K('N'), 'Neue Partie'], [K('?'), 'Alle Tasten']];
+    if (document.querySelector('.view.setup')) return [[K('← →'), 'Modus'], [K('Enter'), 'Spielen'], [K('Esc'), 'Zurück']];
+    if (document.querySelector('#panel .gp')) return [[K('← ↑ → ↓'), 'Spiel wählen'], [K('Enter'), 'Spielen'], [K('1–4'), 'Stärke'], [K('F'), 'Favorit'], [K('/'), 'Suchen']];
+    return [[K('Strg K'), 'Suchen'], [K('Alt ← →'), 'Zurück / Vor'], [K('?'), 'Alle Tasten']];
+  }
+  function drawHints() {
+    hintPlanned = false;
+    if (!keyMode || !wideMQ.matches || !fine.matches) { if (hintEl) hintEl.classList.remove('on'); return; }
+    if (!hintEl) { hintEl = document.createElement('div'); hintEl.className = 'khint'; hintEl.setAttribute('aria-hidden', 'true'); document.body.appendChild(hintEl); }
+    const html = hintsFor().map(([k, t]) => `<span>${k}${V.t(t)}</span>`).join('');
+    if (hintEl.innerHTML !== html) hintEl.innerHTML = html;
+    hintEl.classList.add('on');
+  }
+  const planHints = () => { if (!hintPlanned) { hintPlanned = true; setTimeout(drawHints, 60); } };
+  document.addEventListener('keydown', e => {
+    if (!/^(Arrow|Tab$|Enter$|Escape$)/.test(e.key) || e.ctrlKey || e.metaKey) return;
+    if (e.target && e.target.matches && e.target.matches('input,textarea')) return;
+    if (!keyMode) { keyMode = true; } planHints();
+  });
+  document.addEventListener('pointermove', e => {
+    if (!keyMode || e.pointerType !== 'mouse') return;
+    // a real mouse move (not a jitter) brings the mouse back; the prompts go away
+    if (Math.abs(e.movementX) + Math.abs(e.movementY) < 6) return;
+    if (!mouseSince) mouseSince = performance.now();
+    if (performance.now() - mouseSince > 250) { keyMode = false; mouseSince = 0; planHints(); }
+  }, { passive: true });
+  document.addEventListener('keydown', () => { mouseSince = 0; });
+  function hintWatch() {
+    if (!window.MutationObserver) return;
+    new MutationObserver(() => { if (keyMode) planHints(); }).observe(document.body, { childList: true });
+    const app = document.getElementById('app'); if (app) new MutationObserver(() => { if (keyMode) planHints(); }).observe(app, { childList: true });
+  }
+
+  function start() { watch(); sideMarker(); hintWatch(); }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start); else start();
 })();

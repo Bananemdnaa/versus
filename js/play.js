@@ -26,18 +26,38 @@
   })();
 
   // ---------- VS intro before each match ----------
-  function vsIntro(left, right, quick) {
+  // PC: like a loading screen in a game, the intro names the game and shows one tip from the "Tipps" page of its
+  // tutorial (games without one get the plain intro). The page goes into the DOM whole, so i18n.js can translate it
+  // (it knows whole sentences with their tags); one sentence is picked from the translated text.
+  function introTipFor(g) {
+    const page = g && (g.tutorial || []).find(p => /^Tipp/.test(p.t));
+    return page && page.d && pickTip(page.d.replace(/<[^>]+>/g, '')) ? page.d : '';
+  }
+  function pickTip(text) {
+    const parts = String(text).split(/(?<=[.!?])\s+/).map(x => x.trim()).filter(x => x.length >= 25 && x.length <= 170);
+    return parts.length ? parts[Math.floor(Math.random() * parts.length)] : '';
+  }
+  // how long the intro covers the board; the PC intro with a tip stays a little longer to read it
+  const introLen = (quick, tip) => quick ? 650 : tip ? 2000 : 1150;
+  function vsIntro(left, right, quick, g, tip) {
     if (!V.fxOn() || settings.intro === false) return;
-    const el = V.el('div', 'vsi' + (quick ? ' quick' : ''), `
+    const el = V.el('div', 'vsi' + (quick ? ' quick' : '') + (tip ? ' tip' : ''), `
       <div class="vsi-l"><div class="vsi-n"><small>${left.sub}</small><b>${left.name}</b></div></div>
       <div class="vsi-r"><div class="vsi-n"><small>${right.sub}</small><b>${right.name}</b></div></div>
-      <div class="vsi-vs">VS</div><div class="vsi-flash"></div>`);
+      <div class="vsi-vs">VS</div><div class="vsi-flash"></div>
+      ${tip ? `<div class="vsi-tip"><span class="vt-g">${g.icon}<b>${g.name}</b></span><p><em>Tipp</em><span class="vt-t"></span></p><i class="vt-bar"></i><span class="vt-src" hidden>${tip}</span></div>` : ''}`);
     document.body.appendChild(el);
-    const kill = () => { el.classList.add('out'); setTimeout(() => el.remove(), 260); };
-    el.addEventListener('pointerdown', kill);
+    if (tip) setTimeout(() => {
+      const src = el.querySelector('.vt-src'), box = el.querySelector('.vsi-tip'); if (!src) return;
+      const one = pickTip(src.textContent); src.remove();
+      if (one) el.querySelector('.vt-t').textContent = one; else box.remove();
+    }, 0);
+    const kill = () => { if (el.classList.contains('out')) return; el.classList.add('out'); removeEventListener('keydown', key, true); setTimeout(() => el.remove(), 260); };
+    const key = e => { if (e.key === 'Escape' || e.key === 'Enter' || e.key === ' ') kill(); };
+    el.addEventListener('pointerdown', kill); addEventListener('keydown', key, true);
     // the slam: a deep tone and the whole picture shakes
     setTimeout(() => V.sfx.vs(), quick ? 140 : 280);
-    setTimeout(kill, quick ? 650 : 1150);
+    setTimeout(kill, introLen(quick, tip));
   }
 
   // ---------- play ----------
@@ -237,7 +257,8 @@
       stEl.innerHTML = html; if (V.fxOn()) V.fx.pop(stEl, 'st-in');
     };
     // "Du bist dran" / "Gelb ist dran" in the player's colour over the board; the first one waits for the VS intro
-    const t0 = performance.now(), introMs = !replay && !review && V.fxOn() && settings.intro !== false ? (rematch || watch ? 650 : 1150) : 0;
+    const introTip = !replay && !review && !rematch && !watch && V.ui.wide() && V.coarse !== true ? introTipFor(g) : '';
+    const t0 = performance.now(), introMs = !replay && !review && V.fxOn() && settings.intro !== false ? introLen(rematch || watch, introTip) : 0;
     function turnBanner(s) {
       const show = () => {
         if (!alive || ended || lastTurn !== s) return;
@@ -1166,8 +1187,8 @@
     };
     const pu = v.querySelector('#pu'); if (pu) pu.onclick = undo;
     if (rep) { /* replaying after an undo: no intro */ }
-    else if (party && N > 2) vsIntro({ name: names[1], sub: sideLabel(1) }, { name: ai ? N - 1 + ' KIs' : 'Alle', sub: ai ? lvName : N + ' Spieler' }, rematch);
-    else vsIntro({ name: names[L], sub: sideLabel(L) }, { name: names[R], sub: ai ? 'KI · ' + lvName : online ? 'online' : sideLabel(R) }, rematch || watch);
+    else if (party && N > 2) vsIntro({ name: names[1], sub: sideLabel(1) }, { name: ai ? N - 1 + ' KIs' : 'Alle', sub: ai ? lvName : N + ' Spieler' }, rematch, g, introTip);
+    else vsIntro({ name: names[L], sub: sideLabel(L) }, { name: names[R], sub: ai ? 'KI · ' + lvName : online ? 'online' : sideLabel(R) }, rematch || watch, g, introTip);
     if (ai && V.aiWorker) V.aiWorker.warm(g);
     inst = g.start(ctx) || {};
     // a recorded match: step through it (chess has its own move list with the review)

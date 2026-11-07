@@ -122,7 +122,7 @@
   .bg .ck{stroke:rgba(0,0,0,.45);stroke-width:.05}
   .bg .ck.s1{fill:url(#bgp1)} .bg .ck.s2{fill:url(#bgp2)}
   .bg .cnt{font:800 .5px var(--f-b);fill:#15172a;text-anchor:middle;dominant-baseline:central;pointer-events:none}
-  .bg .hit{fill:transparent;cursor:pointer}
+  .bg .hit{fill:transparent;cursor:var(--cur-p,pointer)}
   .bg .src{stroke:#62f0ff;stroke-width:.12;fill:none;pointer-events:none;animation:bgpulse 1.1s ease-in-out infinite}
   .bg .sel{stroke:#fff;stroke-width:.14;fill:none;pointer-events:none}
   .bg .tgt{fill:#62f0ff;opacity:.75;pointer-events:none;animation:bgpulse 1.1s ease-in-out infinite}

@@ -30,14 +30,14 @@
   .dm.new{animation:dmin .4s var(--spring)}
   @keyframes dmin{from{transform:scale(.4) rotate(-20deg);opacity:0}}
   .dm.end{box-shadow:0 2px 0 #c9bfa6,0 0 0 2px rgba(255,255,255,.5),0 4px 8px rgba(0,0,0,.45)}
-  .dm.end.ok{box-shadow:0 2px 0 #c9bfa6,0 0 0 3px var(--cyan),0 0 14px var(--cyan);cursor:pointer;animation:dmend 1.1s ease-in-out infinite}
+  .dm.end.ok{box-shadow:0 2px 0 #c9bfa6,0 0 0 3px var(--cyan),0 0 14px var(--cyan);cursor:var(--cur-p,pointer);animation:dmend 1.1s ease-in-out infinite}
   @keyframes dmend{50%{transform:translateY(-3px)}}
   .do-bone{position:absolute;top:8px;left:10px;font:700 italic 12px/1 var(--f-d);color:#d9f5e2;letter-spacing:.08em}
   .do-score{position:absolute;top:8px;right:10px;padding:4px 10px;border-radius:999px;background:rgba(0,0,0,.35);color:#fff;font:800 italic 13px/1 var(--f-d)}
   .do-hand{display:flex;flex-wrap:wrap;justify-content:center;gap:6px;padding:8px 4px;min-height:70px;width:100%}
   .do-hand .dm{--dw:clamp(52px,14vw,70px)}
   .do-hand .dm.v{cursor:default}
-  .do-hand .dm.can{cursor:pointer}
+  .do-hand .dm.can{cursor:var(--cur-p,pointer)}
   @media (hover:hover) and (pointer:fine){.do-hand .dm.can:hover{transform:translateY(-5px)}}
   .do-hand .dm.no{filter:brightness(.6) saturate(.6)}
   .do-hand .dm.sel{transform:translateY(-10px);box-shadow:0 2px 0 #c9bfa6,0 0 0 3px var(--cyan),0 8px 16px rgba(0,0,0,.5)}

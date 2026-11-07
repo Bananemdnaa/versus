@@ -61,7 +61,7 @@
   .hc .ut{width:min(var(--bw),600px)}
   .hc-pick{width:min(var(--bw),600px);display:grid;grid-template-columns:repeat(3,1fr);gap:10px;aspect-ratio:1}
   .hc-pick .ar{gap:4px;padding:8px;border-radius:12px;border:2px solid var(--line2)}
-  .hc-pick .ar.open{cursor:pointer;border-color:color-mix(in srgb,var(--cy) 55%,var(--line2))}
+  .hc-pick .ar.open{cursor:var(--cur-p,pointer);border-color:color-mix(in srgb,var(--cy) 55%,var(--line2))}
   .hc-pick .ar.open:hover,.hc-pick .ar.open.kf{border-color:var(--cy);box-shadow:0 0 16px -4px var(--cy)}
   .hc-pick .ar.done{cursor:default}
   .hc-pick .ar b{font-size:54px;border-radius:12px}

@@ -45,7 +45,7 @@
   .c4ghost{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;padding:0 11px}
   .c4ghost div{aspect-ratio:1;border-radius:50%;transform:scale(.88);opacity:0;transition:opacity .12s}
   .c4ghost div.on{opacity:.45}
-  .c4b{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;padding:10px;background:#1a1f5c;border-radius:26px;border:1px solid #3b4aa8;box-shadow:0 30px 60px -20px rgba(0,0,0,.8),inset 0 1px 0 rgba(255,255,255,.06),0 0 50px -16px #4f6bff;cursor:pointer;touch-action:manipulation}
+  .c4b{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;padding:10px;background:#1a1f5c;border-radius:26px;border:1px solid #3b4aa8;box-shadow:0 30px 60px -20px rgba(0,0,0,.8),inset 0 1px 0 rgba(255,255,255,.06),0 0 50px -16px #4f6bff;cursor:var(--cur-p,pointer);touch-action:manipulation}
   .c4b .cell{aspect-ratio:1;border-radius:50%;background:var(--bg);position:relative;box-shadow:inset 0 3px 6px rgba(0,0,0,.7)}
   .c4b .disc,.c4ghost div{position:relative}
   .c4b .disc{position:absolute;inset:5%;border-radius:50%}

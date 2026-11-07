@@ -151,7 +151,7 @@
   .wb-ans{position:fixed;left:50%;top:38%;transform:translate(-50%,-50%);z-index:30;font:800 italic 72px/1 var(--f-d);pointer-events:none;animation:shout 1.2s var(--spring) forwards;text-shadow:4px 4px 0 var(--ink)}
   .wb-ans.y{color:var(--good)} .wb-ans.n{color:var(--bad)}
   @media (hover:hover) and (pointer:fine){
-    .wb-c.can:hover{border-color:var(--pink);transform:translateY(-2px);cursor:pointer}
+    .wb-c.can:hover{border-color:var(--pink);transform:translateY(-2px);cursor:var(--cur-p,pointer)}
     .wb-chip:not(:disabled):hover{border-color:var(--cyan)}
   }
   @media (min-width:960px){

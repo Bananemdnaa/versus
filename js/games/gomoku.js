@@ -87,7 +87,7 @@
   }
 
   V.css(`
-  .gmk{--n:15;width:min(var(--bw),620px);aspect-ratio:1;display:grid;grid-template-columns:repeat(var(--n),1fr);padding:calc(var(--bw) / var(--n) / 2.4);background:linear-gradient(145deg,#2a2240,#1b1730);border:1px solid #4a3d73;border-radius:10px;box-shadow:0 0 50px -18px #8f6bff;touch-action:manipulation;cursor:pointer}
+  .gmk{--n:15;width:min(var(--bw),620px);aspect-ratio:1;display:grid;grid-template-columns:repeat(var(--n),1fr);padding:calc(var(--bw) / var(--n) / 2.4);background:linear-gradient(145deg,#2a2240,#1b1730);border:1px solid #4a3d73;border-radius:10px;box-shadow:0 0 50px -18px #8f6bff;touch-action:manipulation;cursor:var(--cur-p,pointer)}
   .gmk .pt{position:relative;aspect-ratio:1}
   .gmk .pt::before,.gmk .pt::after{content:'';position:absolute;background:#4d4377;pointer-events:none}
   .gmk .pt::before{left:0;right:0;top:50%;height:1px}
