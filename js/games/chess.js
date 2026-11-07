@@ -753,6 +753,8 @@
       // (and when watching) both sides count the same (meS null)
       const meS = ctx.mode === 'ai' ? sideOf[3 - ctx.aiSide] : ctx.mySide ? sideOf[ctx.mySide] : null;
       const theirs = s => !!meS && s !== meS;
+      // did your answer use the opponent's mistake: anything close to the best answer counts ('good' loses at most 5 %)
+      const usedChance = nx => ['best', 'exc', 'great', 'brill', 'good'].includes(nx.kind);
       const reps = new Map();
       const key = () => P.b.join(',') + P.turn + JSON.stringify(P.cs) + P.ep;
       const bump = () => { const k = key(); reps.set(k, (reps.get(k) || 0) + 1); return reps.get(k); };
@@ -890,7 +892,7 @@
         if (opp && weak && rev.info && rev.info[at]) {
           const rp = (rev.info[at].lines[0] || { pv: [] }).pv, nx = rev.moves[at];
           const line = rp.length ? lineSan(rev.pos[at], at, rp, 4) : '';
-          const used = nx ? ['best', 'exc', 'great', 'brill'].includes(nx.kind) : null;
+          const used = nx ? usedChance(nx) : null;
           if (line) chance = `<p class="chco-b chco-ch"><span>Deine Chance:</span> <b>${line}</b>${used === null ? '' : used ? '<small class="y">Du hast sie genutzt.</small>' : '<small class="n">Du hast sie nicht genutzt.</small>'}</p>`;
         }
         el.className = 'chco k2-' + r.kind + (opp ? ' opp' : '');
@@ -1151,7 +1153,7 @@
         const oppKeys = meS ? all.filter(x => ['mist', 'blun', 'miss'].includes(x.kind) && theirs(hist[x.k].mover))
           .sort((a, b) => (b.loss || 0) - (a.loss || 0)).slice(0, 2).sort((a, b) => a.k - b.k) : [];
         const keyBtn = (x, note) => { const kd = KIND.find(z => z[0] === x.kind); return `<button data-go="${x.k + 1}" class="chr-key${theirs(hist[x.k].mover) ? ' opp' : ''}"><span class="kd k-${x.kind}">${kd[1]}</span><span class="km"><b>${Math.floor(x.k / 2) + 1}${x.k % 2 ? '…' : '.'} ${show(hist[x.k].san)}</b> <span>${kd[2]}</span></span><span class="kw">${note || x.why || ''}</span></button>`; };
-        const punished = x => { const nx = rev.moves[x.k + 1]; return !nx ? '' : ['best', 'exc', 'great', 'brill'].includes(nx.kind) ? '<b class="y">Du hast es genutzt.</b>' : '<b class="n">Du hast es nicht genutzt.</b>'; };
+        const punished = x => { const nx = rev.moves[x.k + 1]; return !nx ? '' : usedChance(nx) ? '<b class="y">Du hast es genutzt.</b>' : '<b class="n">Du hast es nicht genutzt.</b>'; };
         // practice: the weak moves of the human players (against the AI only your own)
         const human = s => !ctx.isAI(numOf[s]);
         const practice = rev.sf ? rev.moves.map((x, k) => ({ x, k })).filter(o => ['mist', 'blun', 'miss'].includes(o.x.kind) && human(hist[o.k].mover)).map(o => o.k) : [];
