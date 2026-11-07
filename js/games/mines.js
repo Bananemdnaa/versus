@@ -34,14 +34,19 @@
       for (let i = 0; i < R * C; i++) if (!mine[i] && !num[i]) zeros.push(i);
       // prefer an opening of about a tenth of the board up to 30 fields: enough to start thinking, not half the board; and one that shows
       // no certain mine yet, or the first player would simply collect them
-      const fair = z => {
+      // every 0 of one opening floods the same fields, so each opening is checked once and the answer kept for all its 0s
+      const fair = new Int8Array(R * C).fill(-1);
+      for (const z of zeros) {
+        if (fair[z] >= 0) continue;
         const f = flood(R * C, NB, mine, num, new Int8Array(R * C), z);
-        if (f.length < Math.max(8, R * C / 10 | 0) - (tries > 30 ? 3 : 0) || f.length > 30) return false;
-        const st = new Int8Array(R * C); f.forEach(i => { st[i] = -1; });
-        const p = analyze(R * C, NB, num, st, M, true);
-        return tries > 20 || !p.some(x => x > 0.999);
-      };
-      const good = zeros.filter(fair);
+        let ok = f.length >= Math.max(8, R * C / 10 | 0) - (tries > 30 ? 3 : 0) && f.length <= 30;
+        if (ok && tries <= 20) {
+          const st = new Int8Array(R * C); f.forEach(i => { st[i] = -1; });
+          ok = !analyze(R * C, NB, num, st, M, true).some(x => x > 0.999);
+        }
+        f.forEach(i => { if (!num[i]) fair[i] = ok ? 1 : 0; });
+      }
+      const good = zeros.filter(z => fair[z] === 1);
       const pool = good.length ? good : tries > 40 ? zeros : [];
       if (pool.length) return { mine, num, start: pool[Math.floor(rng() * pool.length)] };
     }
@@ -189,8 +194,7 @@
     }
     // the most promising first, and only as long as there is time (large open borders take longer to count)
     const gifts = new Map(), t0 = performance.now();
-    if (look) for (const i of look) { if (gifts.size && performance.now() - t0 > V.aiMs(900)) break; gifts.set(i, gift(R * C, NB, num, st, left, i, W == null ? 1 : W)); }
-    const score = i => p[i] + (L === 1 ? Math.random() * 0.12 : Math.random() * 0.001) - (look ? (gifts.has(i) ? (1 - p[i]) * gifts.get(i) : 9) : 0);
+    if (look) for (const i of look) { if (gifts.size && performance.now() - t0 > V.aiMs(900)) break; gifts.set(i, gift(R * C, NB, num, st, left, i, W == null ? 1 : W)); }    const score = i => p[i] + (L === 1 ? Math.random() * 0.12 : Math.random() * 0.001) - (look ? (gifts.has(i) ? (1 - p[i]) * gifts.get(i) : 9) : 0);
     let best = -Infinity, list = [];
     for (const i of hidden) { const s = score(i); if (s > best + 1e-9) { best = s; list = [i]; } else if (Math.abs(s - best) <= 1e-9) list.push(i); }
     return V.pick(list);
@@ -274,6 +278,8 @@
   const MAP = { '.': { c: 'mjh' }, '0': { c: 'mjo' }, a: { c: 'mjg1', t: FLAG }, b: { c: 'mjg2', t: FLAG }, '*': { c: 'mjbm' } };
   for (let k = 1; k <= 4; k++) MAP[k] = { c: 'mjo mjn' + k, t: '' + k };
   const mm = (rows, w) => V.mini(rows, MAP, { w: w || 200 });
+  // the practice tasks in js/tutor.js (loaded before this file) use the same look
+  if (V.TUTOR && V.TUTOR.mines) V.TUTOR.mines.forEach(t => { if (t.pick) t.pick.map = MAP; });
 
   // the AI's choice as a pure function of the state, so it can think in a worker (js/aiworker.js, V.register)
   function brain(x, L) {
@@ -347,7 +353,19 @@
         bombBtn.disabled = !human() || !bombs[turn];
         bombBtn.classList.toggle('arm', armed);
         bombBtn.querySelector('span').textContent = armed ? 'Abbrechen' : 'Bombe';
-        hint.textContent = !human() ? '' : armed ? (fine ? 'Klick aufs Mittelfeld der 3×3 Felder' : (aim >= 0 ? 'Nochmal tippen zum Zünden' : 'Tippe aufs Mittelfeld der 3×3 Felder')) : 'Mine gefunden = Punkt und nochmal';
+        showHint();
+      }
+      // a bomb on a 3x3 without any hidden field would be wasted
+      const empty = i => !area(R, C, i).some(j => !st[j]);
+      function showHint() {
+        hint.textContent = !human() ? '' : armed ? (aim >= 0 && empty(aim) ? 'Hier ist schon alles aufgedeckt' : fine ? 'Klick aufs Mittelfeld der 3×3 Felder' : (aim >= 0 ? 'Nochmal tippen zum Zünden' : 'Tippe aufs Mittelfeld der 3×3 Felder')) : 'Mine gefunden = Punkt und nochmal';
+      }
+      // move the bomb's 3x3 preview: only the fields of the old and the new 3x3 are painted again
+      function aimAt(i) {
+        if (i === aim) return;
+        const old = aim; aim = i;
+        for (const j of new Set([...(old >= 0 ? area(R, C, old) : []), ...(i >= 0 ? area(R, C, i) : [])])) paint(j);
+        showHint();
       }
       // reveal a list of fields with a little wave from the tapped one
       function show(list, from) {
@@ -421,8 +439,9 @@
       function tap(i) {
         if (!human()) return;
         if (armed) {
+          if (empty(i)) { aimAt(i); V.sfx.bad(); return; }
           if (fine || aim === i) return act(BOMB + i);
-          aim = i; V.sfx.tick(); return render();
+          aimAt(i); V.sfx.tick(); return;
         }
         if (st[i]) return;
         act(i);
@@ -430,14 +449,15 @@
       function arm(on) {
         if (!human() || !bombs[turn]) return;
         armed = on; aim = -1; V.sfx.ui(); render();
+        // the keyboard cursor (if in use) shows its 3x3 right away
+        if (V.nav.active) V.nav.refresh();
       }
       board.addEventListener('click', e => { const f = e.target.closest('.f'); if (f) tap(+f.dataset.i); });
       board.addEventListener('mousemove', e => {
         if (!armed || !fine) return;
-        const f = e.target.closest('.f'); const i = f ? +f.dataset.i : -1;
-        if (i !== aim) { aim = i; render(); }
+        const f = e.target.closest('.f'); aimAt(f ? +f.dataset.i : -1);
       });
-      board.addEventListener('mouseleave', () => { if (armed && fine && aim >= 0) { aim = -1; render(); } });
+      board.addEventListener('mouseleave', () => { if (armed && fine) aimAt(-1); });
       bombBtn.addEventListener('click', () => arm(!armed));
       ctx.keys(e => {
         if (!human()) return false;
@@ -445,7 +465,8 @@
         if (e.key === 'Escape' && armed) { arm(false); return true; }
         return false;
       });
-      ctx.nav(() => human() ? cells.filter((c, i) => armed || !st[i]) : [], { pad: 2 });
+      // with the keyboard the bomb aims at the field under the cursor, so Enter never fires at an unseen 3x3
+      ctx.nav(() => human() ? cells.filter((c, i) => armed || !st[i]) : [], { pad: 2, onFocus: el => { if (armed) aimAt(+el.dataset.i); } });
 
       show(flood(N, NB, mine, num, st, start), start);
       next(false);

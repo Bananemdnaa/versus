@@ -1,6 +1,7 @@
 // Versus: voluntary surveys. The team writes one in the admin panel (tab "Umfragen") and starts it; players then get
 // a bar like the announcement bar and can take part or not. Every question may stay empty. One answer per account,
-// or per device without an account (a random device id). The team sees only the totals and the texts, no names.
+// or per device without an account (a random device id). The team sees the totals, the texts and who took part,
+// but never who answered what.
 // Server side: supabase/migrations/20261129000000_flags_surveys.sql.
 (function () {
   'use strict';
@@ -56,7 +57,7 @@
       <div class="fadd-h"><h3 class="svtt"></h3><button class="iconbtn" type="button" id="svx" aria-label="Schließen">${IC().x}</button></div>
       ${s.intro ? '<p class="fhint svin"></p>' : ''}
       ${s.questions.map(q1).join('')}
-      <p class="fine">Freiwillig: Jede Frage darf leer bleiben. Die Antworten sieht nur das Team, ohne deinen Namen.</p>
+      <p class="fine">Freiwillig: Jede Frage darf leer bleiben. Die Antworten sieht nur das Team, ohne deinen Namen. Es sieht nur, dass du mitgemacht hast.</p>
       <p class="aerr" id="sve"></p>
       <div class="actions"><button class="btn primary" type="submit"><span>Absenden</span></button><button class="btn ghost" type="button" id="svno"><span>Nicht teilnehmen</span></button></div></form>`, 'svm');
     // the team's own words: never HTML, never translated
@@ -123,6 +124,17 @@
     const avg = q.t === 'scale' && tot ? (r.r.reduce((s, c, k) => s + c * (k + 1), 0) / tot).toFixed(1).replace('.', V.lang === 'en' ? '.' : ',') : '';
     return `<div class="svbar">${labels.map((l, k) => { const c = (r.r || [])[k] || 0; return `<div class="svb-r"><span class="svb-l" translate="no">${esc(l)}</span><span class="svb-t"><i style="width:${c / max * 100}%"></i></span><b>${c}</b><small>${tot ? Math.round(c / tot * 100) : 0} %</small></div>`; }).join('')}</div>${avg ? `<p class="fine">Schnitt ${avg} von 5</p>` : ''}`;
   }
+  // who took part: names only, never linked to the answers
+  function who(r) {
+    if (!r.who) return '<p class="fine">Wer mitgemacht hat, siehst du nach dem nächsten Server-Update (Migration 20261205000000_survey_who.sql).</p>';
+    if (!r.who.length) return '';
+    const named = r.who.filter(w => w.name), anon = r.who.length - named.length;
+    const when = d => new Date(d).toLocaleString(V.locale(), { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+    return `<details class="svwho"><summary>Wer hat mitgemacht <small class="muted">${r.who.length}</small></summary>
+      <div class="svpl">${named.map(w => `<span class="svp${w.guest ? ' g' : ''}" title="${esc(when(w.at))}"><b translate="no">${esc(w.name)}</b>${w.guest ? '<em class="rtag">Gast</em>' : ''}<small>${esc(when(w.at))}</small></span>`).join('')}</div>
+      ${anon ? `<p class="fine">${anon === 1 ? '1 Antwort ohne Konto' : anon + ' Antworten ohne Konto'}</p>` : ''}
+      ${r.n > r.who.length ? `<p class="fine">Die neuesten ${r.who.length} von ${r.n}.</p>` : ''}</details>`;
+  }
   function editor() {
     const e = edit;
     return `<div class="acard sved">
@@ -155,11 +167,11 @@
         <div class="m-t"><b><span translate="no">${esc(s.title)}</span> <em class="rtag ${stc}">${stl}</em>${s.lang ? ` <em class="rtag">${s.lang.toUpperCase()}</em>` : ''}</b>
           <small>${s.n === 1 ? '1 Antwort' : s.n + ' Antworten'} · ${s.questions.length === 1 ? '1 Frage' : s.questions.length + ' Fragen'}${s.started ? ' · seit ' + day(s.started) : ' · angelegt ' + day(s.at)}${s.closed && s.status === 'closed' ? ' · bis ' + day(s.closed) : ''}${s.by ? ' · von ' + esc(s.by) : ''}</small></div>
         <div class="m-a">${btns}</div>
-        ${open1 === s.id ? `<div class="svres">${r ? `<p class="fine">${r.n} Antworten, davon ${r.accounts} mit Konto oder als Gast.</p>` + s.questions.map((q, i) => `<section><h4 translate="no">${i + 1}. ${esc(q.q)}</h4><small class="muted">${TYPES[q.t]} · ${r.questions[i].n} beantwortet</small>${bars(q, r.questions[i])}</section>`).join('') : V.skel(2)}</div>` : ''}</div>`;
+        ${open1 === s.id ? `<div class="svres">${r ? `<p class="fine">${r.n} Antworten, davon ${r.accounts} mit Konto oder als Gast.</p>` + who(r) + s.questions.map((q, i) => `<section><h4 translate="no">${i + 1}. ${esc(q.q)}</h4><small class="muted">${TYPES[q.t]} · ${r.questions[i].n} beantwortet</small>${bars(q, r.questions[i])}</section>`).join('') : V.skel(2)}</div>` : ''}</div>`;
     }).join('');
     el.innerHTML = (err ? `<p class="aerr big">${esc(err)}</p>` : '') +
       (edit ? editor() : `<div class="asearch"><button class="btn primary sm" id="sv_new"><span>${IC().plus}Neue Umfrage</span></button><button class="btn ghost sm" id="sv_rl"><span>${IC().redo}</span></button></div>
-      <p class="fine">Eine laufende Umfrage erscheint als Banner. Mitmachen ist freiwillig, jede Frage darf leer bleiben. Du siehst nur die Summen und die Texte, keine Namen.</p>`) +
+      <p class="fine">Eine laufende Umfrage erscheint als Banner. Mitmachen ist freiwillig, jede Frage darf leer bleiben. Du siehst die Summen, die Texte und wer mitgemacht hat, aber nie, wer was geantwortet hat.</p>`) +
       (list ? rows || '<p class="muted">Noch keine Umfrage.</p>' : V.skel());
     wire(el);
   }

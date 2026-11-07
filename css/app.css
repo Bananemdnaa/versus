@@ -3187,3 +3187,7 @@ body:has(.view.play) .season.halloween .spider{display:none}
 .svb-r small{color:var(--muted);text-align:right}
 .svtx{display:flex;flex-direction:column;gap:6px;margin-top:6px;max-height:320px;overflow:auto}
 .svtx p{margin:0;padding:8px 10px;border-radius:8px;background:var(--panel2);font-size:13px;white-space:pre-wrap;overflow-wrap:anywhere}
+.svwho summary{cursor:pointer;font-weight:600;font-size:14px;padding:6px 0;display:flex;align-items:center;gap:6px;min-height:36px}
+.svpl{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px;max-height:320px;overflow:auto}
+.svp{display:inline-flex;align-items:center;gap:6px;padding:6px 10px;border-radius:999px;background:var(--panel2);font-size:13px;max-width:100%}
+.svp b{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:600} .svp small{color:var(--muted);white-space:nowrap} .svp .rtag{margin:0}

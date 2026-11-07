@@ -20,8 +20,6 @@
   const dice = s => `<span class="tq-dice">${[...s].map(n => `<i>${n}</i>`).join('')}</span>`;
   const tile = (a, b) => `<span class="tq-tile"><i>${a}</i><i>${b}</i></span>`;
   const txt = (h, ok, why) => ({ h, ok: !!ok, why });
-  // Minenjagd: . hidden, 0-2 numbers (classes from js/games/mines.js)
-  const MINES = { '.': { c: 'mjh' }, '0': { c: 'mjo' }, '1': { c: 'mjo mjn1', t: '1' }, '2': { c: 'mjo mjn2', t: '2' } };
 
   V.TUTOR = {
     c4: [
@@ -192,6 +190,27 @@
       { t: 'Probier’s', q: 'Der Code ist 1 2 3 4, du rätst 1 3 5 6. Was ist die Antwort?',
         choices: [txt('1 Treffer, 1 Fast', 1), txt('2 Treffer', 0, 'Nur die 1 steht an der richtigen Stelle. Die 3 kommt vor, aber woanders.'), txt('0 Treffer, 2 Fast', 0, 'Die 1 steht genau richtig, das ist ein Treffer.')], yes: 'Die 1 ist ein Treffer, die 3 ist Fast, 5 und 6 kommen nicht vor.' }
     ],
+    who: [
+      { after: 2, t: 'Probier’s: Umklappen', q: 'Du fragst: „Hat deine Figur eine Brille?“ Die Antwort ist <b>Nein</b>. Welche Figuren klappen um?',
+        choices: [txt('Alle mit Brille', 1), txt('Alle ohne Brille', 0, 'Nein heißt: Die gesuchte Figur hat keine Brille. Also fallen die mit Brille weg.'), txt('Keine, die muss ich selbst umklappen', 0, 'Das Spiel klappt nach jeder Antwort selbst um.')],
+        yes: 'Genau. Übrig bleiben nur Figuren ohne Brille.', no: 'Überleg: Welche Figuren können es nach dieser Antwort nicht mehr sein?' },
+      { after: 3, t: 'Probier’s: „oder“', q: 'Du fragst: „Hat deine Figur eine Brille oder einen Bart?“ Die Antwort ist <b>Ja</b>. Was weißt du jetzt?',
+        choices: [txt('Sie hat eine Brille, einen Bart oder beides', 1), txt('Sie hat eine Brille und einen Bart', 0, 'Ja heißt bei „oder“: mindestens eins davon, nicht unbedingt beides.'), txt('Sie hat eine Brille', 0, 'Vielleicht hat sie auch nur einen Bart.')],
+        yes: 'Richtig. Weg sind nur die Figuren ohne Brille und ohne Bart.' },
+      { after: 4, t: 'Probier’s: Falsch geraten', q: 'Du rätst falsch und hattest noch zwei Herzen. Was passiert?',
+        choices: [txt('Ein Herz ist weg, und der andere ist dran', 1), txt('Du hast sofort verloren', 0, 'Verloren hast du erst, wenn dein letztes Herz weg ist.'), txt('Du darfst gleich nochmal raten', 0, 'Nach einem Fehlversuch ist der andere dran.')],
+        yes: 'Genau. Und die falsche Figur klappt um.' },
+      { t: 'Probier’s: Gute Frage', q: 'Auf deinem Brett sind noch <b>8 Figuren</b> übrig. Welche Frage hilft dir am meisten?',
+        choices: [txt('Eine, die auf 4 der 8 passt', 1), txt('Eine, die auf 1 der 8 passt', 0, 'Meistens kommt dann Nein, und es bleiben 7 übrig.'), txt('Eine, die auf alle 8 passt', 0, 'Die Antwort ist sicher Ja, du erfährst nichts Neues.')],
+        yes: 'Richtig: Egal ob Ja oder Nein, danach sind nur noch 4 übrig.' }
+    ],
+    abc: [
+      { after: 2, t: 'Probier’s: Zeit um', q: 'Die Zeit läuft ab, bevor du ein Wort abgeschickt hast. Was passiert?',
+        choices: [txt('Du verlierst ein Leben, der Nächste macht mit dem nächsten Buchstaben weiter', 1), txt('Der Nächste muss denselben Buchstaben nehmen', 0, 'Der Buchstabe gilt als verpasst, es geht mit dem nächsten weiter.'), txt('Nichts, du bekommst mehr Zeit', 0, 'Zeit um heißt: ein Leben weniger.')] },
+      { after: 3, t: 'Probier’s: Was zählt?', q: 'Kategorie Tiere, dein Buchstabe ist <b>D</b>. In diesem Spiel wurde schon <b>Dachs</b> genannt. Was tippst du?',
+        choices: [txt('Delfin', 1), txt('Dachs', 0, 'Dachs wurde schon genannt. Wiederholen kostet ein Leben.'), txt('Ente', 0, 'Ente fängt mit E an. Du brauchst ein Tier mit D.')],
+        yes: 'Genau: richtiger Buchstabe, ein Tier und noch nicht genannt.' }
+    ],
     draw: [
       { t: 'Probier’s', q: 'Was darfst du beim Zeichnen nicht?',
         choices: [txt('Buchstaben oder Zahlen malen', 1), txt('Farben wechseln', 0, 'Farben darfst du so oft wechseln, wie du willst.'), txt('Etwas wegradieren', 0, 'Rückgängig und Weiß als Radierer sind erlaubt.')] }
@@ -217,14 +236,15 @@
       { t: 'Probier’s', q: 'Zwei Räder fahren frontal ineinander. Was passiert?',
         choices: [txt('Beide sind raus', 1), txt('Das schnellere gewinnt', 0, 'Frontal sind beide raus.'), txt('Sie prallen ab', 0, 'Bei Lichtrenner gibt es kein Abprallen.')] }
     ],
+    // the boards get their look (map) from js/games/mines.js, which loads later
     mines: [
       { after: 2, t: 'Probier’s: Mine gefunden', q: 'Du deckst eine Mine auf. Was passiert?',
         choices: [txt('Sie gehört mir und ich bin nochmal dran', 1), txt('Ich habe verloren', 0, 'Hier ist eine Mine etwas Gutes: Sie bringt dir einen Punkt.'), txt('Ich bekomme einen Punkt, dann ist der Nächste dran', 0, 'Nach einer Mine bist du sofort nochmal dran. Erst ein sicheres Feld beendet deinen Zug.')] },
       { after: 2, t: 'Probier’s: Sichere Mine', q: 'Tippe auf ein Feld, unter dem ganz sicher eine Mine liegt.',
-        pick: { rows: ['00000', '11011', '.101.'], map: MINES, ok: [10, 14], put: { c: 'mjg1 mjflag' }, o: { w: 200 } },
+        pick: { rows: ['01...', '0112.', '0001.'], ok: [2], put: { c: 'mjg1 mjflag' }, o: { w: 200 } },
         yes: 'Genau: Die 1 daneben hat nur noch dieses eine verdeckte Feld, also muss die Mine dort liegen.', no: 'Such eine 1, die nur ein einziges verdecktes Feld neben sich hat.' },
-      { after: 2, t: 'Probier’s: 1-2-1', q: 'Unter der Reihe 1 2 1 liegen genau zwei Minen. Finde beide.',
-        pick: { rows: ['...', '121', '000'], map: MINES, ok: [0, 2], all: true, put: { c: 'mjg1 mjflag' }, o: { w: 150 } },
+      { after: 2, t: 'Probier’s: 1-2-1', q: 'Über der Reihe 1 2 1 liegen genau zwei Minen. Finde beide.',
+        pick: { rows: ['...', '121', '000'], ok: [0, 2], all: true, put: { c: 'mjg1 mjflag' }, o: { w: 150 } },
         yes: 'Richtig. Läge die Mine in der Mitte, hätten beide Einsen schon ihre Mine und die 2 bekäme keine zweite.', no: 'Probier es aus: Was wäre, wenn die Mine über der 2 läge? Passen die beiden Einsen dann noch?' }
     ],
     sumo: [
