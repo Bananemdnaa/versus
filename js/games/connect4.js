@@ -59,7 +59,15 @@
   .c4b.hov .cell.col{background:#141733}
   .c4b.lock{cursor:default}`);
 
+  // the AI's choice as a pure function of the state, so it can think in a worker (js/aiworker.js, V.register)
+  function brain(s, L) {
+    // Leicht: only sees its own move and plays loosely. Mittel: two moves ahead. Schwer: 5. Profi: up to 14.
+    const r = L === 0 ? V.weak(V.searchAll(G, s, 1, 500), 40, 0.35) : L === 1 ? V.pickSoft(V.searchAll(G, s, 2, 700), 18) : V.search(G, s, [5, 14][L - 2], [700, 2000][L - 2]);
+    return { move: r.move, mood: V.mood(r.score, 70) };
+  }
+
   V.register({
+    brain,
     id: 'c4', name: '4 Gewinnt', cat: 'Klassiker', order: 1, accent: 'var(--pink)',
     // "Gegenüber sitzen": the board turns to player 2 on their turn (stones fall down, so it has an up and down)
     turnBoard: true,
@@ -129,12 +137,7 @@
         board.classList.toggle('lock', ctx.isAI(s.turn));
         const land = c => board.children[dropRow(s.b, c) * C + c];
         if (ctx.isAI(s.turn)) ctx.aiTurn({
-          think: () => {
-            const L = ctx.level;
-            // Leicht: only sees its own move and plays loosely. Mittel: two moves ahead. Schwer: 5. Profi: up to 14.
-            const r = L === 0 ? V.weak(V.searchAll(G, s, 1, 500), 40, 0.35) : L === 1 ? V.pickSoft(V.searchAll(G, s, 2, 700), 18) : V.search(G, s, [5, 14][L - 2], [700, 2000][L - 2]);
-            return { move: r.move, mood: V.mood(r.score, 70) };
-          },
+          state: s,
           targets: c => [land(c)],
           decoys: () => G.moves(s).map(land),
           apply: drop,

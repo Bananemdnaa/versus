@@ -103,7 +103,14 @@
   .t3.v-cube .t3-c i{transform:translateZ(calc(var(--size) / 22)) rotateZ(calc(var(--rz) * -1)) rotateX(-68deg);pointer-events:none}
   .t3-lab{position:absolute;left:-26px;top:50%;font:800 italic 14px/1 var(--f-d);color:var(--lc);transform:translateY(-50%) rotateZ(calc(var(--rz) * -1)) rotateX(-68deg)}`);
 
+  // the AI's choice as a pure function of the state, so it can think in a worker (js/aiworker.js, V.register)
+  function brain(s, L) {
+    const r = L === 0 ? V.weak(V.searchAll(G, s, 1, 400), 30, 0.3) : L === 1 ? V.pickSoft(V.searchAll(G, s, 2, 700), 10) : V.search(G, s, [3, 8][L - 2], [900, 2200][L - 2]);
+    return { move: r.move, mood: V.mood(r.score, 80) };
+  }
+
   V.register({
+    brain,
     id: 'ttt3', name: '3D Tic Tac Toe', cat: 'Klassiker', order: 5, accent: '#62f0ff',
     short: 'Vier in einer Reihe, durch vier Ebenen.',
     desc: 'Tic Tac Toe im Würfel: vier Ebenen mit je 4 × 4 Feldern. Wer zuerst vier in einer Reihe hat, gewinnt, auch quer durch die Ebenen und diagonal durch den ganzen Würfel.',
@@ -242,11 +249,7 @@
         ctx.turn(s.turn); draw();
         if (!ctx.isAI(s.turn)) return;
         ctx.aiTurn({
-          think: () => {
-            const L = ctx.level;
-            const r = L === 0 ? V.weak(V.searchAll(G, s, 1, 400), 30, 0.3) : L === 1 ? V.pickSoft(V.searchAll(G, s, 2, 700), 10) : V.search(G, s, [3, 8][L - 2], [900, 2200][L - 2]);
-            return { move: r.move, mood: V.mood(r.score, 80) };
-          },
+          state: s,
           targets: i => [show(i)],
           decoys: () => G.order(s, G.moves(s)).slice(1, 4).map(i => cells[i]),
           apply: put,

@@ -130,4 +130,46 @@
       top: R.kids.slice().sort((a, b) => b.n - a.n).slice(0, 8).map(k => ({ m: k.m, n: k.n, r: k.w / k.n })) });
     return best ? { move: best.m, rate: best.w / best.n } : { move: V.pick(g.moves(root)), rate: 0.5 };
   };
+
+  // ---------- the AI in a worker (js/aiworker.js) ----------
+  // A game with brain(s, L) -> { move, mood } (a pure function of the state, see V.register) thinks in a worker, so the
+  // page keeps moving meanwhile. play.js asks through V.aiWorker.run; any trouble (no Worker, a file that does not
+  // load offline, a brain that needs the page) rejects, and play.js thinks on the main thread as before.
+  if (V.worker) return;   // this file is also loaded inside the worker itself
+  let w = null, seq = 0, broken = false;
+  const wait = new Map(), off = new Set();   // off: games whose brain does not work in the worker
+  const aiSrc = (document.querySelector('script[src*="js/ai.js"]') || {}).src;
+  function drop(msg) { for (const p of wait.values()) p.no(new Error(msg)); wait.clear(); }
+  function kill(msg) { if (w) w.terminate(); w = null; drop(msg); }
+  function start() {
+    if (w || broken) return w;
+    try { w = new Worker('js/aiworker.js?v=' + (V.VERSION || 0)); } catch (e) { broken = true; return null; }
+    w.onmessage = e => {
+      const d = e.data, p = wait.get(d.id);
+      if (d.err) { if (!off.has(d.game)) console.warn('[Versus] KI im Worker geht nicht für', d.game, '-', d.err); off.add(d.game); }
+      if (!p) return;
+      wait.delete(d.id);
+      if (d.err) p.no(new Error(d.err)); else p.ok(d.r);
+    };
+    // the worker file itself did not load (offline before it was ever cached …): main thread for the rest of the visit
+    w.onerror = e => { if (e && e.preventDefault) e.preventDefault(); broken = true; kill('aiworker failed'); };
+    return w;
+  }
+  V.aiWorker = {
+    ok: g => !!(g && typeof g.brain === 'function' && g.src && aiSrc && !broken && !off.has(g.id) && typeof Worker === 'function'),
+    // at the start of a match against the AI: load the files now, so the first move does not wait for them
+    warm(g) { if (V.aiWorker.ok(g) && start()) w.postMessage({ id: 0, ai: aiSrc, src: g.src, game: g.id }); },
+    run(g, s, L) {
+      return new Promise((ok, no) => {
+        if (!V.aiWorker.ok(g) || !start()) return no(new Error('no worker'));
+        // no time limit here: every search stops itself after its few seconds, errors come back as an answer, and a
+        // timer would fire at once on the fast-forward clock of test.html
+        const id = ++seq;
+        wait.set(id, { ok, no });
+        w.postMessage({ id, ai: aiSrc, src: g.src, game: g.id, s, L, fast: !!(V.settings && V.settings.aiFast) });
+      });
+    },
+    // the match is over or left while the AI still thinks: stop that search, the next match starts a fresh worker
+    cancel() { if (wait.size) kill('cancelled'); }
+  };
 })();

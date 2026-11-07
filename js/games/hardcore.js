@@ -71,7 +71,11 @@
 
   const AREA = ['oben links', 'oben', 'oben rechts', 'links', 'Mitte', 'rechts', 'unten links', 'unten', 'unten rechts'];
 
+  // the AI's choice as a pure function of the state, so it can think in a worker (js/aiworker.js, V.register)
+  function brain(s, L) { const r = V.mcts(G, s, [40, 220, 900, 40000][L], [300, 800, 1400, 2800][L]); return { move: r.move, mood: (r.rate - 0.5) * 2.4 }; }
+
   V.register({
+    brain,
     id: 'hardcore', name: 'Hardcore Tic Tac Toe', cat: 'Klassiker', order: 5, accent: '#ff5d73', G,
     short: 'Ultimate Tic Tac Toe, nochmal verschachtelt.',
     desc: 'Neun Ultimate-Bretter in einem großen, 729 Felder. Wer ein kleines Brett gewinnt, schickt das Spiel in den Bereich an dessen Stelle. Wer zuerst drei Bereiche gewinnt, gewinnt das Spiel.',
@@ -178,7 +182,7 @@
         render();
         if (ctx.isAI(s.turn)) ctx.aiTurn({
           // random playouts on 729 cells are long, so fewer per move than in Ultimate
-          think: () => { const L = ctx.level, r = V.mcts(G, s, [40, 220, 900, 40000][L], [300, 800, 1400, 2800][L]); return { move: r.move, mood: (r.rate - 0.5) * 2.4 }; },
+          state: s,
           targets: m => { view = (m / 81) | 0; picking = false; render(); return [cells[m % 81]]; },
           decoys: () => G.moves(s).filter(m => ((m / 81) | 0) === view).map(m => cells[m % 81]),
           apply: move,

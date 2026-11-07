@@ -97,7 +97,14 @@
 
   const cm = rows => V.mini(rows, { k: { c: 'k1', t: '' }, K: { c: 'k2', t: '' } }, { checker: true, w: 230 });
 
+  // the AI's choice as a pure function of the state, so it can think in a worker (js/aiworker.js, V.register)
+  function brain(s, L) {
+    const r = L === 0 ? V.weak(V.searchAll(G, s, 1, 500), 70, 0.3) : L === 1 ? V.pickSoft(V.searchAll(G, s, 3, 800), 25) : V.search(G, s, [6, 14][L - 2], [800, 2200][L - 2]);
+    return { move: r.move, mood: V.mood(r.score, 220) };
+  }
+
   V.register({
+    brain,
     id: 'checkers', name: 'Dame', cat: 'Brettspiele', order: 3, accent: 'var(--pink)',
     short: 'Diagonal ziehen, Steine überspringen.',
     desc: 'Zieh diagonal, spring über gegnerische Steine und mach aus deinen Steinen Damen. Mit Schlagzwang.',
@@ -190,11 +197,7 @@
         const sqn = q => 'abcdefgh'[q & 7] + (8 - (q >> 3));
         if (ctx.isAI(s.turn)) ctx.aiTurn({
           // Leicht 1 ply loose + random slips, Mittel 3 plies soft choice, Schwer 6 plies, Profi up to 14 plies
-          think: () => {
-            const L = ctx.level;
-            const r = L === 0 ? V.weak(V.searchAll(G, s, 1, 500), 70, 0.3) : L === 1 ? V.pickSoft(V.searchAll(G, s, 3, 800), 25) : V.search(G, s, [6, 14][L - 2], [800, 2200][L - 2]);
-            return { move: r.move, mood: V.mood(r.score, 220) };
-          },
+          state: s,
           targets: m => m.path.map(q => cells[q]),
           decoys: m => genMoves(s).filter(x => x.path[0] !== m.path[0]).map(x => cells[x.path[0]]),
           apply: animate,
