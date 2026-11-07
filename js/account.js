@@ -641,7 +641,7 @@
     if (!list.length) return '<div class="abox"><p class="muted">Noch keine gewerteten Online-Partien.</p></div>';
     const rb = (g, l) => sure === 'elo:' + name + ':' + g ? `<button class="btn ghost sm danger" data-elo="${esc(g)}" data-n="${n}"><span>Wirklich auf 1000?</span></button>`
       : `<button class="btn ghost sm" data-sure="elo:${n}:${esc(g)}"><span>${l}</span></button>`;
-    return `<div class="abox">${list.map(r => `<div class="aline"><span>${esc(gameName(r.game))}</span><b>${r.elo}</b><small>${r.games} Partien · Bestwert ${r.peak}</small>${rb(r.game, 'Zurücksetzen')}</div>`).join('')}
+    return `<div class="abox">${list.map(r => `<div class="aline aelo"><span>${esc(gameName(r.game))}</span><b>${r.elo}</b><small>${r.games} Partien · Bestwert ${r.peak}</small>${rb(r.game, 'Zurücksetzen')}</div>`).join('')}
       <div class="arow">${rb('', 'Alle zurücksetzen')}</div>
       <p class="fine">Zurückgesetzt fängt der Spieler in diesem Spiel wieder bei 1000 an. Partien und Bilanz bleiben.</p></div>`;
   }

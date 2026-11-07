@@ -3319,3 +3319,10 @@ body:has(.view.play) .season.halloween .spider{display:none}
 /* options with many choices (e.g. the categories of the Alphabet-Spiel): full names, wrapping into lines */
 .rv-row.many .mini-seg{display:flex;flex-wrap:wrap;gap:6px;justify-content:flex-start}
 .rv-row.many .mini-seg button{flex:1 1 auto;min-width:0;padding:0 12px;overflow:visible;text-overflow:clip}
+/* admin panel, Elo of a player: the game name gets its own line (it was squeezed to "4 G…" beside the numbers) */
+.aline.aelo{flex-wrap:wrap;row-gap:4px}
+.aline.aelo>span{flex:1 1 100%;font-weight:700;color:var(--fg);white-space:normal}
+.aline.aelo>.btn{margin-left:auto}
+/* admin player card: an action button is never wider than the card, a long one may wrap its text */
+.pcard-a .arow .btn{max-width:100%;height:auto;min-height:38px;padding-block:6px}
+.pcard-a .arow .btn>span{white-space:normal;text-align:center}
