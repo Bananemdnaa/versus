@@ -39,7 +39,7 @@
       <h4>Avatar</h4><div class="lk-ic"><button data-i="ini" class="ini">${esc(u.username.slice(0, 2).toUpperCase())}</button>${ICONS.map((s, k) => `<button data-i="i${k}">${s}</button>`).join('')}</div>
       <h4>Banner</h4><div class="lk-bn">${Object.entries(BANNERS).map(([k, n]) => `<button data-b="${k}" class="lb-${k}"><span>${n}</span></button>`).join('')}</div>
       <h4>Spruch</h4><input class="inp" id="lkm" maxlength="60" placeholder="z. B. Revanche? Jederzeit." value="${esc(l.m || '')}">
-      <h4>Lieblingsspiel</h4><select class="inp" id="lkg"><option value="">Keins</option>${games.map(g => `<option value="${g.id}"${l.g === g.id ? ' selected' : ''}>${esc(g.name)}</option>`).join('')}</select>
+      <h4>Lieblingsspiel</h4><select class="inp" id="lkg"><option value="">${V.t('Keins')}</option>${games.map(g => `<option value="${g.id}"${l.g === g.id ? ' selected' : ''}>${esc(g.name)}</option>`).join('')}</select>
       <p class="aerr" id="lke"></p>
       <div class="actions"><button class="btn primary" id="lks"><span>Speichern</span></button><button class="btn ghost" id="lkc"><span>Abbrechen</span></button></div></div>`, 'lkm');
     const prev = () => {

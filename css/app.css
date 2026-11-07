@@ -3310,3 +3310,5 @@ body:has(.view.play) .season.halloween .spider{display:none}
 .vt-bar{position:absolute;left:0;bottom:0;height:3px;width:100%;background:linear-gradient(90deg,var(--pink),var(--yellow));transform-origin:left;animation:vtBar 1.55s .45s linear backwards}
 @keyframes vtIn{from{opacity:0;translate:-50% 16px}} @keyframes vtBar{from{transform:scaleX(0)}}
 @media (max-width:959px){.vsi-tip{display:none}}
+/* phone: the account promo card is cyan all over, so the longer lines never run onto the dark part */
+@media (max-width:959px){.apromo{background:repeating-linear-gradient(-60deg,rgba(8,9,15,.08) 0 10px,transparent 10px 22px),var(--cyan)}}
