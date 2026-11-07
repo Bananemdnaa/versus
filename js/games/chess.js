@@ -301,12 +301,23 @@
   // with elo ("Passend zu dir", 1320-3190) Stockfish limits itself to that rating instead
   function sfMove(api, P, ply, skill, ms, elo) {
     return new Promise(done => {
-      let score = 0;
+      let score = 0, last = '';
+      const t0 = performance.now();
       api.fn = l => {
         if (l.startsWith('info') && / score /.test(l)) {
           const mt = / score mate (-?\d+)/.exec(l), cp = / score cp (-?\d+)/.exec(l);
           score = mt ? (+mt[1] > 0 ? 100000 - +mt[1] : -100000 - +mt[1]) : cp ? +cp[1] : score;
-        } else if (l.startsWith('bestmove')) { api.fn = null; done({ uci: l.split(' ')[1], score }); }
+          last = l;
+        } else if (l.startsWith('bestmove')) {
+          api.fn = null;
+          // Dev-Konten: what Stockfish saw (depth, score, nodes, main line) in the dev panel
+          if (V.dev && V.dev.active) {
+            const g = k => { const m = new RegExp(' ' + k + ' (\\S+)').exec(last); return m ? m[1] : null; };
+            V.dev.ai('Stockfish', { skill: elo ? null : skill, elo: elo || null, movetime: ms, ms: Math.round(performance.now() - t0), depth: g('depth'), seldepth: g('seldepth'),
+              score: / score mate /.test(last) ? 'Matt in ' + g('mate') : g('cp') + ' cp', nodes: g('nodes'), nps: g('nps'), best: l.split(' ')[1], pv: (/ pv (.*)$/.exec(last) || [])[1] || '' });
+          }
+          done({ uci: l.split(' ')[1], score });
+        }
       };
       api.send('setoption name MultiPV value 1');
       if (elo) { api.send('setoption name Skill Level value 20'); api.send('setoption name UCI_LimitStrength value true'); api.send('setoption name UCI_Elo value ' + elo); }
@@ -355,7 +366,9 @@
     const m = plies[k].m, L = info[k].lines, top = L[0] || { s: 0, pv: [] };
     const bestV = clamp(top.s), played = clamp(-((info[k + 1].lines[0] || { s: 0 }).s));
     const uci = sqn(m.f) + sqn(m.t) + (m.promo || '');
-    const isBest = top.pv[0] === uci;
+    // a move that mates just as fast as the engine's move is a best move too (the reply line counts the moves after it)
+    const rs = (info[k + 1].lines[0] || { s: 0 }).s;
+    const isBest = top.pv[0] === uci || (top.s >= 90000 && rs <= -90000 && 100000 + rs + 1 <= 100000 - top.s);
     const wB = winP(bestV), wP = winP(isBest ? bestV : Math.min(played, bestV)), loss = Math.max(0, wB - wP);
     return { L, top, bestV, uci, isBest, wB, wP, loss, second: L[1] ? winP(clamp(L[1].s)) : null };
   }
@@ -411,7 +424,7 @@
       else if (loss <= 5) kind = 'good';
       else if (prev && (prev.kind === 'mist' || prev.kind === 'blun') && wB >= 65 && loss >= 10 && loss <= 30) kind = 'miss';
       else kind = loss <= 10 ? 'inacc' : loss <= 20 ? 'mist' : 'blun';
-      const better = !isBest && top.pv[0] && ['inacc', 'mist', 'miss', 'blun', 'good'].includes(kind) ? fromUci(P, top.pv[0]) : null;
+      const better = !isBest && top.pv[0] && (['inacc', 'mist', 'miss', 'blun', 'good'].includes(kind) || (top.s >= 90000 && kind !== 'book')) ? fromUci(P, top.pv[0]) : null;
       const item = {
         kind, acc: kind === 'book' ? 100 : accOf(loss), loss, phase: phaseOf(P, k, book),
         best: better ? san(P, better, legal(P)) : '', bestM: better ? { f: better.f, t: better.t } : null,
@@ -443,12 +456,23 @@
     const sanOf = (Q, u) => { const m = fromUci(Q, u); return m ? show(san(Q, m, legal(Q))) : ''; };
     const b = t => `<b>${t}</b>`;
     if (plies[k].san.endsWith('#')) return 'Schachmatt!';
+    // stalemate: the opponent has no move but is not in check, the game is a draw on the spot
+    if (!legal(after).length && !inCheck(after, after.turn)) return winP(bestV) >= 60
+      ? 'Patt! Die andere Seite hat keinen Zug mehr, steht aber nicht im Schach. Aus der Gewinnstellung wird ein Remis.'
+      : 'Patt! Die andere Seite hat keinen Zug mehr, steht aber nicht im Schach. Die Partie endet remis.';
     if (item.kind === 'book') { const op = opening(plies.slice(0, k + 1).map(h => h.san.replace(/[+#]/g, ''))); return op ? `Ein bekannter Eröffnungszug: ${b(op)}` : 'Ein bekannter Eröffnungszug.'; }
     // the answer mates
-    if (reply.s >= 90000) return 100000 - reply.s === 1 ? `Danach setzt der Gegner sofort matt: ${b(sanOf(after, reply.pv[0]))}.` : `Danach setzt der Gegner in ${b(100000 - reply.s)} Zügen matt, los geht es mit ${b(sanOf(after, reply.pv[0]))}.`;
-    // a mate was there
-    if (top.s >= 90000 && !['best', 'great', 'brill'].includes(item.kind)) return `Hier gab es ein Matt in ${b(100000 - top.s)} mit ${b(show(item.best || sanOf(P, top.pv[0])))}.`;
-    if (item.kind === 'brill') return 'Ein starkes Opfer: Die Figur darf geschlagen werden, aber das lohnt sich für den Gegner nicht.';
+    // (worded for both sides: the review shows the opponent's moves too)
+    if (reply.s >= 90000) return 100000 - reply.s === 1 ? `Danach folgt sofort Matt: ${b(sanOf(after, reply.pv[0]))}.` : `Danach folgt Matt in ${b(100000 - reply.s)} Zügen, los geht es mit ${b(sanOf(after, reply.pv[0]))}.`;
+    // a mate was there: say how many moves, with which move, and what the played move does instead
+    if (top.s >= 90000 && !['best', 'great', 'brill'].includes(item.kind)) {
+      const n = 100000 - top.s, mv = b(show(item.best || sanOf(P, top.pv[0]))), zn = z => z === 1 ? 'in einem Zug' : `in ${b(z)} Zügen`;
+      // the played move mates too: the opponent's line counts the moves after it, so the move itself adds one
+      if (reply.s <= -90000) { const m = 100000 + reply.s + 1; return m <= n ? `<span>Auch dieser Zug setzt matt, genauso schnell wie ${mv} (${zn(n)}).</span>` : `<span>Mit ${mv} ging Matt ${zn(n)}.</span> <span>Der gespielte Zug setzt auch matt, nur später (${zn(m)}).</span>`; }
+      if (winP(clamp(-reply.s)) >= 90) return `<span>Mit ${mv} ging Matt ${zn(n)}.</span> <span>Der gespielte Zug gewinnt trotzdem klar, nur ohne schnelles Matt.</span>`;
+      return `<span>Verpasst: Mit ${mv} ging Matt ${zn(n)}.</span>`;
+    }
+    if (item.kind === 'brill') return 'Ein starkes Opfer: Die Figur darf geschlagen werden, aber das Schlagen lohnt sich nicht.';
     if (item.kind === 'great') return 'Der einzige Zug, der die Stellung hält. Alles andere wäre deutlich schlechter.';
     if (item.kind === 'best') return 'Der stärkste Zug in dieser Stellung.';
     if (item.kind === 'exc') return 'Fast so stark wie der beste Zug.';
@@ -578,6 +602,8 @@
   .chx-ml button{padding:4px 6px;border-radius:5px;color:var(--fg);display:inline-flex;align-items:center;gap:3px;font:inherit}
   .chx-ml button.cur{background:var(--panel3)}
   .chx-ml button i{font-style:normal;font-weight:800;font-size:11px}
+  /* the opponent's ratings (when the review takes your side) are fainter than your own */
+  .chx-ml button.opp i{opacity:.45}
   .chx-view{font:600 12px/1.2 var(--f-b);color:var(--cyan)}
   .chev{position:relative;height:16px;border-radius:4px;overflow:hidden;background:#403d39}
   .chev i{position:absolute;left:0;top:0;bottom:0;background:#f4f4f4;transition:width .35s var(--ease),height .35s var(--ease)}
@@ -599,6 +625,10 @@
   .chr-acc div{display:flex;flex-direction:column;align-items:center;gap:2px;padding:12px;border-radius:10px;background:var(--panel2)}
   .chr-acc b{font:800 italic 34px/1 var(--f-d)} .chr-acc small{font-size:12px;color:var(--muted)}
   .chr-acc .w b{color:#f4f4f4} .chr-acc .b b{color:#9aa0b8}
+  .chr-acc .me{box-shadow:inset 0 0 0 2px var(--pink)}
+  .chr-tab .hd{font:800 11px/1 var(--f-b);color:var(--muted);text-align:center;text-transform:uppercase;letter-spacing:.04em}
+  .chr-keys.opp .chr-key{background:var(--panel);border-style:dashed}
+  .chr-key .kw b.y{color:var(--good)} .chr-key .kw b.n{color:#ff8a8a}
   .chr-graph{width:100%;height:70px;border-radius:8px;overflow:hidden;background:#3a3a3a}
   .chr-tab{display:grid;grid-template-columns:auto 1fr auto auto;gap:4px 12px;align-items:center;font-size:14px}
   .chr .kd,.chr-tab .kd{width:22px;height:22px;border-radius:50%;display:grid;place-items:center;color:#fff;font:800 11px/1 var(--f-b)}
@@ -616,18 +646,27 @@
     .chev b{right:auto;left:50%;top:auto;bottom:4px;transform:translateX(-50%);font-size:9px;writing-mode:horizontal-tb}
     .chev.fl b{bottom:auto;top:4px}
   }
-  .duel.chside{grid-template-columns:200px minmax(0,1fr) 340px;grid-template-areas:"l c r" "l c p";grid-template-rows:auto 1fr}
-  .duel.chside>.chx{grid-area:p;align-self:start;position:sticky;top:12px;margin-top:4px}
-  /* the panel must end above the bottom of the screen, or the board would shrink to make room for it */
-  .duel.chside>.chx{max-height:calc(100vh - 370px);max-height:calc(100svh - 370px);min-height:200px;overflow:hidden}
-  .duel.chside .chx>*{flex-shrink:0} .duel.chside .chx-ml{flex:1 1 auto;min-height:48px;max-height:none}
+  /* both player cards on the left (the opponent above you, as on the board), the panel takes the whole height on the right */
+  .duel.chside{grid-template-columns:210px minmax(0,1fr) 340px;grid-template-areas:"r c p" "l c p";grid-template-rows:auto 1fr}
+  .duel.chside>.pcard-l{margin-top:22px}
+  .duel.chside>.pcard-r{align-items:flex-start;text-align:left;flex-direction:column}
+  .duel.chside>.pcard-r .wins{flex-direction:row} .duel.chside>.pcard-r .tag{right:auto;left:10px} .duel.chside>.pcard-r .tdots{left:auto;right:16px}
+  .duel.chside>.pcard-r.on{box-shadow:6px 6px 0 var(--sc)}
+  /* the panel reaches exactly down to the bottom of the board column: contain:size keeps its content from making the
+     row (and so the page) taller, which would shrink the board; the move list takes what is left, a long coach text scrolls */
+  .duel.chside>.chx{grid-area:p;align-self:stretch;margin-top:44px;min-height:0;contain:size;overflow:hidden}
+  .duel.chside .chx>*{flex-shrink:0} .duel.chside .chx-ml{flex:1 1 0;min-height:96px;max-height:none}
+  .duel.chside .chco{flex:0 1 auto;min-height:0;overflow-y:auto;scrollbar-width:thin}
   .duel.chside .chg{height:70px}
-  .duel.chside>.pcard-r{flex-direction:row;align-items:center;flex-wrap:wrap;padding:12px 14px;gap:10px 12px}
   /* the coach card */
   .chco[hidden],.chg[hidden],.chev[hidden]{display:none!important}
   .chco{position:relative;display:flex;gap:10px;align-items:flex-start;padding:10px 12px;border-radius:10px;background:var(--panel2);border:1px solid var(--line);animation:wpop .3s var(--spring)}
   .chco-ic{flex:none;width:34px;height:34px;border-radius:50%;display:grid;place-items:center;color:#fff;font:800 14px/1 var(--f-b);box-shadow:0 2px 6px rgba(0,0,0,.35)}
   .chco-tx{flex:1;min-width:0;display:flex;flex-direction:column;gap:4px}
+  .chco-who{align-self:flex-start;font:800 10.5px/1 var(--f-b);letter-spacing:.06em;text-transform:uppercase;padding:3px 7px;border-radius:999px;background:var(--panel3);color:var(--muted)}
+  .chco-who.me{background:color-mix(in srgb,var(--pink) 28%,var(--panel3));color:var(--fg)}
+  .chco.opp{background:var(--panel);border-style:dashed}
+  .chco-ch small{display:block;margin-top:3px;font-weight:800} .chco-ch small.y{color:var(--good)} .chco-ch small.n{color:#ff8a8a}
   .chco-h{font:800 15px/1.2 var(--f-b)} .chco-h.good{color:var(--good)} .chco-h.bad{color:#ff8a8a}
   .chco p{margin:0;font-size:13.5px;line-height:1.4;color:var(--fg)} .chco p b{font-weight:800}
   .chco-b span{color:var(--muted)} .chco-b small{display:block;color:var(--muted);font-weight:600;margin-top:2px}
@@ -644,6 +683,7 @@
   .chg .mid{stroke:#777;stroke-width:.6;vector-effect:non-scaling-stroke}
   .chg .cur{stroke:var(--cyan);stroke-width:2;vector-effect:non-scaling-stroke}
   .chg-dots{position:absolute;inset:0;pointer-events:none} .chg-dots i{position:absolute;width:9px;height:9px;margin:-4.5px 0 0 -4.5px;border-radius:50%;border:1.5px solid #fff;box-shadow:0 1px 2px rgba(0,0,0,.4)}
+  .chg-dots i.opp{width:6px;height:6px;margin:-3px 0 0 -3px;border-width:1px;opacity:.6;box-shadow:none}
   .chg circle.k-inacc{fill:#e6a22e} .chg circle.k-mist{fill:#e5762b} .chg circle.k-blun{fill:#ca3431} .chg circle.k-miss{fill:#ee6b55} .chg circle.k-brill{fill:#1baca6} .chg circle.k-great{fill:#5c8bb0}
   .chg circle{transform-box:fill-box} .chr-graph circle{stroke:#fff;stroke-width:.5}
   .chr-graph circle.k-mist{fill:#e5762b} .chr-graph circle.k-blun{fill:#ca3431} .chr-graph circle.k-miss{fill:#ee6b55}
@@ -654,7 +694,7 @@
   .chr-key{display:grid;grid-template-columns:auto 1fr;gap:2px 10px;align-items:center;padding:8px 10px;border-radius:9px;background:var(--panel2);border:1px solid var(--line);text-align:left;color:var(--fg)}
   .chr-key .kd{grid-row:span 2} .chr-key .km{font-size:13.5px} .chr-key .kw{font-size:12.5px;color:var(--muted)} .chr-key .kw b{color:var(--fg)}
   .chr-ph{display:grid;grid-template-columns:1fr auto auto;gap:6px 16px;align-items:center;font-size:13.5px}
-  .chr-ph b{font-size:12px;color:var(--muted);text-align:center} .chr-ph .ph{display:inline-block;min-width:34px;text-align:center;padding:3px 6px;border-radius:6px;color:#fff;font:800 13px/1 var(--f-b)}
+  .chr-ph b{font-size:12px;color:var(--muted);text-align:center} .chr-ph .ph-none{min-width:34px;text-align:center;color:var(--dim)} .chr-ph .ph{display:inline-block;min-width:34px;text-align:center;padding:3px 6px;border-radius:6px;color:#fff;font:800 13px/1 var(--f-b)}
   .chr{max-height:min(84vh,780px);overflow-y:auto;overflow-x:hidden} .chr>*,.chr-l>*,.chr-r>*{flex-shrink:0}
   .chr .actions{position:sticky;bottom:-1px;padding-top:8px;background:linear-gradient(transparent,var(--panel) 30%);z-index:2}
   /* phones: one column (the two halves only group, the phases come after the table); wide screens: two columns */
@@ -709,6 +749,10 @@
       const sideOf = { 1: 'w', 2: 'b' }, numOf = { w: 1, b: 2 };
       // your own pieces at the bottom: against the AI and online when you play the second side
       const baseFlip = (ctx.mode === 'ai' && ctx.aiSide === 1) || ctx.mySide === 2;
+      // whose view the review takes: your side against the AI, online and in a recorded match of yours; at one device
+      // (and when watching) both sides count the same (meS null)
+      const meS = ctx.mode === 'ai' ? sideOf[3 - ctx.aiSide] : ctx.mySide ? sideOf[ctx.mySide] : null;
+      const theirs = s => !!meS && s !== meS;
       const reps = new Map();
       const key = () => P.b.join(',') + P.turn + JSON.stringify(P.cs) + P.ep;
       const bump = () => { const k = key(); reps.set(k, (reps.get(k) || 0) + 1); return reps.get(k); };
@@ -810,7 +854,7 @@
         const cellOf = k => {
           const x = hist[k]; if (!x) return '<span></span>';
           const r = rev && rev.moves[k], kd = r ? KIND.find(z => z[0] === r.kind) : null;
-          return `<button data-k="${k + 1}" class="${cur === k + 1 ? 'cur' : ''}${r ? ' t-' + r.kind : ''}">${show(x.san)}${kd && r.kind !== 'good' ? `<i>${kd[1]}</i>` : ''}</button>`;
+          return `<button data-k="${k + 1}" class="${cur === k + 1 ? 'cur' : ''}${r ? ' t-' + r.kind : ''}${theirs(x.mover) ? ' opp' : ''}">${show(x.san)}${kd && r.kind !== 'good' ? `<i>${kd[1]}</i>` : ''}</button>`;
         };
         let h = '';
         for (let k = 0; k < hist.length; k += 2) h += `<span class="n">${k / 2 + 1}.</span>${cellOf(k)}${cellOf(k + 1)}`;
@@ -838,14 +882,24 @@
         if (retry) return retryCard(el);
         const at = view === null ? hist.length : view, r = rev && at > 0 ? rev.moves[at - 1] : null;
         el.hidden = !r; if (!r) return;
-        const kd = KIND.find(z => z[0] === r.kind), mover = hist[at - 1].mover;
-        const canTry = rev.sf && ['inacc', 'mist', 'miss', 'blun'].includes(r.kind);
-        el.className = 'chco k2-' + r.kind;
+        const kd = KIND.find(z => z[0] === r.kind), mover = hist[at - 1].mover, opp = theirs(mover);
+        const weak = ['inacc', 'mist', 'miss', 'blun'].includes(r.kind);
+        const canTry = rev.sf && weak && !opp;
+        // a weak move of the opponent: how you could punish it, and whether your answer did
+        let chance = '';
+        if (opp && weak && rev.info && rev.info[at]) {
+          const rp = (rev.info[at].lines[0] || { pv: [] }).pv, nx = rev.moves[at];
+          const line = rp.length ? lineSan(rev.pos[at], at, rp, 4) : '';
+          const used = nx ? ['best', 'exc', 'great', 'brill'].includes(nx.kind) : null;
+          if (line) chance = `<p class="chco-b chco-ch"><span>Deine Chance:</span> <b>${line}</b>${used === null ? '' : used ? '<small class="y">Du hast sie genutzt.</small>' : '<small class="n">Du hast sie nicht genutzt.</small>'}</p>`;
+        }
+        el.className = 'chco k2-' + r.kind + (opp ? ' opp' : '');
         el.innerHTML = `<span class="chco-ic k-${r.kind}">${kd[1]}</span><div class="chco-tx">
+            ${meS ? `<span class="chco-who${opp ? '' : ' me'}">${opp ? `<span>Zug von</span> <span>${esc(ctx.name(numOf[mover]))}</span>` : 'Dein Zug'}</span>` : ''}
             <b class="chco-h"><span>${show(hist[at - 1].san)}</span> <span>${kd[2]}</span></b>
-            ${r.why ? `<p>${r.why}</p>` : ''}
-            ${r.refute ? `<p class="chco-b"><span>Gespielt:</span> <b>${r.refute}</b></p>` : ''}
-            ${r.best ? `<p class="chco-b"><span>Besser:</span> <b>${r.line || show(r.best)}</b></p>` : ''}
+            ${opp && chance ? chance : r.why ? `<p>${r.why}</p>` : ''}
+            ${opp ? '' : `${r.refute ? `<p class="chco-b"><span>Gespielt:</span> <b>${r.refute}</b></p>` : ''}
+            ${r.best ? `<p class="chco-b"><span>Besser:</span> <b>${r.line || show(r.best)}</b></p>` : ''}`}
             ${canTry ? '<button class="btn sm chco-try" id="chtry"><span>Besseren Zug selbst finden</span></button>' : ''}</div>
           <i class="chco-side ${mover}"></i>`;
         const t = el.querySelector('#chtry'); if (t) t.onclick = () => startRetry([at - 1]);
@@ -857,7 +911,7 @@
         const n = rev.evals.length - 1 || 1, at = retry ? retry.k : view === null ? hist.length : view;
         const X = i => (i / n * 100).toFixed(2), Y = e => (100 - winP(e)).toFixed(2);
         const area = `M0 100 ${rev.evals.map((e, i) => `L${X(i)} ${Y(e)}`).join(' ')} L100 100Z`;
-        const dots = rev.moves.map((r, k) => ['inacc', 'mist', 'miss', 'blun', 'brill', 'great'].includes(r.kind) ? `<i class="k-${r.kind}" style="left:${X(k + 1)}%;top:${Y(rev.evals[k + 1])}%"></i>` : '').join('');
+        const dots = rev.moves.map((r, k) => ['inacc', 'mist', 'miss', 'blun', 'brill', 'great'].includes(r.kind) ? `<i class="k-${r.kind}${theirs(hist[k].mover) ? ' opp' : ''}" style="left:${X(k + 1)}%;top:${Y(rev.evals[k + 1])}%"></i>` : '').join('');
         el.innerHTML = `<svg viewBox="0 0 100 100" preserveAspectRatio="none"><path d="${area}" fill="#f2f2f2"/><path d="M0 50H100" class="mid"/><path d="M${X(at)} 0V100" class="cur"/></svg>
           <span class="chg-dots">${dots}</span>`;
         el.onclick = e => { const r2 = el.getBoundingClientRect(); go(Math.round((e.clientX - r2.left) / r2.width * n)); };
@@ -1078,7 +1132,9 @@
         });
       }
       function showReview() {
-        const sides = ['w', 'b'], nm = s => ctx.name(numOf[s]);
+        // your side first; at one device White first
+        const sides = meS ? [meS, meS === 'w' ? 'b' : 'w'] : ['w', 'b'], nm = s => ctx.name(numOf[s]);
+        const col = s => meS ? (s === meS ? 'Du' : 'Gegner') : s === 'w' ? 'Weiß' : 'Schwarz';
         const mv = s => rev.moves.map((x, k) => Object.assign({ k }, x)).filter(x => hist[x.k].mover === s);
         const avg = l => l.length ? l.reduce((a, x) => a + x.acc, 0) / l.length : null;
         const acc = s => avg(mv(s)) || 0;
@@ -1086,28 +1142,36 @@
         // a rough playing strength from the accuracy (only an estimate, like the "game rating" of the big sites)
         const elo = a => Math.max(250, Math.round(2900 * Math.pow(a / 100, 4.5) / 50) * 50);
         const PH = [['open', 'Eröffnung'], ['mid', 'Mittelspiel'], ['end', 'Endspiel']];
-        const phase = (s, ph) => { const a = avg(mv(s).filter(x => x.phase === ph)); return a === null ? '–' : `<span class="ph ${a >= 90 ? 'k-best' : a >= 75 ? 'k-good' : a >= 60 ? 'k-inacc' : a >= 45 ? 'k-mist' : 'k-blun'}">${Math.round(a)}</span>`; };
-        // key moments: the three moves that changed the game most
-        const keys = rev.moves.map((x, k) => Object.assign({ k }, x)).filter(x => ['mist', 'blun', 'miss', 'brill', 'great'].includes(x.kind))
+        const phase = (s, ph) => { const a = avg(mv(s).filter(x => x.phase === ph)); return a === null ? '<span class="ph-none">–</span>' : `<span class="ph ${a >= 90 ? 'k-best' : a >= 75 ? 'k-good' : a >= 60 ? 'k-inacc' : a >= 45 ? 'k-mist' : 'k-blun'}">${Math.round(a)}</span>`; };
+        // key moments: the three moves that changed the game most (with a side of your own: your moves), and apart from
+        // them the opponent's two worst mistakes with whether you punished them
+        const all = rev.moves.map((x, k) => Object.assign({ k }, x));
+        const keys = all.filter(x => ['mist', 'blun', 'miss', 'brill', 'great'].includes(x.kind) && !theirs(hist[x.k].mover))
           .sort((a, b) => (b.kind === 'brill') - (a.kind === 'brill') || (b.loss || 0) - (a.loss || 0)).slice(0, 3).sort((a, b) => a.k - b.k);
+        const oppKeys = meS ? all.filter(x => ['mist', 'blun', 'miss'].includes(x.kind) && theirs(hist[x.k].mover))
+          .sort((a, b) => (b.loss || 0) - (a.loss || 0)).slice(0, 2).sort((a, b) => a.k - b.k) : [];
+        const keyBtn = (x, note) => { const kd = KIND.find(z => z[0] === x.kind); return `<button data-go="${x.k + 1}" class="chr-key${theirs(hist[x.k].mover) ? ' opp' : ''}"><span class="kd k-${x.kind}">${kd[1]}</span><span class="km"><b>${Math.floor(x.k / 2) + 1}${x.k % 2 ? '…' : '.'} ${show(hist[x.k].san)}</b> <span>${kd[2]}</span></span><span class="kw">${note || x.why || ''}</span></button>`; };
+        const punished = x => { const nx = rev.moves[x.k + 1]; return !nx ? '' : ['best', 'exc', 'great', 'brill'].includes(nx.kind) ? '<b class="y">Du hast es genutzt.</b>' : '<b class="n">Du hast es nicht genutzt.</b>'; };
         // practice: the weak moves of the human players (against the AI only your own)
         const human = s => !ctx.isAI(numOf[s]);
         const practice = rev.sf ? rev.moves.map((x, k) => ({ x, k })).filter(o => ['mist', 'blun', 'miss'].includes(o.x.kind) && human(hist[o.k].mover)).map(o => o.k) : [];
         const n1 = s => esc(nm(s));
         const pts = rev.evals.map((e, k) => [k / Math.max(1, rev.evals.length - 1) * 100, 100 - winP(e)]);
-        const graphSvg = `<div class="chg big"><svg viewBox="0 0 100 100" preserveAspectRatio="none"><path d="M0 100 ${pts.map(p => 'L' + p[0].toFixed(2) + ' ' + p[1].toFixed(2)).join(' ')} L100 100Z" fill="#f2f2f2"/><path d="M0 50H100" class="mid"/></svg><span class="chg-dots">${rev.moves.map((x, k) => ['mist', 'blun', 'miss', 'brill', 'great'].includes(x.kind) ? `<i class="k-${x.kind}" style="left:${pts[k + 1][0].toFixed(2)}%;top:${pts[k + 1][1].toFixed(2)}%"></i>` : '').join('')}</span></div>`;
+        const graphSvg = `<div class="chg big"><svg viewBox="0 0 100 100" preserveAspectRatio="none"><path d="M0 100 ${pts.map(p => 'L' + p[0].toFixed(2) + ' ' + p[1].toFixed(2)).join(' ')} L100 100Z" fill="#f2f2f2"/><path d="M0 50H100" class="mid"/></svg><span class="chg-dots">${rev.moves.map((x, k) => ['mist', 'blun', 'miss', 'brill', 'great'].includes(x.kind) ? `<i class="k-${x.kind}${theirs(hist[k].mover) ? ' opp' : ''}" style="left:${pts[k + 1][0].toFixed(2)}%;top:${pts[k + 1][1].toFixed(2)}%"></i>` : '').join('')}</span></div>`;
         const m = V.openModal(`<div class="chr"><div class="chr-h"><h3>Partie-Analyse</h3><small>${rev.sf ? 'Stockfish 19' : 'Versus-Engine'}</small></div>
-          <div class="chr-l"><div class="chr-acc">${sides.map(s => `<div class="${s}"><small><span>${n1(s)}</span> · <span>${s === 'w' ? 'Weiß' : 'Schwarz'}</span></small><b>${acc(s).toFixed(1)}</b><small>Genauigkeit</small>
+          <div class="chr-l"><div class="chr-acc">${sides.map(s => `<div class="${s}${meS === s ? ' me' : ''}"><small><span>${n1(s)}</span> · <span>${s === 'w' ? 'Weiß' : 'Schwarz'}</span></small><b>${acc(s).toFixed(1)}</b><small>Genauigkeit</small>
             ${rev.sf && mv(s).length >= 8 ? `<em class="chr-elo"><span>Spielstärke ca.</span> <span>${elo(acc(s))}</span></em>` : ''}</div>`).join('')}</div>
           ${graphSvg}
-          ${rev.sf && rev.moves.length >= 12 ? `<div class="chr-ph"><span></span><b>Weiß</b><b>Schwarz</b>${PH.map(([k, l]) => `<span>${l}</span>${phase('w', k)}${phase('b', k)}`).join('')}</div>` : ''}</div>
-          <div class="chr-r">${keys.length ? `<div class="chr-keys"><h4>Schlüsselmomente</h4>${keys.map(x => { const kd = KIND.find(z => z[0] === x.kind); return `<button data-go="${x.k + 1}" class="chr-key"><span class="kd k-${x.kind}">${kd[1]}</span><span class="km"><b>${Math.floor(x.k / 2) + 1}${x.k % 2 ? '…' : '.'} ${show(hist[x.k].san)}</b> <span>${kd[2]}</span></span><span class="kw">${x.why || ''}</span></button>`; }).join('')}</div>` : ''}
-          <div class="chr-tab">${KIND.map(([k, sym, label]) => `<span class="kd k-${k}">${sym}</span><span>${label}</span><span class="c">${count('w', k)}</span><span class="c">${count('b', k)}</span>`).join('')}</div></div>
+          ${rev.sf && rev.moves.length >= 12 ? `<div class="chr-ph"><span></span><b>${col(sides[0])}</b><b>${col(sides[1])}</b>${PH.map(([k, l]) => `<span>${l}</span>${phase(sides[0], k)}${phase(sides[1], k)}`).join('')}</div>` : ''}</div>
+          <div class="chr-r">${keys.length ? `<div class="chr-keys"><h4>${meS ? 'Deine Schlüsselmomente' : 'Schlüsselmomente'}</h4>${keys.map(x => keyBtn(x)).join('')}</div>` : ''}
+          ${oppKeys.length ? `<div class="chr-keys opp"><h4><span>Fehler von</span> <span>${esc(nm(sides[1]))}</span></h4>${oppKeys.map(x => keyBtn(x, punished(x))).join('')}</div>` : ''}
+          <div class="chr-tab"><span></span><span></span><b class="hd">${col(sides[0])}</b><b class="hd">${col(sides[1])}</b>${KIND.map(([k, sym, label]) => `<span class="kd k-${k}">${sym}</span><span>${label}</span><span class="c">${count(sides[0], k)}</span><span class="c">${count(sides[1], k)}</span>`).join('')}</div></div>
           <div class="actions">${practice.length ? `<button class="btn primary" id="chrtry"><span>Fehler üben (${practice.length})</span></button>` : ''}<button class="btn ${practice.length ? '' : 'primary'}" id="chrgo"><span>Züge ansehen</span></button></div>
           <p class="chr-hint">Kostenlos und so oft du willst. Tippe auf einen Schlüsselmoment oder in der Zugliste auf einen Zug, dann erklärt dir der Coach, was dort passiert ist.</p></div>`, 'chrm');
         m.querySelector('#chrgo').onclick = () => {
           V.closeModal();
-          const k = rev.moves.findIndex(x => x.kind === 'blun' || x.kind === 'mist' || x.kind === 'miss');
+          // your own first mistake (at one device the first of anyone)
+          const k = rev.moves.findIndex((x, i) => (x.kind === 'blun' || x.kind === 'mist' || x.kind === 'miss') && !theirs(hist[i].mover));
           go(k >= 0 ? k + 1 : 1);
         };
         const t = m.querySelector('#chrtry'); if (t) t.onclick = () => { V.closeModal(); startRetry(practice); };

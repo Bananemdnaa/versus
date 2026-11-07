@@ -1784,7 +1784,9 @@
   function tutorial(g, onDone, opt = {}) {
     let i = 0, done = false;
     const steps = (g.tutorial || []).slice();
-    (V.TUTOR && V.TUTOR[g.id] || []).slice().sort((a, b) => (b.after ?? 99) - (a.after ?? 99))
+    // tasks with the same `after` keep the order they are written in: at one spot they go in back to front,
+    // at the end (no `after`) front to back
+    (V.TUTOR && V.TUTOR[g.id] || []).map((t, k) => [t, k]).sort(([a, x], [b, y]) => (b.after ?? 99) - (a.after ?? 99) || (a.after == null ? x - y : y - x)).map(([t]) => t)
       .forEach(t => steps.splice(Math.min(steps.length, (t.after ?? 99) + 1), 0, Object.assign({ task: true }, t)));
     const tasks = steps.filter(s => s.task).length, solved = new Set();
     const canPractice = opt.practice && tasks && !g.noAI && !locked(g) && !inDiscord();

@@ -84,6 +84,18 @@
     "Mit {0} hätte man Material gewonnen.": "{0} would have won material.", "Nicht ganz genau. {0} war besser.": "Not quite accurate. {0} was better.", "Damit gibt man einen großen Teil des Vorteils her.": "This gives away a large part of the advantage.",
     "Danach steht man deutlich schlechter.": "After this the position is clearly worse.", "Damit ist der Vorteil weg.": "The advantage is gone.", "Danach ist die Stellung kaum noch zu halten.": "After this the position is hard to hold.",
     "Stärkste Antwort:": "Strongest answer:", "Besser:": "Better:", "Gespielt:": "Played:", "Danach schlägt {0} von {1} {2} auf {3}.": "Then {0} from {1} takes {2} on {3}.", "der gegnerische Bauer": "the opponent's pawn", "der gegnerische Springer": "the opponent's knight", "der gegnerische Läufer": "the opponent's bishop", "der gegnerische Turm": "the opponent's rook", "die gegnerische Dame": "the opponent's queen", "der gegnerische König": "the opponent's king", "dem Bauern": "the pawn", "dem Springer": "the knight", "dem Läufer": "the bishop", "dem Turm": "the rook", "der Dame": "the queen", "dem König": "the king", "Die Figur war schon vor dem Zug angegriffen.": "That piece was already under attack before the move.", "Besser schlägt man zuerst mit {0} von {1} {2} auf {3} und bekommt so wenigstens etwas dafür.": "Better: first take {2} on {3} with {0} from {1}, so you at least get something for it.", "Besser schlägt man mit {0} von {1} {2} auf {3}.": "Better: take {2} on {3} with {0} from {1}.", "Besseren Zug selbst finden": "Find a better move yourself",
+    // the review from your side: your moves, the opponent's mistakes, missed mates, stalemate
+    "Dein Zug": "Your move", "Zug von": "Move by", "Deine Chance:": "Your chance:", "Du hast sie genutzt.": "You took it.", "Du hast sie nicht genutzt.": "You missed it.",
+    "Du hast es genutzt.": "You punished it.", "Du hast es nicht genutzt.": "You did not punish it.", "Deine Schlüsselmomente": "Your key moments", "Fehler von": "Mistakes by", "Gegner": "Opponent",
+    "Mit {0} ging Matt in {1} Zügen.": "{0} mated in {1} moves.", "Mit {0} ging Matt in einem Zug.": "{0} mated in one move.",
+    "Verpasst: Mit {0} ging Matt in {1} Zügen.": "Missed: {0} mated in {1} moves.", "Verpasst: Mit {0} ging Matt in einem Zug.": "Missed: {0} mated in one move.",
+    "Der gespielte Zug setzt auch matt, nur später (in {0} Zügen).": "The move played mates too, only later (in {0} moves).", "Der gespielte Zug setzt auch matt, nur später (in einem Zug).": "The move played mates too, only later (in one move).",
+    "Der gespielte Zug gewinnt trotzdem klar, nur ohne schnelles Matt.": "The move played still wins clearly, just without a quick mate.",
+    "Auch dieser Zug setzt matt, genauso schnell wie {0} (in {1} Zügen).": "This move mates too, just as fast as {0} (in {1} moves).", "Auch dieser Zug setzt matt, genauso schnell wie {0} (in einem Zug).": "This move mates too, just as fast as {0} (in one move).",
+    "Patt! Die andere Seite hat keinen Zug mehr, steht aber nicht im Schach. Aus der Gewinnstellung wird ein Remis.": "Stalemate! The other side has no move left but is not in check. The winning position turns into a draw.",
+    "Patt! Die andere Seite hat keinen Zug mehr, steht aber nicht im Schach. Die Partie endet remis.": "Stalemate! The other side has no move left but is not in check. The game ends in a draw.",
+    "Danach folgt sofort Matt: {0}.": "Mate follows right away: {0}.", "Danach folgt Matt in {0} Zügen, los geht es mit {1}.": "Mate follows in {0} moves, starting with {1}.",
+    "Ein starkes Opfer: Die Figur darf geschlagen werden, aber das Schlagen lohnt sich nicht.": "A strong sacrifice: the piece may be taken, but taking it does not pay off.",
     "Nicht ganz.": "Not quite.", "Die Lösung:": "The solution:", "Stockfish prüft …": "Stockfish is checking …",
     "Weiß ist am Zug.": "White to move.", "Schwarz ist am Zug.": "Black to move.", "Finde einen besseren Zug als": "Find a better move than",
     "Lösung zeigen": "Show solution", "Nächster Fehler": "Next mistake", "Gut geübt!": "Well practised!",
@@ -507,7 +519,7 @@
     c4: 'Connect 4', ships: 'Battleship', ttt: 'Tic Tac Toe', gomoku: 'Five in a Row', uttt: 'Ultimate Tic Tac Toe', dots: 'Dots and Boxes',
     hangman: 'Hangman', slf: 'City Country River', schnapsen: 'Schnapsen', guess: 'Estimation Quiz', hex: 'Hex', ttt3: '3D Tic Tac Toe', code: 'Code Breaker', domino: 'Dominoes', ludo: 'Ludo', ladder: 'Snakes and Ladders', checkers: 'Checkers', mill: "Nine Men's Morris",
     yacht: 'Dice Block', maumau: 'Mau-Mau', memory: 'Memory', poker: 'Poker', chess: 'Chess', reversi: 'Reversi', kalaha: 'Kalah', go: 'Go',
-    backgammon: 'Backgammon', reaction: 'Reaction Duel', pong: 'Pong', hockey: 'Air Hockey', billiard: 'Pool', draw: 'Draw & Guess', tron: 'Light Racer', sumo: 'Sumo Arena', blockade: 'Blockade', who: 'Who Am I?', abc: 'Alphabet Game'
+    backgammon: 'Backgammon', reaction: 'Reaction Duel', pong: 'Pong', hockey: 'Air Hockey', billiard: 'Pool', draw: 'Draw & Guess', tron: 'Light Racer', sumo: 'Sumo Arena', blockade: 'Blockade', mines: 'Mine Hunt', who: 'Who Am I?', abc: 'Alphabet Game'
   });
 
   // ---------- games: shared words ----------
@@ -695,6 +707,45 @@
     'Dreht gern viele Steine um und mag Ecken, denkt aber nicht voraus.': "Likes to flip many discs and likes corners, but doesn't think ahead.",
     'Rechnet vier Halbzüge tief.': 'Calculates four half-moves deep.', 'Rechnet acht Züge tief und spielt die letzten # Felder perfekt.': 'Calculates eight moves deep and plays the last # squares perfectly.',
     'Rechnet drei Züge tief und spielt die letzten acht Felder perfekt.': 'Calculates three moves deep and plays the last eight squares perfectly.'
+  });
+
+  // ---------- Mine Hunt ----------
+  A({
+    'Minen aufspüren, wer die meisten findet, gewinnt.': 'Track down mines: whoever finds the most wins.',
+    'Minesweeper für 2 bis 4: Ihr deckt abwechselnd Felder auf. Die Zahlen verraten, wie viele Minen daneben liegen. Findest du eine Mine, gehört sie dir und du bist nochmal dran. Wer die meisten Minen findet, gewinnt. Jeder hat eine Bombe, die 3×3 Felder auf einmal aufdeckt.': 'Minesweeper for 2 to 4: take turns uncovering squares. The numbers tell you how many mines are next to them. Find a mine and it is yours, and you go again. Whoever finds the most mines wins. Everyone has one bomb that uncovers 3×3 squares at once.',
+    'Anfänger: tippt oft einfach irgendwo hin und lässt sichere Minen liegen.': 'Beginner: often just taps anywhere and leaves certain mines lying around.',
+    'Kennt die einfachen Regeln an den Zahlen und nimmt sichere Minen mit.': 'Knows the simple rules around the numbers and takes certain mines.',
+    'Rechnet für jedes Feld genau aus, wie wahrscheinlich dort eine Mine liegt.': 'Works out exactly how likely a mine is on every square.',
+    'Rechnet genau und achtet zusätzlich darauf, dir mit einem Fehlgriff nichts zu verraten.': 'Calculates exactly and also makes sure a miss gives nothing away to you.',
+    'Feld aufdecken': 'Uncover a square', 'Bombe scharf machen': 'Arm the bomb', 'Bombe abbrechen': 'Cancel the bomb',
+    'Feld': 'Board', 'Klein · # Minen': 'Small · # mines', 'Mittel · # Minen': 'Medium · # mines', 'Groß · # Minen': 'Large · # mines',
+    'Ihr tippt reihum am selben Gerät, jeder mit seiner Farbe.': 'You take turns tapping on the same device, each with your own colour.',
+    'Unter den Feldern liegen Minen versteckt. Ihr deckt {0} je ein Feld auf. Hier ist eine Mine etwas Gutes: {1}': 'Mines are hidden under the squares. You take turns uncovering {0}. Here a mine is a good thing: {1}',
+    'abwechselnd': 'one square each', 'Wer die meisten Minen findet, gewinnt.': 'whoever finds the most mines wins.',
+    'Die Zahlen': 'The numbers',
+    'Ein aufgedecktes Feld zeigt, wie viele Minen in den {0} liegen, auch schräg. Eine # heißt: genau zwei Minen in ihrer Nachbarschaft. Leere Felder haben keine Mine daneben und decken ihre Nachbarn gleich mit auf.': 'An uncovered square shows how many mines are in the {0}, diagonals included. A # means exactly two mines next to it. Empty squares have no mine next to them and uncover their neighbours right away.',
+    '# Feldern rundherum': '# squares around it',
+    'Mine gefunden': 'Mine found',
+    'Tippst du auf eine Mine, {0} (sie bekommt deine Farbe) und du bist {1}. Triffst du ein sicheres Feld, zeigt es seine Zahl und der Nächste ist dran.': 'If you tap a mine, {0} (it takes your colour) and you {1}. If you hit a safe square, it shows its number and the next player is on.',
+    'gehört sie dir': 'it is yours', 'sofort nochmal dran': 'go again right away',
+    'Damit niemand blind raten muss, ist zu Beginn schon {0}. Von dort aus geht es mit Nachdenken weiter.': 'So that nobody has to guess blindly, {0} at the start. From there on it is about thinking.', 'ein Bereich aufgedeckt': 'an area is already uncovered',
+    'Die Bombe': 'The bomb',
+    'Jeder hat {0} pro Spiel. Sie deckt {1} auf einmal auf, alle Minen darin gehören dir. War mindestens eine Mine dabei, bist du nochmal dran, sonst der Nächste. Tippe auf {2} und dann aufs Mittelfeld; auf dem Handy zur Sicherheit zweimal. Am PC: B drücken, dann klicken.': 'Everyone has {0} per game. It uncovers {1} at once, and all mines in them are yours. If there was at least one mine, you go again, otherwise the next player is on. Tap {2} and then the middle square; on a phone tap it twice to be safe. On a computer: press B, then click.',
+    'eine Bombe': 'one bomb', '#×# Felder': '#×# squares', 'Bombe': 'Bomb',
+    'Spielende': 'End of the game',
+    'Das Spiel endet, sobald alle Minen gefunden sind oder {0} kann. Zu zweit gibt es eine ungerade Zahl Minen, also immer einen Sieger.': 'The game ends as soon as all mines are found or {0}. With two players the number of mines is odd, so there is always a winner.', 'niemand mehr den Führenden einholen': 'nobody can catch up with the leader any more',
+    'Sichere Minen zuerst holen, du darfst ja nochmal. Ohne sichere Mine nimm das Feld, auf dem eine Mine {0} ist. Aber Vorsicht: Jede Zahl, die du aufdeckst, hilft auch dem Nächsten. Die Bombe lohnt sich dort, wo mehrere unsichere Minen dicht beieinander liegen.': 'Take certain mines first, after all you go again. Without a certain mine, pick the square where a mine is {0}. But careful: every number you uncover helps the next player too. The bomb pays off where several uncertain mines lie close together.', 'am wahrscheinlichsten': 'most likely',
+    'Minen übrig': 'Mines left', 'Klick aufs Mittelfeld der #×# Felder': 'Click the middle of the #×# squares', 'Tippe aufs Mittelfeld der #×# Felder': 'Tap the middle of the #×# squares', 'Nochmal tippen zum Zünden': 'Tap again to set it off', 'Mine gefunden = Punkt und nochmal': 'Mine found = point and go again',
+    '{0}: Bombe, eine Mine': '{0}: bomb, one mine', '{0}: Bombe, # Minen': '{0}: bomb, # mines', '{0}: Bombe, eine Mine, nochmal dran': '{0}: bomb, one mine, goes again', '{0}: Bombe, # Minen, nochmal dran': '{0}: bomb, # mines, goes again', '{0}: Mine gefunden, nochmal dran': '{0}: mine found, goes again', 'Bombe!': 'Bomb!',
+    '# : # Minen': '# : # mines', '# : # : # Minen': '# : # : # mines', '# : # : # : # Minen': '# : # : # : # mines',
+    'Probier’s: Mine gefunden': 'Try it: mine found', 'Du deckst eine Mine auf. Was passiert?': 'You uncover a mine. What happens?',
+    'Sie gehört mir und ich bin nochmal dran': 'It is mine and I go again', 'Ich habe verloren': 'I have lost', 'Hier ist eine Mine etwas Gutes: Sie bringt dir einen Punkt.': 'Here a mine is a good thing: it earns you a point.',
+    'Ich bekomme einen Punkt, dann ist der Nächste dran': 'I get a point, then the next player is on', 'Nach einer Mine bist du sofort nochmal dran. Erst ein sicheres Feld beendet deinen Zug.': 'After a mine you go again right away. Only a safe square ends your turn.',
+    'Probier’s: Sichere Mine': 'Try it: a certain mine', 'Tippe auf ein Feld, unter dem ganz sicher eine Mine liegt.': 'Tap a square that definitely has a mine under it.',
+    'Genau: Die 1 daneben hat nur noch dieses eine verdeckte Feld, also muss die Mine dort liegen.': 'Exactly: the 1 next to it has only this one hidden square left, so the mine must be there.', 'Such eine 1, die nur ein einziges verdecktes Feld neben sich hat.': 'Look for a 1 that has only a single hidden square next to it.',
+    'Probier’s: 1-2-1': 'Try it: 1-2-1', 'Unter der Reihe 1 2 1 liegen genau zwei Minen. Finde beide.': 'Exactly two mines lie above the row 1 2 1. Find both.',
+    'Richtig. Läge die Mine in der Mitte, hätten beide Einsen schon ihre Mine und die 2 bekäme keine zweite.': 'Right. If the mine were in the middle, both 1s would already have their mine and the 2 could not get a second one.',
+    'Probier es aus: Was wäre, wenn die Mine über der 2 läge? Passen die beiden Einsen dann noch?': 'Try it out: what if the mine were above the 2? Would both 1s still fit?'
   });
 
   // ---------- Blockade ----------
@@ -1168,6 +1219,8 @@
     'Feedback kommt nach dem nächsten Server-Update.': 'Feedback comes with the next server update.', 'Feedback braucht eine Verbindung zum Server': 'Feedback needs a connection to the server', 'Wähl bitte eine Art.': 'Please pick a kind.',
     'Zu viele Nachrichten. Warte kurz und versuch es dann nochmal.': 'Too many messages. Wait a moment and try again.',
     'Verbindung unterbrochen': 'Connection lost', 'Versuche es wieder': 'Trying again', 'Wieder verbunden': 'Connected again',
+    'Dev-Bugs': 'Dev bugs', '# Fehler': '# errors', '# offene Dev-Bugs': '# open dev bugs', 'Schnappschuss': 'Snapshot', 'Schnappschuss zu': 'Close snapshot', 'Keine offenen Dev-Bugs.': 'No open dev bugs.', 'Noch keine Dev-Bugs.': 'No dev bugs yet.',
+    'Kommt aus dem DEV-Panel (Tab „Bugs“) der Dev-Konten. Der Schnappschuss enthält Gerät, Version, laufende Partie mit Zügen, letzte KI-Züge, Fehler und Server-Aufrufe.': 'Sent from the DEV panel (tab "Bugs") of dev accounts. The snapshot holds device, version, the running game with its moves, recent AI moves, errors and server calls.',
     'Kein offenes Feedback.': 'No open feedback.', 'Noch kein Feedback.': 'No feedback yet.', 'ohne Konto': 'no account', 'Handy': 'Phone', 'Computer': 'Computer', 'Erledigt.': 'Done.',
     'Kommt über „Feedback senden“ auf der Startseite und in den Optionen. Version und Gerät helfen beim Nachstellen von Fehlern.': 'Comes from "Send feedback" on the home screen and in the options. Version and device help to reproduce bugs.'
   });
