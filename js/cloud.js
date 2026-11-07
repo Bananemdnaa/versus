@@ -9,7 +9,9 @@
   const CFG = { url: V.discord && V.discord.proxy ? location.origin + '/.proxy/supabase' : 'https://ygnngmtvncmdunsdnwtk.supabase.co', key: 'sb_publishable_DWz8MXxA0PM-rQOqnVMJGQ_FqadTjHg' };
   // Cloudflare Turnstile site key (public), widget "Versus" for bananemdnaa.github.io, localhost and the Discord activity.
   // The captcha is only enforced once it is switched on in Supabase → Attack Protection (with the secret key).
-  const TURNSTILE = '0x4AAAAAAFv4ibMzTK6UzaN3';
+  // Switched off again (November 2026): on iPhones the check often failed ("could not verify"). Empty = no Turnstile at
+  // all, the login goes straight to Supabase. To switch it back on: the key below again, and on in Supabase.
+  const TURNSTILE = ''; // was '0x4AAAAAAFv4ibMzTK6UzaN3'
   // Supabase needs an e-mail address internally; this domain is ours (GitHub Pages), no mails are sent.
   const MAIL = 'bananemdnaa.github.io';
   const NAME_RE = /^[a-z0-9_-]{3,16}$/;
