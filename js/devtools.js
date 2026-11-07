@@ -242,7 +242,7 @@
       <p><button id="dvfresh">${T('Service Worker und Cache löschen, neu laden', 'Clear service worker and cache, reload')}</button> <small>${T('(schließt „alte Version im Cache“ als Ursache aus)', '(rules out "old version in the cache")')}</small></p>`;
   }
   function wireTests(body) {
-    body.querySelectorAll('[data-lag]').forEach(b => b.onclick = () => { const v = +b.dataset.lag; D.offline = v < 0; D.lag = v > 0 ? v : 0; push('net', { what: T('Dev: Netz ', 'Dev: network ') + (D.offline ? T('aus', 'off') : D.lag ? D.lag + T(' ms Verzögerung', ' ms delay') : 'normal') }); draw(); });
+    body.querySelectorAll('[data-lag]').forEach(b => b.onclick = () => { const v = +b.dataset.lag; D.offline = v < 0; D.lag = v > 0 ? v : 0; push('net', { what: T('Dev: Netz ', 'Dev: network ') + (D.offline ? T('aus', 'off') : D.lag ? D.lag + T(' ms Verzögerung', ' ms delay') : 'normal') }); netPill(); draw(); });
     body.querySelector('#dvauto').onchange = e => { D.autoMe = e.target.checked; };
     body.querySelector('#dvself').onclick = () => { const g = D.game; open('test.html?rounds=3' + (g ? '&games=' + g.id + '&level=' + (g.level || 0) : ''), '_blank'); };
     body.querySelector('#dvmoves').onclick = e => copy(JSON.stringify(D.game && D.game.moves), e.target);
@@ -311,6 +311,28 @@
     }, () => { });
   }
 
+  // ---------- Hinweise im Menü ----------
+  // a strip on top of every menu tab (app.js tabBody) so nobody forgets that this account does not count
+  D.bar = () => !D.active ? '' : `<div class="devbar" translate="no"><b>DEV</b><span>${T('Dev-Konto: Deine Online-Partien und Tische zählen nicht für Rangliste, Wochenwertung und Elo, auch nicht für deine Gegner.', 'Dev account: your online games and tables do not count for the ranking, the weekly board or Elo, not for your opponents either.')}</span></div>`;
+  function syncBar() {
+    document.body.classList.toggle('is-dev', D.active);
+    document.querySelectorAll('.devbar').forEach(x => x.remove());
+    const hb = document.querySelector('.view.home .hbody');
+    if (D.active && hb) hb.insertAdjacentHTML('afterbegin', D.bar());
+  }
+  // while the network is simulated a red pill stays on screen; a tap sets it back to normal
+  let pill = null;
+  function netPill() {
+    const on = D.active && (D.offline || D.lag);
+    if (!on) { if (pill) { pill.remove(); pill = null; } return; }
+    if (!pill) {
+      pill = document.createElement('button'); pill.className = 'dvnet'; pill.setAttribute('translate', 'no');
+      pill.onclick = () => { D.offline = false; D.lag = 0; netPill(); push('net', { what: T('Dev: Netz normal', 'Dev: network normal') }); if (panel && tab === 'tests') draw(); };
+      document.body.appendChild(pill);
+    }
+    pill.textContent = (D.offline ? T('DEV: Netz aus', 'DEV: network off') : T('DEV: Netz langsam ', 'DEV: network slow ') + D.lag / 1000 + ' s') + T(' · antippen = normal', ' · tap = normal');
+  }
+
   // ---------- Panel ----------
   const TABS = () => [['ai', T('KI', 'AI')], ['rpc', 'Server'], ['net', 'Online'], ['err', T('Fehler', 'Errors')], ['state', T('Zustand', 'State')], ['devs', 'Devs'], ['tests', 'Tests'], ['bugs', 'Bugs']];
   const text = () => ({ ai: aiText, rpc: rpcText, net: netText, err: errText, state: stateText }[tab] || (() => ''))();
@@ -365,16 +387,20 @@
   });
   function close() { if (panel) { panel.remove(); panel = null; } }
 
-  const CSS = `.dvbtn{position:fixed;left:6px;bottom:calc(6px + env(safe-area-inset-bottom));z-index:99998;font:700 11px/1 monospace;padding:6px 7px;border-radius:6px;border:1px solid #6cf;background:#012c;color:#6cf;cursor:pointer;opacity:.75}
+  const CSS = `.dvbtn{position:fixed;right:6px;bottom:calc(6px + env(safe-area-inset-bottom));z-index:99998;font:700 11px/1 monospace;padding:6px 7px;border-radius:6px;border:1px solid #6cf;background:#012c;color:#6cf;cursor:pointer;opacity:.75}
 .dvbtn:hover{opacity:1}.dvbtn.hot{border-color:#f66;color:#f66;opacity:1;animation:dvblink 1s ease-in-out 3}@keyframes dvblink{50%{background:#f663}}
 .dvb p{margin:4px 0 8px}.dvb small{color:#89a}.dvb button:disabled{opacity:.4}.dvb button.on{background:#6cf;color:#012}.dvdone td{opacity:.45}.dvb label{display:flex;gap:6px;align-items:flex-start}.dvbtn i{font-style:normal;color:#f66;margin-left:4px}
-.dvp{position:fixed;left:6px;right:6px;bottom:calc(36px + env(safe-area-inset-bottom));max-width:760px;height:min(62vh,560px);z-index:99999;display:flex;flex-direction:column;background:#0a0f18f2;color:#cde;border:1px solid #6cf;border-radius:8px;font:12px/1.4 ui-monospace,Menlo,Consolas,monospace;box-shadow:0 8px 30px #000a}
+.dvp{position:fixed;left:auto;right:6px;width:min(760px,calc(100vw - 12px));bottom:calc(36px + env(safe-area-inset-bottom));max-width:760px;height:min(62vh,560px);z-index:99999;display:flex;flex-direction:column;background:#0a0f18f2;color:#cde;border:1px solid #6cf;border-radius:8px;font:12px/1.4 ui-monospace,Menlo,Consolas,monospace;box-shadow:0 8px 30px #000a}
 .dvh{display:flex;flex-wrap:wrap;gap:4px;align-items:center;padding:6px;border-bottom:1px solid #345}
 .dvh button,.dvb button{font:inherit;background:#123;color:#cde;border:1px solid #345;border-radius:4px;padding:3px 7px;cursor:pointer}
 .dvh button.on{background:#6cf;color:#012;border-color:#6cf}.dvr{margin-left:auto;display:flex;gap:4px}#dvx label{display:flex;gap:4px;align-items:center}
 .dvb{flex:1;overflow:auto;padding:6px 8px}.dvb pre{margin:0;white-space:pre-wrap;word-break:break-word;font:inherit}
 @media (max-width:700px){.dvbtn{left:auto;right:0;bottom:auto;top:38%;border-radius:6px 0 0 6px;border-right:0;padding:8px 5px;writing-mode:vertical-rl;opacity:.6}
 .dvbtn i{margin:4px 0 0}.dvp{font-size:11px;height:min(46vh,520px);bottom:calc(6px + env(safe-area-inset-bottom))}.dvh button{padding:4px 6px}}
+.devbar{display:flex;gap:10px;align-items:center;margin:0 0 14px;padding:9px 12px;border:1px solid #6cf;border-radius:10px;background:#0c2233;color:#cde;font-size:13px;line-height:1.35}
+.devbar b{flex:none;font:700 11px/1 ui-monospace,Menlo,Consolas,monospace;padding:4px 6px;border-radius:4px;background:#6cf;color:#012}
+body.is-dev #acct>span::after,body.is-dev .ah-t>b::after{content:'DEV';display:inline-block;vertical-align:middle;margin-left:6px;font:700 10px/1 ui-monospace,Menlo,Consolas,monospace;padding:3px 5px;border-radius:4px;background:#6cf;color:#012;letter-spacing:0}
+.dvnet{position:fixed;top:calc(8px + env(safe-area-inset-top));left:50%;transform:translateX(-50%);z-index:99999;font:700 12px/1 ui-monospace,Menlo,Consolas,monospace;padding:8px 12px;border-radius:999px;border:1px solid #f66;background:#3a0d12f0;color:#fcc;cursor:pointer;box-shadow:0 4px 18px #0008;white-space:nowrap;max-width:calc(100vw - 24px);overflow:hidden;text-overflow:ellipsis;animation:dvblink 1.6s ease-in-out infinite}
 .dvp.top{top:calc(6px + env(safe-area-inset-top));bottom:auto}
 .dvt{border-collapse:collapse;width:100%}.dvt td,.dvt th{text-align:left;padding:3px 6px;border-bottom:1px solid #234;vertical-align:top}.dvt a{color:#6cf;cursor:pointer;text-decoration:underline}`;
   function show(on) {
@@ -388,6 +414,7 @@
       close(); if (btn) btn.remove(); btn = null;
       Object.values(logs).forEach(a => a.length = 0); devs = null; peek = null; reports = null; D.offline = false; D.lag = 0; D.autoMe = false;
     }
+    syncBar(); netPill();
   }
   const check = () => { const i = V.cloud && V.cloud.info(); show(!!(i && i.dev)); };
   D.refresh = check;
