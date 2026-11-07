@@ -721,8 +721,17 @@
     '*': { c: 'tg' }, '.': { c: '' }
   }, extra || {}), { checker: true, w: 230 });
 
+  // the AI's choice as a pure function of the state, so it can think in a worker (js/aiworker.js, V.register).
+  // Leicht: 1 ply + captures, soft choice (misses tactics). Mittel: 2 plies + captures, small slips. Schwer: 4 plies.
+  // Profi: iterative deepening up to 8 plies. (Used for Leicht, and for every level when Stockfish is not there.)
+  function brain(st, L) {
+    const P = st.P, r = L === 0 && Math.random() < 0.25 ? { move: V.pick(legal(P)), score: 0 } : think(P, [1, 2, 4, 8][L], V.aiMs([1500, 1500, 1500, 2600][L]), [220, 40, 0, 0][L]);
+    return { move: r.move, mood: V.mood(r.score, 450) };
+  }
+
   V.register({
     id: 'chess', name: 'Schach', cat: 'Strategie', order: 1, accent: 'var(--cyan)',
+    brain,
     short: 'Der König aller Brettspiele.',
     desc: 'Setz den gegnerischen König schachmatt. Mit allen Regeln: Rochade, en passant, Umwandlung und Remis.',
     sides: { 1: 'Weiß', 2: 'Schwarz' },
@@ -1183,6 +1192,8 @@
         const base = ctx.isAI(s) ? ctx.who(s) + ' ist dran' : (ctx.name(s) === 'Du' ? 'Du bist dran' : ctx.who(s) + ' ist dran');
         ctx.turn(s, (chk ? '<b style="color:var(--bad)">Schach!</b> · ' : '') + base);
         const PN = { p: 'Bauer', n: 'Springer', b: 'Läufer', r: 'Turm', q: 'Dame', k: 'König' };
+        // online moves carry the promotion as p, a copy of the engine's own move as promo
+        const dec = r => (r && moves.find(x => x.f === r.f && x.t === r.t && (x.promo || null) === (r.p || r.promo || null))) || null;
         if (ctx.isAI(s)) ctx.aiTurn({
           // Leicht: 1 ply + captures, soft choice (misses tactics). Mittel: 2 plies + captures, small slips.
           // Schwer: 4 plies exact. Profi: iterative deepening up to 8 plies within ~2.8 s.
@@ -1191,10 +1202,8 @@
           think: () => {
             // "Passend zu dir" from 1320 on: Stockfish at your rating; below that the levels are mixed (play.js)
             const L = ctx.level, fe = ctx.fitElo >= 1320 ? Math.min(3190, Math.round(ctx.fitElo)) : 0;
-            const own = () => {
-              const r = L === 0 && Math.random() < 0.25 ? { move: V.pick(moves), score: 0 } : think(P, [1, 2, 4, 8][L], V.aiMs([1500, 1500, 1500, 2600][L]), [220, 40, 0, 0][L]);
-              return { move: r.move, mood: V.mood(r.score, 450) };
-            };
+            // the own engine thinks in the AI worker (brain below), Stockfish has its own worker
+            const own = () => ctx.brain({ P: clone(P) }, dec);
             if ((L === 0 && !fe) || noSF) return own();
             const Q = clone(P), ply = hist.length;
             return sfRun(() => engine().then(api => sfMove(api, Q, ply, [0, 3, 10, 20][L], V.aiMs(fe ? 700 : [0, 350, 700, 1400][L]), fe))).then(r => {
@@ -1205,7 +1214,7 @@
           targets: m => [cells[m.f], cells[m.t]],
           decoys: m => V.shuffle(moves.filter(x => x.f !== m.f).map(x => cells[x.f])),
           apply: doMove,
-          decode: r => (r && moves.find(x => x.f === r.f && x.t === r.t && (x.promo || null) === (r.p || null))) || null,
+          decode: dec,
           say: m => {
             if (m.castle) return m.castle === 'k' ? 'Kurze Rochade' : 'Lange Rochade';
             const pn = PN[P.b[m.f].toLowerCase()];

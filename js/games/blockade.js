@@ -172,8 +172,46 @@
 
   const rm = rows => V.mini(rows, { p: { c: 'bk1' }, y: { c: 'bk2' }, c: { c: 'bk3' }, g: { c: 'bk4' }, '+': { c: 'bkok' }, x: { c: 'bkno', t: '✕' }, S: { c: 'bkst' } }, { w: 230 });
 
+  // the AI's choice as a pure function of the state, so it can think in a worker (js/aiworker.js, V.register)
+  function brain(x, L) {
+    const { b, S, p, P, out, laid, left, firstAt } = x, stFor = q => (laid[q] ? -1 : firstAt[q]);
+    const g = gen(b, S, p, left[p], stFor(p)), ms = g.moves;
+    if (ms.length === 1) return { move: ms[0] };
+    if (L === 0) return { move: V.weak(ms.map(m => ({ m, v: m.cells.length * 6 })), 30, 0.45).move };
+    const myA = new Set(g.anchors), others = P.filter(q => q !== p && !out[q]);
+    const oppA = others.map(q => new Set(anchors(b, S, q, forbidden(b, S, q), stFor(q))));
+    const early = laid[p] < (S === 20 ? 22 : 12);
+    const base = m => {
+      const r = rate(b, S, p, m, myA, oppA);
+      if (L === 1) return r.n * 10 + r.fresh * 2;
+      return r.n * 10 + (r.fresh - r.lost * 0.6) * 3 + r.blocked * 4 - (early ? r.cen * (S === 20 ? 1.3 : 0.6) : 0);
+    };
+    const sc = ms.map(m => ({ m, v: base(m) }));
+    if (L === 1) return { move: V.pickSoft(sc, 8).move };
+    if (L === 2) return { move: V.pickSoft(sc, 2).move };
+    // Profi: the best dozen again with a look at the board afterwards: how many corners stay for us and for them,
+    // and with two players what the opponent's best answer would be worth
+    const deadline = performance.now() + V.aiMs(1500);
+    const top = sc.sort((x, y) => y.v - x.v).slice(0, 12);
+    for (const t of top) {
+      if (performance.now() > deadline) break;
+      const b2 = b.slice(); t.m.cells.forEach(i => { b2[i] = p; });
+      const mine = anchors(b2, S, p, forbidden(b2, S, p), -1).length;
+      let theirs = 0, reply = 0;
+      others.forEach(q => { theirs += anchors(b2, S, q, forbidden(b2, S, q), stFor(q)).length; });
+      if (others.length === 1) {
+        const q = others[0], g2 = gen(b2, S, q, left[q], stFor(q));
+        const qA = new Set(g2.anchors), pA = [new Set(anchors(b2, S, p, forbidden(b2, S, p), -1))];
+        for (const m2 of g2.moves) { const r = rate(b2, S, q, m2, qA, pA); reply = Math.max(reply, r.n * 10 + r.fresh * 3 + r.blocked * 4); }
+      }
+      t.v += mine * 2.5 - theirs * 2 / Math.max(1, others.length) - reply * 0.5;
+    }
+    return { move: V.pickSoft(top, 0).move };
+  }
+
   V.register({
     id: 'blockade', name: 'Blockade', cat: 'Strategie', order: 4, accent: '#5dff9d', party: true, noFirst: true,
+    brain,
     short: 'Teile Ecke an Ecke legen, den anderen den Weg versperren.',
     desc: 'Jeder hat dieselben 21 Teile aus 1 bis 5 Kästchen. Deine Teile dürfen sich nur an den Ecken berühren, nie an einer Kante. Leg möglichst viel aufs Brett und versperr den anderen den Platz. Für 2 bis 4 Spieler, am Gerät oder gegen die KI.',
     sides: { 1: 'Pink', 2: 'Gelb', 3: 'Cyan', 4: 'Grün' },
@@ -425,47 +463,14 @@
         ctx.aiTurn({
           // nobody at this device is still in: the rest goes by faster
           side: p, quick: P.every(q => out[q] || ctx.isAI(q)),
-          think: () => ({ move: think(p, g) }),
+          state: { b, S, p, P, out, laid, left, firstAt },
           targets: m => [cells[m.cells[0]], cells[m.cells[m.cells.length - 1]]],
           decoys: () => V.shuffle(g.anchors.slice()).slice(0, 4).map(i => cells[i]),
           apply: act,
-          decode: raw => { const [k, o, r, c] = String(raw).split('.').map(Number); return g.moves.find(m => m.k === k && m.o === o && m.r === r && m.c === c) || null; },
+          // raw: 'k.o.r.c' from online, or a copy of a move object (from the AI worker)
+          decode: raw => { const [k, o, r, c] = (raw && typeof raw === 'object' ? enc(raw) : String(raw)).split('.').map(Number); return g.moves.find(m => m.k === k && m.o === o && m.r === r && m.c === c) || null; },
           say: m => PCS[m.k].n + ' Kästchen'
         });
-      }
-      function think(p, g) {
-        const L = ctx.level, ms = g.moves;
-        if (ms.length === 1) return ms[0];
-        if (L === 0) return V.weak(ms.map(m => ({ m, v: m.cells.length * 6 })), 30, 0.45).move;
-        const myA = new Set(g.anchors), others = P.filter(q => q !== p && !out[q]);
-        const oppA = others.map(q => new Set(anchors(b, S, q, forbidden(b, S, q), stFor(q))));
-        const early = laid[p] < (S === 20 ? 22 : 12);
-        const base = m => {
-          const r = rate(b, S, p, m, myA, oppA);
-          if (L === 1) return r.n * 10 + r.fresh * 2;
-          return r.n * 10 + (r.fresh - r.lost * 0.6) * 3 + r.blocked * 4 - (early ? r.cen * (S === 20 ? 1.3 : 0.6) : 0);
-        };
-        const sc = ms.map(m => ({ m, v: base(m) }));
-        if (L === 1) return V.pickSoft(sc, 8).move;
-        if (L === 2) return V.pickSoft(sc, 2).move;
-        // Profi: the best dozen again with a look at the board afterwards: how many corners stay for us and for them,
-        // and with two players what the opponent's best answer would be worth
-        const deadline = performance.now() + V.aiMs(1500);
-        const top = sc.sort((x, y) => y.v - x.v).slice(0, 12);
-        for (const t of top) {
-          if (performance.now() > deadline) break;
-          const b2 = b.slice(); t.m.cells.forEach(i => { b2[i] = p; });
-          const mine = anchors(b2, S, p, forbidden(b2, S, p), -1).length;
-          let theirs = 0, reply = 0;
-          others.forEach(q => { theirs += anchors(b2, S, q, forbidden(b2, S, q), stFor(q)).length; });
-          if (others.length === 1) {
-            const q = others[0], g2 = gen(b2, S, q, left[q], stFor(q));
-            const qA = new Set(g2.anchors), pA = [new Set(anchors(b2, S, p, forbidden(b2, S, p), -1))];
-            for (const m2 of g2.moves) { const r = rate(b2, S, q, m2, qA, pA); reply = Math.max(reply, r.n * 10 + r.fresh * 3 + r.blocked * 4); }
-          }
-          t.v += mine * 2.5 - theirs * 2 / Math.max(1, others.length) - reply * 0.5;
-        }
-        return V.pickSoft(top, 0).move;
       }
       next(P[N - 1]);
     }

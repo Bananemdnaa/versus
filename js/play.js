@@ -186,8 +186,13 @@
     // A game with brain(state, level) -> { move, mood } thinks in a worker, so the page keeps moving meanwhile. On the
     // main thread instead when there is no worker for it, when that fails, or for the dev panel (it shows the search).
     // The move comes back as a copy: decode() turns it into the game's own move again (the same as online).
+    // (on the main thread too, decode() hands back the game's own move object when the brain worked on a copy)
     function brain(o) {
-      const L = lvNow, here = () => g.brain(o.state, L);
+      const L = lvNow, here = () => {
+        const r = g.brain(o.state, L);
+        if (o.decode && r && r.move != null) { const m = o.decode(r.move); if (m != null) r.move = m; }
+        return r;
+      };
       if (!V.aiWorker || !V.aiWorker.ok(g) || (V.dev && V.dev.active)) return here();
       return V.aiWorker.run(g, o.state, L).then(r => {
         if (!r || r.move == null) throw new Error('aiworker: no move');
@@ -349,6 +354,8 @@
       alive: () => alive,
       later(fn, ms) { const t = setTimeout(() => { timers.delete(t); if (alive) fn(); }, rep && rep.queue.length ? 0 : ms); timers.add(t); return t; },
       onCleanup(fn) { cleanups.push(fn); },
+      // for a think() that only sometimes uses the game's brain (chess: its own engine when Stockfish is not used)
+      brain: (state, decode) => brain({ state, decode }),
       status: setStatus,
       turn(s, html) {
         if (clock) clock.turn(s);
