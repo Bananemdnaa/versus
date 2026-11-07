@@ -122,7 +122,8 @@
     else if (ai) { names[aiSide] = 'KI'; names[3 - aiSide] = 'Du'; }
     if (table) SIDES.forEach(s => { names[s] = s === mySide ? 'Du' : T.names[s - 1] && !tbots.has(s) ? T.names[s - 1] : 'KI'; });
     const me = ai ? (party ? 1 : 3 - aiSide) : online || table ? mySide : 0;
-    const botSide = s => auto || (ai && (party ? s !== 1 : s === aiSide)) || (table && tbots.has(s));
+    // Dev-Konten (Tests-Tab): the AI may also play your seat against the AI, so whole games run through
+    const botSide = s => auto || (ai && (party ? s !== 1 : s === aiSide)) || (ai && !review && V.dev && V.dev.autoMe) || (table && tbots.has(s));
     const amHost = () => table && thost === mySide;
     if (online) { names[mySide] = 'Du'; names[oppSide] = M.opp; }
     if (watch) { names[M.aSide] = M.aName; names[3 - M.aSide] = M.bName; }
@@ -206,7 +207,7 @@
     // Dev-Konten: the running match for the dev panel's "Zustand" tab
     if (V.dev) {
       const dg = { id: g.id, mode: cfg.mode, level: cfg.level, fit: fitE || 0, opts: cfg.opts, players: N, aiSide, mySide, match: M.id || null,
-        get plies() { return plies; }, get ended() { return ended; } };
+        get plies() { return plies; }, get ended() { return ended; }, get moves() { return recOn ? recd : null; } };
       V.dev.game = dg; cleanups.push(() => { if (V.dev.game === dg) V.dev.game = null; });
     }
     const setStatus = html => {
@@ -373,7 +374,7 @@
         ctx.later(() => {
           if (fitE) lvNow = V.aiElo.pick(g, fitE);
           // Dev-Konten: the dev panel shows what this move computed (js/devtools.js)
-          const dv = V.dev && V.dev.active ? V.dev.begin({ game: g.name, level: lvNow, fit: fitE ? Math.round(fitE) : 0, side: s, who: names[s], quick: !!o.quick, ply: plies }) : null;
+          const dv = V.dev && V.dev.active ? V.dev.begin({ game: g.name, level: lvNow, fit: fitE ? Math.round(fitE) : 0, side: o.side || lastTurn || s, who: names[o.side || lastTurn || s], quick: !!o.quick, ply: plies }) : null;
           // think() may also answer later (a Promise, e.g. Stockfish in a worker): the match must still be running then
           let out;
           try { out = o.think(); } catch (e) { if (dv) dv.fail(e); throw e; }
