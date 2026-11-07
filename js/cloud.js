@@ -150,6 +150,8 @@
   async function loadInfo() {
     info = null;
     try { info = check(await sb.rpc('my_info')); } catch (e) { }
+    // linked Discord account (name, and whether a password is known); missing until the migration is in
+    if (info && user && !info.guest) try { info.discord = check(await sb.rpc('my_discord')); } catch (e) { }
     emit();
   }
   // in the Discord activity a guest takes the Discord name instead of gast_12345: with the Discord login of the
@@ -225,6 +227,80 @@
     return s.user || (s.session && s.session.user) || null;
   }
 
+  // ---------- Mit Discord anmelden (Edge Function "discord-login") ----------
+  // Website: off to discord.com (scope identify) and back with ?code=…&state=…; inside the activity the Discord token
+  // of the activity is the proof, no detour. Linked → a session for that account; not linked → an offer: pick a name
+  // (a guest becomes that account) or log in normally and link afterwards.
+  const DC_APP = '1565782186832039987';
+  const dcBack = () => location.origin + location.pathname.replace(/index\.html$/, '');
+  // inside another page's frame (itch.io) discord.com refuses to open
+  const dcOk = () => !!(V.discord && V.discord.on) || window.top === window.self;
+  let dcOffer = null;
+  try { dcOffer = JSON.parse(sessionStorage.getItem('versus.dcoffer')) || null; } catch (e) { }
+  const setOffer = o => { dcOffer = o; try { if (o) sessionStorage.setItem('versus.dcoffer', JSON.stringify(o)); else sessionStorage.removeItem('versus.dcoffer'); } catch (e) { } };
+  async function dcCall(body) {
+    await need();
+    let tok = CFG.key;
+    if (user) try { const s = (await sb.auth.getSession()).data.session; if (s) tok = s.access_token; } catch (e) { }
+    let r;
+    try { r = await fetch(CFG.url + '/functions/v1/discord-login', { method: 'POST', headers: { apikey: CFG.key, Authorization: 'Bearer ' + tok, 'Content-Type': 'application/json' }, body: JSON.stringify(body) }); }
+    catch (e) { throw new Error('Keine Verbindung zum Server.'); }
+    if (r.status === 404) throw new Error('Die Anmeldung mit Discord kommt nach dem nächsten Server-Update.');
+    const d = await r.json().catch(() => ({}));
+    if (!r.ok) throw new Error(errText({ message: d.error || 'Discord: ' + r.status }));
+    return d;
+  }
+  async function dcSession(d) {
+    const s = check(await sb.auth.setSession({ access_token: d.access_token, refresh_token: d.refresh_token }));
+    user = s.user || (s.session && s.session.user); setOffer(null);
+    await afterLogin();
+  }
+  // the proof of who this is on Discord: the activity's token, or null (then the website has to go to discord.com)
+  async function dcProof() {
+    if (!(V.discord && V.discord.on)) return null;
+    const a = await V.discord.auth.catch(() => null);
+    if (!a || !a.token) throw new Error('Discord hat die Anmeldung nicht freigegeben.');
+    return { access_token: a.token };
+  }
+  function dcRedirect(purpose) {
+    const st = Math.random().toString(36).slice(2) + Date.now().toString(36);
+    try { sessionStorage.setItem('versus.dcoauth', JSON.stringify({ st, purpose })); } catch (e) { }
+    location.href = 'https://discord.com/oauth2/authorize?' + new URLSearchParams({ client_id: DC_APP, response_type: 'code', scope: 'identify', redirect_uri: dcBack(), state: st, prompt: 'none' });
+    return new Promise(() => { });
+  }
+  // what to do with a proof: log in (or make an offer), or link to the signed-in account
+  async function dcUse(purpose, proof) {
+    if (purpose === 'link') { const d = await dcCall(Object.assign({ action: 'link' }, proof)); await loadInfo(); return { linked: d.linked }; }
+    const d = await dcCall(Object.assign({ action: 'login' }, proof));
+    if (d.access_token) { await dcSession(d); return { in: true }; }
+    setOffer({ ticket: d.ticket, suggest: d.suggest, dname: d.dname });
+    emit();
+    return { offer: dcOffer };
+  }
+  // back from discord.com: ?code=…&state=… (or ?error=… when the player said no); the address is cleaned at once
+  async function dcReturn() {
+    const q = new URLSearchParams(location.search);
+    if (!q.has('state') || !(q.has('code') || q.has('error'))) return null;
+    let saved = null; try { saved = JSON.parse(sessionStorage.getItem('versus.dcoauth')); sessionStorage.removeItem('versus.dcoauth'); } catch (e) { }
+    const code = q.get('code'), st = q.get('state');
+    ['code', 'state', 'error', 'error_description'].forEach(k => q.delete(k));
+    try { history.replaceState(null, '', location.pathname + (q.toString() ? '?' + q : '') + location.hash); } catch (e) { }
+    if (!saved || saved.st !== st) return null;
+    if (!code) return { purpose: saved.purpose, error: 'Abgebrochen' };
+    try { return Object.assign({ purpose: saved.purpose }, await dcUse(saved.purpose, { code, redirect_uri: dcBack() })); }
+    catch (e) { return { purpose: saved.purpose, error: e.message }; }
+  }
+  // inside the activity: a linked account signs in by itself (a guest of this activity switches to it)
+  async function dcAuto() {
+    if (!(V.discord && V.discord.on) || (user && !(C.user() || {}).anon)) return;
+    const a = await V.discord.auth.catch(() => null);
+    if (!a || !a.token || (user && !(C.user() || {}).anon)) return;
+    try {
+      const d = await dcCall({ action: 'login', access_token: a.token });
+      if (d.access_token) { await dcSession(d); if (V.ui) V.ui.toast('Mit Discord angemeldet: ' + C.user().username); }
+    } catch (e) { console.warn('Discord login:', e.message); }
+  }
+
   // ---------- realtime pokes ----------
   // After a move the other browsers get a short signal on a shared channel and fetch the new state at once,
   // instead of waiting for their next poll. No game data goes over the channel; the server stays the only source.
@@ -274,6 +350,16 @@
       });
       starting = false;
       if (user) await afterLogin(); else emit();
+      // back from discord.com: the account tab shows how it went
+      const back = await dcReturn();
+      if (back) setTimeout(() => {
+        if (!V.ui) return;
+        if (back.error) V.ui.toast(back.error === 'Abgebrochen' ? 'Anmeldung mit Discord abgebrochen' : back.error, 3500);
+        else if (back.in) V.ui.toast('Mit Discord angemeldet: ' + C.user().username);
+        else if (back.linked) V.ui.toast('Discord verknüpft');
+        V.ui.home('profile');
+      }, 300);
+      else dcAuto();
     },
     async signUp(name, pw) {
       await need();
@@ -290,9 +376,40 @@
     async signIn(name, pw) {
       await need();
       const du = await viaDiscord('login', clean(name) + '@' + MAIL, pw);
-      if (du) { user = du; return afterLogin(); }
-      const d = check(await sb.auth.signInWithPassword({ email: clean(name) + '@' + MAIL, password: pw, options: { captchaToken: await captcha() } }));
-      user = d.user; await afterLogin();
+      if (du) { user = du; await afterLogin(); }
+      else {
+        const d = check(await sb.auth.signInWithPassword({ email: clean(name) + '@' + MAIL, password: pw, options: { captchaToken: await captcha() } }));
+        user = d.user; await afterLogin();
+      }
+      // "Ich habe schon ein Konto" after "Mit Discord anmelden": link the Discord account from the offer right away
+      if (dcOffer && dcOffer.ticket) {
+        const t = dcOffer.ticket; setOffer(null);
+        try { await dcCall({ action: 'link', ticket: t }); await loadInfo(); return 'linked'; } catch (e) { if (V.ui) V.ui.toast(e.message, 3500); }
+      }
+    },
+    // Mit Discord: purpose 'login' (also a guest that wants to keep the account) or 'link' (signed in)
+    discordOk: dcOk,
+    discordOffer: () => dcOffer,
+    discordDrop() { setOffer(null); emit(); },
+    async discord(purpose) {
+      const proof = await dcProof();
+      if (!proof) return dcRedirect(purpose);
+      return dcUse(purpose, proof);
+    },
+    // a new account with the name of choice (a guest becomes this account); proof: the offer's ticket or the activity
+    async discordCreate(name) {
+      const u = clean(name);
+      if (!NAME_RE.test(u)) throw new Error('Benutzername: 3 bis 16 Zeichen, nur a–z, 0–9, _ und -.');
+      const proof = (dcOffer && dcOffer.ticket ? { ticket: dcOffer.ticket } : null) || await dcProof();
+      if (!proof) throw new Error('Die Anmeldung über Discord ist abgelaufen. Versuch es nochmal.');
+      const d = await dcCall(Object.assign({ action: 'create', name: u }, proof));
+      await dcSession(d);
+      return d.created;
+    },
+    async discordUnlink() { check(await sb.rpc('discord_unlink')); await loadInfo(); },
+    async discordPassword(pw) {
+      if (String(pw).length < 6) throw new Error('Das Passwort ist zu kurz (mindestens 6 Zeichen).');
+      check(await sb.rpc('discord_set_password', { new_pw: pw })); await loadInfo();
     },
     // Discord activity: the one-time code from Discord becomes an access token (Edge Function "discord-token", works without a login)
     async discordToken(code) {
@@ -353,7 +470,9 @@
     async deleteAccount(pw) {
       const u = C.user(); if (!u) throw new Error('Nicht eingeloggt.');
       // guests have no password
-      if (!u.anon) check(await sb.auth.signInWithPassword({ email: u.username + '@' + MAIL, password: pw, options: { captchaToken: await captcha() } }));
+      // an account made with Discord has no password the player knows (the account tab asks for the name instead)
+      const noPw = info && info.discord && info.discord.pw === false;
+      if (!u.anon && !noPw) check(await sb.auth.signInWithPassword({ email: u.username + '@' + MAIL, password: pw, options: { captchaToken: await captcha() } }));
       clearTimeout(timer); clearInterval(beat);
       check(await sb.rpc('delete_account'));
       leaving = true; try { await sb.auth.signOut(); } catch (e) { } leaving = false;

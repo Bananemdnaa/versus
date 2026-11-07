@@ -47,6 +47,7 @@
         <ul>${[[IC().chart, 'Bilanz auf jedem Gerät'], [IC().users, 'Freunde und Herausforderungen'], [IC().bolt, 'Serie und Abzeichen überall dabei'], [IC().shield, 'Keine E-Mail nötig']].map(([ic, t]) => `<li>${ic}<span>${t}</span></li>`).join('')}</ul></div>
       <div class="acard">
         <p class="lead">Mit einem Konto liegt deine Bilanz sicher auf dem Server und ist auf jedem Gerät dabei. Freunde und Online-Duelle bauen darauf auf.</p>
+        ${dcBlock(false)}
         <div class="gp-mode amode" id="amode"><button data-m="login" class="${mode === 'login' ? 'on' : ''}">${IC().user}<span>Einloggen</span></button><button data-m="new" class="${mode === 'new' ? 'on' : ''}">${IC().spark}<span>Konto erstellen</span></button></div>
         <form class="aform" id="aform" autocomplete="on">
           <label for="a_name">Benutzername</label>
@@ -89,6 +90,8 @@
         <button class="opt" data-box="rename">${IC().user}<span><b>Benutzernamen ändern</b><small>${next ? 'Wieder möglich ab ' + day(next) : 'Einmal pro Woche möglich'}</small></span></button>
         ${openBox === 'rename' ? `<form class="abox" id="f_rename"><input class="inp" id="r_name" maxlength="16" placeholder="Neuer Name" autocapitalize="none" spellcheck="false" value="${esc(u.username)}"><button class="btn sm" type="submit"><span>Ändern</span></button><p class="aerr" id="r_err"></p></form>` : ''}
         <button class="opt" id="a_rec">${IC().shield}<span><b>Wiederherstellungscode</b><small>${info.recovery ? 'Du hast einen. Neu erstellen macht den alten ungültig.' : '<b class="bad">Noch keiner.</b> Ohne Code ist ein vergessenes Passwort weg.'}</small></span></button>
+        ${c.discordOk() || info.discord ? `<button class="opt" ${info.discord ? 'data-box="discord"' : 'id="a_dcl"'}>${IC().chat}<span><b>Discord</b><small>${info.discord ? 'Verknüpft mit ' + esc(info.discord.name || 'Discord') : 'Verknüpfen: dann reicht ein Tipp zum Anmelden, auch im Discord-Call'}</small></span></button>` : ''}
+        ${openBox === 'discord' && info.discord ? dcBox(info.discord) : ''}
         <button class="opt" id="a_inv">${IC().share}<span><b>Freunde einladen</b><small id="a_invs">Wer über deinen Link ein Konto erstellt, ist sofort dein Freund</small></span></button>
         <button class="opt" data-box="blocks">${IC().eye}<span><b>Blockierte Spieler</b><small>${blockSub()}</small></span></button>
         ${openBox === 'blocks' ? `<div class="abox" id="blist">${blockList()}</div>` : ''}
@@ -96,10 +99,69 @@
         <a class="opt" href="rechtliches.html">${IC().shield}<span><b>Datenschutz und Impressum</b><small>Welche Daten Versus speichert und wer dahintersteht</small></span></a>
         <a class="opt" href="terms.html">${IC().book}<span><b>Nutzungsbedingungen</b><small>Fair spielen, Konto und was das Team tun kann</small></span></a>
         <button class="opt danger" data-box="delete">${IC().x}<span><b>Konto löschen</b><small>Löscht dein Konto und alle Daten auf dem Server</small></span></button>
-        ${openBox === 'delete' ? `<form class="abox" id="f_delete"><input class="inp" id="d_pw" type="password" autocomplete="current-password" placeholder="Passwort zur Bestätigung"><button class="btn sm danger" type="submit"><span>Endgültig löschen</span></button><p class="aerr" id="d_err"></p></form>` : ''}
+        ${openBox === 'delete' ? `<form class="abox" id="f_delete">${noPw(info) ? '<input class="inp" id="d_pw" autocomplete="off" autocapitalize="none" spellcheck="false" placeholder="Zur Bestätigung deinen Namen eingeben">' : '<input class="inp" id="d_pw" type="password" autocomplete="current-password" placeholder="Passwort zur Bestätigung">'}<button class="btn sm danger" type="submit"><span>Endgültig löschen</span></button><p class="aerr" id="d_err"></p></form>` : ''}
       </div></div></div>
     </section>`;
   }
+  // ---------- Mit Discord ----------
+  const noPw = info => !!(info && info.discord && info.discord.pw === false);
+  // the Discord button above the login (guest: "keep the account with Discord"); after coming back from Discord without
+  // a linked account: pick a name (or log in below, then Discord is linked right away)
+  function dcBlock(guest) {
+    const c = C();
+    if (!c.discordOk()) return '';
+    const o = c.discordOffer();
+    if (o) return `<div class="dcoffer"><b>Hallo ${esc(o.dname || 'Discord')}!</b>
+      <p class="fhint">Dein Discord ist noch mit keinem Versus-Konto verknüpft. Wähl einen Benutzernamen, dann geht es los. Ein Passwort brauchst du nicht.</p>
+      <form class="aform" id="dcform" autocomplete="off"><label for="dc_name">Benutzername</label>
+        <input class="inp" id="dc_name" maxlength="16" autocapitalize="none" spellcheck="false" value="${esc(o.suggest || '')}">
+        <p class="aerr" id="dcerr" role="alert"></p>
+        <button class="btn primary big" type="submit"><span>${IC().spark}${guest ? 'Konto behalten' : 'Konto erstellen'}</span></button></form>
+      <p class="fine">${guest ? 'Dein Gast-Name, deine Partien und Freunde wandern mit ins Konto.' : 'Du hast schon ein Konto? Log dich unten ein, dann wird Discord gleich verknüpft.'}</p>
+      <button class="link" type="button" id="dc_drop">Abbrechen</button></div>`;
+    return `<button class="btn dc big" type="button" id="a_dc"><span>${IC().chat}${guest ? 'Mit Discord weiter' : 'Mit Discord anmelden'}</span></button>
+      <div class="aor"><span>${guest ? 'oder mit Name und Passwort' : 'oder mit Benutzername'}</span></div>`;
+  }
+  // linked: an account made with Discord can set a password first (to log in without Discord), then unlink
+  function dcBox(d) {
+    if (d.pw === false) return `<form class="abox" id="f_dcpw"><p class="fhint">Dein Konto ist über Discord entstanden. Mit einem Passwort kommst du auch ohne Discord hinein.</p>
+      <input class="inp" id="dcpw" type="password" autocomplete="new-password" placeholder="mindestens 6 Zeichen"><button class="btn sm" type="submit"><span>Festlegen</span></button><p class="aerr" id="dcpw_err"></p></form>`;
+    return `<div class="abox"><p class="fhint">Mit Discord meldest du dich mit einem Tipp an, im Browser und im Discord-Call. Getrennt geht es weiter mit Name und Passwort.</p>
+      <button class="btn sm ghost" id="a_dcun"><span>Discord trennen</span></button><p class="aerr" id="dcun_err"></p></div>`;
+  }
+  function wireDiscord(b) {
+    const c = C(), q = s => b.querySelector(s);
+    const go = async (btn, purpose) => {
+      V.sfx.ui(); btn.classList.add('busy'); btn.disabled = true;
+      try {
+        const r = await c.discord(purpose);
+        if (r && r.in) { V.sfx.goal(); V.ui.toast('Mit Discord angemeldet: ' + c.user().username); }
+        if (r && r.linked) { V.sfx.goal(); V.ui.toast('Discord verknüpft'); }
+        V.ui.home('profile');
+      } catch (x) { btn.classList.remove('busy'); btn.disabled = false; V.sfx.bad(); V.ui.toast(x.message, 3500); }
+    };
+    if (q('#a_dc')) q('#a_dc').onclick = () => go(q('#a_dc'), 'login');
+    if (q('#a_dcl')) q('#a_dcl').onclick = () => go(q('#a_dcl'), 'link');
+    if (q('#dc_drop')) q('#dc_drop').onclick = () => { V.sfx.ui(); c.discordDrop(); V.ui.home('profile'); };
+    const f = q('#dcform');
+    if (f) f.onsubmit = async e => {
+      e.preventDefault(); if (busyForm) return;
+      busyForm = true; f.classList.add('busy'); q('#dcerr').textContent = '';
+      try { const nn = await c.discordCreate(q('#dc_name').value); V.sfx.win(); V.fx.confetti(); V.ui.toast('Willkommen, ' + nn); V.ui.home('profile'); }
+      catch (x) { q('#dcerr').textContent = x.message; V.sfx.bad(); V.fx.shake(f, true); }
+      busyForm = false; f.classList.remove('busy');
+    };
+    if (q('#f_dcpw')) q('#f_dcpw').onsubmit = async e => {
+      e.preventDefault();
+      try { await c.discordPassword(q('#dcpw').value); V.sfx.goal(); V.ui.toast('Passwort festgelegt'); V.ui.home('profile'); showRecovery(true); }
+      catch (x) { q('#dcpw_err').textContent = x.message; }
+    };
+    if (q('#a_dcun')) q('#a_dcun').onclick = async () => {
+      try { await c.discordUnlink(); openBox = null; V.sfx.ui(); V.ui.toast('Discord getrennt'); V.ui.home('profile'); }
+      catch (x) { q('#dcun_err').textContent = x.message; }
+    };
+  }
+
   // numbers and the latest online matches from the own profile (same data as "Profil und Verlauf")
   function fillMe(b) {
     const k = b.querySelector('#akpis'), r = b.querySelector('#arecent'); if (!k) return;
@@ -134,6 +196,7 @@
           <div><b>${esc(u.username)}${V.flag ? V.flag.tag(u.username) : ''}</b><em class="rtag muted">Gast</em><small>Gilt nur in diesem Browser</small></div></div>
         <div class="arow"><button class="btn" id="a_flag"><span>${IC().globe}Flagge</span></button></div>
         <p class="lead">Du spielst als Gast. Wähl einen Namen und ein Passwort, dann wird daraus ein richtiges Konto: alle ${V.games.length} Spiele, Freunde, Rangliste und deine Bilanz auf jedem Gerät.</p>
+        ${dcBlock(true)}
         <form class="aform" id="gform" autocomplete="on">
           <label for="g_name">Benutzername</label>
           <input class="inp" id="g_name" name="username" autocomplete="username" maxlength="16" placeholder="z. B. blitzfuchs" autocapitalize="none" spellcheck="false">
@@ -175,6 +238,7 @@
   function wire(b) {
     const c = C(); if (!c || !c.available()) return;
     addEyes(b);
+    wireDiscord(b);
     const am = b.querySelector('#amode');
     if (am) am.querySelectorAll('button').forEach(x => x.onclick = () => { mode = x.dataset.m; err = ''; V.sfx.ui(); V.ui.home('profile'); });
     const f = b.querySelector('#aform');
@@ -189,8 +253,8 @@
         busyForm = true; f.classList.add('busy'); errEl.textContent = '';
         try {
           const made = mode === 'new';
-          if (made) await c.signUp(name.value, pw.value); else await c.signIn(name.value, pw.value);
-          err = ''; V.sfx.goal(); V.ui.toast(made ? 'Konto erstellt' : 'Eingeloggt');
+          const r = made ? await c.signUp(name.value, pw.value) : await c.signIn(name.value, pw.value);
+          err = ''; V.sfx.goal(); V.ui.toast(made ? 'Konto erstellt' : r === 'linked' ? 'Eingeloggt und Discord verknüpft' : 'Eingeloggt');
           V.ui.home('profile');
           if (made) showRecovery(true);
         } catch (x) { errEl.textContent = x.message; V.sfx.bad(); V.fx.shake(f, true); }
@@ -257,6 +321,7 @@
     };
     if (q('#f_delete')) q('#f_delete').onsubmit = async e => {
       e.preventDefault();
+      if (noPw(c.info()) && q('#d_pw').value.trim().toLowerCase() !== c.user().username) { q('#d_err').textContent = 'Der Name stimmt nicht.'; return; }
       try { await c.deleteAccount(q('#d_pw').value); openBox = null; V.ui.toast('Konto gelöscht'); V.ui.home('profile'); }
       catch (x) { q('#d_err').textContent = x.message; }
     };
