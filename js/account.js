@@ -517,7 +517,7 @@
         ${p.ban_reason ? `<div class="pa-note bad">Sperrgrund: ${esc(p.ban_reason)}</div>` : ''}
         ${p.note ? `<div class="pa-note">Notiz${p.note_by ? ' von ' + esc(p.note_by) : ''}: ${esc(p.note)}</div>` : ''}
         ${canEdit ? `<div class="arow wrap">
-          ${p.guest ? '' : `<button class="btn sm" data-prof="${n}"><span>${IC().user || ''}Profil</span></button>`}
+          <button class="btn sm" data-prof="${n}"><span>${IC().user || ''}Profil</span></button>
           <button class="btn ghost sm" data-games="${n}"><span>Partien</span></button>
           ${btn(p.hidden ? 'show' : 'hide', p.hidden ? 'Einblenden' : 'Ausblenden')}
           ${p.role === 'owner' || p.me ? '' : `<button class="btn ghost sm" data-box="warn:${n}"><span>Verwarnen …</span></button>`}
