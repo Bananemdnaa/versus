@@ -14,7 +14,10 @@
   // the language chosen on this device (versus.lang, not synced: the account's settings from the server must not undo a
   // switch that was made just before the reload)
   let dev = null; try { dev = JSON.parse(localStorage.getItem('versus.lang')); } catch (e) { }
-  V.lang = ask === 'de' || ask === 'en' ? ask : dev === 'de' || dev === 'en' ? dev : st.lang === 'de' || st.lang === 'en' ? st.lang : auto;
+  // inside the Discord activity Discord's own language comes before the browser's (inside the Discord app that is the
+  // system's language, which can differ); js/discord.js asks Discord for it and keeps it in versus.dclang
+  let dcl = null; try { if (/\.discordsays\.com$/.test(location.hostname) || /[?&]frame_id=/.test(location.search)) dcl = JSON.parse(localStorage.getItem('versus.dclang')); } catch (e) { }
+  V.lang = ask === 'de' || ask === 'en' ? ask : dev === 'de' || dev === 'en' ? dev : st.lang === 'de' || st.lang === 'en' ? st.lang : dcl === 'de' || dcl === 'en' ? dcl : auto;
   V.locale = () => (V.lang === 'en' ? 'en-GB' : 'de-DE');
   document.documentElement.lang = V.lang;
 

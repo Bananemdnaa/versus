@@ -280,6 +280,7 @@
     if (homeTab === 'online' && V.online) V.online.wire(b);
     b.querySelectorAll('[data-tab]').forEach(x => x.onclick = () => { V.sfx.ui(); home(x.dataset.tab); });
     b.querySelectorAll('[data-fb]').forEach(x => x.onclick = () => { V.sfx.ui(); V.feedback.open(); });
+    b.querySelectorAll('[data-dcinv]').forEach(x => x.onclick = () => { V.sfx.ui(); V.discord.invite(); });
     if (V.night) V.night.wire(b);
   }
   // slide the highlight of the active tab to its new place
@@ -330,7 +331,7 @@
         </div>
         <div id="glist">${gameList()}</div>
         <div class="optlist small dcom">${V.night ? V.night.row() : ''}
-          ${inDiscord() ? '' : `<a class="opt" href="${V.DISCORD}" target="_blank" rel="noopener">${IC.chat}<span><b>Community auf Discord</b><small>Mitspieler finden, Ideen teilen und Bugs melden</small></span></a>`}
+          ${inDiscord() ? `<button class="opt" data-dcinv="1">${IC.users}<span><b>Freunde in den Call einladen</b><small>Über Discord: Freunde, Server oder ein Link</small></span></button>` : `<a class="opt" href="${V.DISCORD}" target="_blank" rel="noopener">${IC.chat}<span><b>Community auf Discord</b><small>Mitspieler finden, Ideen teilen und Bugs melden</small></span></a>`}
           <button class="opt" data-fb="1">${IC.bulb}<span><b>Feedback senden</b><small>Fehler gefunden oder eine Idee? Direkt ans Team</small></span></button></div>
       </section>
       <aside class="sel-panel" id="panel"></aside>

@@ -12,7 +12,7 @@
   // instance: everybody who started the activity in the same voice channel shares it
   V.discord = {
     on, proxy, instance: q.get('instance_id') || '', channel: q.get('channel_id') || '', guild: q.get('guild_id') || '', platform: q.get('platform') || '',
-    sdk: null, ready: Promise.resolve(null), auth: Promise.resolve(null), status() { }
+    sdk: null, ready: Promise.resolve(null), auth: Promise.resolve(null), status() { }, invite() { }
   };
   if (!on) return;
   document.documentElement.classList.add('discord');
@@ -53,6 +53,24 @@
       V.discord.sdk.commands.setActivity({ activity }).catch(e => console.warn('Discord status:', e));
     });
   };
+
+  // "Freunde einladen": Discord's own dialog (friends, servers, a link) invites into this activity and voice channel
+  V.discord.invite = () => V.discord.ready.then(sdk => sdk && sdk.commands.openInviteDialog()).catch(e => console.warn('Discord invite:', e));
+
+  // language: without an own choice (settings or ?lang=) the activity follows Discord's language. js/i18n.js reads it
+  // from versus.dclang at the start; when Discord's language differs from the one shown, the page reloads once.
+  V.discord.auth.then(async a => {
+    if (!a || !V.discord.sdk) return;
+    const r = await V.discord.sdk.commands.userSettingsGetLocale();
+    const loc = (r && r.locale) || '';
+    if (!loc) return;
+    const want = /^de(-|$)/i.test(loc) ? 'de' : 'en';
+    try { localStorage.setItem('versus.dclang', JSON.stringify(want)); } catch (e) { return; }
+    const own = q.get('lang') || V.store.get('lang', null) || V.settings.lang;
+    // at most once per tab, so a storage that keeps nothing can never reload again and again
+    let again = true; try { again = !sessionStorage.getItem('versus.dcreload'); sessionStorage.setItem('versus.dcreload', '1'); } catch (e) { again = false; }
+    if (!own && want !== V.lang && again) location.reload();
+  }).catch(e => console.warn('Discord language:', e));
 
   // the admin panel counts who plays in the activity: one note per start, as soon as someone is signed in (guests too)
   let marked = false;

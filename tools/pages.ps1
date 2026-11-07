@@ -51,7 +51,7 @@ Write-Output ("Read {0} games" -f $GAMES.en.Count)
 # ---------- 2. texts of the pages ----------
 $TX = @{
   en = @{
-    dir = 'games'; locale = 'en_GB'; og = 'itch/art/social-1200x630.png'
+    dir = 'games'; locale = 'en_GB'; og = 'icons/og-en.png'
     players = { param($g) if ($g.party) { '2 to 4 players' } else { '2 players' } }
     title = { param($g, $p) "$($g.name) online – free for $p | Versus" }
     meta = { param($g, $p) "$($g.short) Play $($g.name) free in your browser: on one device, against the AI or online with friends. No ads, no download." }

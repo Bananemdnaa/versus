@@ -950,7 +950,7 @@
     const m = V.ui.openModal(`<div class="lobby">
       <div class="fadd-h"><span class="lb-ic">${g.icon}</span><div class="lb-t"><small>Online-Tisch · ${cur.n} Plätze</small><h3>${esc(g.name)}</h3></div><button class="iconbtn" id="lbx" aria-label="Schließen">${IC().x}</button></div>
       <div class="lb-seats" id="lbs"></div>
-      <div class="lb-code"><div><small>Tischcode</small><b>${esc(cur.code)}</b></div><button class="btn sm" id="lbsh"><span>${IC().share}Link teilen</span></button></div>
+      <div class="lb-code"><div><small>Tischcode</small><b>${esc(cur.code)}</b></div><button class="btn sm" id="lbsh"><span>${inDiscord() ? IC().users + 'Einladen' : IC().share + 'Link teilen'}</span></button></div>
       ${inDiscord() ? '<p class="fhint">Alle in diesem Sprachkanal sehen den Tisch und kommen mit einem Tipp dazu.</p>' : ''}
       <div id="lbhost"></div>
       <div class="actions" id="lba"></div></div>`, 'lobm', () => {
@@ -961,6 +961,7 @@
     m.querySelector('#lbx').onclick = V.ui.closeModal;
     m.querySelector('#lbsh').onclick = () => {
       V.sfx.ui();
+      if (inDiscord()) return V.discord.invite();
       const link = tableLink(cur.code), text = V.t(`Komm an meinen ${g.name}-Tisch in Versus (Code ${cur.code}):`);
       if (navigator.share) navigator.share({ title: 'Versus', text, url: link }).catch(() => { }); else copy(link);
     };
@@ -1071,10 +1072,12 @@
     const m = V.ui.openModal(`<div class="linkw"><h3>Spiel mit mir</h3>${dc ? `<p class="fhint"><b>${esc(g.name)}</b> · alle in diesem Sprachkanal sehen deine Einladung unten als Balken. Wer zuerst auf „Mitspielen“ tippt, spielt auf seinem eigenen Gerät gegen dich.</p>` : `<p class="fhint">${esc(g.name)} · schick den Link oder lass den Code scannen. Wer ihn öffnet, spielt sofort gegen dich, auch ohne Freundschaft und ohne Konto (bei den Gast-Spielen).</p>
       <div class="fqr" id="lqr">${V.skel(1)}</div>
       <div class="arow"><button class="btn primary" id="lsh"><span>${IC().share}Link teilen</span></button><button class="btn" id="lcp"><span>${IC().link}Kopieren</span></button></div>`}
+      ${dc ? `<div class="arow"><button class="btn" id="ldi"><span>${IC().users}Freunde in den Call einladen</span></button></div>` : ''}
       <p class="lb-wait"><span class="spin"><i></i><i></i></span>Warte, bis jemand beitritt …</p>${dc ? '' : '<p class="fine">Du kannst den Link in Ruhe verschicken, er gilt 15 Minuten.</p>'}
       <div class="actions"><button class="btn ghost" id="lx"><span>Abbrechen</span></button></div></div>`, 'linkm', () => { if (!done) { stop(); C().rpc('match_cancel', { mid }).catch(() => { }); } });
     if (!dc) loadQR().then(() => { const q = m.querySelector('#lqr'); if (q) q.innerHTML = qrSvg(url); }, () => { const q = m.querySelector('#lqr'); if (q) q.innerHTML = `<p class="fhint">${esc(url)}</p>`; });
     m.querySelector('#lx').onclick = () => V.ui.closeModal();
+    if (dc) m.querySelector('#ldi').onclick = () => { V.sfx.ui(); V.discord.invite(); };
     if (!dc) {
       m.querySelector('#lcp').onclick = () => copy(url);
       m.querySelector('#lsh').onclick = async () => {
