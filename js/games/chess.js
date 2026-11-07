@@ -301,12 +301,23 @@
   // with elo ("Passend zu dir", 1320-3190) Stockfish limits itself to that rating instead
   function sfMove(api, P, ply, skill, ms, elo) {
     return new Promise(done => {
-      let score = 0;
+      let score = 0, last = '';
+      const t0 = performance.now();
       api.fn = l => {
         if (l.startsWith('info') && / score /.test(l)) {
           const mt = / score mate (-?\d+)/.exec(l), cp = / score cp (-?\d+)/.exec(l);
           score = mt ? (+mt[1] > 0 ? 100000 - +mt[1] : -100000 - +mt[1]) : cp ? +cp[1] : score;
-        } else if (l.startsWith('bestmove')) { api.fn = null; done({ uci: l.split(' ')[1], score }); }
+          last = l;
+        } else if (l.startsWith('bestmove')) {
+          api.fn = null;
+          // Dev-Konten: what Stockfish saw (depth, score, nodes, main line) in the dev panel
+          if (V.dev && V.dev.active) {
+            const g = k => { const m = new RegExp(' ' + k + ' (\\S+)').exec(last); return m ? m[1] : null; };
+            V.dev.ai('Stockfish', { skill: elo ? null : skill, elo: elo || null, movetime: ms, ms: Math.round(performance.now() - t0), depth: g('depth'), seldepth: g('seldepth'),
+              score: / score mate /.test(last) ? 'Matt in ' + g('mate') : g('cp') + ' cp', nodes: g('nodes'), nps: g('nps'), best: l.split(' ')[1], pv: (/ pv (.*)$/.exec(last) || [])[1] || '' });
+          }
+          done({ uci: l.split(' ')[1], score });
+        }
       };
       api.send('setoption name MultiPV value 1');
       if (elo) { api.send('setoption name Skill Level value 20'); api.send('setoption name UCI_LimitStrength value true'); api.send('setoption name UCI_Elo value ' + elo); }

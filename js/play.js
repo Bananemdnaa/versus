@@ -203,6 +203,12 @@
       clearTimeout(bubbleT); bubbleT = setTimeout(() => b.classList.remove('on'), 1800);
     }
     cleanups.push(() => { clearTimeout(bubbleT); aim.hide(); });
+    // Dev-Konten: the running match for the dev panel's "Zustand" tab
+    if (V.dev) {
+      const dg = { id: g.id, mode: cfg.mode, level: cfg.level, fit: fitE || 0, opts: cfg.opts, players: N, aiSide, mySide, match: M.id || null,
+        get plies() { return plies; }, get ended() { return ended; } };
+      V.dev.game = dg; cleanups.push(() => { if (V.dev.game === dg) V.dev.game = null; });
+    }
     const setStatus = html => {
       if (stEl.innerHTML === html) return;
       stEl.innerHTML = html; if (V.fxOn()) V.fx.pop(stEl, 'st-in');
@@ -228,7 +234,11 @@
     function pollOnce(o, fetch, every) {
       if (o.stopped || !alive) return;
       clearTimeout(o.timer); o.busy = true;
-      fetch().then(st => { conn.ok(); if (alive) o.feed(st); }, e => conn.fail(e)).then(() => {
+      fetch().then(st => {
+        conn.ok();
+        if (V.dev && V.dev.active) V.dev.net('Stand geholt', { status: st && st.status, moves: st && st.moves ? st.moves.length : undefined, queue: o.queue ? o.queue.length : undefined });
+        if (alive) o.feed(st);
+      }, e => { if (V.dev && V.dev.active) V.dev.net('Abfrage fehlgeschlagen', String(e && e.message || e)); conn.fail(e); }).then(() => {
         o.busy = false;
         if (o.stopped || !alive) return;
         if (o.again) { o.again = false; return o.poll(); }
@@ -362,14 +372,24 @@
         const t0 = performance.now();
         ctx.later(() => {
           if (fitE) lvNow = V.aiElo.pick(g, fitE);
+          // Dev-Konten: the dev panel shows what this move computed (js/devtools.js)
+          const dv = V.dev && V.dev.active ? V.dev.begin({ game: g.name, level: lvNow, fit: fitE ? Math.round(fitE) : 0, side: s, who: names[s], quick: !!o.quick, ply: plies }) : null;
           // think() may also answer later (a Promise, e.g. Stockfish in a worker): the match must still be running then
-          const out = o.think();
-          const go = res => ctx.later(() => aimAt(o, res, card, true, false, party ? s : 0), Math.max(0, minT - (performance.now() - t0)));
-          if (out && typeof out.then === 'function') out.then(res => { if (alive && !ended && res && res.move) go(res); }, () => { });
+          let out;
+          try { out = o.think(); } catch (e) { if (dv) dv.fail(e); throw e; }
+          const go = res => { if (dv) dv.done(res, o.say); ctx.later(() => aimAt(o, res, card, true, false, party ? s : 0), Math.max(0, minT - (performance.now() - t0))); };
+          if (out && typeof out.then === 'function') out.then(res => { if (alive && !ended && res && res.move) go(res); else if (dv) dv.done(res, o.say); }, e => { if (dv) dv.fail(e); });
           else go(out);
         }, 70);
       },
-      think(fn, ms = 380) { if (settings.aiFast) ms = Math.min(ms, 60); if (fitE) lvNow = V.aiElo.pick(g, fitE); setStatus(`<span class="c${aiSide}">KI</span> <span class="thinking">denkt</span>`); ctx.later(fn, ms); },
+      think(fn, ms = 380) {
+        if (settings.aiFast) ms = Math.min(ms, 60); if (fitE) lvNow = V.aiElo.pick(g, fitE);
+        setStatus(`<span class="c${aiSide}">KI</span> <span class="thinking">denkt</span>`);
+        ctx.later(() => {
+          const dv = V.dev && V.dev.active ? V.dev.begin({ game: g.name, level: lvNow, fit: fitE ? Math.round(fitE) : 0, side: aiSide, who: names[aiSide], kind: 'ctx.think', ply: plies }) : null;
+          try { fn(); } finally { if (dv) dv.done(); }
+        }, ms);
+      },
       nav(fn, o) { navFn = fn; nav.set(fn, o); },
       keys(fn) { keyFn = fn; },
       // off: the match was called off (opponent offline, voided) – no winner, nothing counts
