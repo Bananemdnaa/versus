@@ -136,11 +136,12 @@
     const sub = s => botSide(s) ? lvName + ' · ' + sideLabel(s) : remoteSide(s) ? 'Online · ' + sideLabel(s) : s === me && acct ? 'Du · ' + sideLabel(s) : sideLabel(s);
     const av = s => botSide(s) ? IC.robot : s === me ? (acct && V.look ? `<span class="lav">${V.look.text(acct, V.look.mine(), 1)}</span>` : `<span>${esc(acct ? acct.slice(0, 1).toUpperCase() : 'DU')}</span>`) : remoteSide(s) ? IC.user : watch ? `<span>${esc(names[s].slice(0, 2).toUpperCase())}</span>` : `<span>P${s}</span>`;
     const thinker = s => botSide(s) || (online && s === oppSide) || (table && s !== mySide) || watch;
-    // the country flag (js/flag.js) for real players: you (also as a guest online), the opponent online, both when watching
+    // the country flag (js/flag.js) for real players: you (also as a guest online or against the AI, e.g. in Discord),
+    // the opponent online, both when watching
     const flagOf = s => {
       if (!V.flag || botSide(s)) return '';
       const u = V.cloud && V.cloud.user();
-      if (s === me) return V.flag.tag(acct || ((online || table) && u ? u.username : ''));
+      if (s === me) return V.flag.tag(acct || ((online || table || ai) && u ? u.username : ''));
       return remoteSide(s) || watch ? V.flag.tag(names[s]) : '';
     };
     const card = (s, pos) => `<div class="pcard pcard-${pos} ps${s}${s === me ? ' me' : ''}" id="pl${s}"><span class="av">${av(s)}</span>
