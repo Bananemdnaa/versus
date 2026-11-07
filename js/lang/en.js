@@ -1701,7 +1701,7 @@
     'Die Texte werden nicht übersetzt. Für Englisch am besten eine eigene Umfrage nur für Englisch anlegen.': 'The texts are not translated. For English, best create a separate survey for English only.',
     'Eine laufende Umfrage erscheint als Banner. Mitmachen ist freiwillig, jede Frage darf leer bleiben. Du siehst die Summen, die Texte und wer mitgemacht hat, aber nie, wer was geantwortet hat.': 'A running survey shows as a banner. Taking part is optional, any question may be skipped. You see the totals, the texts and who took part, but never who answered what.',
     'Wer hat mitgemacht': 'Who took part', '1 Antwort ohne Konto': '1 answer without an account', '# Antworten ohne Konto': '# answers without an account',
-    'Die neuesten # von #.': 'The latest # of #.', 'Wer mitgemacht hat, siehst du nach dem nächsten Server-Update (Migration 20261202000000_survey_who.sql).': 'You can see who took part after the next server update (migration 20261202000000_survey_who.sql).',
+    'Die neuesten # von #.': 'The latest # of #.', 'Wer mitgemacht hat, siehst du nach dem nächsten Server-Update (Migration 20261205000000_survey_who.sql).': 'You can see who took part after the next server update (migration 20261205000000_survey_who.sql).',
     'Die Umfrage braucht einen Titel.': 'The survey needs a title.', 'Die Umfrage braucht mindestens eine Frage.': 'The survey needs at least one question.', 'Jede Frage braucht einen Text.': 'Every question needs a text.'
   });
 

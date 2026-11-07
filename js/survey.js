@@ -126,7 +126,7 @@
   }
   // who took part: names only, never linked to the answers
   function who(r) {
-    if (!r.who) return '<p class="fine">Wer mitgemacht hat, siehst du nach dem nächsten Server-Update (Migration 20261202000000_survey_who.sql).</p>';
+    if (!r.who) return '<p class="fine">Wer mitgemacht hat, siehst du nach dem nächsten Server-Update (Migration 20261205000000_survey_who.sql).</p>';
     if (!r.who.length) return '';
     const named = r.who.filter(w => w.name), anon = r.who.length - named.length;
     const when = d => new Date(d).toLocaleString(V.locale(), { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
