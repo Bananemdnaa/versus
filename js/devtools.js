@@ -334,10 +334,14 @@
     if (panel) return close();
     panel = document.createElement('div'); panel.className = 'dvp'; panel.setAttribute('translate', 'no');
     panel.innerHTML = `<div class="dvh">${TABS.map(([k, l]) => `<button data-dt="${k}">${l}</button>`).join('')}<span id="dvx"></span>
-      <span class="dvr"><button id="dvcp" title="Kopieren">Kopieren</button><button id="dvclr" title="Leeren">Leeren</button><button id="dvz">✕</button></span></div><div class="dvb" id="dvb"></div>`;
+      <span class="dvr"><button id="dvcp" title="Kopieren">Kopieren</button><button id="dvclr" title="Leeren">Leeren</button><button id="dvpos" title="Panel oben/unten (damit das Brett frei bleibt)">⇅</button><button id="dvz">✕</button></span></div><div class="dvb" id="dvb"></div>`;
     document.body.appendChild(panel);
     panel.querySelectorAll('[data-dt]').forEach(b => b.onclick = () => { tab = b.dataset.dt; if (tab === 'err') seenErr = logs.err.length; draw(); if (tab === 'devs' && !devs) loadDevs(); if (tab === 'bugs') loadReports(); });
     panel.querySelector('#dvz').onclick = close;
+    // top or bottom, remembered per device, so the board stays visible while the AI thinks
+    const pos = () => { try { return localStorage.getItem('versus.devPos') === 'top'; } catch (e) { return false; } };
+    panel.classList.toggle('top', pos());
+    panel.querySelector('#dvpos').onclick = () => { const t = !panel.classList.contains('top'); panel.classList.toggle('top', t); try { localStorage.setItem('versus.devPos', t ? 'top' : 'bottom'); } catch (e) { } };
     panel.querySelector('#dvclr').onclick = () => { if (logs[tab]) logs[tab].length = 0; if (tab === 'err') seenErr = 0; if (tab === 'state') peek = null; draw(); };
     panel.querySelector('#dvcp').onclick = e => copy(tab === 'devs' ? (devs || []).map(d => short(d, 400)).join('\n') : tab === 'bugs' || tab === 'tests' ? JSON.stringify(snapshot(), null, 1) : text(), e.target);
     if (tab === 'err') seenErr = logs.err.length;
@@ -361,6 +365,9 @@
 .dvh button,.dvb button{font:inherit;background:#123;color:#cde;border:1px solid #345;border-radius:4px;padding:3px 7px;cursor:pointer}
 .dvh button.on{background:#6cf;color:#012;border-color:#6cf}.dvr{margin-left:auto;display:flex;gap:4px}#dvx label{display:flex;gap:4px;align-items:center}
 .dvb{flex:1;overflow:auto;padding:6px 8px}.dvb pre{margin:0;white-space:pre-wrap;word-break:break-word;font:inherit}
+@media (max-width:700px){.dvbtn{left:auto;right:0;bottom:auto;top:38%;border-radius:6px 0 0 6px;border-right:0;padding:8px 5px;writing-mode:vertical-rl;opacity:.6}
+.dvbtn i{margin:4px 0 0}.dvp{font-size:11px;height:min(46vh,520px);bottom:calc(6px + env(safe-area-inset-bottom))}.dvh button{padding:4px 6px}}
+.dvp.top{top:calc(6px + env(safe-area-inset-top));bottom:auto}
 .dvt{border-collapse:collapse;width:100%}.dvt td,.dvt th{text-align:left;padding:3px 6px;border-bottom:1px solid #234;vertical-align:top}.dvt a{color:#6cf;cursor:pointer;text-decoration:underline}`;
   function show(on) {
     if (on === D.active && (!on || btn)) return;
