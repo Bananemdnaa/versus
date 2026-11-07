@@ -1686,7 +1686,7 @@
     'Deine Flagge weht jetzt': 'Your flag is flying now', 'Flagge entfernt': 'Flag removed', 'Flaggen kommen nach dem nächsten Server-Update.': 'Flags come with the next server update.', 'Unbekanntes Land.': 'Unknown country.',
     'Kurze Umfrage': 'Quick survey', 'Mitmachen': 'Take part', 'Die Umfrage kommt in ein paar Tagen nochmal': 'The survey will come back in a few days',
     'Mehrere möglich': 'Pick as many as you like', 'Deine Antwort (freiwillig)': 'Your answer (optional)', 'gar nicht': 'not at all', 'sehr': 'very much',
-    'Freiwillig: Jede Frage darf leer bleiben. Die Antworten sieht nur das Team, ohne deinen Namen.': 'Optional: you can skip any question. Only the team sees the answers, without your name.',
+    'Freiwillig: Jede Frage darf leer bleiben. Die Antworten sieht nur das Team, ohne deinen Namen. Es sieht nur, dass du mitgemacht hast.': 'Optional: you can skip any question. Only the team sees the answers, without your name. It only sees that you took part.',
     'Absenden': 'Send', 'Nicht teilnehmen': 'No thanks', 'Alles klar, keine Umfrage': 'Alright, no survey', 'Beantworte mindestens eine Frage.': 'Please answer at least one question.',
     'Danke fürs Mitmachen!': 'Thanks for taking part!', 'Diese Umfrage ist schon vorbei.': 'This survey has already ended.', 'Du hast hier schon mitgemacht. Danke!': 'You already took part. Thanks!',
     'Gerade kommen zu viele Antworten. Versuch es später nochmal.': 'Too many answers right now. Please try again later.', 'Das hat leider nicht geklappt.': 'Sorry, that did not work.',
@@ -1699,7 +1699,9 @@
     'Noch keine Umfrage.': 'No survey yet.', 'Noch keine Texte.': 'No texts yet.', 'Entwurf gespeichert.': 'Draft saved.', 'Umfrage gelöscht.': 'Survey deleted.',
     'Die Umfrage läuft. Spieler sehen jetzt das Banner.': 'The survey is running. Players see the banner now.', 'Die Umfrage ist beendet.': 'The survey has ended.',
     'Die Texte werden nicht übersetzt. Für Englisch am besten eine eigene Umfrage nur für Englisch anlegen.': 'The texts are not translated. For English, best create a separate survey for English only.',
-    'Eine laufende Umfrage erscheint als Banner. Mitmachen ist freiwillig, jede Frage darf leer bleiben. Du siehst nur die Summen und die Texte, keine Namen.': 'A running survey shows as a banner. Taking part is optional, any question may be skipped. You only see the totals and the texts, no names.',
+    'Eine laufende Umfrage erscheint als Banner. Mitmachen ist freiwillig, jede Frage darf leer bleiben. Du siehst die Summen, die Texte und wer mitgemacht hat, aber nie, wer was geantwortet hat.': 'A running survey shows as a banner. Taking part is optional, any question may be skipped. You see the totals, the texts and who took part, but never who answered what.',
+    'Wer hat mitgemacht': 'Who took part', '1 Antwort ohne Konto': '1 answer without an account', '# Antworten ohne Konto': '# answers without an account',
+    'Die neuesten # von #.': 'The latest # of #.', 'Wer mitgemacht hat, siehst du nach dem nächsten Server-Update (Migration 20261202000000_survey_who.sql).': 'You can see who took part after the next server update (migration 20261202000000_survey_who.sql).',
     'Die Umfrage braucht einen Titel.': 'The survey needs a title.', 'Die Umfrage braucht mindestens eine Frage.': 'The survey needs at least one question.', 'Jede Frage braucht einen Text.': 'Every question needs a text.'
   });
 
