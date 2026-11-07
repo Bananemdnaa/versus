@@ -64,8 +64,22 @@
 
   const rm = rows => V.mini(rows, { '.': { c: '' } }, { w: 240 });
 
+  // the AI's choice as a pure function of the state, so it can think in a worker (js/aiworker.js, V.register)
+  function brain(s, L) {
+    const mine = legalFor(s.b, s.turn), empties = s.b.filter(x => !x).length;
+    let r;
+    // Leicht: random-ish beginner who likes flipping many stones. Mittel: greedy but knows corners.
+    // Schwer 3 plies (endgame solved from 8 empty squares), Profi 8 plies (endgame solved from 14).
+    if (L === 0) r = V.weak(mine.map(m => ({ m, v: flips(s.b, m, s.turn).length * 10 })), 25, 0.3);
+    else if (L === 1) r = V.pickSoft(mine.map(m => ({ m, v: flips(s.b, m, s.turn).length * 10 + W[m] / 3 })), 12);
+    else r = V.search(G, s, empties <= [8, 14][L - 2] ? 20 : [3, 8][L - 2], [900, 2400][L - 2]);
+    let m = r.move; if (m === 'pass') m = mine[0];
+    return { move: m, mood: L ? V.mood(r.score, 160) : undefined };
+  }
+
   V.register({
     id: 'reversi', name: 'Reversi', cat: 'Strategie', order: 3, accent: '#5dffcf',
+    brain,
     short: 'Einkesseln und umdrehen.',
     desc: 'Schließ gegnerische Steine zwischen zwei eigenen ein und dreh sie um. Am Ende zählt, wer mehr Steine hat.',
     keys: [['Pfeile', 'Feld wählen'], ['Enter', 'Stein setzen']],
@@ -142,17 +156,7 @@
         ctx.turn(s.turn, score + base);
         const sqn = q => 'abcdefgh'[q & 7] + ((q >> 3) + 1);
         if (ctx.isAI(s.turn)) ctx.aiTurn({
-          think: () => {
-            const L = ctx.level, empties = s.b.filter(x => !x).length;
-            let r;
-            // Leicht: random-ish beginner who likes flipping many stones. Mittel: greedy but knows corners.
-            // Schwer 3 plies (endgame solved from 8 empty squares), Profi 8 plies (endgame solved from 14).
-            if (L === 0) r = V.weak(mine.map(m => ({ m, v: flips(s.b, m, s.turn).length * 10 })), 25, 0.3);
-            else if (L === 1) r = V.pickSoft(mine.map(m => ({ m, v: flips(s.b, m, s.turn).length * 10 + W[m] / 3 })), 12);
-            else r = V.search(G, s, empties <= [8, 14][L - 2] ? 20 : [3, 8][L - 2], [900, 2400][L - 2]);
-            let m = r.move; if (m === 'pass') m = mine[0];
-            return { move: m, mood: L ? V.mood(r.score, 160) : undefined };
-          },
+          state: s,
           targets: m => [sqs[m]],
           decoys: () => mine.map(m => sqs[m]),
           apply: move,

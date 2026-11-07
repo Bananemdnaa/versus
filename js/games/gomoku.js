@@ -104,8 +104,22 @@
   .gmk.done .pt:not(.w) .st{opacity:.45;transition:opacity .5s}
   .gmk.lock{cursor:default}`);
 
+  // the AI's choice as a pure function of the state, so it can think in a worker (js/aiworker.js, V.register)
+  function brain(s, L) {
+    // Leicht: own heuristics with plenty of noise. Mittel: looks one reply ahead. Schwer: 3 plies. Profi: as deep as time allows.
+    let r;
+    if (L === 0) {
+      const ms = candidates(s, 8), b = s.b, N = s.N;
+      r = Math.random() < 0.3 ? { move: V.pick(ms), score: 0 } : V.pickSoft(ms.map(m => ({ m, v: cellScore(b, N, m, s.turn) * 0.002 + cellScore(b, N, m, 3 - s.turn) * 0.0008 })), 6);
+    }
+    else if (L === 1) r = V.pickSoft(V.searchAll(makeG(8), s, 2, 700), 60);
+    else r = V.search(makeG(L === 2 ? 9 : 12), s, L === 2 ? 3 : 8, L === 2 ? 900 : 2200);
+    return { move: r.move, mood: V.mood(r.score || 0, 900) };
+  }
+
   V.register({
     id: 'gomoku', name: 'Fünf in einer Reihe', cat: 'Klassiker', order: 3, accent: '#8f6bff',
+    brain,
     short: 'Fünf Steine in eine Linie bringen.',
     desc: 'Setzt abwechselnd Steine auf die Kreuzungen. Wer zuerst fünf in einer Reihe hat, waagerecht, senkrecht oder diagonal, gewinnt.',
     levelInfo: ['Anfänger: blockt deine Dreier oft nicht.', 'Blockt Drohungen, baut aber selten eigene Fallen.', 'Rechnet drei Züge voraus und sieht Doppeldrohungen.', 'Rechnet so tief wie möglich. Offene Dreier musst du sofort blocken.'],
@@ -172,18 +186,7 @@
         ctx.turn(s.turn);
         board.classList.toggle('lock', ctx.isAI(s.turn));
         if (ctx.isAI(s.turn)) ctx.aiTurn({
-          think: () => {
-            const L = ctx.level;
-            // Leicht: own heuristics with plenty of noise. Mittel: looks one reply ahead. Schwer: 3 plies. Profi: as deep as time allows.
-            let r;
-            if (L === 0) {
-              const ms = candidates(s, 8), b = s.b;
-              r = Math.random() < 0.3 ? { move: V.pick(ms), score: 0 } : V.pickSoft(ms.map(m => ({ m, v: cellScore(b, N, m, s.turn) * 0.002 + cellScore(b, N, m, 3 - s.turn) * 0.0008 })), 6);
-            }
-            else if (L === 1) r = V.pickSoft(V.searchAll(makeG(8), s, 2, 700), 60);
-            else r = V.search(makeG(L === 2 ? 9 : 12), s, L === 2 ? 3 : 8, L === 2 ? 900 : 2200);
-            return { move: r.move, mood: V.mood(r.score || 0, 900) };
-          },
+          state: s,
           targets: i => [pts[i]],
           decoys: () => candidates(s, 6).map(i => pts[i]),
           apply: place,

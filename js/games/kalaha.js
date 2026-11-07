@@ -73,8 +73,20 @@
   .klh.vert+.klh-lab,.klh-lab:has(+.klh.vert){justify-content:center}`);
   const COLORS = ['#ff6fa8', '#62f0ff', '#ffd84f', '#5dff9d', '#c39bff', '#ff9f43'];
 
+  // the AI's choice as a pure function of the state, so it can think in a worker (js/aiworker.js, V.register)
+  function brain(s, L) {
+    if (L === 0) {
+      const ms = moves(s), r = Math.random() < 0.5 ? V.pick(ms) : V.pickSoft(search(s, 1, 200), 3).move;
+      return { move: r };
+    }
+    const sc = search(s, [2, 6, 13][L - 1], [500, 900, 2200][L - 1]);
+    const r = L === 1 ? V.pickSoft(sc, 1.5) : V.pickSoft(sc, 0);
+    return { move: r.move, mood: Math.tanh(r.score / 8) };
+  }
+
   V.register({
     id: 'kalaha', name: 'Kalaha', cat: 'Strategie', order: 5, accent: '#ff9f43',
+    brain,
     short: 'Steine säen, Gegner leer räumen.',
     desc: 'Nimm alle Steine aus einer Mulde und verteile sie einzeln weiter. Wer am Ende mehr Steine in seinem Speicher hat, gewinnt.',
     levelInfo: ['Anfänger: zieht fast zufällig.', 'Nimmt Extrazüge mit, übersieht aber Fänge.', 'Rechnet sechs Züge voraus.', 'Rechnet so tief wie möglich. Fast unschlagbar.'],
@@ -176,16 +188,7 @@
         mark();
         if (ctx.isAI(s.turn)) ctx.aiTurn({
           quick: again,
-          think: () => {
-            const L = ctx.level, ms = moves(s);
-            if (L === 0) {
-              const r = Math.random() < 0.5 ? V.pick(ms) : V.pickSoft(search(s, 1, 200), 3).move;
-              return { move: r };
-            }
-            const sc = search(s, [2, 6, 13][L - 1], [500, 900, 2200][L - 1]);
-            const r = L === 1 ? V.pickSoft(sc, 1.5) : V.pickSoft(sc, 0);
-            return { move: r.move, mood: Math.tanh(r.score / 8) };
-          },
+          state: s,
           targets: i => [cells[i]],
           decoys: () => moves(s).map(i => cells[i]),
           apply: play,

@@ -183,6 +183,23 @@
       pill.querySelector('b').textContent = V.t(s === me ? 'Du bist dran' : names[s] === 'Du' ? 'Du bist dran' : sideLabel(s) + ' ist dran');
     }
     const timers = new Set(), cleanups = [];
+    // A game with brain(state, level) -> { move, mood } thinks in a worker, so the page keeps moving meanwhile. On the
+    // main thread instead when there is no worker for it, when that fails, or for the dev panel (it shows the search).
+    // The move comes back as a copy: decode() turns it into the game's own move again (the same as online).
+    // (on the main thread too, decode() hands back the game's own move object when the brain worked on a copy)
+    function brain(o) {
+      const L = lvNow, here = () => {
+        const r = g.brain(o.state, L);
+        if (o.decode && r && r.move != null) { const m = o.decode(r.move); if (m != null) r.move = m; }
+        return r;
+      };
+      if (!V.aiWorker || !V.aiWorker.ok(g) || (V.dev && V.dev.active)) return here();
+      return V.aiWorker.run(g, o.state, L).then(r => {
+        if (!r || r.move == null) throw new Error('aiworker: no move');
+        if (o.decode) { const m = o.decode(r.move); if (m == null) throw new Error('aiworker: move not legal'); r.move = m; }
+        return r;
+      }).catch(() => (alive && !ended ? here() : null));
+    }
     let alive = true, ended = false, keyFn = null, lastTurn = 0, lastNote = '', moodBand = 0, bubbleT = null;
     const LINES = {
       3: ['Ich sehe den Sieg.', 'Gleich ist es vorbei.', 'Das war’s wohl.'],
@@ -337,6 +354,8 @@
       alive: () => alive,
       later(fn, ms) { const t = setTimeout(() => { timers.delete(t); if (alive) fn(); }, rep && rep.queue.length ? 0 : ms); timers.add(t); return t; },
       onCleanup(fn) { cleanups.push(fn); },
+      // for a think() that only sometimes uses the game's brain (chess: its own engine when Stockfish is not used)
+      brain: (state, decode) => brain({ state, decode }),
       status: setStatus,
       turn(s, html) {
         if (clock) clock.turn(s);
@@ -358,7 +377,7 @@
       moved(s, m) { plies++; if (net) net.moved(s, m); if (tnet) tnet.moved(s, m); if (recOn) recd.push({ s, m: JSON.parse(JSON.stringify(m ?? null)) }); if (canUndo) { hist.push({ s, m: JSON.parse(JSON.stringify(m ?? null)) }); undoBtn(); } },
       // One AI move with a bit of theatre: think (min. time per level), let the crosshair hover over
       // a couple of alternatives, lock on the real target(s), then move and comment in the bubble.
-      // o.think() -> { move, mood? }, o.targets(move) -> [elements], o.decoys(move) -> [elements],
+      // o.think() -> { move, mood? } (or o.state with the game's brain(state, level), see brain()), o.targets(move) -> [elements], o.decoys(move) -> [elements],
       // o.apply(move), o.say(move) -> short text, o.quick -> follow-up move (e.g. extra turn) with less delay,
       // o.decode(raw) -> legal move or null (online: turns the received move back into the game's own form)
       aiTurn(o) {
@@ -377,10 +396,12 @@
           // Dev-Konten: the dev panel shows what this move computed (js/devtools.js)
           const dv = V.dev && V.dev.active ? V.dev.begin({ game: g.name, level: lvNow, fit: fitE ? Math.round(fitE) : 0, side: o.side || lastTurn || s, who: names[o.side || lastTurn || s], quick: !!o.quick, ply: plies }) : null;
           // think() may also answer later (a Promise, e.g. Stockfish in a worker): the match must still be running then
+          // o.state instead of o.think: the game's brain(state, level) thinks in a worker (js/aiworker.js)
           let out;
-          try { out = o.think(); } catch (e) { if (dv) dv.fail(e); throw e; }
+          try { out = o.state !== undefined && g.brain ? brain(o) : o.think(); } catch (e) { if (dv) dv.fail(e); throw e; }
           const go = res => { if (dv) dv.done(res, o.say); ctx.later(() => aimAt(o, res, card, true, false, party ? s : 0), Math.max(0, minT - (performance.now() - t0))); };
-          if (out && typeof out.then === 'function') out.then(res => { if (alive && !ended && res && res.move) go(res); else if (dv) dv.done(res, o.say); }, e => { if (dv) dv.fail(e); });
+          // (a move can be 0, e.g. the first column)
+          if (out && typeof out.then === 'function') out.then(res => { if (alive && !ended && res && res.move != null) go(res); else if (dv) dv.done(res, o.say); }, e => { if (dv) dv.fail(e); });
           else go(out);
         }, 70);
       },
@@ -1011,6 +1032,7 @@
       destroy() {
         alive = false; timers.forEach(clearTimeout); timers.clear();
         cleanups.forEach(f => { try { f(); } catch (e) { } });
+        if (V.aiWorker) V.aiWorker.cancel();
         if (inst && inst.destroy) try { inst.destroy(); } catch (e) { }
       }
     });
@@ -1142,6 +1164,7 @@
     if (rep) { /* replaying after an undo: no intro */ }
     else if (party && N > 2) vsIntro({ name: names[1], sub: sideLabel(1) }, { name: ai ? N - 1 + ' KIs' : 'Alle', sub: ai ? lvName : N + ' Spieler' }, rematch);
     else vsIntro({ name: names[L], sub: sideLabel(L) }, { name: names[R], sub: ai ? 'KI · ' + lvName : online ? 'online' : sideLabel(R) }, rematch || watch);
+    if (ai && V.aiWorker) V.aiWorker.warm(g);
     inst = g.start(ctx) || {};
     // a recorded match: step through it (chess has its own move list with the review)
     if (review && RV.moves && g.id !== 'chess') {

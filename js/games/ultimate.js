@@ -44,8 +44,12 @@
 
   const g9 = rows => V.mini(rows, {}, { w: 270 });
 
+  // the AI's choice as a pure function of the state, so it can think in a worker (js/aiworker.js, V.register)
+  function brain(s, L) { const r = V.mcts(G, s, [80, 500, 3000, 60000][L], [300, 700, 1200, 2500][L]); return { move: r.move, mood: (r.rate - 0.5) * 2.4 }; }
+
   V.register({
     id: 'uttt', name: 'Ultimate Tic Tac Toe', cat: 'Klassiker', order: 4, accent: 'var(--cyan)',
+    brain,
     short: 'Tic Tac Toe in Tic Tac Toe.',
     desc: 'Neun kleine Bretter in einem großen. Dein Zug bestimmt, wo der Gegner als Nächstes spielen muss.',
     sides: { 1: 'X', 2: 'O' },
@@ -118,7 +122,7 @@
         const BOARD = ['oben links', 'oben', 'oben rechts', 'links', 'Mitte', 'rechts', 'unten links', 'unten', 'unten rechts'];
         if (ctx.isAI(s.turn)) ctx.aiTurn({
           // more simulated games per move = stronger: about 80 / 500 / 3.000 / as many as fit in 2,5 s
-          think: () => { const L = ctx.level, r = V.mcts(G, s, [80, 500, 3000, 60000][L], [300, 700, 1200, 2500][L]); return { move: r.move, mood: (r.rate - 0.5) * 2.4 }; },
+          state: s,
           targets: m => [allCells[m]],
           decoys: () => G.moves(s).map(m => allCells[m]),
           apply: move,

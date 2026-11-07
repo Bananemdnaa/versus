@@ -281,8 +281,14 @@
   // the practice tasks in js/tutor.js (loaded before this file) use the same look
   if (V.TUTOR && V.TUTOR.mines) V.TUTOR.mines.forEach(t => { if (t.pick) t.pick.map = MAP; });
 
+  // the AI's choice as a pure function of the state, so it can think in a worker (js/aiworker.js, V.register)
+  function brain(x, L) {
+    return { move: aiMove(L, x.R, x.C, nbrs(x.R, x.C), x.num, x.st, x.left, x.bombs, x.lead), mood: x.lead / Math.max(3, x.M / 4) };
+  }
+
   V.register({
     id: 'mines', name: 'Minenjagd', cat: 'Klassiker', order: 8, accent: '#ff6b3d', party: true, noFirst: true,
+    brain,
     short: 'Minen aufspüren, wer die meisten findet, gewinnt.',
     desc: 'Minesweeper für 2 bis 4: Ihr deckt abwechselnd Felder auf. Die Zahlen verraten, wie viele Minen daneben liegen. Findest du eine Mine, gehört sie dir und du bist nochmal dran. Wer die meisten Minen findet, gewinnt. Jeder hat eine Bombe, die 3×3 Felder auf einmal aufdeckt.',
     sides: { 1: 'Pink', 2: 'Gelb', 3: 'Cyan', 4: 'Grün' },
@@ -422,11 +428,7 @@
         const s = turn;
         ctx.aiTurn({
           side: s, quick: again,
-          think: () => {
-            const others = P.filter(q => q !== s).map(q => score[q]);
-            const lead = score[s] - Math.max(...others);
-            return { move: aiMove(ctx.level, R, C, NB, num, st, left, bombs[s], lead), mood: lead / Math.max(3, M / 4) };
-          },
+          state: { R, C, M, num, st, left, bombs: bombs[s], lead: score[s] - Math.max(...P.filter(q => q !== s).map(q => score[q])) },
           targets: m => (m >= BOMB ? area(R, C, m - BOMB) : [m]).map(i => cells[i]),
           decoys: () => { const h = []; for (let i = 0; i < N; i++) if (!st[i]) h.push(cells[i]); return h.sort(() => Math.random() - 0.5).slice(0, 4); },
           apply: act,

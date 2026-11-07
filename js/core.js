@@ -13,8 +13,15 @@
     'Volle Rechenpower. Viel Glück.'
   ];
 
-  V.register = g => { V.games.push(g); V.byId[g.id] = g; };
-  V.css = css => { document.getElementById('game-css').textContent += css; };
+  // src: the game's own file, which js/aiworker.js loads to run the game's brain() off the main thread
+  V.register = g => { const cs = document.currentScript; if (cs && cs.src) g.src = cs.src; V.games.push(g); V.byId[g.id] = g; };
+  // every game adds its own <style> right after #game-css, in load order: appending to one growing element made the
+  // browser parse the whole sheet again on each of the ~40 calls (66 ms instead of 5 ms on a laptop, more on phones)
+  let cssLast = null;
+  V.css = css => {
+    const s = document.createElement('style'); s.textContent = css;
+    (cssLast || document.getElementById('game-css')).after(s); cssLast = s;
+  };
 
   // ---------- storage ----------
   const S = V.store = {

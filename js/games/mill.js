@@ -101,8 +101,15 @@
     return h + '</svg></div>';
   }
 
+  // the AI's choice as a pure function of the state, so it can think in a worker (js/aiworker.js, V.register)
+  function brain(s, L) {
+    const r = L === 0 ? V.weak(V.searchAll(G, s, 1, 500), 90, 0.35) : L === 1 ? V.pickSoft(V.searchAll(G, s, 2, 800), 35) : V.search(G, s, [4, 8][L - 2], [900, 2200][L - 2]);
+    return { move: r.move, mood: V.mood(r.score, 260) };
+  }
+
   V.register({
     id: 'mill', name: 'Mühle', cat: 'Brettspiele', order: 4, accent: 'var(--yellow)',
+    brain,
     short: 'Drei in einer Linie, dann Stein weg.',
     desc: 'Setz und zieh deine neun Steine. Drei in einer Linie sind eine Mühle, dann darfst du einen gegnerischen Stein nehmen.',
     levelInfo: ['Anfänger: setzt oft planlos und übersieht deine Mühlen meistens.', 'Schließt eigene Mühlen, blockt deine aber nicht immer.', 'Rechnet vier Halbzüge tief.', 'Rechnet bis zu acht Halbzüge tief und baut gern Zwickmühlen.'],
@@ -213,11 +220,7 @@
         const PN = ['a7', 'd7', 'g7', 'b6', 'd6', 'f6', 'c5', 'd5', 'e5', 'a4', 'b4', 'c4', 'e4', 'f4', 'g4', 'c3', 'd3', 'e3', 'b2', 'd2', 'f2', 'a1', 'd1', 'g1'];
         if (ctx.isAI(p)) ctx.aiTurn({
           // Leicht 1 ply loose + random slips, Mittel 2 plies soft choice, Schwer 4 plies, Profi up to 8 plies
-          think: () => {
-            const L = ctx.level;
-            const r = L === 0 ? V.weak(V.searchAll(G, s, 1, 500), 90, 0.35) : L === 1 ? V.pickSoft(V.searchAll(G, s, 2, 800), 35) : V.search(G, s, [4, 8][L - 2], [900, 2200][L - 2]);
-            return { move: r.move, mood: V.mood(r.score, 260) };
-          },
+          state: s,
           targets: m => (m.f >= 0 ? [hitEl(m.f), hitEl(m.t)] : [hitEl(m.t)]),
           decoys: m => genMoves(s).filter(x => x.t !== m.t).map(x => hitEl(x.t)),
           apply: m => aiApply(m),

@@ -44,8 +44,36 @@
   .hx .co{font:700 .32px var(--f-d);fill:var(--muted);text-anchor:middle;dominant-baseline:middle;pointer-events:none}
   .nocoords .hx .co{display:none}`);
 
+  // the AI's choice as a pure function of the state, so it can think in a worker (js/aiworker.js, V.register)
+  const NBS_OF = {};
+  function brain(st, L) {
+    const { N, b, turn } = st, NN = N * N, NBS = NBS_OF[N] || (NBS_OF[N] = Array.from({ length: NN }, (_, i) => nbs(N, i)));
+    const me = turn, op = 3 - me, free = [];
+    for (let i = 0; i < NN; i++) if (!b[i]) free.push(i);
+    // a move that wins, then a move that stops the other from winning
+    if (L >= 1) for (const p of [me, op]) for (const i of free) { b[i] = p; const w = path(b, N, p); b[i] = 0; if (w) return { move: i, mood: p === me ? 1 : -0.6 }; }
+    const runs = [40, 400, 2500, 9000][L], ms = V.aiMs([300, 700, 1600, 2600][L]), deadline = performance.now() + ms;
+    const won = new Float64Array(NN), cnt = new Float64Array(NN), fill = b.slice();
+    const rest = free.slice(); let wins = 0, k = 0;
+    // first move of the fill-up is ours, the stones then alternate
+    for (; k < runs; k++) {
+      if ((k & 31) === 0 && performance.now() > deadline) break;
+      for (let a = rest.length - 1; a > 0; a--) { const j = Math.floor(Math.random() * (a + 1)); const t = rest[a]; rest[a] = rest[j]; rest[j] = t; }
+      for (let a = 0; a < rest.length; a++) fill[rest[a]] = a % 2 ? op : me;
+      const w = fullWinner(fill, N, NBS) === me;
+      if (w) wins++;
+      for (let a = 0; a < rest.length; a += 2) { cnt[rest[a]]++; if (w) won[rest[a]]++; }
+    }
+    // a small pull to the middle keeps the weak levels from playing on the rim
+    const mid = (N - 1) / 2, centre = i => -Math.hypot(Math.floor(i / N) - mid, i % N - mid) * (L === 0 ? 0.08 : 0.01);
+    const scored = free.map(i => ({ m: i, v: (cnt[i] ? won[i] / cnt[i] : 0) + centre(i) }));
+    const pick = L === 0 ? V.weak(scored, 0.08, 0.35) : L === 1 ? V.pickSoft(scored, 0.02) : V.pickSoft(scored, 0);
+    return { move: pick.move, mood: Math.max(-1, Math.min(1, (wins / Math.max(1, k) - 0.5) * 2.4)) };
+  }
+
   V.register({
     id: 'hex', name: 'Hex', cat: 'Strategie', order: 6, accent: '#ff4fd8',
+    brain,
     short: 'Verbinde deine zwei Seiten.',
     desc: 'Ein Rautenbrett aus Sechsecken: Pink will oben mit unten verbinden, Gelb links mit rechts. Wer zuerst eine durchgehende Kette hat, gewinnt. Ein Unentschieden gibt es nie.',
     levelInfo: ['Setzt ziemlich wahllos.', 'Spielt ein paar hundert Partien im Kopf durch.', 'Rechnet tausende Partien durch.', 'Rechnet so viel es geht. Sehr stark auf kleinen Brettern.'],
@@ -110,35 +138,12 @@
         busy = true;
         ctx.later(() => { busy = false; next(); }, ctx.fast() ? 0 : 160);
       }
-      function think() {
-        const L = ctx.level, me = turn, op = 3 - me, free = [];
-        for (let i = 0; i < NN; i++) if (!b[i]) free.push(i);
-        // a move that wins, then a move that stops the other from winning
-        if (L >= 1) for (const p of [me, op]) for (const i of free) { b[i] = p; const w = path(b, N, p); b[i] = 0; if (w) return { move: i, mood: p === me ? 1 : -0.6 }; }
-        const runs = [40, 400, 2500, 9000][L], ms = V.aiMs([300, 700, 1600, 2600][L]), deadline = performance.now() + ms;
-        const won = new Float64Array(NN), cnt = new Float64Array(NN), fill = b.slice();
-        const rest = free.slice(); let wins = 0, k = 0;
-        // first move of the fill-up is ours, the stones then alternate
-        for (; k < runs; k++) {
-          if ((k & 31) === 0 && performance.now() > deadline) break;
-          for (let a = rest.length - 1; a > 0; a--) { const j = Math.floor(Math.random() * (a + 1)); const t = rest[a]; rest[a] = rest[j]; rest[j] = t; }
-          for (let a = 0; a < rest.length; a++) fill[rest[a]] = a % 2 ? op : me;
-          const w = fullWinner(fill, N, NBS) === me;
-          if (w) wins++;
-          for (let a = 0; a < rest.length; a += 2) { cnt[rest[a]]++; if (w) won[rest[a]]++; }
-        }
-        // a small pull to the middle keeps the weak levels from playing on the rim
-        const mid = (N - 1) / 2, centre = i => -Math.hypot(Math.floor(i / N) - mid, i % N - mid) * (L === 0 ? 0.08 : 0.01);
-        const scored = free.map(i => ({ m: i, v: (cnt[i] ? won[i] / cnt[i] : 0) + centre(i) }));
-        const pick = L === 0 ? V.weak(scored, 0.08, 0.35) : L === 1 ? V.pickSoft(scored, 0.02) : V.pickSoft(scored, 0);
-        return { move: pick.move, mood: Math.max(-1, Math.min(1, (wins / Math.max(1, k) - 0.5) * 2.4)) };
-      }
       function next() {
         ctx.turn(turn);
         draw();
         if (!ctx.isAI(turn)) { if (n === 0) ctx.status(`${ctx.who(turn)}: verbinde ${turn === 1 ? 'oben und unten' : 'links und rechts'}`); return; }
         ctx.aiTurn({
-          think,
+          state: { N, b, turn },
           targets: i => [cells[i]],
           decoys: () => cells.filter((_, i) => !b[i]).sort(() => Math.random() - 0.5).slice(0, 3),
           apply: put,

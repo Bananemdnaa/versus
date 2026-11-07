@@ -116,8 +116,21 @@
   .go-bar{display:flex;gap:12px;align-items:center;justify-content:center;flex-wrap:wrap;width:min(var(--bw),600px)}
   .go-bar .cap{font-size:13px;color:var(--muted)} .go-bar .cap b{color:var(--fg)}`);
 
+  // the AI's choice as a pure function of the state, so it can think in a worker (js/aiworker.js, V.register)
+  function brain(st, L) {
+    const { n, b, turn, ko, passes } = st, budget = n === 9 ? [60, 500, 1400, 2800][L] : [60, 600, 1600, 3000][L];
+    const r = think(n, b, turn, ko, V.aiMs(budget), [150, 2500, 1e9, 1e9][L]);
+    // pass only when counting the board as it is would win (dead stones are not removed at the end),
+    // otherwise keep playing and capture them first
+    const now = area(n, b).s - KOMI, ahead = turn === 1 ? now > 0 : now < 0;
+    const free = legal(n, b, turn, ko).filter(i => !eye(n, b, i, turn)).length;
+    if (!free || (ahead && (r.move === 'p' || (passes && r.rate > 0.6 && L >= 1)))) return { move: 'p', mood: (r.rate - 0.5) * 2 };
+    return { move: r.move === 'p' && r.alt != null && r.rate > 0.5 ? r.alt : r.move, mood: (r.rate - 0.5) * 2 };
+  }
+
   V.register({
     id: 'go', name: 'Go', cat: 'Strategie', order: 6, accent: '#e6bf7d',
+    brain,
     short: 'Gebiet umzingeln, Steine fangen.',
     desc: 'Das uralte Strategiespiel: Setzt abwechselnd Steine, umzingelt Gebiet und fangt gegnerische Steine, denen alle Freiheiten fehlen. Wer am Ende mehr Fläche hat, gewinnt.',
     sides: { 1: 'Schwarz', 2: 'Weiß' }, firstLabels: ['Du (Schwarz)', 'KI (Schwarz)', 'Zufall'],
@@ -206,16 +219,7 @@
         render();
         if (!ctx.isAI(turn)) return;
         ctx.aiTurn({
-          think: () => {
-            const L = ctx.level, budget = n === 9 ? [60, 500, 1400, 2800][L] : [60, 600, 1600, 3000][L];
-            const r = think(n, b, turn, ko, V.aiMs(budget), [150, 2500, 1e9, 1e9][L]);
-            // pass only when counting the board as it is would win (dead stones are not removed at the end),
-            // otherwise keep playing and capture them first
-            const now = area(n, b).s - KOMI, ahead = turn === 1 ? now > 0 : now < 0;
-            const free = legal(n, b, turn, ko).filter(i => !eye(n, b, i, turn)).length;
-            if (!free || (ahead && (r.move === 'p' || (passes && r.rate > 0.6 && L >= 1)))) return { move: 'p', mood: (r.rate - 0.5) * 2 };
-            return { move: r.move === 'p' && r.alt != null && r.rate > 0.5 ? r.alt : r.move, mood: (r.rate - 0.5) * 2 };
-          },
+          state: { n, b, turn, ko, passes },
           targets: m => [m === 'p' ? passBtn : pts[m]],
           apply: play,
           decode: m => m === 'p' ? 'p' : Number.isInteger(m) && m >= 0 && m < n * n && !b[m] && m !== ko && place(n, b.slice(), m, turn, { ko }) >= 0 ? m : null,
