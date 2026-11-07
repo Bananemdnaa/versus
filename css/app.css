@@ -3219,10 +3219,10 @@ body:has(.view.play) .season.halloween .spider{display:none}
   background:radial-gradient(240px circle at var(--mx,50%) var(--my,50%),rgba(255,255,255,.11),transparent 62%)}
 .lit>.glare{opacity:1}
 .lowfx .glare{display:none}
-/* cards below the fold come in while scrolling (rows from the right) */
-.rv{opacity:0;transform:translateY(18px) scale(.97);animation:none!important}
-.rv.rv-x{transform:translateX(26px) scale(.97)}
-.rv.rv-in{opacity:1;transform:none;transition:opacity .4s var(--ease) var(--rd,0ms),transform .55s var(--spring-soft) var(--rd,0ms)}
+/* cards below the fold come in while scrolling (rows from the right); mo- prefix: .rv is the Reversi board */
+.mo-rv{opacity:0;transform:translateY(18px) scale(.97);animation:none!important}
+.mo-rv.mo-rx{transform:translateX(26px) scale(.97)}
+.mo-rv.mo-in{opacity:1;transform:none;transition:opacity .4s var(--ease) var(--rd,0ms),transform .55s var(--spring-soft) var(--rd,0ms)}
 /* dialogs: the content follows the sheet a moment later, line by line */
 :where(.modal:not(.endm):not(.gpm))>*{animation:mIn .4s var(--ease) backwards}
 :where(.modal:not(.endm):not(.gpm)>:nth-child(2)){animation-delay:.04s} :where(.modal:not(.endm):not(.gpm)>:nth-child(3)){animation-delay:.08s}

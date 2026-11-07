@@ -59,8 +59,9 @@
       io.unobserve(el); pending.delete(el);
       const d = Math.min(k++, 6) * 35;
       el.style.setProperty('--rd', d + 'ms');
-      el.classList.add('rv-in');
-      setTimeout(() => el.classList.remove('rv', 'rv-in', 'rv-x'), 650 + d);
+      el.classList.add('mo-in');
+      // the card's own entry animation must not start again once the classes go
+      setTimeout(() => { el.style.animation = 'none'; el.classList.remove('mo-rv', 'mo-in', 'mo-rx'); }, 650 + d);
     });
   }, { rootMargin: '0px 0px -24px 0px', threshold: 0.12 }) : null;
   // cards scrolled past in one jump never intersect: show them right away (nobody saw them come in)
@@ -74,7 +75,7 @@
       pending.forEach(el => {
         if (!el.isConnected) { pending.delete(el); io.unobserve(el); return; }
         const r = el.getBoundingClientRect();
-        if (r.bottom < 0 || r.right < 0) { pending.delete(el); io.unobserve(el); el.classList.remove('rv', 'rv-x'); }
+        if (r.bottom < 0 || r.right < 0) { pending.delete(el); io.unobserve(el); el.style.animation = 'none'; el.classList.remove('mo-rv', 'mo-rx'); }
       });
     });
   }, { capture: true, passive: true });
@@ -84,23 +85,20 @@
     if (!els.length) return;
     const H = innerHeight, W = innerWidth;
     els.forEach(el => {
-      if (el.classList.contains('rv')) return;
+      if (el.classList.contains('mo-rv')) return;
       const r = el.getBoundingClientRect();
       if (!r.width) return;
       const below = r.top > H - 10, right = r.left > W - 10;
       if (!below && !right) return;
-      el.classList.add('rv'); if (right && !below) el.classList.add('rv-x');
+      el.classList.add('mo-rv'); if (right && !below) el.classList.add('mo-rx');
       io.observe(el); pending.add(el);
     });
   }
   function watch() {
     const app = document.getElementById('app'); if (!app || !window.MutationObserver) return;
-    let queued = [], planned = false;
+    // right in the observer (a microtask before the next paint), so a card is never seen before it is hidden
     new MutationObserver(ms => {
-      ms.forEach(m => m.addedNodes.forEach(n => { if (n.nodeType === 1) queued.push(n); }));
-      if (!queued.length || planned) return;
-      planned = true;
-      requestAnimationFrame(() => { const q = queued; queued = []; planned = false; q.forEach(n => n.isConnected && scan(n)); });
+      ms.forEach(m => m.addedNodes.forEach(n => { if (n.nodeType === 1 && n.isConnected) scan(n); }));
     }).observe(app, { childList: true, subtree: true });
   }
 
