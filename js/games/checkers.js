@@ -79,7 +79,7 @@
   .ck{display:grid;grid-template-columns:repeat(8,1fr);width:min(var(--bw),600px);border-radius:12px;overflow:hidden;user-select:none;touch-action:manipulation}
   .ck.wood{padding:0;background:#5d3a1c}
   .ck .sq{aspect-ratio:1;position:relative;display:grid;place-items:center}
-  .ck .lt{background:linear-gradient(135deg,#f3e0bb,#e8cf9f)} .ck .dk{background:linear-gradient(135deg,#a87443,#8d5d33);cursor:pointer}
+  .ck .lt{background:linear-gradient(135deg,#f3e0bb,#e8cf9f)} .ck .dk{background:linear-gradient(135deg,#a87443,#8d5d33);cursor:var(--cur-p,pointer)}
   .ck .pc{width:78%;height:78%;border-radius:50%;display:grid;place-items:center;font-size:clamp(14px,4.6vw,26px);line-height:1;transition:transform .15s}
   .ck .s1{background:radial-gradient(circle at 35% 30%,var(--p1hi),var(--p1) 62%);box-shadow:0 3px 0 var(--p1lo),0 0 12px color-mix(in srgb,var(--p1) 45%,transparent);color:var(--p1ink)}
   .ck .s2{background:radial-gradient(circle at 35% 30%,var(--p2hi),var(--p2) 62%);box-shadow:0 3px 0 var(--p2lo),0 0 12px color-mix(in srgb,var(--p2) 40%,transparent);color:var(--p2ink)}

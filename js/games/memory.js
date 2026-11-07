@@ -4,7 +4,7 @@
 
   V.css(`
   .memo{--cols:6;width:min(var(--bw),600px);display:grid;grid-template-columns:repeat(var(--cols),1fr);gap:clamp(5px,1.4vw,9px);padding:clamp(8px,2vw,14px);border-radius:16px;user-select:none}
-  .memo .mc{aspect-ratio:1;perspective:500px;cursor:pointer;position:relative}
+  .memo .mc{aspect-ratio:1;perspective:500px;cursor:var(--cur-p,pointer);position:relative}
   .memo .mc .in{position:absolute;inset:0;transform-style:preserve-3d;transition:transform .38s var(--ease)}
   .memo .mc.up .in{transform:rotateY(180deg)}
   .memo .mc .fr,.memo .mc .bk{position:absolute;inset:0;border-radius:12%;backface-visibility:hidden;display:grid;place-items:center}

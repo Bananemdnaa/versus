@@ -31,7 +31,7 @@
   .hx{width:min(var(--bw),680px);touch-action:manipulation}
   .hx svg{width:100%;height:auto;display:block;overflow:visible}
   .hx .cl{fill:#1c1f3a;stroke:#0b0c18;stroke-width:.06;transition:fill .15s}
-  .hx.can .cl.e{cursor:pointer}
+  .hx.can .cl.e{cursor:var(--cur-p,pointer)}
   @media (hover:hover) and (pointer:fine){.hx.can .cl.e:hover{fill:#2c3160}}
   .hx .cl.p1{fill:var(--p1)} .hx .cl.p2{fill:var(--p2)}
   .hx .cl.new{animation:hxin .35s var(--spring)}

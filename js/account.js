@@ -104,6 +104,11 @@
   function fillMe(b) {
     const k = b.querySelector('#akpis'), r = b.querySelector('#arecent'); if (!k) return;
     const name = C().user().username;
+    // the rank of the best game (Elo) as a chip on the player card
+    C().rpc('player_elo', { pname: name }).then(list => {
+      const h = b.querySelector('.acard.me .ahead>div>b'), chip = V.rankChip && V.rankChip(list);
+      if (h && chip && !b.querySelector('.acard.me .rank')) h.insertAdjacentHTML('afterend', chip);
+    }, () => { });
     C().rpc('player_profile', { name }).then(p => {
       if (!k.isConnected) return;
       const t = p.total || {}, fr = V.online && V.online.sideFriends ? V.online.sideFriends().length : 0;

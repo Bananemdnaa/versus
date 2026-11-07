@@ -55,7 +55,7 @@
   .t3-ax{display:grid;grid-template-rows:repeat(4,1fr);gap:3px;padding:5px 0}
   .t3 .t3-g.t3-g[class*=" l"]{border-color:color-mix(in srgb,var(--lc) 70%,transparent)}
   .t3-ax b{display:grid;place-items:center;width:16px;border-radius:4px;background:var(--lc);color:var(--ink);font:800 italic 11px/1 var(--f-d)}
-  .t3.can .t3-c.e{cursor:pointer}
+  .t3.can .t3-c.e{cursor:var(--cur-p,pointer)}
   @media (hover:hover) and (pointer:fine){.t3.can .t3-c.e:hover{background:color-mix(in srgb,var(--lc) 45%,var(--panel3))}.t3.can .t3-c.e.lit{background:color-mix(in srgb,var(--lc) 45%,var(--panel3))}}
   .t3-c i{width:72%;height:72%;border-radius:50%}
   .t3-c.p1 i{background:radial-gradient(circle at 35% 30%,var(--p1hi),var(--p1) 62%);box-shadow:0 0 8px color-mix(in srgb,var(--p1) 55%,transparent)}

@@ -63,7 +63,7 @@
   .mill svg{width:100%;height:auto;display:block}
   .mill .bd{fill:none;stroke:#3a4070;stroke-width:.09;stroke-linecap:round}
   .mill .pt{fill:#2a2f4f}
-  .mill .hit{fill:transparent;cursor:pointer}
+  .mill .hit{fill:transparent;cursor:var(--cur-p,pointer)}
   .mill .tg{fill:var(--cy);opacity:.85}
   .mill .stn{transform-box:fill-box;transform-origin:center}
   .mill .stn.nw{animation:mnw .35s var(--spring)}
@@ -77,7 +77,7 @@
   .mill .tg{animation:tgpulse 1.4s ease-in-out infinite;transform-box:fill-box;transform-origin:center}
   .mill .s1{fill:var(--p1);filter:drop-shadow(0 0 .12px color-mix(in srgb,var(--p1) 90%,transparent))} .mill .s2{fill:var(--p2);filter:drop-shadow(0 0 .12px color-mix(in srgb,var(--p2) 80%,transparent))}
   .mill .sel{stroke:#fff;stroke-width:.07}
-  .mill .rem{stroke:var(--bad);stroke-width:.08;stroke-dasharray:.12 .08;animation:spin 1.2s linear infinite;cursor:pointer}
+  .mill .rem{stroke:var(--bad);stroke-width:.08;stroke-dasharray:.12 .08;animation:spin 1.2s linear infinite;cursor:var(--cur-p,pointer)}
   .mill .lastm{stroke:rgba(255,255,255,.6);stroke-width:.05}
   .mill .mil{stroke:var(--cy);stroke-width:.14;stroke-linecap:round;opacity:.8}
   @keyframes spin{to{stroke-dashoffset:-.4}}

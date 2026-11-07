@@ -67,7 +67,7 @@
   .slf-tab th,.slf-tab td{padding:6px 6px;border-bottom:1px solid var(--line);text-align:left}
   .slf-tab th{font:700 italic 12px/1.1 var(--f-d);letter-spacing:.08em;text-transform:uppercase}
   .slf-tab td.c{font:800 italic 13px/1 var(--f-d);text-transform:uppercase;color:var(--muted)}
-  .slf-tab td.a{cursor:pointer;word-break:break-word}
+  .slf-tab td.a{cursor:var(--cur-p,pointer);word-break:break-word}
   .slf-tab td.a.empty{color:var(--dim);cursor:default}
   .slf-tab td.a.bad{text-decoration:line-through;color:var(--bad)}
   .slf-tab td.a.mine{cursor:default}

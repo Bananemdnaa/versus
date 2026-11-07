@@ -53,7 +53,7 @@
   .klh .pit{aspect-ratio:1}
   .klh .store{grid-row:1/3;border-radius:999px}
   .klh .s2{grid-column:1} .klh .s1{grid-column:8}
-  .klh .pit.mine{cursor:pointer}
+  .klh .pit.mine{cursor:var(--cur-p,pointer)}
   .klh .pit.mine:hover,.klh .pit.mine.kf{box-shadow:inset 0 4px 10px rgba(0,0,0,.75),0 0 0 2px var(--sc)}
   .klh .pit.p1{--sc:var(--p1)} .klh .pit.p2{--sc:var(--p2)} .klh .s1{--sc:var(--p1)} .klh .s2{--sc:var(--p2)}
   .klh .seeds{position:absolute;inset:14%;pointer-events:none}

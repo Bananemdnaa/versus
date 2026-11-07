@@ -146,7 +146,10 @@
     bounce() { tone(440, 0.04, 'square', 0.04); V.buzz(10); },
     goal() { tone(660, 0.12, 'triangle', 0.08, 300); V.buzz(40); },
     go() { tone(980, 0.12, 'square', 0.05); V.buzz(30); },
-    ui() { tone(700, 0.035, 'triangle', 0.035); V.buzz(5); },
+    // a button: a short click with a soft low thump under it, so it feels pressed
+    ui() { tone(700, 0.035, 'triangle', 0.035); tone(190, 0.05, 'sine', 0.035, -60); V.buzz(5); },
+    // PC: the mouse reaches a card or menu entry (barely audible, no vibration)
+    hover() { tone(1500, 0.018, 'sine', 0.012); },
     win() { [523, 659, 784, 1046].forEach((f, i) => setTimeout(() => tone(f, 0.15, 'triangle', 0.08), i * 110)); V.buzz(40); V.music && V.music.duck(3200); },
     lose() { [392, 330, 262].forEach((f, i) => setTimeout(() => tone(f, 0.22, 'triangle', 0.07), i * 150)); V.buzz([30, 40, 30]); V.music && V.music.duck(3200); }
   };
@@ -252,6 +255,7 @@
     home: svg('<path d="M4 11l8-7 8 7"/><path d="M6 9.5V20h4.5v-6h3v6H18V9.5"/>'),
     panel: svg('<rect x="3.5" y="4.5" width="17" height="15" rx="2.5"/><path d="M9.5 4.5v15"/>'),
     full: svg('<path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/>'),
+    unfull: svg('<path d="M9 4v5H4M15 4v5h5M9 20v-5H4M15 20v-5h5"/>'),
     menu: svg('<path d="M4 7h16M4 12h16M4 17h16"/>'),
     help: svg('<circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 0 1 4.9.7c0 1.7-2.4 2.1-2.4 3.6"/><path d="M12 17h.01"/>'),
     redo: svg('<path d="M20 11a8 8 0 1 0-2.3 5.7"/><path d="M20 4v7h-7"/>'),

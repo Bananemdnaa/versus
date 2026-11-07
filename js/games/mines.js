@@ -207,7 +207,7 @@
   V.css(`
   .mj{display:flex;flex-direction:column;align-items:center;gap:10px;width:100%}
   .mj-b{--cols:9;width:min(var(--bw),calc(var(--cols) * 52px),560px);display:grid;grid-template-columns:repeat(var(--cols),minmax(0,1fr));gap:3px;padding:6px;border-radius:14px;background:#151834;border:2px solid #343a6b;box-shadow:0 0 44px -18px var(--cy);user-select:none;-webkit-user-select:none;touch-action:manipulation}
-  .mj-b .f{aspect-ratio:1;border-radius:6px;display:grid;place-items:center;position:relative;font:800 clamp(15px,4.6vw,22px)/1 var(--f-d);cursor:pointer;
+  .mj-b .f{aspect-ratio:1;border-radius:6px;display:grid;place-items:center;position:relative;font:800 clamp(15px,4.6vw,22px)/1 var(--f-d);cursor:var(--cur-p,pointer);
     background:linear-gradient(160deg,#4a5196,#363c78);box-shadow:inset 0 2px 0 rgba(255,255,255,.18),inset 0 -3px 0 rgba(0,0,0,.3);transition:background .15s,transform .1s}
   .mj-b .f:active{transform:scale(.92)}
   .mj-b .f.o{background:#0e1029;box-shadow:inset 0 0 0 1px #20244a;cursor:default}

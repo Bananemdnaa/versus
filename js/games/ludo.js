@@ -37,7 +37,7 @@
   .ludo .pc{position:absolute;width:calc((100% - 36px) / 11);aspect-ratio:1;left:8px;top:8px;display:grid;place-items:center;transition:transform .16s var(--ease);z-index:3;pointer-events:none}
   .ludo .pc .pawn{width:66%;transform:translateY(-20%);transition:transform .15s}
   .ludo .pc.hop .pawn{transform:translateY(-48%) scale(1.08)}
-  .ludo .pc.can{pointer-events:auto;cursor:pointer;z-index:4}
+  .ludo .pc.can{pointer-events:auto;cursor:var(--cur-p,pointer);z-index:4}
   .ludo .pc.can::before{content:'';position:absolute;inset:2%;border-radius:50%;border:3px dashed #fff;box-shadow:0 0 12px #fff;animation:ldspin 3s linear infinite}
   .ludo .pc.can .pawn{animation:ldbob .8s ease-in-out infinite}
   @keyframes ldspin{to{transform:rotate(360deg)}}

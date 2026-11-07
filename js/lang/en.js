@@ -1847,7 +1847,12 @@
     [/^KI für (.+)\?$/, (m, n) => 'AI for ' + n + '?'], [/^bei (.+)$/, (m, n) => 'with ' + n], [/^Nur von (.+)$/, (m, n) => 'Only by ' + n],
     [/^Antwort an (.+)$/, (m, n) => 'Reply to ' + n]
   ]);
-  V.i18n.pat([[/^(.+) ist dran$/, (m, n) => t(n) + ' to move'], [/^spielt (.+)$/, (m, n) => 'playing ' + t(n)]]);
+  // ---------- motion.js: ranks from the Elo and the button prompts at the PC ----------
+  A({
+    'Beste Elo': 'Best Elo', 'Diamant': 'Diamond', 'Platin': 'Platinum', 'Gold': 'Gold', 'Silber': 'Silver', 'Bronze': 'Bronze',
+    'Alle Tasten': 'All keys', 'Modus': 'Mode', 'Zurück / Vor': 'Back / forward'
+  });
+  V.i18n.pat([[/^(.+) ist dran$/,(m, n) => t(n) + ' to move'], [/^spielt (.+)$/, (m, n) => 'playing ' + t(n)]]);
   // last resort for "A · B · C" lines (colour · level, game · level …): every part on its own
   V.i18n.pat([[/^(?=.* · ).+$/, m => m.split(' · ').map(p => t(p)).join(' · ')]]);
   V.i18n.start();

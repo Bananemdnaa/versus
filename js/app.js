@@ -46,15 +46,19 @@
       <label class="ab-search">${IC.search}<input id="gq" type="search" placeholder="Spiel suchen" autocomplete="off" spellcheck="false" enterkeyhint="go" aria-label="Spiel suchen" value="${escA(homeQuery)}"><kbd>Strg K</kbd><button class="gclear" id="gqx" aria-label="Suche löschen"${homeQuery ? '' : ' hidden'}>${IC.x}</button></label>
       <div class="top-r">${net ? `<button class="ab-lobby" id="hlobby"><i class="ldot"></i><span>Online-Lobby</span></button>
         <button class="iconbtn" id="hbell" aria-label="Einladungen und Züge" title="Einladungen und Züge">${IC.bell}<i class="pdot" hidden></i></button>` : ''}
+        ${document.fullscreenEnabled ? `<button class="iconbtn only-fine abfs" id="hfs" aria-label="Vollbild" title="Vollbild (F11)">${document.fullscreenElement ? IC.unfull : IC.full}</button>` : ''}
         <button class="iconbtn" id="snd" aria-label="Ton an oder aus" title="Ton (M)">${settings.sound ? IC.sound : IC.mute}</button>
         <button class="iconbtn only-fine" id="kbd" aria-label="Tastenkürzel" title="Tastenkürzel (?)">${IC.kbd}</button></div></header>`;
   }
+  // the fullscreen button in the app bar shows what a click does next (enter or leave)
+  document.addEventListener('fullscreenchange', () => document.querySelectorAll('#hfs').forEach(b => { b.innerHTML = document.fullscreenElement ? IC.unfull : IC.full; b.classList.toggle('on', !!document.fullscreenElement); }));
   function wireHeader(root) {
     root.querySelectorAll('#snd, .snd').forEach(s => s.onclick = toggleSound);
     const k = root.querySelector('#kbd'); if (k) k.onclick = showKeys;
     const on = (id, fn) => { const b = root.querySelector('#' + id); if (b) b.onclick = () => { V.sfx.ui(); fn(); }; };
     on('hback', () => histGo(-1)); on('hfwd', () => histGo(1));
     on('hlobby', () => home('online')); on('hbell', () => home('online'));
+    on('hfs', () => { if (document.fullscreenElement) document.exitFullscreen().catch(() => { }); else document.documentElement.requestFullscreen().catch(() => { }); });
     if (root.querySelector('.abar #gq')) wireSearch(root);
     navBtns();
     if (V.online && V.online.badge) V.online.badge();

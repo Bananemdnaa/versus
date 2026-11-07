@@ -841,6 +841,7 @@
     // the Elo in each game (server: player_elo), next to the number of matches
     C().rpc('player_elo', { pname: p.username }).then(list => {
       (list || []).forEach(r => { const x = [...m.querySelectorAll('.pgame')].find(e => e.dataset.g === r.game); if (x) x.querySelector('.pg-n small').insertAdjacentHTML('beforeend', ` · <b class="pg-elo">${r.elo} Elo</b>`); });
+      const tags = m.querySelector('#ptags'), chip = V.rankChip && V.rankChip(list); if (tags && chip) tags.insertAdjacentHTML('afterbegin', chip);
     }, () => { });
     // badges next to the name: the team role (Owner, Admin), Dev, and how many players joined through this player's link
     C().rpc('player_badges', { name: p.username }).then(b => {

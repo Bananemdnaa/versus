@@ -44,7 +44,7 @@
   V.css(`
   .rv{display:grid;grid-template-columns:repeat(8,1fr);gap:3px;padding:8px;width:min(var(--bw),600px);background:#0f3a33;border-radius:14px;border:2px solid #1d6b5c;box-shadow:0 0 40px -14px #5dffcf;touch-action:manipulation}
   .rv .sq{aspect-ratio:1;background:#14524a;border-radius:4px;display:grid;place-items:center;position:relative;perspective:300px}
-  .rv .sq.ok{cursor:pointer} .rv .sq.ok::after{content:'';width:26%;height:26%;border-radius:50%;border:2px solid rgba(255,255,255,.45)}
+  .rv .sq.ok{cursor:var(--cur-p,pointer)} .rv .sq.ok::after{content:'';width:26%;height:26%;border-radius:50%;border:2px solid rgba(255,255,255,.45)}
   .rv .sq.ok:hover::after{background:rgba(255,255,255,.3)}
   .rv .st{width:82%;height:82%;border-radius:50%;transition:transform .35s;transform-style:preserve-3d}
   .rv .st.s1{background:radial-gradient(circle at 35% 30%,var(--p1hi),var(--p1) 62%);box-shadow:0 0 10px color-mix(in srgb,var(--p1) 50%,transparent)}

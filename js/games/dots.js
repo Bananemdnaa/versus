@@ -59,7 +59,7 @@
   V.css(`
   .dots{width:min(var(--bw),560px);touch-action:manipulation;user-select:none}
   .dots svg{width:100%;height:auto;display:block}
-  .dots .hitl{stroke:transparent;stroke-width:22;stroke-linecap:round;cursor:pointer}
+  .dots .hitl{stroke:transparent;stroke-width:22;stroke-linecap:round;cursor:var(--cur-p,pointer)}
   .dots .ln{stroke:#272c4b;stroke-width:6;stroke-linecap:round;stroke-dasharray:1 12;transition:stroke .12s}
   .dots g.ed:hover .ln.free{stroke-dasharray:none}
   .dots.t1 g.ed:hover .ln.free{stroke:color-mix(in srgb,var(--p1) 55%,transparent)} .dots.t2 g.ed:hover .ln.free{stroke:color-mix(in srgb,var(--p2) 55%,transparent)}

@@ -17,7 +17,7 @@
   @keyframes mau{50%{transform:scale(1.15)}}
   .mm-table{width:100%;display:flex;align-items:center;justify-content:center;gap:clamp(14px,5vw,40px);padding:16px 10px;border-radius:16px;position:relative}
   .mm-table .card{--cw:clamp(64px,17vw,88px)}
-  .mm-pile{position:relative;cursor:pointer}
+  .mm-pile{position:relative;cursor:var(--cur-p,pointer)}
   .mm-pile .card+.card{position:absolute;left:3px;top:-3px}
   .mm-pile .cnt{position:absolute;bottom:-18px;left:50%;transform:translateX(-50%);font:700 italic 11px/1 var(--f-d);color:#d9f5e2;letter-spacing:.1em;white-space:nowrap}
   .mm-pile.can .card:last-child{box-shadow:0 0 0 3px var(--cyan),0 0 18px var(--cyan);animation:mmpile 1.2s ease-in-out infinite}
