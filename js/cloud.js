@@ -28,7 +28,7 @@
   const lib = failed ? Promise.resolve(null) : new Promise(done => {
     const s = document.createElement('script'); s.src = LIB; s.async = true;
     s.onload = () => {
-      try { sb = window.supabase.createClient(CFG.url, CFG.key, { auth: { persistSession: true, autoRefreshToken: true, storageKey: 'versus-auth' } }); state.status = 'guest'; }
+      try { sb = window.supabase.createClient(CFG.url, CFG.key, { auth: { persistSession: true, autoRefreshToken: true, storageKey: 'versus-auth' } }); state.status = 'guest'; if (V.dev) V.dev.wrap(sb); }
       catch (e) { sb = null; }
       done(sb);
     };
@@ -234,13 +234,13 @@
     lib.then(c => {
       if (!c || closed || !c.channel) return;
       ch = c.channel('versus:' + name, { config: { broadcast: { self: false } } });
-      ch.on('broadcast', { event: 'poke' }, () => { if (!closed) onPoke(); });
+      ch.on('broadcast', { event: 'poke' }, () => { if (V.dev) V.dev.net('Poke empfangen', name); if (!closed) onPoke(); });
       ch.subscribe(st => {
-        const was = live; live = st === 'SUBSCRIBED';
+        const was = live; live = st === 'SUBSCRIBED'; if (V.dev) V.dev.net('Kanal ' + st, name);
         if (live && !was && hello) send();
       });
     });
-    const send = () => { if (live && ch) ch.send({ type: 'broadcast', event: 'poke', payload: {} }).catch(() => { }); };
+    const send = () => { if (V.dev) V.dev.net(live ? 'Poke gesendet' : 'Poke verworfen (Kanal nicht verbunden)', name); if (live && ch) ch.send({ type: 'broadcast', event: 'poke', payload: {} }).catch(() => { }); };
     return {
       live: () => live,
       poke: send,

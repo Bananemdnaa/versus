@@ -122,7 +122,8 @@
     else if (ai) { names[aiSide] = 'KI'; names[3 - aiSide] = 'Du'; }
     if (table) SIDES.forEach(s => { names[s] = s === mySide ? 'Du' : T.names[s - 1] && !tbots.has(s) ? T.names[s - 1] : 'KI'; });
     const me = ai ? (party ? 1 : 3 - aiSide) : online || table ? mySide : 0;
-    const botSide = s => auto || (ai && (party ? s !== 1 : s === aiSide)) || (table && tbots.has(s));
+    // Dev-Konten (Tests-Tab): the AI may also play your seat against the AI, so whole games run through
+    const botSide = s => auto || (ai && (party ? s !== 1 : s === aiSide)) || (ai && !review && V.dev && V.dev.autoMe) || (table && tbots.has(s));
     const amHost = () => table && thost === mySide;
     if (online) { names[mySide] = 'Du'; names[oppSide] = M.opp; }
     if (watch) { names[M.aSide] = M.aName; names[3 - M.aSide] = M.bName; }
@@ -135,11 +136,12 @@
     const sub = s => botSide(s) ? lvName + ' · ' + sideLabel(s) : remoteSide(s) ? 'Online · ' + sideLabel(s) : s === me && acct ? 'Du · ' + sideLabel(s) : sideLabel(s);
     const av = s => botSide(s) ? IC.robot : s === me ? (acct && V.look ? `<span class="lav">${V.look.text(acct, V.look.mine(), 1)}</span>` : `<span>${esc(acct ? acct.slice(0, 1).toUpperCase() : 'DU')}</span>`) : remoteSide(s) ? IC.user : watch ? `<span>${esc(names[s].slice(0, 2).toUpperCase())}</span>` : `<span>P${s}</span>`;
     const thinker = s => botSide(s) || (online && s === oppSide) || (table && s !== mySide) || watch;
-    // the country flag (js/flag.js) for real players: you (also as a guest online), the opponent online, both when watching
+    // the country flag (js/flag.js) for real players: you (also as a guest online or against the AI, e.g. in Discord),
+    // the opponent online, both when watching
     const flagOf = s => {
       if (!V.flag || botSide(s)) return '';
       const u = V.cloud && V.cloud.user();
-      if (s === me) return V.flag.tag(acct || ((online || table) && u ? u.username : ''));
+      if (s === me) return V.flag.tag(acct || ((online || table || ai) && u ? u.username : ''));
       return remoteSide(s) || watch ? V.flag.tag(names[s]) : '';
     };
     const card = (s, pos) => `<div class="pcard pcard-${pos} ps${s}${s === me ? ' me' : ''}" id="pl${s}"><span class="av">${av(s)}</span>
@@ -203,6 +205,12 @@
       clearTimeout(bubbleT); bubbleT = setTimeout(() => b.classList.remove('on'), 1800);
     }
     cleanups.push(() => { clearTimeout(bubbleT); aim.hide(); });
+    // Dev-Konten: the running match for the dev panel's "Zustand" tab
+    if (V.dev) {
+      const dg = { id: g.id, mode: cfg.mode, level: cfg.level, fit: fitE || 0, opts: cfg.opts, players: N, aiSide, mySide, match: M.id || null,
+        get plies() { return plies; }, get ended() { return ended; }, get moves() { return recOn ? recd : null; } };
+      V.dev.game = dg; cleanups.push(() => { if (V.dev.game === dg) V.dev.game = null; });
+    }
     const setStatus = html => {
       if (stEl.innerHTML === html) return;
       stEl.innerHTML = html; if (V.fxOn()) V.fx.pop(stEl, 'st-in');
@@ -228,7 +236,11 @@
     function pollOnce(o, fetch, every) {
       if (o.stopped || !alive) return;
       clearTimeout(o.timer); o.busy = true;
-      fetch().then(st => { conn.ok(); if (alive) o.feed(st); }, e => conn.fail(e)).then(() => {
+      fetch().then(st => {
+        conn.ok();
+        if (V.dev && V.dev.active) V.dev.net('Stand geholt', { status: st && st.status, moves: st && st.moves ? st.moves.length : undefined, queue: o.queue ? o.queue.length : undefined });
+        if (alive) o.feed(st);
+      }, e => { if (V.dev && V.dev.active) V.dev.net('Abfrage fehlgeschlagen', String(e && e.message || e)); conn.fail(e); }).then(() => {
         o.busy = false;
         if (o.stopped || !alive) return;
         if (o.again) { o.again = false; return o.poll(); }
@@ -362,14 +374,24 @@
         const t0 = performance.now();
         ctx.later(() => {
           if (fitE) lvNow = V.aiElo.pick(g, fitE);
+          // Dev-Konten: the dev panel shows what this move computed (js/devtools.js)
+          const dv = V.dev && V.dev.active ? V.dev.begin({ game: g.name, level: lvNow, fit: fitE ? Math.round(fitE) : 0, side: o.side || lastTurn || s, who: names[o.side || lastTurn || s], quick: !!o.quick, ply: plies }) : null;
           // think() may also answer later (a Promise, e.g. Stockfish in a worker): the match must still be running then
-          const out = o.think();
-          const go = res => ctx.later(() => aimAt(o, res, card, true, false, party ? s : 0), Math.max(0, minT - (performance.now() - t0)));
-          if (out && typeof out.then === 'function') out.then(res => { if (alive && !ended && res && res.move) go(res); }, () => { });
+          let out;
+          try { out = o.think(); } catch (e) { if (dv) dv.fail(e); throw e; }
+          const go = res => { if (dv) dv.done(res, o.say); ctx.later(() => aimAt(o, res, card, true, false, party ? s : 0), Math.max(0, minT - (performance.now() - t0))); };
+          if (out && typeof out.then === 'function') out.then(res => { if (alive && !ended && res && res.move) go(res); else if (dv) dv.done(res, o.say); }, e => { if (dv) dv.fail(e); });
           else go(out);
         }, 70);
       },
-      think(fn, ms = 380) { if (settings.aiFast) ms = Math.min(ms, 60); if (fitE) lvNow = V.aiElo.pick(g, fitE); setStatus(`<span class="c${aiSide}">KI</span> <span class="thinking">denkt</span>`); ctx.later(fn, ms); },
+      think(fn, ms = 380) {
+        if (settings.aiFast) ms = Math.min(ms, 60); if (fitE) lvNow = V.aiElo.pick(g, fitE);
+        setStatus(`<span class="c${aiSide}">KI</span> <span class="thinking">denkt</span>`);
+        ctx.later(() => {
+          const dv = V.dev && V.dev.active ? V.dev.begin({ game: g.name, level: lvNow, fit: fitE ? Math.round(fitE) : 0, side: aiSide, who: names[aiSide], kind: 'ctx.think', ply: plies }) : null;
+          try { fn(); } finally { if (dv) dv.done(); }
+        }, ms);
+      },
       nav(fn, o) { navFn = fn; nav.set(fn, o); },
       keys(fn) { keyFn = fn; },
       // off: the match was called off (opponent offline, voided) – no winner, nothing counts
