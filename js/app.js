@@ -1751,6 +1751,7 @@
   V.openModal = openModal; V.closeModal = closeModal;
 
   function toast(text, ms = 1500) {
+    document.querySelectorAll('.toast').forEach(o => o.remove());
     const t = V.el('div', 'toast' + (ms > 1500 ? ' long' : ''), text);
     document.body.appendChild(t); V.sfx.toast();
     setTimeout(() => t.classList.add('out'), ms); setTimeout(() => t.remove(), ms + 400);

@@ -48,7 +48,7 @@
       <div class="acard">
         <p class="lead">Mit einem Konto liegt deine Bilanz sicher auf dem Server und ist auf jedem Gerät dabei. Freunde und Online-Duelle bauen darauf auf.</p>
         ${dcBlock(false)}
-        <div class="gp-mode amode" id="amode"><button data-m="login" class="${mode === 'login' ? 'on' : ''}">${IC().user}<span>Einloggen</span></button><button data-m="new" class="${mode === 'new' ? 'on' : ''}">${IC().spark}<span>Konto erstellen</span></button></div>
+        <div class="gp-mode amode" id="amode" style="--n:2"><button data-m="login" class="${mode === 'login' ? 'on' : ''}">${IC().user}<span>Einloggen</span></button><button data-m="new" class="${mode === 'new' ? 'on' : ''}">${IC().spark}<span>Konto erstellen</span></button></div>
         <form class="aform" id="aform" autocomplete="on">
           <label for="a_name">Benutzername</label>
           <input class="inp" id="a_name" name="username" autocomplete="username" maxlength="16" placeholder="z. B. blitzfuchs" autocapitalize="none" spellcheck="false">

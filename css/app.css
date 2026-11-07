@@ -420,7 +420,7 @@ kbd{display:inline-grid;place-items:center;min-width:22px;height:21px;padding:0 
 .krow span{min-width:130px;display:flex;gap:4px;flex-wrap:wrap}
 .krow p{margin:0;color:var(--muted);font-size:14px}
 .keys .actions{margin-top:16px}
-.toast{position:fixed;left:50%;bottom:calc(var(--tabh) + 20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%) skewX(var(--sk));z-index:80;padding:10px 18px;background:var(--fg);color:var(--ink);font:700 italic 15px/1 var(--f-d);letter-spacing:.06em;text-transform:uppercase;box-shadow:4px 4px 0 var(--pink);animation:toastIn .3s var(--spring);transition:opacity .3s}
+.toast{position:fixed;left:50%;bottom:calc(var(--tabh) + 20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%) skewX(var(--sk));z-index:95;padding:10px 18px;background:var(--fg);color:var(--ink);font:700 italic 15px/1 var(--f-d);letter-spacing:.06em;text-transform:uppercase;box-shadow:4px 4px 0 var(--pink);animation:toastIn .3s var(--spring);transition:opacity .3s}
 .toast.out{opacity:0}
 @keyframes toastIn{from{opacity:0;transform:translate(-50%,16px) skewX(var(--sk))}}
 
