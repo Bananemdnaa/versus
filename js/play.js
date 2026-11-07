@@ -53,7 +53,8 @@
       if (one) el.querySelector('.vt-t').textContent = one; else box.remove();
     }, 0);
     const kill = () => { if (el.classList.contains('out')) return; el.classList.add('out'); removeEventListener('keydown', key, true); setTimeout(() => el.remove(), 260); };
-    const key = e => { if (e.key === 'Escape' || e.key === 'Enter' || e.key === ' ') kill(); };
+    // the key only skips the intro; it must not also make a move or press a button under it
+    const key = e => { if (e.key === 'Escape' || e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); kill(); } };
     el.addEventListener('pointerdown', kill); addEventListener('keydown', key, true);
     // the slam: a deep tone and the whole picture shakes
     setTimeout(() => V.sfx.vs(), quick ? 140 : 280);

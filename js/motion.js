@@ -151,10 +151,12 @@
 
   // ---------- PC: the player card leans towards the mouse ----------
   const CARD = '.acctp .acard.me,.p2-top';
+  let tilted = null;
   document.addEventListener('pointermove', e => {
     if (e.pointerType !== 'mouse' || !fine.matches || !fxOn()) return;
     const el = e.target.closest ? e.target.closest(CARD) : null;
-    document.querySelectorAll('.tilt').forEach(x => { if (x !== el) { x.classList.remove('tilt'); x.style.removeProperty('--rx'); x.style.removeProperty('--ry'); } });
+    if (tilted && tilted !== el) { tilted.classList.remove('tilt'); tilted.style.removeProperty('--rx'); tilted.style.removeProperty('--ry'); }
+    tilted = el;
     if (!el) return;
     const r = el.getBoundingClientRect(), x = (e.clientX - r.left) / r.width - 0.5, y = (e.clientY - r.top) / r.height - 0.5;
     el.classList.add('tilt');

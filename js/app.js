@@ -2383,7 +2383,7 @@
     setCurrent(c) { current = c; },
     modalOpen: () => !!modalEl,
     // closes the dialog without running its onClose callback
-    closeModalQuiet() { modalClose = null; closeModal(); }
+    closeModalQuiet() { modalClose = null; closeModal(true); }
   });
   let cloudUser = null, cloudKnown = false;
   function onCloud() {

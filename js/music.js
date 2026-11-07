@@ -197,7 +197,8 @@
   }
   function nextPiece() {
     switching = true; fadeTo(0, 1.2);
-    setTimeout(() => { switching = false; if (cur && level()) startTrack(want || cur, true); else stopNow(); }, 1300);
+    // (cur may be gone when the tab was in the background meanwhile: then the wanted mood starts again)
+    setTimeout(() => { switching = false; if (want && level() && !document.hidden && ac.state === 'running') startTrack(want, true); else stopNow(); }, 1300);
   }
   function fadeTo(v, sec) {
     if (!bus) return;
