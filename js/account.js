@@ -280,6 +280,7 @@
   // ---------- admin panel ----------
   let aTab = 'overview', mFilter = 'live', mQuery = '', matches = null, stats = null, online = null, players = null, logs = null, query = '', aErr = '', box = null, sure = null, liveT = null, busy = false, reports = null, rFilter = 'open';
   let pFilter = '', site = null, purge = null, fb = null, fFilter = 'open', dcs = null, pSel = '', pLim = 40;
+  let dbugs = null, dbFilter = 'open', dbOpen = null; // bug reports from the dev panel (js/devtools.js)
   // warning templates: the player sees them in their own language (js/lang/en.js has the English text)
   const WARN = {
     '@name': 'Dein Benutzername verstößt gegen die Regeln. Bitte ändere ihn, sonst wird das Konto gesperrt.',
@@ -294,7 +295,7 @@
     const v = V.ui.show('admin', `<div class="view admin">
       <div class="sbar"><button class="iconbtn" id="bk" aria-label="Zurück">${IC().back}</button><span class="crumb">Admin-Panel</span>
         ${C().role() ? `<em class="rtag ${C().role()}">${ROLE[C().role()]}</em>` : ''}<div class="aattn" id="aattn"></div></div>
-      <div class="chips" id="atabs">${[['overview', 'Übersicht'], ['matches', 'Partien'], ['players', 'Spieler'], ['reports', 'Meldungen'], ['feedback', 'Feedback'], ['survey', 'Umfragen'], ['site', 'Seite'], ['log', 'Protokoll']].map(([k, l]) => `<button data-t="${k}" class="${aTab === k ? 'on' : ''}">${l}${k === 'reports' && reports && reports.open ? ` <small class="nb">${reports.open}</small>` : ''}${k === 'feedback' && fb && fb.open ? ` <small class="nb">${fb.open}</small>` : ''}</button>`).join('')}</div>
+      <div class="chips" id="atabs">${[['overview', 'Übersicht'], ['matches', 'Partien'], ['players', 'Spieler'], ['reports', 'Meldungen'], ['feedback', 'Feedback'], ['devbugs', 'Dev-Bugs'], ['survey', 'Umfragen'], ['site', 'Seite'], ['log', 'Protokoll']].map(([k, l]) => `<button data-t="${k}" class="${aTab === k ? 'on' : ''}">${l}${k === 'reports' && reports && reports.open ? ` <small class="nb">${reports.open}</small>` : ''}${k === 'feedback' && fb && fb.open ? ` <small class="nb">${fb.open}</small>` : ''}${k === 'devbugs' && dbugs && dbugs.filter(r => !r.done).length ? ` <small class="nb">${dbugs.filter(r => !r.done).length}</small>` : ''}</button>`).join('')}</div>
       <div id="abody" class="abody"></div></div>`);
     v.querySelector('#bk').onclick = () => { stopLive(); V.ui.home('profile'); };
     v.querySelectorAll('#atabs button').forEach(x => x.onclick = () => { aTab = x.dataset.t; aErr = ''; box = null; sure = null; V.sfx.ui(); v.querySelectorAll('#atabs button').forEach(y => y.classList.toggle('on', y === x)); draw(); load(); });
@@ -304,7 +305,8 @@
     const showAttn = () => {
       const el = v.querySelector('#aattn'); if (!el) return;
       const chips = [attn.reports ? `<button class="atn bad" data-t3="reports">${IC().shield}${attn.reports} offene Meldungen</button>` : '',
-        attn.feedback ? `<button class="atn" data-t3="feedback">${IC().chat}${attn.feedback} neues Feedback</button>` : ''].filter(Boolean);
+        attn.feedback ? `<button class="atn" data-t3="feedback">${IC().chat}${attn.feedback} neues Feedback</button>` : '',
+        attn.devbugs ? `<button class="atn" data-t3="devbugs">${IC().chat}${attn.devbugs} offene Dev-Bugs</button>` : ''].filter(Boolean);
       el.innerHTML = chips.length ? `<span class="atn-k">Braucht Aufmerksamkeit</span>${chips.join('')}` : '<span class="atn-k ok">Alles erledigt</span>';
       el.querySelectorAll('[data-t3]').forEach(x => x.onclick = () => { aTab = x.dataset.t3; V.sfx.ui(); admin(); });
     };
@@ -314,6 +316,11 @@
       if (b && r && r.open && !b.querySelector('.nb')) b.insertAdjacentHTML('beforeend', ` <small class="nb">${r.open}</small>`);
     }, () => { });
     badge('reports', 'admin_reports'); badge('feedback', 'admin_feedback');
+    C().rpc('dev_reports', { lim: 200 }).then(r => {
+      const n = (r || []).filter(x => !x.done).length; attn.devbugs = n; showAttn();
+      const b = v.querySelector('#atabs [data-t=devbugs]');
+      if (b && n && !b.querySelector('.nb')) b.insertAdjacentHTML('beforeend', ` <small class="nb">${n}</small>`);
+    }, () => { });
     stopLive();
     liveT = setInterval(() => {
       if (V.ui.view() !== 'admin') return stopLive();
@@ -332,6 +339,7 @@
       if (aTab === 'log') logs = await C().rpc('admin_log_list', { lim: 80 });
       if (aTab === 'reports') reports = await C().rpc('admin_reports', { st: rFilter, lim: 80 });
       if (aTab === 'feedback') fb = await C().rpc('admin_feedback', { st: fFilter, lim: 80 });
+      if (aTab === 'devbugs') dbugs = await C().rpc('dev_reports', { lim: 200 });
       if (aTab === 'matches') matches = mFilter === 'tables' ? await C().rpc('admin_tables', { st: 'all', q: mQuery, lim: 80 }) : await C().rpc('admin_matches', { st: mFilter, q: mQuery, lim: 80 });
       if (aTab === 'site') { const [s, p] = await Promise.all([C().rpc('admin_stats'), C().role() === 'owner' ? C().rpc('admin_purge_guests', { days: 30, dry: true }) : null]); stats = s; site = s.site || {}; purge = p; }
       aErr = '';
@@ -349,7 +357,7 @@
     const host = document.getElementById('abody'); if (!host) return;
     const keep = document.activeElement && host.contains(document.activeElement) && /INPUT|TEXTAREA/.test(document.activeElement.tagName);
     if (keep && !force) return;
-    host.innerHTML = (aErr ? `<p class="aerr big">${esc(aErr)}</p>` : '') + (aTab === 'overview' ? overview() : aTab === 'matches' ? matchList() : aTab === 'players' ? playerList() : aTab === 'reports' ? reportList() : aTab === 'feedback' ? feedbackList() : aTab === 'survey' ? '<div id="asv"></div>' : aTab === 'site' ? sitePage() : logList());
+    host.innerHTML = (aErr ? `<p class="aerr big">${esc(aErr)}</p>` : '') + (aTab === 'overview' ? overview() : aTab === 'matches' ? matchList() : aTab === 'players' ? playerList() : aTab === 'reports' ? reportList() : aTab === 'feedback' ? feedbackList() : aTab === 'devbugs' ? devBugList() : aTab === 'survey' ? '<div id="asv"></div>' : aTab === 'site' ? sitePage() : logList());
     wireAdmin(host);
     if (aTab === 'survey' && V.survey) V.survey.admin(host.querySelector('#asv'));
   }
@@ -580,8 +588,31 @@
       <p class="fine">Kommt über „Feedback senden“ auf der Startseite und in den Optionen. Version und Gerät helfen beim Nachstellen von Fehlern.</p>
       ${fb ? rows || `<p class="muted">${fFilter === 'open' ? 'Kein offenes Feedback.' : 'Noch kein Feedback.'}</p>` : V.skel()}`;
   }
+  // bug reports that dev accounts sent from the DEV panel, with the snapshot (game, moves, AI, errors, server calls)
+  function devBugList() {
+    const list = (dbugs || []).filter(r => dbFilter === 'all' || !r.done);
+    const rows = list.map(r => `<div class="mrow rep${r.done ? '' : ' live'}">
+        <div class="m-t"><b><em class="rtag bad">Bug</em>${r.game ? ' ' + esc(gameName(r.game)) : ''}</b>
+          <small><button class="link" data-p="${esc(r.name || '')}">${esc(r.name || '?')}</button> · ${when(r.at)} · v${esc(r.v || '?')}${r.errs ? ` · <span>${r.errs} Fehler</span>` : ''}${r.done ? ' · erledigt' + (r.by ? ' von ' + esc(r.by) : '') : ''}</small>
+          <span class="m-r fbtxt">${esc(r.txt)}</span></div>
+        <div class="m-a"><button class="btn ghost sm" data-dbs="${r.id}"><span>${dbOpen && dbOpen.id === r.id ? 'Schnappschuss zu' : 'Schnappschuss'}</span></button>
+          <button class="btn ghost sm" data-dbd="${r.id}" data-v="${r.done ? 0 : 1}"><span>${r.done ? 'Wieder öffnen' : 'Erledigt'}</span></button></div>
+        ${dbOpen && dbOpen.id === r.id ? `<div style="flex-basis:100%"><button class="btn ghost sm" data-dbc="${r.id}"><span>Kopieren</span></button><pre translate="no" style="white-space:pre-wrap;word-break:break-word;font:11px/1.35 ui-monospace,Menlo,Consolas,monospace;max-height:50vh;overflow:auto;margin:6px 0 0">${esc(JSON.stringify(dbOpen.snap, null, 1))}</pre></div>` : ''}</div>`).join('');
+    return `<div class="asearch"><div class="chips mini" id="dbf">${[['open', 'Offen'], ['all', 'Alle']].map(([k, l]) => `<button data-dbf="${k}" class="${dbFilter === k ? 'on' : ''}">${l}</button>`).join('')}</div><button class="btn ghost sm" id="reload"><span>${IC().redo}</span></button></div>
+      <p class="fine">Kommt aus dem DEV-Panel (Tab „Bugs“) der Dev-Konten. Der Schnappschuss enthält Gerät, Version, laufende Partie mit Zügen, letzte KI-Züge, Fehler und Server-Aufrufe.</p>
+      ${dbugs ? rows || `<p class="muted">${dbFilter === 'open' ? 'Keine offenen Dev-Bugs.' : 'Noch keine Dev-Bugs.'}</p>` : V.skel()}`;
+  }
   let qTimer = null;
   function wireAdmin(h) {
+    h.querySelectorAll('[data-dbf]').forEach(x => x.onclick = () => { dbFilter = x.dataset.dbf; V.sfx.ui(); draw(); });
+    h.querySelectorAll('[data-dbs]').forEach(x => x.onclick = async () => {
+      const id = +x.dataset.dbs; V.sfx.ui();
+      if (dbOpen && dbOpen.id === id) { dbOpen = null; return draw(); }
+      try { dbOpen = { id, snap: await C().rpc('dev_report_snap', { rid: id }) }; } catch (e) { dbOpen = { id, snap: { fehler: e.message } }; }
+      draw();
+    });
+    h.querySelectorAll('[data-dbc]').forEach(x => x.onclick = () => { if (dbOpen && navigator.clipboard) navigator.clipboard.writeText(JSON.stringify(dbOpen.snap, null, 1)).then(() => V.ui.toast('Kopiert'), () => { }); });
+    h.querySelectorAll('[data-dbd]').forEach(x => x.onclick = () => act('dev_report_done', { rid: +x.dataset.dbd, done: x.dataset.v === '1' }, x.dataset.v === '1' ? 'Erledigt.' : 'Wieder offen.'));
     h.querySelectorAll('[data-ff]').forEach(x => x.onclick = () => { fFilter = x.dataset.ff; fb = null; V.sfx.ui(); draw(); load(); });
     h.querySelectorAll('[data-fdone]').forEach(x => x.onclick = () => act('admin_feedback_done', { fid: +x.dataset.fdone, done: x.dataset.v === '1' }, x.dataset.v === '1' ? 'Erledigt.' : 'Wieder offen.'));
     const r = h.querySelector('#reload'); if (r) r.onclick = () => { V.sfx.ui(); load(); };

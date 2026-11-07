@@ -1168,6 +1168,8 @@
     'Feedback kommt nach dem nächsten Server-Update.': 'Feedback comes with the next server update.', 'Feedback braucht eine Verbindung zum Server': 'Feedback needs a connection to the server', 'Wähl bitte eine Art.': 'Please pick a kind.',
     'Zu viele Nachrichten. Warte kurz und versuch es dann nochmal.': 'Too many messages. Wait a moment and try again.',
     'Verbindung unterbrochen': 'Connection lost', 'Versuche es wieder': 'Trying again', 'Wieder verbunden': 'Connected again',
+    'Dev-Bugs': 'Dev bugs', '# Fehler': '# errors', '# offene Dev-Bugs': '# open dev bugs', 'Schnappschuss': 'Snapshot', 'Schnappschuss zu': 'Close snapshot', 'Keine offenen Dev-Bugs.': 'No open dev bugs.', 'Noch keine Dev-Bugs.': 'No dev bugs yet.',
+    'Kommt aus dem DEV-Panel (Tab „Bugs“) der Dev-Konten. Der Schnappschuss enthält Gerät, Version, laufende Partie mit Zügen, letzte KI-Züge, Fehler und Server-Aufrufe.': 'Sent from the DEV panel (tab "Bugs") of dev accounts. The snapshot holds device, version, the running game with its moves, recent AI moves, errors and server calls.',
     'Kein offenes Feedback.': 'No open feedback.', 'Noch kein Feedback.': 'No feedback yet.', 'ohne Konto': 'no account', 'Handy': 'Phone', 'Computer': 'Computer', 'Erledigt.': 'Done.',
     'Kommt über „Feedback senden“ auf der Startseite und in den Optionen. Version und Gerät helfen beim Nachstellen von Fehlern.': 'Comes from "Send feedback" on the home screen and in the options. Version and device help to reproduce bugs.'
   });

@@ -20,6 +20,10 @@
   let aiEnd = 0;
   let panel = null, btn = null, tab = 'ai', dirty = false, peek = null, devs = null, devErr = '', aiN = 0, cur = null;
 
+  // German or English, following the app's language (the panel is marked translate="no", so i18n.js leaves it alone)
+  const T = (de, en) => (V.lang === 'en' ? en : de);
+  // texts that come from the games (move names, player names) go through the app's own translation
+  const tr = x => (V.t && x ? V.t(String(x)) : x);
   const now = () => performance.now();
   const clock = () => { const d = new Date(); return d.toTimeString().slice(0, 8) + '.' + String(d.getMilliseconds()).padStart(3, '0'); };
   // short readable form of any value (moves, RPC arguments, answers)
@@ -31,7 +35,7 @@
     return s.length > n ? s.slice(0, n) + '…' : s;
   }
   const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
-  const num = v => typeof v !== 'number' ? String(v) : Math.abs(v) > 90000 ? (v > 0 ? 'GEWINN' : 'VERLUST') : (v > 0 ? '+' : '') + Math.round(v * 100) / 100;
+  const num = v => typeof v !== 'number' ? String(v) : Math.abs(v) > 90000 ? (v > 0 ? T('GEWINN', 'WIN') : T('VERLUST', 'LOSS')) : (v > 0 ? '+' : '') + Math.round(v * 100) / 100;
   function push(kind, e) {
     if (!D.active) return;
     const a = logs[kind]; e.at = clock(); a.unshift(e); if (a.length > MAX) a.length = MAX;
@@ -48,7 +52,7 @@
     cur = t;
     push('ai', t);
     // watchdog: an AI that has not answered after 8 s is almost always a bug (no legal move found, a Promise that never settles)
-    const dog = setTimeout(() => { if (t.ms == null) push('err', { what: 'KI hängt', msg: `#${t.n} ${info.game || ''} (Stufe ${info.level}, Seite ${info.side}) antwortet seit 8 s nicht` }); }, 8000);
+    const dog = setTimeout(() => { if (t.ms == null) push('err', { what: T('KI hängt', 'AI stuck'), msg: T(`#${t.n} ${info.game || ''} (Stufe ${info.level}, Seite ${info.side}) antwortet seit 8 s nicht`, `#${t.n} ${info.game || ''} (level ${info.level}, side ${info.side}) has not answered for 8 s`) }); }, 8000);
     return {
       done(res, say) {
         clearTimeout(dog); aiEnd = now();
@@ -60,7 +64,7 @@
       fail(e) {
         clearTimeout(dog); aiEnd = now();
         t.ms = Math.round(now() - t.t0); t.error = String(e && e.message || e); if (cur === t) cur = null;
-        push('err', { what: 'KI-Fehler', msg: `#${t.n} ${info.game || ''}: ${t.error}`, stack: e && e.stack });
+        push('err', { what: T('KI-Fehler', 'AI error'), msg: `#${t.n} ${info.game || ''}: ${t.error}`, stack: e && e.stack });
       }
     };
   };
@@ -77,32 +81,33 @@
     const top = (arr, f) => (arr || []).map(f).join('  |  ');
     switch (l.what) {
       case 'search':
-        return `Alpha-Beta: Tiefe ${d.depth}/${d.maxDepth}${d.timeout ? ' (Zeit um)' : ''}, ${d.nodes} Knoten, ${d.ms} ms, Wert ${num(d.score)}\n    Bester Zug: ${short(d.move, 80)}` +
-          (d.root && d.root.length ? `\n    Wurzelzüge (Tiefe ${d.depth}, ≤ = nur Schranke): ` + top(d.root, x => short(x.m, 40) + ' ' + (x.exact ? '' : '≤') + num(x.v)) : '') +
-          (d.path && d.path.length ? `\n    Pro Tiefe: ` + d.path.map(p => `${p.d}:${short(p.m, 24)} ${num(p.v)}`).join('  ') : '');
+        return `Alpha-Beta: ${T('Tiefe', 'depth')} ${d.depth}/${d.maxDepth}${d.timeout ? T(' (Zeit um)', ' (time up)') : ''}, ${d.nodes} ${T('Knoten', 'nodes')}, ${d.ms} ms, ${T('Wert', 'score')} ${num(d.score)}\n    ${T('Bester Zug', 'Best move')}: ${short(d.move, 80)}` +
+          (d.root && d.root.length ? `\n    ${T('Wurzelzüge', 'Root moves')} (${T('Tiefe', 'depth')} ${d.depth}, ${T('≤ = nur Schranke', '≤ = bound only')}): ` + top(d.root, x => short(x.m, 40) + ' ' + (x.exact ? '' : '≤') + num(x.v)) : '') +
+          (d.path && d.path.length ? `\n    ${T('Pro Tiefe', 'Per depth')}: ` + d.path.map(p => `${p.d}:${short(p.m, 24)} ${num(p.v)}`).join('  ') : '');
       case 'searchAll':
-        return `Alle Züge bewertet: Tiefe ${d.depth}, ${d.count} Züge, ${d.nodes} Knoten, ${d.ms} ms${d.timeout ? ' (Zeit um, Rest nur geschätzt)' : ''}\n    Beste: ` + top(d.top, x => short(x.m, 40) + ' ' + num(x.v));
+        return `${T('Alle Züge bewertet', 'All moves scored')}: ${T('Tiefe', 'depth')} ${d.depth}, ${d.count} ${T('Züge', 'moves')}, ${d.nodes} ${T('Knoten', 'nodes')}, ${d.ms} ms${d.timeout ? T(' (Zeit um, Rest nur geschätzt)', ' (time up, rest only estimated)') : ''}\n    ${T('Beste', 'Best')}: ` + top(d.top, x => short(x.m, 40) + ' ' + num(x.v));
       case 'pickSoft':
-        return `Weiche Wahl: Temperatur ${d.temp}, ${d.best ? 'bester Zug genommen' : 'NICHT der beste Zug'} (Wert ${num(d.chosenV)} statt ${num(d.bestV)}${d.p != null ? ', Chance ' + Math.round(d.p * 100) + ' %' : ''})`;
+        return `${T('Weiche Wahl', 'Soft choice')}: ${T('Temperatur', 'temperature')} ${d.temp}, ${d.best ? T('bester Zug genommen', 'took the best move') : T('NICHT der beste Zug', 'NOT the best move')} (${T('Wert', 'score')} ${num(d.chosenV)} ${T('statt', 'instead of')} ${num(d.bestV)}${d.p != null ? ', ' + T('Chance', 'chance') + ' ' + Math.round(d.p * 100) + ' %' : ''})`;
       case 'weak':
-        return d.random ? `Anfänger: ZUFALLSZUG (Quote ${Math.round(d.rate * 100)} %): ${short(d.move, 60)}` : `Anfänger: kein Zufallszug (Quote ${Math.round(d.rate * 100)} %)`;
+        return d.random ? `${T('Anfänger: ZUFALLSZUG', 'Beginner: RANDOM MOVE')} (${T('Quote', 'rate')} ${Math.round(d.rate * 100)} %): ${short(d.move, 60)}` : `${T('Anfänger: kein Zufallszug', 'Beginner: no random move')} (${T('Quote', 'rate')} ${Math.round(d.rate * 100)} %)`;
       case 'mcts':
-        return `Monte Carlo: ${d.iters}/${d.max} Simulationen, ${d.ms} ms${d.timeout ? ' (Zeit um)' : ''}, Gewinnchance ${Math.round(d.rate * 100)} %\n    Meistbesucht: ` + top(d.top, x => `${short(x.m, 36)} ${x.n}× ${Math.round(x.r * 100)} %`);
+        return `Monte Carlo: ${d.iters}/${d.max} ${T('Simulationen', 'simulations')}, ${d.ms} ms${d.timeout ? T(' (Zeit um)', ' (time up)') : ''}, ${T('Gewinnchance', 'win chance')} ${Math.round(d.rate * 100)} %\n    ${T('Meistbesucht', 'Most visited')}: ` + top(d.top, x => `${short(x.m, 36)} ${x.n}× ${Math.round(x.r * 100)} %`);
       case 'Stockfish':
-        return `Stockfish: ${d.elo ? 'Elo ' + d.elo : 'Skill ' + d.skill}, ${d.movetime} ms Bedenkzeit (${d.ms} ms echt), Tiefe ${d.depth}/${d.seldepth}, ${d.score}, ${d.nodes} Knoten (${d.nps}/s)\n    Bester Zug ${d.best}, Hauptvariante: ${d.pv}`;
+        return `Stockfish: ${d.elo ? 'Elo ' + d.elo : 'Skill ' + d.skill}, ${d.movetime} ms ${T('Bedenkzeit', 'think time')} (${d.ms} ms ${T('echt', 'real')}), ${T('Tiefe', 'depth')} ${d.depth}/${d.seldepth}, ${d.score}, ${d.nodes} ${T('Knoten', 'nodes')} (${d.nps}/s)\n    ${T('Bester Zug', 'Best move')} ${d.best}, ${T('Hauptvariante', 'main line')}: ${d.pv}`;
       default:
         return `${l.what}: ${short(d, 400)}`;
     }
   }
   function aiText() {
-    if (!logs.ai.length) return 'Noch keine KI-Züge. Starte eine Partie gegen die KI.';
+    if (!logs.ai.length) return T('Noch keine KI-Züge. Starte eine Partie gegen die KI.', 'No AI moves yet. Start a game against the AI.');
     return logs.ai.map(t => {
       const i = t.info || {};
-      const head = i.loose ? `#${t.n} (außerhalb eines KI-Zugs)` :
-        `#${t.n} ${i.game || ''} · Stufe ${['Leicht', 'Mittel', 'Schwer', 'Profi'][i.level] || i.level}${i.fit ? ' (Passend: ' + i.fit + ')' : ''} · Seite ${i.side} (${i.who || 'KI'})${i.quick ? ' · Folgezug' : ''}${i.kind ? ' · ' + i.kind : ''}` +
-        (t.ms != null ? ` · ${t.ms} ms gesamt` : ' · rechnet …');
+      const LV = T(['Leicht', 'Mittel', 'Schwer', 'Profi'], ['Easy', 'Medium', 'Hard', 'Pro']);
+      const head = i.loose ? `#${t.n} ${T('(außerhalb eines KI-Zugs)', '(outside an AI move)')}` :
+        `#${t.n} ${i.game || ''} · ${T('Stufe', 'level')} ${LV[i.level] || i.level}${i.fit ? ` (${T('Passend', 'Matched')}: ${i.fit})` : ''} · ${T('Seite', 'side')} ${i.side} (${tr(i.who) || T('KI', 'AI')})${i.quick ? T(' · Folgezug', ' · follow-up move') : ''}${i.kind ? ' · ' + i.kind : ''}` +
+        (t.ms != null ? ` · ${t.ms} ms ${T('gesamt', 'total')}` : T(' · rechnet …', ' · thinking …'));
       const body = t.lines.map(l => '  ' + aiLine(l)).join('\n');
-      const end = t.error ? `  FEHLER: ${t.error}` : t.move !== undefined ? `  → Zug: ${t.say ? t.say + '  ' : ''}${short(t.move, 120)}${t.mood != null ? `  (Stimmung ${num(t.mood)})` : ''}` : '';
+      const end = t.error ? `  ${T('FEHLER', 'ERROR')}: ${t.error}` : t.move !== undefined ? `  → ${T('Zug', 'Move')}: ${t.say ? tr(t.say) + '  ' : ''}${short(t.move, 120)}${t.mood != null ? `  (${T('Stimmung', 'mood')} ${num(t.mood)})` : ''}` : '';
       return `[${t.at}] ${head}\n${body}${body && end ? '\n' : ''}${end}`;
     }).join('\n\n');
   }
@@ -119,7 +124,7 @@
       const t0 = now(), e = { name, args };
       // Tests tab: "Netz aus" answers like a dropped connection without sending anything, "Verzögerung" waits first
       const real = q.then.bind(q);
-      const then = D.offline && !/^dev_/.test(name) ? (ok, bad) => new Promise(r => setTimeout(r, 300)).then(() => { throw new TypeError('Failed to fetch (Dev: Netz aus)'); }).then(ok, bad)
+      const then = D.offline && !/^dev_/.test(name) ? (ok, bad) => new Promise(r => setTimeout(r, 300)).then(() => { throw new TypeError(T('Failed to fetch (Dev: Netz aus)', 'Failed to fetch (dev: network off)')); }).then(ok, bad)
         : D.lag ? (ok, bad) => new Promise(r => setTimeout(r, D.lag)).then(() => real(ok, bad)) : real;
       // the query builder is a thenable: hook into the first then without changing the result
       q.then = (ok, bad) => then(r => {
@@ -143,19 +148,22 @@
   let hideTouch = true;
   function rpcText() {
     const list = logs.rpc.filter(e => !(hideTouch && e.name === 'touch'));
-    if (!list.length) return 'Noch keine Server-Aufrufe.';
-    return list.map(e => `[${e.at}] ${e.error ? '✗' : '✓'} ${e.name}  ${e.ms} ms\n    an:  ${short(e.args || {}, 300)}\n    ${e.error ? 'FEHLER: ' + e.error : 'aus: ' + short(e.data, 500)}`).join('\n');
+    if (!list.length) return T('Noch keine Server-Aufrufe.', 'No server calls yet.');
+    return list.map(e => `[${e.at}] ${e.error ? '✗' : '✓'} ${e.name}  ${e.ms} ms\n    ${T('an', 'in')}:  ${short(e.args || {}, 300)}\n    ${e.error ? T('FEHLER', 'ERROR') + ': ' + e.error : T('aus', 'out') + ': ' + short(e.data, 500)}`).join('\n');
   }
 
   // ---------- Online ----------
   D.net = (what, data) => push('net', { what, data });
   function netText() {
-    if (!logs.net.length) return 'Noch nichts. Hier landen Realtime-Pokes (gesendet/empfangen, Kanal verbunden) und die Abfragen einer Online-Partie.';
-    return logs.net.map(e => `[${e.at}] ${e.what}  ${e.data === undefined ? '' : short(e.data, 400)}`).join('\n');
+    if (!logs.net.length) return T('Noch nichts. Hier landen Realtime-Pokes (gesendet/empfangen, Kanal verbunden) und die Abfragen einer Online-Partie.', 'Nothing yet. Realtime pokes (sent/received, channel connected) and the polls of an online game land here.');
+    // the labels come in German from cloud.js and play.js
+    const EN = { 'Poke empfangen': 'Poke received', 'Poke gesendet': 'Poke sent', 'Poke verworfen (Kanal nicht verbunden)': 'Poke dropped (channel not connected)', 'Stand geholt': 'State fetched', 'Abfrage fehlgeschlagen': 'Poll failed', 'Kanal': 'Channel' };
+    const w = x => V.lang === 'en' ? (EN[x] || x.replace(/^Kanal /, 'Channel ')) : x;
+    return logs.net.map(e => `[${e.at}] ${w(e.what)}  ${e.data === undefined ? '' : short(e.data, 400)}`).join('\n');
   }
 
   // ---------- Fehler ----------
-  addEventListener('error', ev => push('err', { what: 'Fehler', msg: ev.message, where: (ev.filename || '').split('/').pop() + ':' + ev.lineno + ':' + ev.colno, stack: ev.error && ev.error.stack }));
+  addEventListener('error', ev => push('err', { what: T('Fehler', 'Error'), msg: ev.message, where: (ev.filename || '').split('/').pop() + ':' + ev.lineno + ':' + ev.colno, stack: ev.error && ev.error.stack }));
   addEventListener('unhandledrejection', ev => push('err', { what: 'Promise', msg: String(ev.reason && ev.reason.message || ev.reason), stack: ev.reason && ev.reason.stack }));
   ['warn', 'error'].forEach(k => {
     const orig = console[k].bind(console);
@@ -165,11 +173,11 @@
   try {
     new PerformanceObserver(l => l.getEntries().forEach(x => {
       if (!D.active || x.duration < 250 || cur || x.startTime < aiEnd + 50) return;
-      push('err', { what: 'Ruckler', msg: `${Math.round(x.duration)} ms blockiert${D.game ? ' in ' + D.game.id : ''}` });
+      push('err', { what: T('Ruckler', 'Stutter'), msg: `${Math.round(x.duration)} ms ${T('blockiert', 'blocked')}${D.game ? ' in ' + D.game.id : ''}` });
     })).observe({ entryTypes: ['longtask'] });
   } catch (e) { }
   function errText() {
-    if (!logs.err.length) return 'Keine Fehler seit dem Laden der Seite. 🎉';
+    if (!logs.err.length) return T('Keine Fehler seit dem Laden der Seite. 🎉', 'No errors since the page loaded. 🎉');
     return logs.err.map(e => `[${e.at}] ${e.what}: ${e.msg}${e.where ? '  (' + e.where + ')' : ''}${e.stack ? '\n    ' + String(e.stack).split('\n').slice(0, 4).join('\n    ') : ''}`).join('\n\n');
   }
 
@@ -177,64 +185,64 @@
   D.game = null; // play.js sets the running match here (id, mode, level, sides ...)
   function stateText() {
     const C = V.cloud, out = [];
-    out.push(`Version ${V.VERSION} · Sprache ${V.lang || 'de'} · ${V.coarse ? 'Touch' : 'Maus'} · ${innerWidth}×${innerHeight} @${devicePixelRatio} · ${navigator.onLine ? 'online' : 'OFFLINE'}`);
-    out.push(`Service Worker: ${navigator.serviceWorker && navigator.serviceWorker.controller ? 'aktiv' : 'keiner'}`);
+    out.push(`Version ${V.VERSION} · ${T('Sprache', 'language')} ${V.lang || 'de'} · ${V.coarse ? 'Touch' : T('Maus', 'mouse')} · ${innerWidth}×${innerHeight} @${devicePixelRatio} · ${navigator.onLine ? 'online' : 'OFFLINE'}`);
+    out.push(`Service Worker: ${navigator.serviceWorker && navigator.serviceWorker.controller ? T('aktiv', 'active') : T('keiner', 'none')}`);
     if (C) {
       const u = C.user();
-      out.push(`Konto: ${u ? u.username + (u.anon ? ' (Gast)' : '') : '–'} · Status ${short(C.state())} · Rolle ${C.role() || '–'}`);
+      out.push(`${T('Konto', 'Account')}: ${u ? u.username + (u.anon ? T(' (Gast)', ' (guest)') : '') : '–'} · Status ${short(C.state())} · ${T('Rolle', 'role')} ${C.role() || '–'}`);
       out.push(`my_info: ${short(C.info(), 1200)}`);
     }
-    out.push(`Laufende Partie: ${D.game ? short(D.game, 600) : '–'}`);
-    out.push(`Einstellungen: ${short(V.settings || {}, 800)}`);
+    out.push(`${T('Laufende Partie', 'Running game')}: ${D.game ? short(D.game, 600) : '–'}`);
+    out.push(`${T('Einstellungen', 'Settings')}: ${short(V.settings || {}, 800)}`);
     let size = 0; const keys = [];
     try { for (let i = 0; i < localStorage.length; i++) { const k = localStorage.key(i), n = (localStorage.getItem(k) || '').length; size += n; keys.push([k, n]); } } catch (e) { }
     keys.sort((a, b) => b[1] - a[1]);
     out.push(`localStorage: ${Math.round(size / 1024)} KB · ` + keys.slice(0, 12).map(([k, n]) => `${k} ${n < 1024 ? n + ' B' : Math.round(n / 1024) + ' KB'}`).join(', '));
     out.push('');
-    out.push(peek ? 'Server-Sicht (dev_peek):\n' + JSON.stringify(peek, null, 1) : 'Server-Sicht: „Server laden“ antippen (Profil-Zeile, laufende und letzte Partien mit Zügen und Claims, Tische, Elo).');
+    out.push(peek ? T('Server-Sicht', 'Server view') + ' (dev_peek):\n' + JSON.stringify(peek, null, 1) : T('Server-Sicht: „Server laden“ antippen (Profil-Zeile, laufende und letzte Partien mit Zügen und Claims, Tische, Elo).', 'Server view: tap "Load server" (profile row, running and recent games with moves and claims, tables, Elo).'));
     return out.join('\n');
   }
 
   // ---------- Devs ----------
   function devsHtml() {
     if (devErr) return `<pre>${esc(devErr)}</pre>`;
-    if (!devs) return '<pre>Lädt …</pre>';
-    if (!devs.length) return '<pre>Keine Dev-Konten.</pre>';
-    const ago = t => { if (!t) return '–'; const s = (Date.now() - new Date(t)) / 1000; return s < 120 ? 'gerade' : s < 3600 ? Math.round(s / 60) + ' min' : s < 86400 ? Math.round(s / 3600) + ' h' : Math.round(s / 86400) + ' T'; };
-    return `<table class="dvt"><tr><th></th><th>Name</th><th>Spiel</th><th>Zuletzt</th><th>Info</th></tr>` + devs.map(d => `<tr>
-      <td>${d.online ? '🟢' : '⚪'}</td><td><a data-dp="${esc(d.username)}">${esc(d.username)}</a>${d.me ? ' (du)' : ''}</td>
+    if (!devs) return `<pre>${T('Lädt …', 'Loading …')}</pre>`;
+    if (!devs.length) return `<pre>${T('Keine Dev-Konten.', 'No dev accounts.')}</pre>`;
+    const ago = t => { if (!t) return '–'; const s = (Date.now() - new Date(t)) / 1000; return s < 120 ? T('gerade', 'now') : s < 3600 ? Math.round(s / 60) + ' min' : s < 86400 ? Math.round(s / 3600) + ' h' : Math.round(s / 86400) + T(' T', ' d'); };
+    return `<table class="dvt"><tr><th></th><th>Name</th><th>${T('Spiel', 'Game')}</th><th>${T('Zuletzt', 'Last seen')}</th><th>Info</th></tr>` + devs.map(d => `<tr>
+      <td>${d.online ? '🟢' : '⚪'}</td><td><a data-dp="${esc(d.username)}">${esc(d.username)}</a>${d.me ? T(' (du)', ' (you)') : ''}</td>
       <td>${esc(d.game || '–')}</td><td>${ago(d.seen)}</td>
-      <td>${[d.role, d.stealth ? 'unsichtbar' : '', d.hidden ? 'ausgeblendet' : '', d.guest ? 'Gast' : '', d.live ? d.live + ' laufend' : '', d.played != null ? d.played + ' Partien' : ''].filter(Boolean).map(esc).join(' · ')}</td></tr>`).join('') + '</table>';
+      <td>${[d.role, d.stealth ? T('unsichtbar', 'invisible') : '', d.hidden ? T('ausgeblendet', 'hidden') : '', d.guest ? T('Gast', 'guest') : '', d.live ? d.live + T(' laufend', ' live') : '', d.played != null ? d.played + T(' Partien', ' games') : ''].filter(Boolean).map(esc).join(' · ')}</td></tr>`).join('') + '</table>';
   }
   async function loadDevs() {
     devs = null; devErr = ''; draw();
     try { devs = await V.cloud.rpc('dev_list'); }
-    catch (e) { devErr = 'dev_list ging nicht: ' + e.message + '\n(Migration supabase/migrations/20261202000000_dev_insight.sql im SQL-Editor ausführen.)'; }
+    catch (e) { devErr = T('dev_list ging nicht: ', 'dev_list failed: ') + e.message + T('\n(Migration supabase/migrations/20261202000000_dev_insight.sql im SQL-Editor ausführen.)', '\n(Run the migration supabase/migrations/20261202000000_dev_insight.sql in the SQL editor.)'); }
     if (tab === 'devs') draw();
   }
   async function loadPeek() {
-    peek = { lädt: true }; draw();
-    try { peek = await V.cloud.rpc('dev_peek'); } catch (e) { peek = { fehler: e.message, tipp: 'Migration 20261202000000_dev_insight.sql ausführen' }; }
+    peek = { loading: true }; draw();
+    try { peek = await V.cloud.rpc('dev_peek'); } catch (e) { peek = { error: e.message, hint: T('Migration 20261202000000_dev_insight.sql ausführen', 'run the migration 20261202000000_dev_insight.sql') }; }
     if (tab === 'state') draw();
   }
 
   // ---------- Tests: Fehler provozieren ----------
-  const LAGS = [[0, 'normal'], [1500, 'langsam 1,5 s'], [4000, 'sehr langsam 4 s'], [-1, 'aus']];
+  const LAGS = () => [[0, 'normal'], [1500, T('langsam 1,5 s', 'slow 1.5 s')], [4000, T('sehr langsam 4 s', 'very slow 4 s')], [-1, T('aus', 'off')]];
   function testsHtml() {
     const g = D.game, mv = g && g.moves;
     const net = D.offline ? -1 : D.lag;
-    return `<pre>Netz (alle Server-Aufrufe; zum Testen von Verbindungsbalken, Wiederholen, Zeitüberschreitung im Online-Duell):</pre>
-      <p>${LAGS.map(([v, l]) => `<button data-lag="${v}" class="${net === v ? 'on' : ''}">${l}</button>`).join(' ')}</p>
-      <pre>KI:</pre>
-      <p><label><input type="checkbox" id="dvauto"${D.autoMe ? ' checked' : ''}> KI spielt auch für dich (nur gegen die KI, ab deinem nächsten Zug; so laufen ganze Partien bis zum Ende durch)</label></p>
-      <p><button id="dvself">Selbsttest ${g ? esc(g.id) : 'aller Spiele'}: 3 Partien KI gegen KI</button> <small>(öffnet test.html in neuem Tab, meldet Fehler, Hänger und Ergebnisse)</small></p>
-      <pre>Partie:</pre>
-      <p><button id="dvmoves"${mv ? '' : ' disabled'}>Züge kopieren${mv ? ' (' + mv.length + ')' : ''}</button> <small>${g ? esc(g.id + ' · ' + g.mode + (g.ended ? ' · beendet' : '')) : 'keine laufende Partie'}${g && !mv ? ' · Züge werden nur bei Brettspielen ohne Zufall aufgezeichnet' : ''}</small></p>
+    return `<pre>${T('Netz (alle Server-Aufrufe; zum Testen von Verbindungsbalken, Wiederholen, Zeitüberschreitung im Online-Duell):', 'Network (all server calls; to test the connection bar, retries, timeouts in an online duel):')}</pre>
+      <p>${LAGS().map(([v, l]) => `<button data-lag="${v}" class="${net === v ? 'on' : ''}">${l}</button>`).join(' ')}</p>
+      <pre>${T('KI', 'AI')}:</pre>
+      <p><label><input type="checkbox" id="dvauto"${D.autoMe ? ' checked' : ''}> ${T('KI spielt auch für dich (nur gegen die KI, ab deinem nächsten Zug; so laufen ganze Partien bis zum Ende durch)', 'AI also plays for you (only against the AI, from your next move; whole games run through to the end)')}</label></p>
+      <p><button id="dvself">${T('Selbsttest', 'Self-test')} ${g ? esc(g.id) : T('aller Spiele', 'of all games')}: ${T('3 Partien KI gegen KI', '3 games AI vs AI')}</button> <small>${T('(öffnet test.html in neuem Tab, meldet Fehler, Hänger und Ergebnisse)', '(opens test.html in a new tab, reports errors, hangs and results)')}</small></p>
+      <pre>${T('Partie', 'Game')}:</pre>
+      <p><button id="dvmoves"${mv ? '' : ' disabled'}>${T('Züge kopieren', 'Copy moves')}${mv ? ' (' + mv.length + ')' : ''}</button> <small>${g ? esc(g.id + ' · ' + g.mode + (g.ended ? T(' · beendet', ' · ended') : '')) : T('keine laufende Partie', 'no running game')}${g && !mv ? T(' · Züge werden nur bei Brettspielen ohne Zufall aufgezeichnet', ' · moves are only recorded in board games without luck') : ''}</small></p>
       <pre>Cache:</pre>
-      <p><button id="dvfresh">Service Worker und Cache löschen, neu laden</button> <small>(schließt „alte Version im Cache“ als Ursache aus)</small></p>`;
+      <p><button id="dvfresh">${T('Service Worker und Cache löschen, neu laden', 'Clear service worker and cache, reload')}</button> <small>${T('(schließt „alte Version im Cache“ als Ursache aus)', '(rules out "old version in the cache")')}</small></p>`;
   }
   function wireTests(body) {
-    body.querySelectorAll('[data-lag]').forEach(b => b.onclick = () => { const v = +b.dataset.lag; D.offline = v < 0; D.lag = v > 0 ? v : 0; push('net', { what: 'Dev: Netz ' + (D.offline ? 'aus' : D.lag ? D.lag + ' ms Verzögerung' : 'normal') }); draw(); });
+    body.querySelectorAll('[data-lag]').forEach(b => b.onclick = () => { const v = +b.dataset.lag; D.offline = v < 0; D.lag = v > 0 ? v : 0; push('net', { what: T('Dev: Netz ', 'Dev: network ') + (D.offline ? T('aus', 'off') : D.lag ? D.lag + T(' ms Verzögerung', ' ms delay') : 'normal') }); draw(); });
     body.querySelector('#dvauto').onchange = e => { D.autoMe = e.target.checked; };
     body.querySelector('#dvself').onclick = () => { const g = D.game; open('test.html?rounds=3' + (g ? '&games=' + g.id + '&level=' + (g.level || 0) : ''), '_blank'); };
     body.querySelector('#dvmoves').onclick = e => copy(JSON.stringify(D.game && D.game.moves), e.target);
@@ -262,17 +270,17 @@
   }
   let reports = null, repErr = '', repOpen = null, draft = '';
   function bugsHtml() {
-    const ago = t => new Date(t).toLocaleString('de-DE', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
-    return `<p><textarea id="dvtxt" rows="3" placeholder="Was ist passiert? Was hättest du erwartet?" style="width:100%;box-sizing:border-box;font:inherit;background:#0d1520;color:#cde;border:1px solid #345;border-radius:4px;padding:5px">${esc(draft)}</textarea></p>
-      <p><button id="dvsend">Senden mit Schnappschuss</button> <button id="dvsnap">Nur Schnappschuss kopieren</button> <small id="dvmsg">${D.game ? 'Partie ' + esc(D.game.id) + ' kommt mit. ' : ''}Mit dabei: Partie und Züge, letzte KI-Züge, Fehler, Server-Aufrufe, Online, Gerät.</small></p>
-      <pre>Meldungen aller Dev-Konten:${repErr ? '\n' + esc(repErr) : reports ? '' : ' lädt …'}</pre>` +
-      (reports && reports.length ? `<table class="dvt">` + reports.map(r => `<tr class="${r.done ? 'dvdone' : ''}"><td>${ago(r.at)}</td><td>${esc(r.name || '?')}</td><td>${esc(r.game || '–')} · v${esc(r.v || '?')}${r.errs ? ' · <b style="color:#f66">' + r.errs + ' Fehler</b>' : ''}</td>
-        <td>${esc(r.txt)}</td><td style="white-space:nowrap"><button data-rs="${r.id}">${repOpen && repOpen.id === r.id ? 'zu' : 'Schnappschuss'}</button> <button data-rd="${r.id}" data-v="${r.done ? 0 : 1}">${r.done ? 'wieder offen' : 'erledigt'}</button></td></tr>` +
-        (repOpen && repOpen.id === r.id ? `<tr><td colspan="5"><button data-rc="${r.id}">Kopieren</button><pre>${esc(JSON.stringify(repOpen.snap, null, 1))}</pre></td></tr>` : '')).join('') + '</table>' : reports && !repErr ? '<pre>Noch keine Meldungen.</pre>' : '');
+    const ago = t => new Date(t).toLocaleString(T('de-DE', 'en-GB'), { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
+    return `<p><textarea id="dvtxt" rows="3" placeholder="${T('Was ist passiert? Was hättest du erwartet?', 'What happened? What did you expect?')}" style="width:100%;box-sizing:border-box;font:inherit;background:#0d1520;color:#cde;border:1px solid #345;border-radius:4px;padding:5px">${esc(draft)}</textarea></p>
+      <p><button id="dvsend">${T('Senden mit Schnappschuss', 'Send with snapshot')}</button> <button id="dvsnap">${T('Nur Schnappschuss kopieren', 'Only copy snapshot')}</button> <small id="dvmsg">${D.game ? T('Partie ', 'Game ') + esc(D.game.id) + T(' kommt mit. ', ' is included. ') : ''}${T('Mit dabei: Partie und Züge, letzte KI-Züge, Fehler, Server-Aufrufe, Online, Gerät.', 'Included: game and moves, recent AI moves, errors, server calls, online, device.')}</small></p>
+      <pre>${T('Meldungen aller Dev-Konten und des Teams', 'Reports from all dev accounts and the team')}:${repErr ? '\n' + esc(repErr) : reports ? '' : T(' lädt …', ' loading …')}</pre>` +
+      (reports && reports.length ? `<table class="dvt">` + reports.map(r => `<tr class="${r.done ? 'dvdone' : ''}"><td>${ago(r.at)}</td><td>${esc(r.name || '?')}</td><td>${esc(r.game || '–')} · v${esc(r.v || '?')}${r.errs ? ' · <b style="color:#f66">' + r.errs + T(' Fehler', ' errors') + '</b>' : ''}</td>
+        <td>${esc(r.txt)}</td><td style="white-space:nowrap"><button data-rs="${r.id}">${repOpen && repOpen.id === r.id ? T('zu', 'close') : T('Schnappschuss', 'Snapshot')}</button> <button data-rd="${r.id}" data-v="${r.done ? 0 : 1}">${r.done ? T('wieder offen', 'reopen') : T('erledigt', 'done')}</button></td></tr>` +
+        (repOpen && repOpen.id === r.id ? `<tr><td colspan="5"><button data-rc="${r.id}">${T('Kopieren', 'Copy')}</button><pre>${esc(JSON.stringify(repOpen.snap, null, 1))}</pre></td></tr>` : '')).join('') + '</table>' : reports && !repErr ? `<pre>${T('Noch keine Meldungen.', 'No reports yet.')}</pre>` : '');
   }
   async function loadReports() {
     repErr = '';
-    try { reports = await V.cloud.rpc('dev_reports'); } catch (e) { reports = []; repErr = 'dev_reports ging nicht: ' + e.message + ' (Migration 20261203000000_dev_reports.sql ausführen)'; }
+    try { reports = await V.cloud.rpc('dev_reports'); } catch (e) { reports = []; repErr = T('dev_reports ging nicht: ', 'dev_reports failed: ') + e.message + T(' (Migration 20261203000000_dev_reports.sql ausführen)', ' (run the migration 20261203000000_dev_reports.sql)'); }
     if (tab === 'bugs') draw();
   }
   function wireBugs(body) {
@@ -280,18 +288,18 @@
     ta.oninput = () => { draft = ta.value; };
     body.querySelector('#dvsnap').onclick = e => copy(JSON.stringify(snapshot(), null, 1), e.target);
     body.querySelector('#dvsend').onclick = async e => {
-      const txt = ta.value.trim(); if (txt.length < 3) { msg.textContent = 'Bitte kurz beschreiben, was passiert ist.'; return; }
-      e.target.disabled = true; msg.textContent = 'Sendet …';
+      const txt = ta.value.trim(); if (txt.length < 3) { msg.textContent = T('Bitte kurz beschreiben, was passiert ist.', 'Please describe briefly what happened.'); return; }
+      e.target.disabled = true; msg.textContent = T('Sendet …', 'Sending …');
       // the report itself must get through even with the simulated dead network
       const off = D.offline; D.offline = false;
-      try { await V.cloud.rpc('dev_report', { txt, game: D.game ? D.game.id : null, snap: snapshot() }); draft = ''; msg.textContent = 'Gesendet.'; loadReports(); }
-      catch (x) { msg.textContent = 'Ging nicht: ' + x.message; e.target.disabled = false; }
+      try { await V.cloud.rpc('dev_report', { txt, game: D.game ? D.game.id : null, snap: snapshot() }); draft = ''; msg.textContent = T('Gesendet.', 'Sent.'); loadReports(); }
+      catch (x) { msg.textContent = T('Ging nicht: ', 'Failed: ') + x.message; e.target.disabled = false; }
       finally { D.offline = off; }
     };
     body.querySelectorAll('[data-rs]').forEach(b => b.onclick = async () => {
       const id = +b.dataset.rs;
       if (repOpen && repOpen.id === id) { repOpen = null; return draw(); }
-      try { repOpen = { id, snap: await V.cloud.rpc('dev_report_snap', { rid: id }) }; } catch (x) { repOpen = { id, snap: { fehler: x.message } }; }
+      try { repOpen = { id, snap: await V.cloud.rpc('dev_report_snap', { rid: id }) }; } catch (x) { repOpen = { id, snap: { error: x.message } }; }
       draw();
     });
     body.querySelectorAll('[data-rc]').forEach(b => b.onclick = () => copy(JSON.stringify(repOpen.snap, null, 1), b));
@@ -299,12 +307,12 @@
   }
   function copy(s, el) {
     (navigator.clipboard ? navigator.clipboard.writeText(s) : Promise.reject()).then(() => {
-      if (!el) return; const t = el.textContent; el.textContent = 'Kopiert'; setTimeout(() => { el.textContent = t; }, 1200);
+      if (!el) return; const t = el.textContent; el.textContent = T('Kopiert', 'Copied'); setTimeout(() => { el.textContent = t; }, 1200);
     }, () => { });
   }
 
   // ---------- Panel ----------
-  const TABS = [['ai', 'KI'], ['rpc', 'Server'], ['net', 'Online'], ['err', 'Fehler'], ['state', 'Zustand'], ['devs', 'Devs'], ['tests', 'Tests'], ['bugs', 'Bugs']];
+  const TABS = () => [['ai', T('KI', 'AI')], ['rpc', 'Server'], ['net', 'Online'], ['err', T('Fehler', 'Errors')], ['state', T('Zustand', 'State')], ['devs', 'Devs'], ['tests', 'Tests'], ['bugs', 'Bugs']];
   const text = () => ({ ai: aiText, rpc: rpcText, net: netText, err: errText, state: stateText }[tab] || (() => ''))();
   let drawT = 0;
   function queueDraw() { if (!panel || drawT) return; drawT = setTimeout(() => { drawT = 0; if (dirty) draw(); }, 250); }
@@ -313,8 +321,8 @@
     if (!panel) return;
     panel.querySelectorAll('[data-dt]').forEach(b => b.classList.toggle('on', b.dataset.dt === tab));
     const ex = panel.querySelector('#dvx');
-    ex.innerHTML = tab === 'rpc' ? `<label><input type="checkbox" id="dvtouch"${hideTouch ? ' checked' : ''}> touch ausblenden</label>` :
-      tab === 'state' ? '<button id="dvpeek">Server laden</button>' : tab === 'devs' ? '<button id="dvdevs">Neu laden</button>' : '';
+    ex.innerHTML = tab === 'rpc' ? `<label><input type="checkbox" id="dvtouch"${hideTouch ? ' checked' : ''}> ${T('touch ausblenden', 'hide touch')}</label>` :
+      tab === 'state' ? `<button id="dvpeek">${T('Server laden', 'Load server')}</button>` : tab === 'devs' ? `<button id="dvdevs">${T('Neu laden', 'Reload')}</button>` : '';
     const body = panel.querySelector('#dvb');
     const keep = body.scrollTop;
     body.innerHTML = tab === 'devs' ? devsHtml() : tab === 'tests' ? testsHtml() : tab === 'bugs' ? bugsHtml() : `<pre>${esc(text())}</pre>`;
@@ -333,8 +341,8 @@
   function openPanel() {
     if (panel) return close();
     panel = document.createElement('div'); panel.className = 'dvp'; panel.setAttribute('translate', 'no');
-    panel.innerHTML = `<div class="dvh">${TABS.map(([k, l]) => `<button data-dt="${k}">${l}</button>`).join('')}<span id="dvx"></span>
-      <span class="dvr"><button id="dvcp" title="Kopieren">Kopieren</button><button id="dvclr" title="Leeren">Leeren</button><button id="dvpos" title="Panel oben/unten (damit das Brett frei bleibt)">⇅</button><button id="dvz">✕</button></span></div><div class="dvb" id="dvb"></div>`;
+    panel.innerHTML = `<div class="dvh">${TABS().map(([k, l]) => `<button data-dt="${k}">${l}</button>`).join('')}<span id="dvx"></span>
+      <span class="dvr"><button id="dvcp">${T('Kopieren', 'Copy')}</button><button id="dvclr">${T('Leeren', 'Clear')}</button><button id="dvpos" title="${T('Panel oben/unten (damit das Brett frei bleibt)', 'Panel top/bottom (keeps the board visible)')}">⇅</button><button id="dvz">✕</button></span></div><div class="dvb" id="dvb"></div>`;
     document.body.appendChild(panel);
     panel.querySelectorAll('[data-dt]').forEach(b => b.onclick = () => { tab = b.dataset.dt; if (tab === 'err') seenErr = logs.err.length; draw(); if (tab === 'devs' && !devs) loadDevs(); if (tab === 'bugs') loadReports(); });
     panel.querySelector('#dvz').onclick = close;
@@ -374,7 +382,7 @@
     D.active = on;
     if (on) {
       if (!document.getElementById('dvcss')) { const s = document.createElement('style'); s.id = 'dvcss'; s.textContent = CSS; document.head.appendChild(s); }
-      btn = document.createElement('button'); btn.className = 'dvbtn'; btn.setAttribute('translate', 'no'); btn.innerHTML = 'DEV<i></i>'; btn.title = 'Dev-Einblick (Backend, KI)';
+      btn = document.createElement('button'); btn.className = 'dvbtn'; btn.setAttribute('translate', 'no'); btn.innerHTML = 'DEV<i></i>'; btn.title = T('Dev-Einblick (Backend, KI)', 'Dev insight (backend, AI)');
       btn.onclick = openPanel; document.body.appendChild(btn);
     } else {
       close(); if (btn) btn.remove(); btn = null;
