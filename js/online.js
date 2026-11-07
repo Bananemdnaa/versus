@@ -845,7 +845,7 @@
     // badges next to the name: the team role (Owner, Admin), Dev, and how many players joined through this player's link
     C().rpc('player_badges', { name: p.username }).then(b => {
       const h = m.querySelector('#ptags'); if (!h || !b) return;
-      const ROLE = { owner: 'Owner', admin: 'Admin' };
+      const ROLE = { owner: 'Owner', admin: 'Admin', mod: 'Moderator' };
       h.insertAdjacentHTML('afterbegin', b.role && ROLE[b.role] ? `<em class="p2-b r-${b.role}">${IC().shield}${ROLE[b.role]}</em>` : '');
       if (b.invited) h.insertAdjacentHTML('beforeend', `<em class="p2-b inv" title="Hat ${b.invited} Spieler zu Versus eingeladen">${IC().users}Werber · ${b.invited}</em>`);
       // the badges they earned (set_awards); legendary ones first

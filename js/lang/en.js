@@ -1814,6 +1814,39 @@
   });
 
   V.i18n.pat([[/^Wie wär’s mit (.+)\?$/, (m, n) => 'How about ' + t(n) + '?'], [/^Einladung an (.+) verschickt$/, (m, n) => 'Invitation sent to ' + n], [/^Über Tage gegen (.+)$/, (m, n) => 'Over days vs. ' + n], [/^Wartet auf (.+)$/, (m, n) => 'Waiting for ' + n], [/^(.+) lädt dich ein$/, (m, n) => n + ' invites you']]);
+  // ---------- team tools: maintenance, minimum version, answers from the team, moderators ----------
+  A({
+    'Wartung': 'Maintenance', 'Online: Wartung': 'Online: maintenance',
+    'Update nötig': 'Update needed', 'Jetzt aktualisieren': 'Update now',
+    'Für Online-Partien brauchst du die neueste Version von Versus. Gegen die KI und zu zweit kannst du weiterspielen.': 'Online games need the latest version of Versus. You can keep playing against the AI and with two people on one device.',
+    'Antwort vom Team': 'Reply from the team', 'Und eine Antwort': 'And a reply', 'Danke': 'Thanks',
+    'Moderator': 'Moderator', 'Profil': 'Profile', 'Elo …': 'Elo …', 'Zurücksetzen': 'Reset', 'Alle zurücksetzen': 'Reset all', 'Wirklich auf 1000?': 'Really back to 1000?',
+    'Noch keine gewerteten Online-Partien.': 'No rated online games yet.',
+    'Zurückgesetzt fängt der Spieler in diesem Spiel wieder bei 1000 an. Partien und Bilanz bleiben.': 'After a reset the player starts again at 1000 in this game. Games and stats stay.',
+    'Zum Moderator machen': 'Make moderator', 'Wirklich Moderator?': 'Really moderator?', 'Moderator entziehen': 'Remove moderator', 'Zum Admin machen': 'Make admin',
+    'Teammitglieder kann nur jemand mit mehr Rechten bearbeiten.': 'Team members can only be edited by someone with more rights.',
+    'Übernehmen': 'Take', 'Abgeben': 'Release', 'Übernommen.': 'Taken.', 'Abgegeben.': 'Released.',
+    'Antworten …': 'Reply …', 'Nochmal antworten': 'Reply again', 'Antwort senden': 'Send reply', 'Schreib eine Antwort.': 'Write a reply.',
+    'Kommt beim nächsten Öffnen als Nachricht vom Team, mit seinem Feedback darüber. Wird nicht übersetzt. Das Feedback gilt danach als erledigt.': 'Arrives the next time they open Versus, as a message from the team with their feedback above it. Not translated. The feedback then counts as done.',
+    'Antwort ist unterwegs. Sie erscheint beim nächsten Öffnen.': 'Reply sent. It shows up the next time they open Versus.',
+    'Moderation': 'Moderation', 'Partien': 'Games', 'Team': 'Team', 'Seite': 'Site', 'Rückgängig': 'Undo', 'Wirklich rückgängig?': 'Really undo?',
+    'Tipp auf ein Teammitglied, um nur seine Aktionen zu sehen.': 'Tap a team member to see only their actions.', 'Keine passenden Admin-Aktionen.': 'No matching admin actions.',
+    'zum Moderator gemacht': 'made moderator', 'Moderator entzogen': 'moderator removed', 'Spiel-Wartung': 'game maintenance', 'Mindestversion': 'Minimum version',
+    'Feedback beantwortet': 'replied to feedback', 'Elo zurückgesetzt': 'Elo reset', 'KI übernimmt Platz von': 'AI took the seat of',
+    'Spiele in Wartung': 'Games under maintenance', 'Alle Spiele laufen.': 'All games are running.', 'Wieder an': 'Back on',
+    'ganz pausiert': 'fully paused', 'online pausiert': 'paused online', 'Online pausieren': 'Pause online', 'Ganz pausieren': 'Pause fully',
+    'Hat ein Spiel einen Fehler, pausiert ihr nur dieses Spiel. „Online“ stoppt neue Online-Partien und Tische, gegen die KI und zu zweit geht es weiter. „Ganz“ sperrt das Spiel überall. Laufende Partien spielen zu Ende.': 'If a game has a bug, pause just that game. "Online" stops new online games and tables; against the AI and on one device it keeps working. "Fully" locks the game everywhere. Running games finish.',
+    'Wer eine ältere Version hat, kann erst nach dem Update wieder online spielen. So treffen in einer Partie keine zwei Versionen aufeinander. Gegen die KI und zu zweit geht es auch mit der alten Version. Ganz alte Versionen, die diesen Schalter noch nicht kennen, merken davon nichts.': 'Players on an older version can only play online again after updating, so no game mixes two versions. Against the AI and on one device the old version still works. Very old versions that don\'t know this switch yet are not affected.',
+    'Ausschalten': 'Turn off', 'Mindestversion ist aus.': 'Minimum version is off.', 'Die KI spielt jetzt auf diesem Platz.': 'The AI now plays this seat.',
+    'Gerade aus: jede Version darf online spielen.': 'Off right now: every version may play online.'
+  });
+  V.i18n.pat([
+    [/^(.+) ist gerade in Wartung\. Bald geht es weiter\.$/, (m, n) => t(n) + ' is under maintenance right now. It will be back soon.'],
+    [/^(.+) ist online gerade in Wartung\. Gegen die KI und zu zweit geht es weiter\.$/, (m, n) => t(n) + ' is under maintenance online. Against the AI and on one device it still works.'],
+    [/^Auf (\d+) setzen$/, (m, v) => 'Set to ' + v], [/^Wirklich ab (\d+)\?$/, (m, v) => 'Really from ' + v + '?'],
+    [/^KI für (.+)\?$/, (m, n) => 'AI for ' + n + '?'], [/^bei (.+)$/, (m, n) => 'with ' + n], [/^Nur von (.+)$/, (m, n) => 'Only by ' + n],
+    [/^Antwort an (.+)$/, (m, n) => 'Reply to ' + n]
+  ]);
   V.i18n.pat([[/^(.+) ist dran$/, (m, n) => t(n) + ' to move'], [/^spielt (.+)$/, (m, n) => 'playing ' + t(n)]]);
   // last resort for "A · B · C" lines (colour · level, game · level …): every part on its own
   V.i18n.pat([[/^(?=.* · ).+$/, m => m.split(' · ').map(p => t(p)).join(' · ')]]);

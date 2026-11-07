@@ -915,7 +915,7 @@
     return `<button class="tile${isSel ? ' sel' : ''}${lock ? ' locked' : ''}" data-id="${g.id}" style="--acc:${g.accent || 'var(--pink)'};--i:${i}">
       <span class="art"><span class="ic">${g.icon}</span>${g.party ? `<em class="bdg n">${IC.users}2–4</em>` : ''}${g.online || g.table ? `<em class="bdg on" title="Online">${IC.globe}</em>` : ''}${lock ? `<span class="lk">${IC.lock}</span>` : ''}</span>
       <span class="tx"><b>${g.name}</b><small>${g.short}</small><small class="pc">${g.party ? '2–4 Spieler' : '2 Spieler'}${g.noAI ? '' : ' · KI'}</small></span>
-      <span class="meta">${news && !lock ? '<em class="new">Neu</em>' : ''}</span></button>`;
+      <span class="meta">${paused(g) ? `<em class="maint">${paused(g) === 'off' ? 'Wartung' : 'Online: Wartung'}</em>` : news && !lock ? '<em class="new">Neu</em>' : ''}</span></button>`;
   }
 
   // ---------- game panel (desktop side panel and phone setup screen) ----------
@@ -1219,7 +1219,14 @@
     const finv = full && g.online && cloudOk && !dc && (cfg.mode === 'ai' || cfg.mode === 'local')
       ? `<button class="btn ghost gp-inv" id="finv" aria-label="Freund einladen" title="Freund einladen"><span>${IC.link}</span></button>` : '';
     const foot = `${act ? goBtn(act.id, act.ic, act.l) : ''}${finv}${tutBtn(full || !act || act.l.length > 12)}`;
-    const go = () => { if (act) act.fn(); };
+    const go = () => {
+      if (!act) return;
+      // maintenance or too old for online: say so before an invite or a table is made
+      const b = act.id === 'go' ? siteBlock(g, cfg.mode) : null;
+      if (b === 'update') return needUpdate();
+      if (b) { V.sfx.bad && V.sfx.bad(); return toast(b); }
+      act.fn();
+    };
     const wireFoot = el => {
       const a = act && el.querySelector('#' + act.id); if (a) a.onclick = go;
       el.querySelector('#tut').onclick = tut;
@@ -2191,6 +2198,7 @@
     noticeAt = Date.now();
     V.cloud.rpc('site_notice').then(n => {
       if (n && 'season' in n && V.season) V.season.fromSite(n.season);
+      applySite(n);
       const txt = n && (V.lang === 'en' && n.txt_en ? n.txt_en : n.txt), key = n && n.at;
       const old = document.querySelector('.upbar.note');
       if (old && old.dataset.k !== key) old.remove();
@@ -2202,6 +2210,38 @@
       document.body.appendChild(bar);
       bar.querySelector('.x').onclick = () => { S.set('noticeSeen', key); bar.classList.add('out'); setTimeout(() => bar.remove(), 250); };
     }, () => { noticeAt = 0; });
+  }
+  // The team's switches (admin panel → Seite): games under maintenance and the minimum version for online play.
+  // Kept on the device so the badges show right at the start; the server refuses new online games of a paused game anyway.
+  let site = S.get('site', {}) || {};
+  const ONLINE_MODES = ['online', 'open', 'table', 'tpub', 'voice'];
+  function applySite(n) {
+    if (!n || !('games' in n)) return;
+    const next = { games: n.games || {}, min_v: n.min_v || 0 };
+    if (JSON.stringify(next) === JSON.stringify(site)) return;
+    site = next; S.set('site', site);
+    const typing = document.activeElement && /INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName);
+    if (view === 'home' && !typing && !modalEl) home();
+  }
+  const paused = g => (site.games || {})[g.id] || '';
+  // null: go ahead; otherwise a message (or 'update' when this version is too old for online play)
+  function siteBlock(g, mode) {
+    const m = paused(g), on = ONLINE_MODES.includes(mode);
+    if (m === 'off') return g.name + ' ist gerade in Wartung. Bald geht es weiter.';
+    if (on && m === 'online') return g.name + ' ist online gerade in Wartung. Gegen die KI und zu zweit geht es weiter.';
+    if (on && site.min_v && V.VERSION && V.VERSION < site.min_v) return 'update';
+    return null;
+  }
+  function needUpdate() {
+    const m = openModal(`<div class="confirm"><span class="abig">${IC.sync}</span><h2>Update nötig</h2>
+      <p>Für Online-Partien brauchst du die neueste Version von Versus. Gegen die KI und zu zweit kannst du weiterspielen.</p>
+      <div class="actions"><button class="btn ghost" id="un"><span>Später</span></button><button class="btn primary" id="uy"><span>Jetzt aktualisieren</span></button></div></div>`);
+    m.querySelector('#un').onclick = closeModal;
+    m.querySelector('#uy').onclick = () => {
+      closeModal();
+      if (swWaiting) { wantReload = true; try { swWaiting.postMessage('skip'); } catch (e) { } return setTimeout(() => location.reload(), 1500); }
+      checkUpdate();
+    };
   }
   // a warning from the team: shown once, the player confirms it
   const WARN = {
@@ -2215,12 +2255,20 @@
       if (!list || !list.length) return;
       const show = () => {
         if (modalEl) return setTimeout(show, 3000);
-        const m = openModal(`<div class="confirm"><span class="abig bad">!</span><h2>Verwarnung vom Team</h2>
-          ${list.map(w => WARN[w.txt] ? `<p>${WARN[w.txt]}</p>` : `<p class="wtxt"></p>`).join('')}
-          <div class="actions"><button class="btn primary" id="wok"><span>Verstanden</span></button></div></div>`, '', () => V.cloud.rpc('warnings_seen').catch(() => { }));
+        // warnings and answers to the player's feedback come the same way; answers get a friendly look
+        const warns = list.filter(w => w.kind !== 'reply'), replies = list.filter(w => w.kind === 'reply');
+        const m = openModal(`<div class="confirm">${warns.length ? `<span class="abig bad">!</span><h2>Verwarnung vom Team</h2>
+          ${warns.map(w => WARN[w.txt] ? `<p>${WARN[w.txt]}</p>` : `<p class="wtxt"></p>`).join('')}` : `<span class="abig">${IC.chat}</span>`}
+          ${replies.length ? `<h2>${warns.length ? 'Und eine Antwort' : 'Antwort vom Team'}</h2>${replies.map(() => `<div class="treply"><p class="tref"></p><p class="ttxt"></p></div>`).join('')}` : ''}
+          <div class="actions"><button class="btn primary" id="wok"><span>${warns.length ? 'Verstanden' : 'Danke'}</span></button></div></div>`, '', () => V.cloud.rpc('warnings_seen').catch(() => { }));
         // own text from the team as plain text
-        const own = list.filter(w => !WARN[w.txt]);
+        const own = warns.filter(w => !WARN[w.txt]);
         m.querySelectorAll('.wtxt').forEach((p, i) => { p.textContent = own[i].txt; p.setAttribute('translate', 'no'); });
+        m.querySelectorAll('.treply').forEach((d, i) => {
+          const r = replies[i], ref = d.querySelector('.tref'), t = d.querySelector('.ttxt');
+          if (r.ref) { ref.textContent = '„' + r.ref + (r.ref.length >= 200 ? '…' : '') + '“'; ref.setAttribute('translate', 'no'); } else ref.remove();
+          t.textContent = r.txt + (r.by ? ' – ' + r.by : ''); t.setAttribute('translate', 'no');
+        });
         m.querySelector('#wok').onclick = closeModal;
       };
       show();
@@ -2305,6 +2353,8 @@
     // full-screen view outside the home tabs (admin panel)
     show(name, html) { destroyCurrent(); view = name; const v = mount(html); wireHeader(v); return v; },
     view: () => view, tab: () => homeTab, side: () => side.render(), cont: () => contRefresh(),
+    // the admin panel passes a fresh site state after switching a game or the minimum version
+    applySite: n => applySite(n),
     // for the games' editors in the rules view (js/games/slf.js, hangman.js, guess.js)
     multi: MULTI, topics: topicsPicker,
     // the account tab (js/account.js): series of the game of the day and the badges, both kept with the account
@@ -2318,7 +2368,7 @@
   Object.assign(P, {
     mount, locked, guest, toast, home, setup, openModal, closeModal, nav, tutorial, showKeys, optsPopup, toggleSound, rulesPopup,
     enterPlay(g) { destroyCurrent(); view = 'play'; lastGame = g; selected = g; document.querySelectorAll('.upbar:not(.note)').forEach(b => b.remove()); },
-    updateBar, daily, dailyDone, badgeCheck, totals,
+    updateBar, daily, dailyDone, badgeCheck, totals, siteBlock, needUpdate,
     setCurrent(c) { current = c; },
     modalOpen: () => !!modalEl,
     // closes the dialog without running its onClose callback

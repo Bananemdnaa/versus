@@ -66,6 +66,10 @@
     const dcTable = cfg.mode === 'table' && V.discord && V.discord.on;
     // 'review': a finished match from the history (Bilanz → Letzte Partien), replayed from its moves, nothing counts
     const review = cfg.mode === 'review', RV = cfg.rv || {};
+    // the team paused this game (or online play of it), or this version is too old for online play
+    const blocked = cfg.mode !== 'watch' && !review && P.siteBlock ? P.siteBlock(g, cfg.mode) : null;
+    if (blocked === 'update') return P.needUpdate();
+    if (blocked) { toast(blocked); return; }
     if (cfg.mode !== 'watch' && !review && !dcTable && (locked(g) || (guest() && (cfg.mode === 'table' || (['online', 'open'].includes(cfg.mode) && !session))))) { toast('Dafür brauchst du ein Konto'); return home('profile'); }
     P.enterPlay(g);
     const online = cfg.mode === 'online', watch = cfg.mode === 'watch', M = cfg.match || {};

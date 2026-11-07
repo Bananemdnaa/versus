@@ -14,7 +14,9 @@
     return `vor ${Math.round(s / 86400)} Tagen`;
   }
   const gameName = id => (id && V.byId[id] ? V.byId[id].name : id ? id : 'Menü');
-  const ROLE = { owner: 'Owner', admin: 'Admin' };
+  const ROLE = { owner: 'Owner', admin: 'Admin', mod: 'Moderator' };
+  // admins and the owner; moderators see the panel but only handle reports, feedback, warnings, hiding and short bans
+  const full = () => C().role() === 'owner' || C().role() === 'admin';
 
   // ---------- account tab ----------
   let mode = 'login', err = '', busyForm = false, openBox = null;
@@ -281,6 +283,18 @@
   let aTab = 'overview', mFilter = 'live', mQuery = '', matches = null, stats = null, online = null, players = null, logs = null, query = '', aErr = '', box = null, sure = null, liveT = null, busy = false, reports = null, rFilter = 'open';
   let pFilter = '', site = null, purge = null, fb = null, fFilter = 'open', dcs = null, pSel = '', pLim = 40;
   let dbugs = null, dbFilter = 'open', dbOpen = null; // bug reports from the dev panel (js/devtools.js)
+  let logF = { who: '', tgt: '', act: '' }, elo = {}; // log filter; Elo per player, loaded when the Elo box opens
+  const myName = () => (C().user() || {}).username || '';
+  // "taken over by": who on the team is on a report, feedback or dev bug, so two people don't do the same
+  function claimUi(kind, r) {
+    const me = myName();
+    return `${r.claim ? `<em class="rtag${r.claim === me ? ' mod' : ''}">bei ${esc(r.claim)}</em>` : ''}`;
+  }
+  function claimBtn(kind, r) {
+    const me = myName();
+    return r.claim === me ? `<button class="btn ghost sm" data-claim="${kind}:${r.id}:0"><span>Abgeben</span></button>`
+      : `<button class="btn ghost sm" data-claim="${kind}:${r.id}:1"><span>Übernehmen</span></button>`;
+  }
   // warning templates: the player sees them in their own language (js/lang/en.js has the English text)
   const WARN = {
     '@name': 'Dein Benutzername verstößt gegen die Regeln. Bitte ändere ihn, sonst wird das Konto gesperrt.',
@@ -295,7 +309,7 @@
     const v = V.ui.show('admin', `<div class="view admin">
       <div class="sbar"><button class="iconbtn" id="bk" aria-label="Zurück">${IC().back}</button><span class="crumb">Admin-Panel</span>
         ${C().role() ? `<em class="rtag ${C().role()}">${ROLE[C().role()]}</em>` : ''}<div class="aattn" id="aattn"></div></div>
-      <div class="chips" id="atabs">${[['overview', 'Übersicht'], ['matches', 'Partien'], ['players', 'Spieler'], ['reports', 'Meldungen'], ['feedback', 'Feedback'], ['devbugs', 'Dev-Bugs'], ['survey', 'Umfragen'], ['site', 'Seite'], ['log', 'Protokoll']].map(([k, l]) => `<button data-t="${k}" class="${aTab === k ? 'on' : ''}">${l}${k === 'reports' && reports && reports.open ? ` <small class="nb">${reports.open}</small>` : ''}${k === 'feedback' && fb && fb.open ? ` <small class="nb">${fb.open}</small>` : ''}${k === 'devbugs' && dbugs && dbugs.filter(r => !r.done).length ? ` <small class="nb">${dbugs.filter(r => !r.done).length}</small>` : ''}</button>`).join('')}</div>
+      <div class="chips" id="atabs">${[['overview', 'Übersicht'], ['matches', 'Partien'], ['players', 'Spieler'], ['reports', 'Meldungen'], ['feedback', 'Feedback'], ['devbugs', 'Dev-Bugs'], ['survey', 'Umfragen'], ['site', 'Seite'], ['log', 'Protokoll']].filter(([k]) => full() || (k !== 'survey' && k !== 'site')).map(([k, l]) => `<button data-t="${k}" class="${aTab === k ? 'on' : ''}">${l}${k === 'reports' && reports && reports.open ? ` <small class="nb">${reports.open}</small>` : ''}${k === 'feedback' && fb && fb.open ? ` <small class="nb">${fb.open}</small>` : ''}${k === 'devbugs' && dbugs && dbugs.filter(r => !r.done).length ? ` <small class="nb">${dbugs.filter(r => !r.done).length}</small>` : ''}</button>`).join('')}</div>
       <div id="abody" class="abody"></div></div>`);
     v.querySelector('#bk').onclick = () => { stopLive(); V.ui.home('profile'); };
     v.querySelectorAll('#atabs button').forEach(x => x.onclick = () => { aTab = x.dataset.t; aErr = ''; box = null; sure = null; V.sfx.ui(); v.querySelectorAll('#atabs button').forEach(y => y.classList.toggle('on', y === x)); draw(); load(); });
@@ -336,7 +350,7 @@
         const [s, o, d] = await Promise.all([C().rpc('admin_stats'), C().rpc('admin_online'), C().rpc('admin_discord').catch(() => null)]); stats = s; online = o || []; dcs = d;
       }
       if (aTab === 'players') players = await C().rpc('admin_players', { q: query, lim: pLim, f: pFilter });
-      if (aTab === 'log') logs = await C().rpc('admin_log_list', { lim: 80 });
+      if (aTab === 'log') logs = await C().rpc('admin_log_list', { lim: 80, who: logF.who, tgt: logF.tgt, act: logF.act });
       if (aTab === 'reports') reports = await C().rpc('admin_reports', { st: rFilter, lim: 80 });
       if (aTab === 'feedback') fb = await C().rpc('admin_feedback', { st: fFilter, lim: 80 });
       if (aTab === 'devbugs') dbugs = await C().rpc('dev_reports', { lim: 200 });
@@ -406,7 +420,8 @@
     const owner = C().role() === 'owner';
     const card = p => {
       const n = esc(p.username), st = p.stats || {};
-      const canEdit = owner || !p.role || p.me;
+      const canEdit = owner || !p.role || p.me || (C().role() === 'admin' && p.role === 'mod');
+      const F = full();
       const tags = [p.role ? `<em class="rtag ${p.role}">${ROLE[p.role]}</em>` : '', p.dev ? '<em class="rtag dev">Dev</em>' : '',
         p.guest ? '<em class="rtag">Gast</em>' : '', p.discord ? `<em class="rtag dc" title="Zuletzt in Discord ${when(p.discord)}">Discord</em>` : '', p.lang ? `<em class="rtag">${LANG[p.lang]}</em>` : '',
         p.hidden && !p.guest ? '<em class="rtag muted">Ausgeblendet</em>' : '', p.banned_until ? `<em class="rtag bad">Gesperrt bis ${day(p.banned_until)}</em>` : '',
@@ -423,6 +438,7 @@
       if (box === 'note:' + n) boxHtml = `<div class="abox"><textarea class="inp" id="note_t" maxlength="500" rows="3" placeholder="Private Notiz für das Team">${esc(p.note || '')}</textarea><button class="btn sm" data-a="note_save" data-n="${n}"><span>Speichern</span></button></div>`;
       if (box === 'warn:' + n) boxHtml = warnBox(n);
       if (box === 'ren:' + n) boxHtml = `<div class="abox"><input class="inp" id="ren_n" maxlength="16" value="${n}" autocapitalize="none" spellcheck="false"><button class="btn sm" data-a="ren_save" data-n="${n}"><span>Umbenennen</span></button></div>`;
+      if (box === 'elo:' + n) boxHtml = eloBox(p.username);
       return `<div class="pcard-a${online ? ' on' : ''}">
         <div class="pa-top"><span class="adot"></span><b>${n}</b>${tags}</div>
         <div class="pa-info">Dabei seit ${day(p.joined)} · ${online ? '<b class="good">online</b> · ' + esc(gameName(p.game)) : 'zuletzt ' + ago(p.seen)} · ${st.played || 0} Partien · KI ${st.ai_wins || 0}:${(st.ai_games || 0) - (st.ai_wins || 0)}${p.online_games != null ? ` · online ${p.online_wins || 0}:${p.online_losses || 0} · ${p.friends || 0} Freunde` : ''}${p.reports_made ? ` · ${p.reports_made} Meldungen abgeschickt` : ''}${p.invited_by ? ` · eingeladen von <button class="link" data-p="${esc(p.invited_by)}">${esc(p.invited_by)}</button>` : ''}</div>
@@ -431,19 +447,25 @@
         ${p.ban_reason ? `<div class="pa-note bad">Sperrgrund: ${esc(p.ban_reason)}</div>` : ''}
         ${p.note ? `<div class="pa-note">Notiz${p.note_by ? ' von ' + esc(p.note_by) : ''}: ${esc(p.note)}</div>` : ''}
         ${canEdit ? `<div class="arow wrap">
+          ${p.guest ? '' : `<button class="btn sm" data-prof="${n}"><span>${IC().user || ''}Profil</span></button>`}
+          <button class="btn ghost sm" data-games="${n}"><span>Partien</span></button>
           ${btn(p.hidden ? 'show' : 'hide', p.hidden ? 'Einblenden' : 'Ausblenden')}
           ${p.role === 'owner' || p.me ? '' : `<button class="btn ghost sm" data-box="warn:${n}"><span>Verwarnen …</span></button>`}
           ${p.banned_until ? btn('unban', 'Entsperren') : p.role === 'owner' || p.me ? '' : `<button class="btn ghost sm" data-box="ban:${n}"><span>Sperren …</span></button>`}
           <button class="btn ghost sm" data-box="note:${n}"><span>${p.note ? 'Notiz ändern' : 'Notiz'}</span></button>
-          <button class="btn ghost sm" data-box="ren:${n}"><span>Umbenennen</span></button>
-          ${p.me ? '' : confirmBtn('rn:', 'Name zurücksetzen', 'Neutralen Namen geben?', 'ren_reset')}
-          ${p.guest ? '' : confirmBtn('cm:', 'Spruch entfernen', 'Wirklich entfernen?', 'clr_motto')}
-          ${p.guest ? '' : confirmBtn('ca:', 'Abzeichen zurücksetzen', 'Wirklich zurücksetzen?', 'clr_awards')}
-          <button class="btn ghost sm" data-games="${n}"><span>Partien</span></button>
-          ${confirmBtn('reset:', 'Bilanz zurücksetzen', 'Wirklich alles auf 0?', 'reset')}
-          ${owner && !p.me && p.role !== 'owner' ? confirmBtn('adm:', p.role ? 'Admin entziehen' : 'Zum Admin machen', p.role ? 'Wirklich entziehen?' : 'Wirklich Admin?', p.role ? 'admin_off' : 'admin_on') : ''}
+          ${F ? `<button class="btn ghost sm" data-box="ren:${n}"><span>Umbenennen</span></button>` : ''}
+          ${F && !p.me ? confirmBtn('rn:', 'Name zurücksetzen', 'Neutralen Namen geben?', 'ren_reset') : ''}
+          ${F && !p.guest ? confirmBtn('cm:', 'Spruch entfernen', 'Wirklich entfernen?', 'clr_motto') : ''}
+          ${F && !p.guest ? confirmBtn('ca:', 'Abzeichen zurücksetzen', 'Wirklich zurücksetzen?', 'clr_awards') : ''}
+          ${F && !p.guest ? `<button class="btn ghost sm" data-box="elo:${n}"><span>Elo …</span></button>` : ''}
+          ${F ? confirmBtn('reset:', 'Bilanz zurücksetzen', 'Wirklich alles auf 0?', 'reset') : ''}
+          ${owner && !p.me && p.role !== 'owner' && p.role !== 'admin' ? confirmBtn('adm:', 'Zum Admin machen', 'Wirklich Admin?', 'admin_on') : ''}
+          ${owner && !p.me && p.role === 'admin' ? confirmBtn('adm:', 'Admin entziehen', 'Wirklich entziehen?', 'role_off') : ''}
+          ${F && !p.me && !p.guest && !p.role ? confirmBtn('mod:', 'Zum Moderator machen', 'Wirklich Moderator?', 'mod_on') : ''}
+          ${F && !p.me && p.role === 'mod' ? confirmBtn('mod:', 'Moderator entziehen', 'Wirklich entziehen?', 'role_off') : ''}
           ${owner ? confirmBtn('dev:', p.dev ? 'Dev aufheben' : 'Zum Dev-Konto', 'Wirklich?', p.dev ? 'dev_off' : 'dev_on') : ''}
-        </div>${boxHtml}` : '<div class="pa-info muted">Nur der Owner kann Admins bearbeiten.</div>'}
+        </div>${boxHtml}` : `<div class="arow wrap"><button class="btn sm" data-prof="${n}"><span>${IC().user || ''}Profil</span></button><button class="btn ghost sm" data-games="${n}"><span>Partien</span></button></div>
+          <div class="pa-info muted">Teammitglieder kann nur jemand mit mehr Rechten bearbeiten.</div>`}
       </div>`;
     };
     return `<div class="asearch"><input class="inp" id="aq" placeholder="Spieler suchen (Namensanfang)" value="${esc(query)}" autocapitalize="none" spellcheck="false"><button class="btn ghost sm" id="reload"><span>${IC().redo}</span></button></div>
@@ -483,10 +505,13 @@
         <div class="m-t"><b>${seats}</b>
           <small>${esc(gameName(t.game))} · Tisch ${esc(t.code)} · ${t.moves} Züge · ${when(t.finished_at || t.started_at || t.created_at)}</small>
           <span class="m-r">${t.status === 'live' ? '<em class="rtag live">Live</em> ' : ''}${ST[t.status] || esc(t.status)}${t.result && t.status === 'void' ? ' · ' + esc(t.result) : ''}</span></div>
-        <div class="m-a">${t.status !== 'void' && t.status !== 'canceled' ? (sure === 'vt:' + t.id ? `<button class="btn ghost sm danger" data-vtab="${t.id}"><span>Wirklich annullieren?</span></button>` : `<button class="btn ghost sm" data-sure="vt:${t.id}"><span>Annullieren</span></button>`) : ''}</div>
+        <div class="m-a">${full() && t.status === 'live' ? (t.seats || []).map((s, i) => !s || s === 'KI' ? ''
+          : sure === 'sai:' + t.id + ':' + (i + 1) ? `<button class="btn ghost sm danger" data-sai="${t.id}:${i + 1}"><span>KI für ${esc(s)}?</span></button>`
+          : `<button class="btn ghost sm" data-sure="sai:${t.id}:${i + 1}"><span>${IC().robot}${esc(s)}</span></button>`).join('') : ''}
+          ${full() && t.status !== 'void' && t.status !== 'canceled' ? (sure === 'vt:' + t.id ? `<button class="btn ghost sm danger" data-vtab="${t.id}"><span>Wirklich annullieren?</span></button>` : `<button class="btn ghost sm" data-sure="vt:${t.id}"><span>Annullieren</span></button>`) : ''}</div>
       </div>`;
     }).join('');
-    return `${filterBar()}<p class="fine">Online-Tische für 2 bis 4 Spieler (Ludo, Mau-Mau, Poker …). Laufende Tische aktualisieren sich alle 20 Sekunden.</p>
+    return `${filterBar()}<p class="fine">Online-Tische für 2 bis 4 Spieler (Ludo, Mau-Mau, Poker …). Laufende Tische aktualisieren sich alle 20 Sekunden.${full() ? ` Der Knopf mit ${IC().robot} und einem Namen lässt die KI diesen Platz übernehmen, wenn jemand hängt oder stört. Die anderen spielen weiter.` : ''}</p>
       ${matches ? rows || '<p class="muted">Keine Tische.</p>' : V.skel()}`;
   }
   function matchList() {
@@ -504,7 +529,7 @@
           <small>${esc(gameName(m.game))} · ${m.moves} Züge · ${when(m.finished_at || m.started_at || m.created_at)}${live ? ` · ${m.a_online ? '' : esc(m.a) + ' offline · '}${m.b_online ? '' : esc(m.b) + ' offline'}` : ''}</small>
           <span class="m-r">${live ? '<em class="rtag live">Live</em> ' : ''}${res}</span></div>
         <div class="m-a">${m.a_side ? `<button class="btn sm${live ? ' primary' : ''}" data-watch="${m.id}"><span>${live ? 'Zuschauen' : 'Abspielen'}</span></button>` : ''}
-          ${m.status === 'live' || m.status === 'done' ? (sure === 'void:' + m.id ? `<button class="btn ghost sm danger" data-void="${m.id}"><span>Wirklich annullieren?</span></button>` : `<button class="btn ghost sm" data-sure="void:${m.id}"><span>Annullieren</span></button>`) : ''}</div>
+          ${full() && (m.status === 'live' || m.status === 'done') ? (sure === 'void:' + m.id ? `<button class="btn ghost sm danger" data-void="${m.id}"><span>Wirklich annullieren?</span></button>` : `<button class="btn ghost sm" data-sure="void:${m.id}"><span>Annullieren</span></button>`) : ''}</div>
       </div>`;
     }).join('');
     return `${filterBar()}
@@ -513,11 +538,24 @@
   }
   function logList() {
     const L = { hide: 'ausgeblendet', show: 'eingeblendet', ban: 'gesperrt', unban: 'entsperrt', note: 'Notiz', rename: 'umbenannt', reset_stats: 'Bilanz zurückgesetzt', admin_on: 'zum Admin gemacht', admin_off: 'Admin entzogen', dev_on: 'Dev-Konto an', dev_off: 'Dev-Konto aus', void_match: 'Partie annulliert', report_done: 'Meldung erledigt', report_open: 'Meldung wieder offen',
-      warn: 'verwarnt', auto_hide: 'automatisch ausgeblendet', void_table: 'Tisch annulliert', notice: 'Ankündigung', notice_off: 'Ankündigung entfernt', site: 'Seiteneinstellungen', season: 'Saison-Look', purge_guests: 'Gäste aufgeräumt', survey: 'Umfrage' };
-    if (!logs) return V.skel();
-    if (!logs.length) return '<p class="muted">Noch keine Admin-Aktionen.</p>';
-    // a void_table target is a table code, not a player
-    return `<div class="apanel">${logs.map(l => `<div class="aline log"><small>${when(l.created_at)}</small><b>${esc(l.admin_name || '?')}</b><span>${esc(L[l.action] || l.action)} ${l.action === 'void_table' ? esc(l.target || '') : `<button class="link" data-p="${esc(l.target || '')}">${esc(l.target || '')}</button>`}${l.detail ? ' · ' + esc(WARN_L[l.detail] || l.detail) : ''}</span></div>`).join('')}</div>`;
+      warn: 'verwarnt', auto_hide: 'automatisch ausgeblendet', void_table: 'Tisch annulliert', notice: 'Ankündigung', notice_off: 'Ankündigung entfernt', site: 'Seiteneinstellungen', season: 'Saison-Look', purge_guests: 'Gäste aufgeräumt', survey: 'Umfrage',
+      mod_on: 'zum Moderator gemacht', mod_off: 'Moderator entzogen', game: 'Spiel-Wartung', min_version: 'Mindestversion', fb_reply: 'Feedback beantwortet', elo_reset: 'Elo zurückgesetzt', seat_ai: 'KI übernimmt Platz von' };
+    // undo: the opposite action, through the normal functions (so the same rights apply)
+    const UNDO = { hide: 'show', show: 'hide', auto_hide: 'show', ban: 'unban', mod_on: 'role_off', mod_off: 'mod_on' };
+    const bar = `<div class="asearch"><div class="chips mini" id="lf">${[['', 'Alle'], ['mod', 'Moderation'], ['play', 'Partien'], ['team', 'Team'], ['site', 'Seite']].map(([k, l]) => `<button data-lf="${k}" class="${logF.act === k ? 'on' : ''}">${l}</button>`).join('')}</div>
+      <input class="inp" id="lq" placeholder="Spieler" value="${esc(logF.tgt)}" autocapitalize="none" spellcheck="false"><button class="btn ghost sm" id="reload"><span>${IC().redo}</span></button></div>
+      ${logF.who ? `<div class="arow"><button class="btn ghost sm" data-lw=""><span>${IC().x}Nur von ${esc(logF.who)}</span></button></div>` : ''}
+      <p class="fine">Tipp auf ein Teammitglied, um nur seine Aktionen zu sehen.</p>`;
+    if (!logs) return bar + V.skel();
+    if (!logs.length) return bar + '<p class="muted">Keine passenden Admin-Aktionen.</p>';
+    // a void_table target is a table code, not a player; site actions have no target
+    const tgt = l => !l.target ? '' : l.action === 'void_table' ? esc(l.target) : `<button class="link" data-p="${esc(l.target)}">${esc(l.target)}</button>`;
+    const undo = l => {
+      const u = UNDO[l.action]; if (!u || !l.target || l.id == null || (l.action.startsWith('mod') && !full())) return '';
+      return sure === 'undo:' + l.id ? `<button class="btn ghost sm danger" data-a="${u}" data-n="${esc(l.target)}"><span>Wirklich rückgängig?</span></button>`
+        : `<button class="btn ghost sm" data-sure="undo:${l.id}"><span>${IC().undo}Rückgängig</span></button>`;
+    };
+    return bar + `<div class="apanel">${logs.map(l => `<div class="aline log"><small>${when(l.created_at)}</small><button class="link" data-lw="${esc(l.admin_name || '')}"><b>${esc(l.admin_name || '?')}</b></button><span>${esc(L[l.action] || l.action)} ${tgt(l)}${l.detail ? ' · ' + esc(WARN_L[l.detail] || l.detail) : ''}</span>${undo(l)}</div>`).join('')}</div>`;
   }
   function warnBox(n, rid) {
     return `<div class="abox"><div class="arow">${Object.keys(WARN).map(k => `<button class="btn sm" data-warn="${k}" data-n="${n}"${rid ? ` data-rid="${rid}"` : ''}><span>${WARN_L[k]}</span></button>`).join('')}</div>
@@ -525,9 +563,21 @@
       <input class="inp" id="warn_t" maxlength="300" placeholder="Eigener Text">
       <button class="btn sm" data-warn="" data-n="${n}"${rid ? ` data-rid="${rid}"` : ''}><span>Verwarnen</span></button></div>`;
   }
+  // Elo per game; a reset puts the player back to 1000 (after cheating or games lost on purpose)
+  function eloBox(name) {
+    const n = esc(name), list = elo[name];
+    if (list === undefined) { elo[name] = null; C().rpc('admin_elo', { name }).then(l => { elo[name] = l || []; draw(); }, e => { elo[name] = []; aErr = e.message; draw(); }); }
+    if (!list) return `<div class="abox">${V.skel()}</div>`;
+    if (!list.length) return '<div class="abox"><p class="muted">Noch keine gewerteten Online-Partien.</p></div>';
+    const rb = (g, l) => sure === 'elo:' + name + ':' + g ? `<button class="btn ghost sm danger" data-elo="${esc(g)}" data-n="${n}"><span>Wirklich auf 1000?</span></button>`
+      : `<button class="btn ghost sm" data-sure="elo:${n}:${esc(g)}"><span>${l}</span></button>`;
+    return `<div class="abox">${list.map(r => `<div class="aline"><span>${esc(gameName(r.game))}</span><b>${r.elo}</b><small>${r.games} Partien · Bestwert ${r.peak}</small>${rb(r.game, 'Zurücksetzen')}</div>`).join('')}
+      <div class="arow">${rb('', 'Alle zurücksetzen')}</div>
+      <p class="fine">Zurückgesetzt fängt der Spieler in diesem Spiel wieder bei 1000 an. Partien und Bilanz bleiben.</p></div>`;
+  }
   function banBox(n, rid) {
     return `<div class="abox"><input class="inp" id="ban_r" maxlength="200" placeholder="Grund (optional, nur für Admins sichtbar)">
-      <div class="arow">${[[1, '1 Tag'], [7, '7 Tage'], [30, '30 Tage'], [0, 'Dauerhaft']].map(([d, l]) => `<button class="btn sm danger" data-ban="${d}" data-n="${n}"${rid ? ` data-rid="${rid}"` : ''}><span>${l}</span></button>`).join('')}</div></div>`;
+      <div class="arow">${[[1, '1 Tag'], [7, '7 Tage'], [30, '30 Tage'], [0, 'Dauerhaft']].filter(([d]) => full() || (d && d <= 7)).map(([d, l]) => `<button class="btn sm danger" data-ban="${d}" data-n="${n}"${rid ? ` data-rid="${rid}"` : ''}><span>${l}</span></button>`).join('')}</div></div>`;
   }
   // site settings: announcement for everyone, emergency switches for a spam wave after a public post, guest clean-up
   function sitePage() {
@@ -549,6 +599,17 @@
         <h4>Automatisch ausblenden</h4>
         <p class="fine">Melden so viele verschiedene Spieler jemanden innerhalb von 24 Stunden, kommt das Konto aus Ranglisten und Suche, bis ihr es euch anseht.</p>
         <div class="chips mini" id="ah">${[[0, 'Aus'], [2, 'Ab 2'], [3, 'Ab 3'], [5, 'Ab 5']].map(([k, l]) => `<button data-ah="${k}" class="${(s.auto_hide ?? 3) === k ? 'on' : ''}">${l}</button>`).join('')}</div></div>
+      <div class="apanel"><h3>Spiele in Wartung</h3>
+        <p class="fine">Hat ein Spiel einen Fehler, pausiert ihr nur dieses Spiel. „Online“ stoppt neue Online-Partien und Tische, gegen die KI und zu zweit geht es weiter. „Ganz“ sperrt das Spiel überall. Laufende Partien spielen zu Ende.</p>
+        ${Object.keys(s.games || {}).length ? Object.entries(s.games).map(([g, m]) => `<div class="aline"><span>${esc(gameName(g))}</span><em class="rtag${m === 'off' ? ' bad' : ''}">${m === 'off' ? 'ganz pausiert' : 'online pausiert'}</em><button class="btn ghost sm" data-gm="${esc(g)}" data-m=""${busy ? ' disabled' : ''}><span>Wieder an</span></button></div>`).join('') : '<p class="muted">Alle Spiele laufen.</p>'}
+        <div class="arow wrap"><select class="inp" id="g_pick" aria-label="Spiel">${V.games.filter(g => !(s.games || {})[g.id]).map(g => `<option value="${g.id}">${esc(g.name)}</option>`).join('')}</select>
+          <button class="btn ghost sm" data-gm="" data-m="online"${busy ? ' disabled' : ''}><span>Online pausieren</span></button>
+          <button class="btn ghost sm danger" data-gm="" data-m="off"${busy ? ' disabled' : ''}><span>Ganz pausieren</span></button></div></div>
+      <div class="apanel"><h3>Mindestversion</h3>
+        <p class="fine">Wer eine ältere Version hat, kann erst nach dem Update wieder online spielen. So treffen in einer Partie keine zwei Versionen aufeinander. Gegen die KI und zu zweit geht es auch mit der alten Version. Ganz alte Versionen, die diesen Schalter noch nicht kennen, merken davon nichts.</p>
+        <p>${s.min_v ? `Gerade: online erst ab Version <b>${s.min_v}</b>.` : 'Gerade aus: jede Version darf online spielen.'} Deine Version: <b>${V.VERSION || '?'}</b></p>
+        <div class="arow wrap">${s.min_v !== V.VERSION ? (sure === 'minv' ? `<button class="btn sm danger" data-minv="${V.VERSION}"><span>Wirklich ab ${V.VERSION}?</span></button>` : `<button class="btn ghost sm" data-sure="minv"><span>Auf ${V.VERSION} setzen</span></button>`) : ''}
+          ${s.min_v ? `<button class="btn ghost sm" data-minv="0"${busy ? ' disabled' : ''}><span>Ausschalten</span></button>` : ''}</div></div>
       <div class="apanel"><h3>Saison-Look</h3>
         <p class="fine">Deko für die ganze App, für alle Spieler. Wer sie nicht mag, schaltet sie in den Optionen für sich aus. Nur ihr legt fest, welcher Look läuft.</p>
         <div class="chips mini" id="ss">${[['', 'Keiner'], ['halloween', 'Halloween'], ['winter', 'Weihnachten']].map(([k, l]) => `<button data-ss="${k}" class="${(s.season || '') === k ? 'on' : ''}">${l}</button>`).join('')}</div></div>
@@ -561,10 +622,11 @@
   function reportList() {
     const WHY = { name: 'Beleidigender Name', abuse: 'Beleidigung oder Spam', cheat: 'Schummeln oder Abbrechen', other: 'Etwas anderes' };
     const rows = ((reports && reports.list) || []).map(r => `<div class="mrow rep${r.status === 'open' ? ' live' : ''}">
-        <div class="m-t"><b><button class="link" data-p="${esc(r.target)}">${esc(r.target)}</button> <em class="rtag${r.status === 'open' ? ' bad' : ''}">${esc(WHY[r.reason] || r.reason)}</em>${r.count > 1 ? ` <em class="rtag">${r.count}× gemeldet</em>` : ''}${r.banned ? ' <em class="rtag bad">gesperrt</em>' : ''}</b>
+        <div class="m-t"><b><button class="link" data-p="${esc(r.target)}">${esc(r.target)}</button> <em class="rtag${r.status === 'open' ? ' bad' : ''}">${esc(WHY[r.reason] || r.reason)}</em>${r.count > 1 ? ` <em class="rtag">${r.count}× gemeldet</em>` : ''}${r.banned ? ' <em class="rtag bad">gesperrt</em>' : ''} ${r.status === 'open' ? claimUi('report', r) : ''}</b>
           <small>von ${r.reporter ? `<button class="link" data-p="${esc(r.reporter)}">${esc(r.reporter)}</button>` : '?'} · ${when(r.at)}${r.game ? ' · ' + esc(gameName(r.game)) : ''}${r.status === 'done' ? ' · erledigt' + (r.by ? ' von ' + esc(r.by) : '') : ''}</small>
           ${r.note ? `<span class="m-r">„${esc(r.note)}“</span>` : ''}</div>
         <div class="m-a">${r.match ? `<button class="btn sm" data-watch="${r.match}"><span>Partie</span></button>` : ''}
+          ${r.status === 'open' ? claimBtn('report', r) : ''}
           ${r.status === 'open' ? `<button class="btn ghost sm" data-box="rw:${r.id}"><span>Verwarnen …</span></button>${r.banned ? '' : `<button class="btn ghost sm" data-box="rb:${r.id}"><span>Sperren …</span></button>`}` : ''}
           <button class="btn ghost sm" data-rdone="${r.id}" data-v="${r.status === 'open' ? 1 : 0}"><span>${r.status === 'open' ? 'Erledigt' : 'Wieder öffnen'}</span></button></div>
         ${box === 'rw:' + r.id ? warnBox(esc(r.target), r.id) : box === 'rb:' + r.id ? banBox(esc(r.target), r.id) : ''}</div>`).join('');
@@ -579,10 +641,16 @@
       const mt = f.meta || {};
       const info = [mt.v ? 'v' + esc(mt.v) : '', mt.lang ? esc(mt.lang.toUpperCase()) : '', mt.dev === 'touch' ? 'Handy' : mt.dev ? 'Computer' : '', mt.mode === 'app' ? 'App' : '', mt.discord ? 'Discord' : ''].filter(Boolean).join(' · ');
       return `<div class="mrow rep${f.status === 'open' ? ' live' : ''}">
-        <div class="m-t"><b><em class="rtag${f.kind === 'bug' ? ' bad' : ''}">${KIND[f.kind] || esc(f.kind)}</em>${f.game ? ' ' + esc(gameName(f.game)) : ''}</b>
+        <div class="m-t"><b><em class="rtag${f.kind === 'bug' ? ' bad' : ''}">${KIND[f.kind] || esc(f.kind)}</em>${f.game ? ' ' + esc(gameName(f.game)) : ''} ${f.status === 'open' ? claimUi('feedback', f) : ''}</b>
           <small>${f.name ? `<button class="link" data-p="${esc(f.name)}">${esc(f.name)}</button>${f.guest ? ' (Gast)' : ''}` : 'ohne Konto'} · ${when(f.at)}${info ? ' · ' + info : ''}${f.status === 'done' ? ' · erledigt' + (f.by ? ' von ' + esc(f.by) : '') : ''}</small>
-          <span class="m-r fbtxt">${esc(f.txt)}</span></div>
-        <div class="m-a"><button class="btn ghost sm" data-fdone="${f.id}" data-v="${f.status === 'open' ? 1 : 0}"><span>${f.status === 'open' ? 'Erledigt' : 'Wieder öffnen'}</span></button></div></div>`;
+          <span class="m-r fbtxt">${esc(f.txt)}</span>
+          ${f.reply ? `<span class="pa-note fbreply">Antwort${f.reply_by ? ' von ' + esc(f.reply_by) : ''}${f.reply_at ? ' · ' + when(f.reply_at) : ''}: ${esc(f.reply)}</span>` : ''}</div>
+        <div class="m-a">${f.status === 'open' ? claimBtn('feedback', f) : ''}
+          ${f.uid ? `<button class="btn ghost sm" data-box="fr:${f.id}"><span>${IC().chat}${f.reply ? 'Nochmal antworten' : 'Antworten …'}</span></button>` : ''}
+          <button class="btn ghost sm" data-fdone="${f.id}" data-v="${f.status === 'open' ? 1 : 0}"><span>${f.status === 'open' ? 'Erledigt' : 'Wieder öffnen'}</span></button></div>
+        ${box === 'fr:' + f.id ? `<div class="abox"><textarea class="inp" id="fr_t" maxlength="500" rows="3" placeholder="Antwort an ${esc(f.name || 'den Spieler')}"></textarea>
+          <p class="fine">Kommt beim nächsten Öffnen als Nachricht vom Team, mit seinem Feedback darüber. Wird nicht übersetzt. Das Feedback gilt danach als erledigt.</p>
+          <button class="btn sm primary" data-freply="${f.id}"${busy ? ' disabled' : ''}><span>Antwort senden</span></button></div>` : ''}</div>`;
     }).join('');
     return `<div class="asearch"><div class="chips mini" id="ff">${[['open', 'Offen'], ['all', 'Alle']].map(([k, l]) => `<button data-ff="${k}" class="${fFilter === k ? 'on' : ''}">${l}</button>`).join('')}</div><button class="btn ghost sm" id="reload"><span>${IC().redo}</span></button></div>
       <p class="fine">Kommt über „Feedback senden“ auf der Startseite und in den Optionen. Version und Gerät helfen beim Nachstellen von Fehlern.</p>
@@ -592,10 +660,10 @@
   function devBugList() {
     const list = (dbugs || []).filter(r => dbFilter === 'all' || !r.done);
     const rows = list.map(r => `<div class="mrow rep${r.done ? '' : ' live'}">
-        <div class="m-t"><b><em class="rtag bad">Bug</em>${r.game ? ' ' + esc(gameName(r.game)) : ''}</b>
+        <div class="m-t"><b><em class="rtag bad">Bug</em>${r.game ? ' ' + esc(gameName(r.game)) : ''} ${r.done ? '' : claimUi('devbug', r)}</b>
           <small><button class="link" data-p="${esc(r.name || '')}">${esc(r.name || '?')}</button> · ${when(r.at)} · v${esc(r.v || '?')}${r.errs ? ` · <span>${r.errs} Fehler</span>` : ''}${r.done ? ' · erledigt' + (r.by ? ' von ' + esc(r.by) : '') : ''}</small>
           <span class="m-r fbtxt">${esc(r.txt)}</span></div>
-        <div class="m-a"><button class="btn ghost sm" data-dbs="${r.id}"><span>${dbOpen && dbOpen.id === r.id ? 'Schnappschuss zu' : 'Schnappschuss'}</span></button>
+        <div class="m-a">${r.done ? '' : claimBtn('devbug', r)}<button class="btn ghost sm" data-dbs="${r.id}"><span>${dbOpen && dbOpen.id === r.id ? 'Schnappschuss zu' : 'Schnappschuss'}</span></button>
           <button class="btn ghost sm" data-dbd="${r.id}" data-v="${r.done ? 0 : 1}"><span>${r.done ? 'Wieder öffnen' : 'Erledigt'}</span></button></div>
         ${dbOpen && dbOpen.id === r.id ? `<div style="flex-basis:100%"><button class="btn ghost sm" data-dbc="${r.id}"><span>Kopieren</span></button><pre translate="no" style="white-space:pre-wrap;word-break:break-word;font:11px/1.35 ui-monospace,Menlo,Consolas,monospace;max-height:50vh;overflow:auto;margin:6px 0 0">${esc(JSON.stringify(dbOpen.snap, null, 1))}</pre></div>` : ''}</div>`).join('');
     return `<div class="asearch"><div class="chips mini" id="dbf">${[['open', 'Offen'], ['all', 'Alle']].map(([k, l]) => `<button data-dbf="${k}" class="${dbFilter === k ? 'on' : ''}">${l}</button>`).join('')}</div><button class="btn ghost sm" id="reload"><span>${IC().redo}</span></button></div>
@@ -651,6 +719,29 @@
     const pm = h.querySelector('#pmore'); if (pm) pm.onclick = () => { pLim = Math.min(100, pLim + 40); V.sfx.ui(); pm.classList.add('busy'); load(); };
     h.querySelectorAll('[data-t2]').forEach(x => x.onclick = () => { aTab = x.dataset.t2; V.sfx.ui(); admin(); });
     h.querySelectorAll('[data-vtab]').forEach(x => x.onclick = () => act('admin_void_table', { tid: x.dataset.vtab, why: null }, 'Tisch annulliert.'));
+    h.querySelectorAll('[data-sai]').forEach(x => x.onclick = () => { const [tid, s] = x.dataset.sai.split(':'); act('admin_seat_ai', { tid, s: +s }, 'Die KI spielt jetzt auf diesem Platz.'); });
+    // the player's public profile (as the player sees it, plus what only the team sees in it)
+    h.querySelectorAll('[data-prof]').forEach(x => x.onclick = () => { V.sfx.ui(); V.online.profile(x.dataset.prof); });
+    h.querySelectorAll('[data-elo]').forEach(x => x.onclick = () => { const n = x.dataset.n; act2(() => C().rpc('admin_elo_reset', { name: n, g: x.dataset.elo }).then(() => { delete elo[n]; }), x.dataset.elo ? 'Elo in ' + gameName(x.dataset.elo) + ' ist zurückgesetzt.' : 'Elo in allen Spielen ist zurückgesetzt.').then(() => { box = 'elo:' + n; draw(true); }); });
+    h.querySelectorAll('[data-claim]').forEach(x => x.onclick = () => { const [kind, id, take] = x.dataset.claim.split(':'); act('admin_claim', { kind, rid: +id, take: take === '1' }, take === '1' ? 'Übernommen.' : 'Abgegeben.'); });
+    h.querySelectorAll('[data-freply]').forEach(x => x.onclick = () => {
+      const t = (h.querySelector('#fr_t') || {}).value || '';
+      if (!t.trim()) return V.ui.toast('Schreib eine Antwort.');
+      act('admin_feedback_reply', { fid: +x.dataset.freply, txt: t }, 'Antwort ist unterwegs. Sie erscheint beim nächsten Öffnen.');
+    });
+    // log filter
+    h.querySelectorAll('[data-lf]').forEach(x => x.onclick = () => { logF.act = x.dataset.lf; logs = null; V.sfx.ui(); draw(); load(); });
+    h.querySelectorAll('[data-lw]').forEach(x => x.onclick = () => { logF.who = logF.who === x.dataset.lw ? '' : x.dataset.lw; logs = null; V.sfx.ui(); draw(); load(); });
+    const lq = h.querySelector('#lq');
+    if (lq) { lq.onchange = () => { logF.tgt = lq.value.trim().toLowerCase(); logs = null; load(); }; lq.onkeydown = e => { if (e.key === 'Enter') lq.blur(); }; }
+    // games under maintenance and the minimum version: the app picks the change up right away too
+    const siteNow = () => C().rpc('site_notice').then(n => V.ui.applySite && V.ui.applySite(n), () => { });
+    h.querySelectorAll('[data-gm]').forEach(x => x.onclick = () => {
+      const g = x.dataset.gm || (h.querySelector('#g_pick') || {}).value, m = x.dataset.m;
+      if (!g) return;
+      act2(() => C().rpc('admin_set_game', { g, mode: m }).then(siteNow), gameName(g) + (m === 'off' ? ' ist pausiert.' : m === 'online' ? ' ist online pausiert.' : ' läuft wieder.'));
+    });
+    h.querySelectorAll('[data-minv]').forEach(x => x.onclick = () => { const v = +x.dataset.minv; act2(() => C().rpc('admin_set_min_version', { v }).then(siteNow), v ? 'Online geht jetzt erst ab Version ' + v + '.' : 'Mindestversion ist aus.'); });
     // site page
     const nv = id => (h.querySelector(id) || {}).value || '';
     const ns = h.querySelector('#n_save');
@@ -674,8 +765,9 @@
         show: () => act('admin_set_hidden', { name: n, hide: false }, n + ' ist wieder sichtbar.'),
         unban: () => act('admin_unban', { name: n }, n + ' ist entsperrt.'),
         reset: () => act('admin_reset_stats', { name: n }, 'Bilanz von ' + n + ' ist zurückgesetzt.'),
-        admin_on: () => act('admin_set_admin', { name: n, make: true }, n + ' ist jetzt Admin.'),
-        admin_off: () => act('admin_set_admin', { name: n, make: false }, n + ' ist kein Admin mehr.'),
+        admin_on: () => act('admin_set_role', { name: n, r: 'admin' }, n + ' ist jetzt Admin.'),
+        mod_on: () => act('admin_set_role', { name: n, r: 'mod' }, n + ' ist jetzt Moderator.'),
+        role_off: () => act('admin_set_role', { name: n, r: null }, n + ' ist nicht mehr im Team.'),
         dev_on: () => act('admin_set_dev', { name: n, make: true }, n + ' ist jetzt ein Dev-Konto.'),
         dev_off: () => act('admin_set_dev', { name: n, make: false }, n + ' ist kein Dev-Konto mehr.'),
         note_save: () => act('admin_set_note', { name: n, txt: h.querySelector('#note_t').value }, 'Notiz gespeichert.'),
