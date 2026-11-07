@@ -32,9 +32,15 @@ async function makeTicket(d: { id: string, name: string }) {
   const body = b64(enc.encode(JSON.stringify({ id: d.id, name: d.name, exp: Date.now() + 15 * 60000 })));
   return body + '.' + await hmac(body);
 }
+// compares two signatures in constant time (no early exit that would tell how many characters were right)
+function same(a: string, b: string) {
+  if (a.length !== b.length) return false;
+  let d = 0; for (let i = 0; i < a.length; i++) d |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  return d === 0;
+}
 async function readTicket(t: string) {
   const [body, sig] = String(t).split('.');
-  if (!body || !sig || sig !== await hmac(body)) throw new Fail('Die Anmeldung über Discord ist abgelaufen. Versuch es nochmal.', 401);
+  if (!body || !sig || !same(sig, await hmac(body))) throw new Fail('Die Anmeldung über Discord ist abgelaufen. Versuch es nochmal.', 401);
   const d = JSON.parse(new TextDecoder().decode(Uint8Array.from(atob(body.replace(/-/g, '+').replace(/_/g, '/')), c => c.charCodeAt(0))));
   if (!d.id || d.exp < Date.now()) throw new Fail('Die Anmeldung über Discord ist abgelaufen. Versuch es nochmal.', 401);
   return { id: String(d.id), name: String(d.name || '') };

@@ -88,8 +88,12 @@ changed = sorted(set(committed) | set(open_files))
 new_migs = [f for f in changed if f.startswith('supabase/migrations/') and f.endswith('.sql')]
 for f in new_migs: infos.append(f'Migration im Bündel: {f} (führst du selbst aus; vor dem Push, wenn der Client sie braucht)')
 if any(f.startswith('itch/') for f in changed): warns.append('itch/ geändert: versus-itch.zip neu bauen und hochladen')
-if have_base and git('diff', rng, '--', 'sw.js').find('versus-v') >= 0:
-    infos.append('Version wurde in diesem Bündel schon erhöht: bump.ps1 nicht nochmal')
+# the version must be above the live one (origin/main), whatever happened to sw.js in between (merges of other bundles)
+if have_base and ver:
+    mb = re.search(r'V\.VERSION = (\d+)', git('show', f'{base}:index.html'))
+    live = int(mb.group(1)) if mb else 0
+    if int(ver) > live: infos.append(f'Version {ver} liegt schon über der Live-Version {live}: bump.ps1 nicht nochmal')
+    else: infos.append(f'Version {ver} ist noch die Live-Version {live}: vor dem Push bump.ps1 ausführen')
 if open_files:
     warns.append('Nicht committet (gehört das zum Bündel oder zu einer anderen Session?): ' + ', '.join(open_files))
 

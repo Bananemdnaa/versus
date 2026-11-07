@@ -57,7 +57,9 @@
   const RHY = [[0, 3, 6, 10, 12], [0, 4, 6, 8, 14], [2, 6, 8, 11], [0, 2, 4, 7, 10, 12], [0, 6, 8, 12, 14]];
   const BARS = 32;
 
-  let ac = null, bus = null, delay = null, noise = null;
+  // bus: the master volume (fades); out/delay: the lane of the piece that plays now. Every piece gets its own lane,
+  // and a piece that ends is cut off with its lane, so its long pad chords and echo never sound into the next one.
+  let ac = null, bus = null, out = null, delay = null, noise = null;
   let cur = null, want = null, timer = 0, step = 0, bar = 0, nextT = 0, arp = ARPS[0], switching = false;
   let piece = 0, T = null, motif = null;
   const lastPiece = {};
@@ -71,13 +73,24 @@
     comp.threshold.value = -18; comp.ratio.value = 4;
     bus = ac.createGain(); bus.gain.value = 0;
     bus.connect(comp).connect(ac.destination);
-    // a soft echo for the arpeggio and the melody
-    delay = ac.createDelay(1); const fb = ac.createGain(), tone = ac.createBiquadFilter(), wet = ac.createGain();
-    fb.gain.value = 0.32; tone.type = 'lowpass'; tone.frequency.value = 2200; wet.gain.value = 0.35;
-    delay.connect(tone).connect(fb).connect(delay); tone.connect(wet).connect(bus);
     const len = ac.sampleRate * 0.5; noise = ac.createBuffer(1, len, ac.sampleRate);
     const d = noise.getChannelData(0); for (let i = 0; i < len; i++) d[i] = Math.random() * 2 - 1;
     return true;
+  }
+
+  // a new lane for a piece: its own gain into the bus, with a soft echo for the arpeggio and the melody
+  function newLane() {
+    cutLane();
+    out = ac.createGain(); out.connect(bus);
+    delay = ac.createDelay(1); const fb = ac.createGain(), tone = ac.createBiquadFilter(), wet = ac.createGain();
+    fb.gain.value = 0.32; tone.type = 'lowpass'; tone.frequency.value = 2200; wet.gain.value = 0.35;
+    delay.connect(tone).connect(fb).connect(delay); tone.connect(wet).connect(out);
+  }
+  // everything of the old piece goes silent at once (scheduled notes keep running into nothing until they stop)
+  function cutLane() {
+    if (!out) return;
+    const o = out; out = null; delay = null;
+    try { o.gain.cancelScheduledValues(ac.currentTime); o.gain.setValueAtTime(0, ac.currentTime); o.disconnect(); } catch (e) { }
   }
 
   // ---------- instruments ----------
@@ -88,7 +101,7 @@
   function pad(t, notes, dur, cutoff, wave = 'sawtooth') {
     const f = ac.createBiquadFilter(); f.type = 'lowpass'; f.frequency.setValueAtTime(cutoff * 0.5, t); f.frequency.linearRampToValueAtTime(cutoff, t + dur * 0.5); f.frequency.linearRampToValueAtTime(cutoff * 0.6, t + dur);
     const g = ac.createGain(); env(g, t, 0.35, wave === 'sawtooth' ? 0.05 : 0.08, dur - 0.5, 0.6);
-    f.connect(g).connect(bus);
+    f.connect(g).connect(out);
     notes.forEach(n => [-6, 6].forEach(cents => {
       const o = ac.createOscillator(); o.type = wave; o.frequency.value = midi(n); o.detune.value = cents;
       o.connect(f); o.start(t); o.stop(t + dur + 0.7);
@@ -99,13 +112,13 @@
     o.type = 'sawtooth'; o.frequency.value = midi(n);
     f.type = 'lowpass'; f.Q.value = 6; f.frequency.setValueAtTime(cutoff * 0.55, t); f.frequency.exponentialRampToValueAtTime(220, t + dur);
     env(g, t, 0.008, 0.16, dur * 0.4, dur * 0.6);
-    o.connect(f).connect(g).connect(bus); o.start(t); o.stop(t + dur + 0.05);
+    o.connect(f).connect(g).connect(out); o.start(t); o.stop(t + dur + 0.05);
   }
   function pluck(t, n, wave, vol) {
     const o = ac.createOscillator(), g = ac.createGain();
     o.type = wave; o.frequency.value = midi(n);
     env(g, t, 0.005, vol, 0.02, 0.22);
-    o.connect(g); g.connect(bus); g.connect(delay); o.start(t); o.stop(t + 0.3);
+    o.connect(g); g.connect(out); g.connect(delay); o.start(t); o.stop(t + 0.3);
   }
   // the melody voice: a little glide into the note and a soft vibrato, through the echo
   function lead(t, n, dur, wave) {
@@ -115,7 +128,7 @@
     const soft = wave === 'sine' || wave === 'triangle';
     f.type = 'lowpass'; f.frequency.value = soft ? 4000 : 2400;
     env(g, t, 0.012, soft ? 0.07 : 0.035, dur * 0.5, dur * 0.6);
-    o.connect(f).connect(g); g.connect(bus); g.connect(delay);
+    o.connect(f).connect(g); g.connect(out); g.connect(delay);
     o.start(t); lfo.start(t); o.stop(t + dur * 1.2); lfo.stop(t + dur * 1.2);
   }
   // a glassy bell (two sines, the upper one inharmonic) with a long tail
@@ -124,26 +137,26 @@
       const o = ac.createOscillator(), g = ac.createGain();
       o.type = 'sine'; o.frequency.value = midi(n) * r;
       g.gain.setValueAtTime(v, t); g.gain.exponentialRampToValueAtTime(0.0001, t + 2.2);
-      o.connect(g); g.connect(bus); g.connect(delay); o.start(t); o.stop(t + 2.3);
+      o.connect(g); g.connect(out); g.connect(delay); o.start(t); o.stop(t + 2.3);
     });
   }
   function tom(t, f0, vol) {
     const o = ac.createOscillator(), g = ac.createGain();
     o.frequency.setValueAtTime(f0, t); o.frequency.exponentialRampToValueAtTime(f0 * 0.55, t + 0.18);
     g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.22);
-    o.connect(g).connect(bus); o.start(t); o.stop(t + 0.24);
+    o.connect(g).connect(out); o.start(t); o.stop(t + 0.24);
   }
   function kick(t, vol) {
     const o = ac.createOscillator(), g = ac.createGain();
     o.frequency.setValueAtTime(150, t); o.frequency.exponentialRampToValueAtTime(42, t + 0.12);
     g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.32);
-    o.connect(g).connect(bus); o.start(t); o.stop(t + 0.34);
+    o.connect(g).connect(out); o.start(t); o.stop(t + 0.34);
   }
   function hiss(t, type, freq, vol, len) {
     const s = ac.createBufferSource(), f = ac.createBiquadFilter(), g = ac.createGain();
     s.buffer = noise; f.type = type; f.frequency.value = freq;
     g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(0.0001, t + len);
-    s.connect(f).connect(g).connect(bus); s.start(t); s.stop(t + len + 0.02);
+    s.connect(f).connect(g).connect(out); s.start(t); s.stop(t + len + 0.02);
   }
 
   // ---------- sequencer ----------
@@ -183,7 +196,7 @@
     }
   }
   function tick() {
-    if (!ac || !cur || !T || switching) return;
+    if (!ac || !cur || !T || switching || !out) return;
     const sd = 60 / T.bpm / 4;
     // after a pause (tab in the background) start fresh instead of catching up with a burst of notes
     if (nextT < ac.currentTime - 0.2) nextT = ac.currentTime + 0.05;
@@ -211,11 +224,12 @@
       : prev == null ? Math.floor(Math.random() * list.length) : (prev + 1 + Math.floor(Math.random() * (list.length - 1))) % list.length;
     lastPiece[name] = piece; T = list[piece];
     cur = name; step = 0; bar = 0; arp = ARPS[Math.floor(Math.random() * ARPS.length)]; newMotif();
+    newLane();
     nextT = ac.currentTime + 0.08;
     if (!timer) timer = setInterval(tick, 40);
     tick(); fadeTo(level() * 0.55, 1.2);
   }
-  function stopNow() { clearInterval(timer); timer = 0; cur = null; }
+  function stopNow() { clearInterval(timer); timer = 0; cur = null; if (ac) cutLane(); }
 
   V.music = {
     // which mood the current screen wants; switching fades over
