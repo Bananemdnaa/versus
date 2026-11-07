@@ -99,11 +99,16 @@
     if (actx.state === 'suspended') actx.resume().catch(() => { });
     return actx;
   };
-  function tone(f, d = 0.08, type = 'square', vol = 0.05, slide = 0) {
+  // when the last effect sounded (a toast stays quiet if something else just played)
+  let lastTone = 0;
+  // vary: the pitch moves a few percent each time, so a sound heard a hundred times per match does not get tiring
+  function tone(f, d = 0.08, type = 'square', vol = 0.05, slide = 0, vary = 0) {
     if (!settings.sound) return;
     try {
       if (!V.audio()) return;
+      if (vary) f *= 1 + (Math.random() * 2 - 1) * vary;
       const o = actx.createOscillator(), g = actx.createGain(), t = actx.currentTime;
+      lastTone = performance.now();
       o.type = type; o.frequency.setValueAtTime(f, t);
       if (slide) o.frequency.exponentialRampToValueAtTime(Math.max(40, f + slide), t + d);
       vol *= Math.max(0, Math.min(100, settings.vol ?? 80)) / 80;
@@ -112,6 +117,24 @@
       o.connect(g).connect(actx.destination); o.start(t); o.stop(t + d + 0.02);
     } catch (e) { }
   }
+  // a breath of filtered noise that sweeps up or down: whooshes for dialogs and tabs
+  let noiseBuf = null;
+  function whoosh(from, to, d = 0.22, vol = 0.05) {
+    if (!settings.sound) return;
+    try {
+      if (!V.audio()) return;
+      vol *= Math.max(0, Math.min(100, settings.vol ?? 80)) / 80; if (vol <= 0) return;
+      if (!noiseBuf) { const n = actx.sampleRate * 0.6; noiseBuf = actx.createBuffer(1, n, actx.sampleRate); const c = noiseBuf.getChannelData(0); for (let i = 0; i < n; i++) c[i] = Math.random() * 2 - 1; }
+      const s = actx.createBufferSource(), f = actx.createBiquadFilter(), g = actx.createGain(), t = actx.currentTime;
+      s.buffer = noiseBuf; f.type = 'bandpass'; f.Q.value = 1.2;
+      f.frequency.setValueAtTime(from, t); f.frequency.exponentialRampToValueAtTime(to, t + d);
+      g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(vol, t + d * 0.35); g.gain.exponentialRampToValueAtTime(0.0001, t + d);
+      s.connect(f).connect(g).connect(actx.destination); s.start(t); s.stop(t + d + 0.02);
+      lastTone = performance.now();
+    } catch (e) { }
+  }
+  const seq = (notes, gap, d, type, vol) => notes.forEach((f, i) => setTimeout(() => tone(f, d, type, vol), i * gap));
+  const pick = list => list[Math.floor(Math.random() * list.length)];
   // Vibration: Android and most browsers use the Vibration API; iPhones (no API) get a short haptic tap
   // through a hidden iOS 18 switch. "light" and "strong" stretch every pulse; motors in many phones ignore pulses under ~25 ms.
   const IOS = /iP(hone|ad|od)/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
@@ -132,11 +155,11 @@
   };
   // fixed pulses (stretched by the strength setting): tap 5, own move 10-12, opponent's move 6, win 40, loss 30-40-30
   V.sfx = {
-    tick() { tone(1200, 0.025, 'square', 0.02); },
-    move() { tone(520, 0.06, 'triangle', 0.07); V.buzz(10); },
-    place() { tone(320, 0.1, 'triangle', 0.09, -140); V.buzz(12); },
+    tick() { tone(1200, 0.025, 'square', 0.02, 0, 0.04); },
+    move() { tone(520, 0.06, 'triangle', 0.07, 0, 0.04); V.buzz(10); },
+    place() { tone(320, 0.1, 'triangle', 0.09, -140, 0.05); V.buzz(12); },
     // a piece of the other side (AI or remote) lands
-    them() { tone(280, 0.09, 'triangle', 0.07, -110); V.buzz(6); },
+    them() { tone(280, 0.09, 'triangle', 0.07, -110, 0.05); V.buzz(6); },
     found() { tone(660, 0.1, 'triangle', 0.08, 220); setTimeout(() => tone(990, 0.14, 'triangle', 0.08), 110); V.buzz(20); },
     // the VS slam: a deep saw with a square on top
     vs() { tone(90, 0.4, 'sawtooth', 0.09); setTimeout(() => tone(180, 0.3, 'square', 0.05), 280); V.buzz(25); },
@@ -149,9 +172,27 @@
     // a button: a short click with a soft low thump under it, so it feels pressed
     ui() { tone(700, 0.035, 'triangle', 0.035); tone(190, 0.05, 'sine', 0.035, -60); V.buzz(5); },
     // PC: the mouse reaches a card or menu entry (barely audible, no vibration)
-    hover() { tone(1500, 0.018, 'sine', 0.012); },
-    win() { [523, 659, 784, 1046].forEach((f, i) => setTimeout(() => tone(f, 0.15, 'triangle', 0.08), i * 110)); V.buzz(40); V.music && V.music.duck(3200); },
-    lose() { [392, 330, 262].forEach((f, i) => setTimeout(() => tone(f, 0.22, 'triangle', 0.07), i * 150)); V.buzz([30, 40, 30]); V.music && V.music.duck(3200); }
+    hover() { tone(1500, 0.018, 'sine', 0.012, 0, 0.03); },
+    // dialogs and sheets: a soft whoosh up when they open, down when they close
+    open() { whoosh(500, 2600, 0.2, 0.045); },
+    close() { whoosh(2200, 450, 0.18, 0.035); },
+    // another area (tabs, sidebar): a short slide and a blip
+    tab() { whoosh(900, 2400, 0.12, 0.025); tone(880, 0.04, 'triangle', 0.03, 120); },
+    // switches: up when on, down when off
+    toggle(on) { tone(on ? 600 : 800, 0.04, 'triangle', 0.04); setTimeout(() => tone(on ? 900 : 520, 0.05, 'triangle', 0.04), 55); V.buzz(5); },
+    // a toast: a quiet ping, only if nothing else just sounded
+    toast() { if (performance.now() - lastTone > 160) tone(1320, 0.09, 'sine', 0.03); },
+    // favourite: a little sparkle
+    fav() { seq([1320, 1760, 2350], 55, 0.07, 'sine', 0.04); },
+    // a draw: two even notes, neither happy nor sad
+    draw() { seq([523, 523], 160, 0.18, 'triangle', 0.06); V.music && V.music.duck(2500); },
+    // win and loss: a few tunes, one picked each time
+    win() {
+      seq(pick([[523, 659, 784, 1046], [392, 523, 659, 784, 1046], [659, 784, 988, 1319], [523, 784, 659, 1046]]), 110, 0.15, 'triangle', 0.08);
+      setTimeout(() => tone(1046, 0.5, 'sine', 0.05), 520);
+      V.buzz(40); V.music && V.music.duck(3200);
+    },
+    lose() { seq(pick([[392, 330, 262], [440, 415, 392, 330], [349, 330, 294, 262]]), 150, 0.22, 'triangle', 0.07); V.buzz([30, 40, 30]); V.music && V.music.duck(3200); }
   };
 
   // ---------- effects ----------

@@ -303,6 +303,7 @@
     const body = shell.querySelector('.hbody');
     const order = id => TABS.findIndex(t => t[0] === id);
     const dir = Math.sign(order(homeTab) - order(prev));
+    if (homeTab !== prev) V.sfx.tab();
     shell.querySelectorAll('.tabs [data-tab]').forEach(b => b.classList.toggle('on', b.dataset.tab === homeTab));
     placeInd(shell, true);
     const put = () => {
@@ -1605,7 +1606,7 @@
     wireOptNav(v);
     // the board previews pick the board like the segment above them
     v.querySelectorAll('[data-bp]').forEach(b => b.onclick = () => { const s = v.querySelector(`[data-k=board] [data-v=${b.dataset.bp}]`); if (s) s.click(); v.querySelectorAll('[data-bp]').forEach(x => x.classList.toggle('on', x === b)); });
-    const flip = (id, fn) => { const b = v.querySelector('#' + id); if (b) b.onclick = () => { const on = fn(); b.setAttribute('aria-checked', on); b.querySelector('.sw').classList.toggle('on', on); saveSettings(); V.sfx.ui(); }; };
+    const flip = (id, fn) => { const b = v.querySelector('#' + id); if (b) b.onclick = () => { const on = fn(); b.setAttribute('aria-checked', on); b.querySelector('.sw').classList.toggle('on', on); saveSettings(); V.sfx.toggle(on); }; };
     const dimSliders = () => {
       v.querySelector('[data-vol=vol]').classList.toggle('off', !settings.sound);
       v.querySelector('[data-vol=mvol]').classList.toggle('off', !settings.sound || settings.music === false);
@@ -1697,7 +1698,9 @@
       const m = modalEl.firstElementChild; m.style.animation = 'none'; m.className = 'modal ' + cls; m.innerHTML = html;
       return m;
     }
-    modalClose = null; closeModal(); modalKeys = keys;
+    // a dialog that replaces another one makes no closing sound first
+    modalClose = null; const was = !!modalEl; closeModal(true); modalKeys = keys;
+    if (!was && cls !== 'endm') V.sfx.open();
     modalClose = onClose;
     modalEl = V.el('div', 'modal-back' + (cls ? ' mb-' + cls : ''));
     modalEl.innerHTML = `<div class="modal ${cls}" role="dialog" aria-modal="true">${html}</div>`;
@@ -1735,8 +1738,9 @@
     };
     m.addEventListener('pointerup', up); m.addEventListener('pointercancel', up);
   }
-  function closeModal() {
+  function closeModal(silent) {
     if (!modalEl) return;
+    if (silent !== true) V.sfx.close();
     const el = modalEl; modalEl = null; modalKeys = null;
     queueGuard();
     // a sheet slides down first (.28 s), a centred dialog just fades
@@ -1748,7 +1752,7 @@
 
   function toast(text, ms = 1500) {
     const t = V.el('div', 'toast' + (ms > 1500 ? ' long' : ''), text);
-    document.body.appendChild(t);
+    document.body.appendChild(t); V.sfx.toast();
     setTimeout(() => t.classList.add('out'), ms); setTimeout(() => t.remove(), ms + 400);
   }
   V.toast = toast;
@@ -2349,6 +2353,8 @@
     Object.assign(settings, DEFAULTS, S.get('settings', {}));
     if (settings.haptic === true) settings.haptic = 'strong'; else if (settings.haptic === false) settings.haptic = 'off';
     applyFxClass();
+    // the speaker icons and the music follow the settings that just came in
+    sndIcons(); if (V.music) V.music.apply();
     if (view === 'home' && homeTab !== 'profile') home();
   };
   V.ui = {

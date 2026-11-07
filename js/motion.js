@@ -131,7 +131,7 @@
     setTimeout(() => {
       const now = document.getElementById('fav');
       if (now && !now.classList.contains('on')) return;
-      V.fx.burst(c.x, c.y, '#ffd84f', 9, 34);
+      V.fx.burst(c.x, c.y, '#ffd84f', 9, 34); if (V.sfx.fav) V.sfx.fav();
       if (now) V.fx.pop(now, 'fav-pop');
     }, 0);
   }, true);

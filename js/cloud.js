@@ -100,7 +100,10 @@
     // An admin reset on the server wins over local numbers.
     merged.stats = resetNewer && mine ? (cloud.stats || {}) : mergeStats(local.stats, cloud.stats, !mine);
     merged.seen = Object.assign({}, cloud.seen || {}, local.seen || {});
-    merged.settings = Object.assign({}, local.settings || {}, cloud.settings || {});
+    // sound and music belong to the device (muted at school on the phone, loud on the PC): they never come from the server
+    const DEVICE = ['sound', 'music', 'vol', 'mvol'], ls = local.settings || {};
+    merged.settings = Object.assign({}, ls, cloud.settings || {});
+    DEVICE.forEach(k => { if (k in ls) merged.settings[k] = ls[k]; else delete merged.settings[k]; });
     merged.setup = Object.assign({}, cloud.setup || {}, mine ? local.setup || {} : {});
     merged.recent = (mine && local.recent) || cloud.recent || local.recent || null;
     merged.recents = (mine && local.recents) || cloud.recents || local.recents || [];
