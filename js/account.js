@@ -791,7 +791,7 @@
     h.querySelectorAll('[data-vtab]').forEach(x => x.onclick = () => act('admin_void_table', { tid: x.dataset.vtab, why: null }, 'Tisch annulliert.'));
     h.querySelectorAll('[data-sai]').forEach(x => x.onclick = () => { const [tid, s] = x.dataset.sai.split(':'); act('admin_seat_ai', { tid, s: +s }, 'Die KI spielt jetzt auf diesem Platz.'); });
     // the player's public profile (as the player sees it, plus what only the team sees in it)
-    h.querySelectorAll('[data-prof]').forEach(x => x.onclick = () => { V.sfx.ui(); V.online.profile(x.dataset.prof); });
+    // (the click itself is handled once for the whole page in js/online.js: every [data-prof] opens that profile)
     h.querySelectorAll('[data-elo]').forEach(x => x.onclick = () => { const n = x.dataset.n; act2(() => C().rpc('admin_elo_reset', { name: n, g: x.dataset.elo }).then(() => { delete elo[n]; }), x.dataset.elo ? 'Elo in ' + gameName(x.dataset.elo) + ' ist zurückgesetzt.' : 'Elo in allen Spielen ist zurückgesetzt.').then(() => { box = 'elo:' + n; draw(true); }); });
     h.querySelectorAll('[data-claim]').forEach(x => x.onclick = () => { const [kind, id, take] = x.dataset.claim.split(':'); act('admin_claim', { kind, rid: +id, take: take === '1' }, take === '1' ? 'Übernommen.' : 'Abgegeben.'); });
     h.querySelectorAll('[data-freply]').forEach(x => x.onclick = () => {
