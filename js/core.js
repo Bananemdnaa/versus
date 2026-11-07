@@ -147,6 +147,8 @@
     goal() { tone(660, 0.12, 'triangle', 0.08, 300); V.buzz(40); },
     go() { tone(980, 0.12, 'square', 0.05); V.buzz(30); },
     ui() { tone(700, 0.035, 'triangle', 0.035); V.buzz(5); },
+    // PC: the mouse reaches a card or menu entry (barely audible, no vibration)
+    hover() { tone(1500, 0.018, 'sine', 0.012); },
     win() { [523, 659, 784, 1046].forEach((f, i) => setTimeout(() => tone(f, 0.15, 'triangle', 0.08), i * 110)); V.buzz(40); V.music && V.music.duck(3200); },
     lose() { [392, 330, 262].forEach((f, i) => setTimeout(() => tone(f, 0.22, 'triangle', 0.07), i * 150)); V.buzz([30, 40, 30]); V.music && V.music.duck(3200); }
   };
