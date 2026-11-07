@@ -3316,3 +3316,6 @@ body:has(.view.play) .season.halloween .spider{display:none}
 @media (pointer:coarse){.instc .x,.upbar .x{width:44px;height:44px;margin:-5px -6px -5px -4px}}
 /* phone: a tab sliding in (or a card coming in from the right) never makes the page wider for a moment */
 @media (max-width:959px){html{overflow-x:clip}}
+/* options with many choices (e.g. the categories of the Alphabet-Spiel): full names, wrapping into lines */
+.rv-row.many .mini-seg{display:flex;flex-wrap:wrap;gap:6px;justify-content:flex-start}
+.rv-row.many .mini-seg button{flex:1 1 auto;min-width:0;padding:0 12px;overflow:visible;text-overflow:clip}

@@ -1042,8 +1042,11 @@
       const v = opts[x.id], ch = changedOpt(x, opts);
       const name = `<b>${x.label}${ch && !ro ? '<i class="rv-dot" role="img" aria-label="geändert"></i>' : ''}</b>${x.desc ? `<small>${x.desc}</small>` : ''}`;
       if (x.type === 'switch' && !ro) return `<button type="button" class="rv-row rv-sw" role="switch" aria-checked="${!!+v}" data-sw="${x.id}"><span class="rv-l">${name}</span><i class="sw${+v ? ' on' : ''}"></i></button>`;
-      const wide = !ro && (x.choices.length > 3 || x.choices.reduce((a, c) => a + String(c[1]).length, 0) > 14);
-      return `<div class="rv-row${wide ? ' wide' : ''}"><span class="rv-l">${name}</span>${segHtml(x.id, x, v, ro)}</div>`;
+      const len = x.choices.reduce((a, c) => a + String(c[1]).length, 0);
+      const wide = !ro && (x.choices.length > 3 || len > 14);
+      // many or long choices (Alphabet-Spiel: 9 categories) wrap into lines, each with its full name
+      const many = wide && (x.choices.length > 5 || len > 34);
+      return `<div class="rv-row${wide ? ' wide' : ''}${many ? ' many' : ''}"><span class="rv-l">${name}</span>${segHtml(x.id, x, v, ro)}</div>`;
     };
     const groups = GROUPS.map(([k, t]) => {
       const rows = list.filter(x => (x.group || 'rules') === k);
