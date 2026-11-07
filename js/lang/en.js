@@ -519,7 +519,7 @@
     c4: 'Connect 4', ships: 'Battleship', ttt: 'Tic Tac Toe', gomoku: 'Five in a Row', uttt: 'Ultimate Tic Tac Toe', dots: 'Dots and Boxes',
     hangman: 'Hangman', slf: 'City Country River', schnapsen: 'Schnapsen', guess: 'Estimation Quiz', hex: 'Hex', ttt3: '3D Tic Tac Toe', code: 'Code Breaker', domino: 'Dominoes', ludo: 'Ludo', ladder: 'Snakes and Ladders', checkers: 'Checkers', mill: "Nine Men's Morris",
     yacht: 'Dice Block', maumau: 'Mau-Mau', memory: 'Memory', poker: 'Poker', chess: 'Chess', reversi: 'Reversi', kalaha: 'Kalah', go: 'Go',
-    backgammon: 'Backgammon', reaction: 'Reaction Duel', pong: 'Pong', hockey: 'Air Hockey', billiard: 'Pool', draw: 'Draw & Guess', tron: 'Light Racer', sumo: 'Sumo Arena', blockade: 'Blockade', mines: 'Mine Hunt'
+    backgammon: 'Backgammon', reaction: 'Reaction Duel', pong: 'Pong', hockey: 'Air Hockey', billiard: 'Pool', draw: 'Draw & Guess', tron: 'Light Racer', sumo: 'Sumo Arena', blockade: 'Blockade', mines: 'Mine Hunt', who: 'Who Am I?', abc: 'Alphabet Game'
   });
 
   // ---------- games: shared words ----------
@@ -1624,6 +1624,114 @@
   V.i18n.pat([[/^Spalte ([a-d])$/, 'Column $1']]);
   V.i18n.pat([[/^Aufzeichnung · (.+?) · (.+)$/, (m, l, d) => 'Recording · ' + V.t(l) + ' · ' + d], [/^Geteilt von (.+?) · (.+)$/, (m, n, d) => 'Shared by ' + n + ' · ' + d], [/^Online gegen (.+)$/, (m, n) => 'Online vs ' + n]]);
   V.i18n.pat([[/^Ebene (\d), ([a-d]\d)$/, 'Layer $1, $2']]);
+
+  // ---------- Wer bin ich? ----------
+  A({
+    'Fragen, Figuren umklappen, raten.': 'Ask, flip faces down, guess.',
+    'Jeder hat eine geheime Figur aus denselben # Gesichtern. Stellt abwechselnd Ja-Nein-Fragen, auch zwei Merkmale mit „oder“. Was nicht passt, klappt um. Wer zuerst richtig rät, gewinnt, aber ein Fehlversuch kostet ein Herz.': 'Each of you has a secret person out of the same # faces. Take turns asking yes/no questions, also about two features joined with “or”. Whoever doesn\'t fit flips down. First to guess right wins, but a wrong guess costs a heart.',
+    'Vor jedem Zug wird das Handy weitergegeben, damit niemand die geheime Figur des anderen sieht.': 'Pass the phone before every turn so nobody sees the other\'s secret person.',
+    'Fragt oft ins Blaue und manchmal etwas, das nichts Neues bringt.': 'Often asks at random, sometimes something that tells it nothing new.',
+    'Fragt nach einzelnen Merkmalen, die meistens gut teilen.': 'Asks about single features that mostly split well.',
+    'Nutzt auch „oder“-Fragen und rät, sobald es sich lohnt.': 'Also asks “or” questions and guesses as soon as it pays off.',
+    'Teilt mit jeder Frage so genau wie möglich in zwei Hälften.': 'Splits into two halves as exactly as possible with every question.',
+    'Figur wählen': 'Choose a person', 'Figur zum Raten auswählen': 'Pick a person to guess', 'Frage stellen oder raten': 'Ask or guess', 'Auswahl löschen': 'Clear selection',
+    'Ihr beide habt dieselben {0} vor euch. Jeder bekommt geheim eine davon als {1}. Findet heraus, welche Figur der andere hat. Wer sie zuerst {2}, gewinnt.': 'You both have the same {0} in front of you. Each of you secretly gets one of them as {1}. Find out which person the other one has. First to {2} wins.',
+    '# Figuren': '# people', 'seine Figur': 'their person', 'richtig rät': 'guess it right',
+    'Fragen stellen': 'Asking questions',
+    'Bist du dran, tippe unten ein {0} an, zum Beispiel {1}, und dann {2}. Das Spiel beantwortet die Frage ehrlich mit {3} oder {4}. Am PC klickst du die Merkmale rechts an, F stellt die Frage.': 'On your turn, tap a {0} below, for example {1}, and then {2}. The game answers truthfully with {3} or {4}. On a PC you click the features on the right, F asks the question.',
+    'Merkmal': 'feature', 'Umklappen': 'Flipping down',
+    'Nach der Antwort klappen alle Figuren um, die {0}. Lautet die Antwort „Nein, keine Brille“, fallen alle mit Brille weg. Danach ist der andere dran.': 'After the answer, every person who {0} flips down. If the answer is “No, no glasses”, everyone with glasses is gone. Then it\'s the other one\'s turn.',
+    'nicht mehr passen': 'no longer fits',
+    'Zwei Merkmale mit „oder“': 'Two features with “or”',
+    'Tippst du {0} an, fragst du mit {1}: „Hat deine Figur eine Brille oder einen Bart?“ Ja heißt: mindestens eins davon. So kannst du die Figuren geschickter in zwei Hälften teilen.': 'Tap {0} and you ask with {1}: “Does your person have glasses or a beard?” Yes means: at least one of them. That way you can split the faces into two halves more cleverly.',
+    'zwei Merkmale': 'two features', 'oder': 'or',
+    'Raten und Herzen': 'Guessing and hearts',
+    'Glaubst du, du weißt es, {0} und dann {1}. Richtig: gewonnen. Falsch: Du verlierst {2}, die Figur klappt um, und der andere ist dran. Jeder hat {3}. Ist das letzte weg, hast du verloren.': 'If you think you know, {0} and then {1}. Right: you win. Wrong: you lose {2}, the person flips down, and it\'s the other one\'s turn. Everybody has {3}. Once the last one is gone, you lose.',
+    'tippe die Figur an': 'tap the person', 'ein Herz': 'a heart', 'zwei Herzen': 'two hearts',
+    'Rät der Spieler, der angefangen hat, richtig, bekommt der andere noch {0}. Trifft er auch, ist es {1}.': 'If the player who started guesses right, the other one still gets {0}. If they get it too, it\'s a {1}.',
+    'einen letzten Rateversuch': 'one last guess', 'unentschieden': 'draw',
+    'Gute Fragen teilen die übrigen Figuren in {0}, egal ob Ja oder Nein kommt. Bei nur noch {1} Figuren und zwei Herzen lohnt sich Raten fast immer: Liegst du falsch, weißt du die Lösung sicher.': 'Good questions split the remaining faces into {0}, whether the answer is yes or no. With only {1} left and two hearts, guessing almost always pays off: if you\'re wrong, you know the answer for sure.',
+    'zwei gleich große Hälften': 'two equal halves', 'zwei': 'two',
+    'Deine Figur': 'Your person', 'noch #': '# left', 'Gesicht': 'Face', 'Haarfarbe': 'Hair colour', 'Frisur': 'Hair', 'Shirt': 'Shirt',
+    'Brille': 'Glasses', 'Bart': 'Beard', 'Mütze oder Cap': 'Hat or cap', 'Ohrringe': 'Earrings', 'Sommersprossen': 'Freckles', 'Lacht mit Zähnen': 'Big grin',
+    'Braun': 'Brown', 'Blond': 'Blond', 'Grau': 'Grey', 'Bunt': 'Colourful', 'Blau': 'Blue', 'Glatze': 'Bald',
+    'Hat deine Figur {0}?': 'Does your person have {0}?', 'Hat deine Figur {0} oder {1}?': 'Does your person have {0} or {1}?', '{0} oder {1}?': '{0} or {1}?',
+    'eine Brille': 'glasses', 'einen Bart': 'a beard', 'etwas auf dem Kopf': 'something on their head', 'ein breites Lachen': 'a big grin',
+    'schwarze Haare': 'black hair', 'braune Haare': 'brown hair', 'blonde Haare': 'blond hair', 'rote Haare': 'red hair', 'graue Haare': 'grey hair', 'bunte Haare': 'colourful hair',
+    'lange Haare': 'long hair', 'kurze Haare': 'short hair', 'eine Glatze': 'a bald head',
+    'ein rotes Shirt': 'a red shirt', 'ein blaues Shirt': 'a blue shirt', 'ein grünes Shirt': 'a green shirt', 'ein gelbes Shirt': 'a yellow shirt',
+    'rotes Shirt': 'red shirt', 'blaues Shirt': 'blue shirt', 'grünes Shirt': 'green shirt', 'gelbes Shirt': 'yellow shirt',
+    'Ja': 'Yes', 'Nein': 'No', 'Ja!': 'Yes!', 'Nein!': 'No!', 'Falsch': 'Wrong', 'Richtig': 'Right',
+    'Wähl ein oder zwei Merkmale, oder tippe oben eine Figur an, um zu raten.': 'Pick one or two features, or tap a person above to guess.',
+    'Tippe oben die Figur an, die du rätst.': 'Tap the person above that you guess.', 'Ist es {0}?': 'Is it {0}?',
+    '{0} ist dran …': '{0} is up …', '{0} hat den letzten Rateversuch …': '{0} has the last guess …', 'Die Figur von {0} war {1}.': 'The person of {0} was {1}.',
+    'ein Herz weniger': 'one heart less', '{0} hat {1} richtig geraten! {2} hat noch einen letzten Versuch': '{0} guessed {1} right! {2} gets one last try',
+    'Letzte Chance: Tippe eine Figur an und rate': 'Last chance: tap a person and guess', '{0} hat einen letzten Versuch': '{0} has one last try',
+    'Du bist dran. Der andere schaut weg.': 'Your turn. The other one looks away.', 'Dein letzter Rateversuch.': 'Your last guess.',
+    'Beide haben richtig geraten': 'Both guessed right', 'Probier’s: Umklappen': 'Try it: flipping down', 'Probier’s: „oder“': 'Try it: “or”',
+    'Probier’s: Falsch geraten': 'Try it: a wrong guess', 'Probier’s: Gute Frage': 'Try it: a good question',
+    'Du fragst: „Hat deine Figur eine Brille?“ Die Antwort ist {0}. Welche Figuren klappen um?': 'You ask: “Does your person have glasses?” The answer is {0}. Which faces flip down?',
+    'Alle mit Brille': 'Everyone with glasses', 'Alle ohne Brille': 'Everyone without glasses', 'Keine, die muss ich selbst umklappen': 'None, I have to flip them myself',
+    'Nein heißt: Die gesuchte Figur hat keine Brille. Also fallen die mit Brille weg.': 'No means: the person you\'re looking for has no glasses. So the ones with glasses are out.',
+    'Das Spiel klappt nach jeder Antwort selbst um.': 'The game flips them down by itself after every answer.',
+    'Genau. Übrig bleiben nur Figuren ohne Brille.': 'Exactly. Only faces without glasses are left.', 'Überleg: Welche Figuren können es nach dieser Antwort nicht mehr sein?': 'Think: which faces can it no longer be after this answer?',
+    'Du fragst: „Hat deine Figur eine Brille oder einen Bart?“ Die Antwort ist {0}. Was weißt du jetzt?': 'You ask: “Does your person have glasses or a beard?” The answer is {0}. What do you know now?',
+    'Sie hat eine Brille, einen Bart oder beides': 'Glasses, a beard or both', 'Sie hat eine Brille und einen Bart': 'Glasses and a beard', 'Sie hat eine Brille': 'Glasses',
+    'Ja heißt bei „oder“: mindestens eins davon, nicht unbedingt beides.': 'With “or”, yes means at least one of them, not necessarily both.',
+    'Vielleicht hat sie auch nur einen Bart.': 'Maybe it only has a beard.', 'Richtig. Weg sind nur die Figuren ohne Brille und ohne Bart.': 'Right. Only the faces without glasses and without a beard are gone.',
+    'Du rätst falsch und hattest noch zwei Herzen. Was passiert?': 'You guess wrong and had two hearts left. What happens?',
+    'Ein Herz ist weg, und der andere ist dran': 'One heart is gone, and it\'s the other one\'s turn', 'Du hast sofort verloren': 'You lose at once', 'Du darfst gleich nochmal raten': 'You may guess again right away',
+    'Verloren hast du erst, wenn dein letztes Herz weg ist.': 'You only lose once your last heart is gone.', 'Nach einem Fehlversuch ist der andere dran.': 'After a wrong guess it\'s the other one\'s turn.',
+    'Genau. Und die falsche Figur klappt um.': 'Exactly. And the wrong person flips down.',
+    'Auf deinem Brett sind noch {0} übrig. Welche Frage hilft dir am meisten?': 'There are {0} left on your board. Which question helps you most?', '# Figuren übrig': '# faces left',
+    'Eine, die auf # der # passt': 'One that fits # of the #', 'Meistens kommt dann Nein, und es bleiben # übrig.': 'Mostly the answer is no, and # are left.',
+    'Die Antwort ist sicher Ja, du erfährst nichts Neues.': 'The answer is surely yes, you learn nothing new.', 'Richtig: Egal ob Ja oder Nein, danach sind nur noch # übrig.': 'Right: yes or no, afterwards only # are left.'
+  });
+  V.i18n.ctx('.wb', { 'Fragen': 'Ask', 'Raten': 'Guess', 'Verlauf': 'History', 'Rot': 'Red', 'Schwarz': 'Black', 'Gelb': 'Yellow', 'Grün': 'Green', 'Lang': 'Long', 'Kurz': 'Short' });
+  V.i18n.pat([[/^(.+) richtig geraten$/, (m, n) => `${n} guessed right`], [/^(.+) war falsch$/, (m, n) => `${n} was wrong`], [/^(.+) hat keine Herzen mehr$/, (m, n) => n === 'Du' ? 'You have no hearts left' : `${V.t(n)} has no hearts left`], [/^(.+): deine Figur$/, (m, n) => `${V.t(n)}: your person`]]);
+
+  // ---------- Alphabet-Spiel ----------
+  A({
+    'A, B, C … wer findet kein Wort?': 'A, B, C … who runs out of words?',
+    'Eine Kategorie, zum Beispiel Tiere. Reihum nennt jeder ein Wort mit dem nächsten Buchstaben: Affe, Bär, Chamäleon … Wer zu lange braucht oder ein Wort wiederholt, verliert ein Leben. Für # bis #, am selben Gerät oder online.': 'One category, for example animals. In turns, everybody names a word with the next letter: ape, bear, chameleon … Take too long or repeat a word and you lose a life. For # to #, on one device or online.',
+    'Am selben Gerät gebt ihr das Handy reihum weiter. Wer dran ist, tippt sein Wort ein.': 'On one device you pass the phone around. Whoever is up types their word.',
+    'Wort abschicken': 'Send word', 'Zählt': 'Counts', 'Zählt nicht': 'Doesn\'t count',
+    'Kategorie': 'Category', 'Zufall': 'Random', 'Essen & Trinken': 'Food & drink', 'Länder': 'Countries', 'Städte': 'Cities', 'Vornamen': 'First names', 'Marken': 'Brands',
+    'Leben': 'Lives', '# Leben': '# lives', 'Ohne Q X Y': 'Without Q X Y', 'Alle #': 'All #', 'alle #': 'all #', 'Zeit pro Wort': 'Time per word',
+    'Q, X und Y sind sehr schwer und werden sonst übersprungen.': 'Q, X and Y are very hard and are skipped otherwise.',
+    'Vor dem Spiel wird eine {0} gewählt, zum Beispiel {1}. Reihum nennt jeder ein Wort aus dieser Kategorie, und zwar immer mit dem {2} im Alphabet. Wer zuletzt noch Leben hat, gewinnt.': 'Before the game a {0} is chosen, for example {1}. In turns, everybody names a word from this category, always with the {2} of the alphabet. The last one with lives left wins.',
+    'nächsten Buchstaben': 'next letter', 'Ein Zug': 'A turn',
+    'Bist du dran, siehst du groß deinen Buchstaben. {0} ein, das damit anfängt, und dann {1} (am PC Enter). Danach kommt der Nächste mit dem nächsten Buchstaben: A, B, C …': 'On your turn you see your letter in big. {0} that starts with it and then {1} (Enter on a PC). Then the next one goes on with the next letter: A, B, C …',
+    'Tippe ein Wort': 'Type a word', 'Los': 'Go',
+    'Die Uhr läuft': 'The clock is ticking',
+    'Für jedes Wort hast du nur wenige Sekunden (im Spiel-Panel einstellbar). Ist die Zeit um, bevor du abschickst, {0}. Der Buchstabe gilt dann als verpasst, und der Nächste macht mit dem folgenden weiter.': 'You only get a few seconds per word (set in the game panel). If time runs out before you send, {0}. The letter counts as missed, and the next one goes on with the following letter.',
+    'verlierst du ein Leben': 'you lose a life', 'Was zählt?': 'What counts?',
+    'Das Wort muss mit dem richtigen Buchstaben anfangen und darf in diesem Spiel {0} worden sein. Kennt das Spiel das Wort aus seiner Liste, zählt es sofort. Sonst {1}: Zählt das oder nicht? Ein abgelehntes Wort kostet ein Leben.': 'The word has to start with the right letter and must {0} in this game. If the game knows the word from its list, it counts at once. Otherwise {1}: does it count or not? A rejected word costs a life.',
+    'noch nicht genannt': 'not have been said yet', 'stimmen die anderen ab': 'the others vote',
+    'Runde zwei': 'Lap two',
+    'Nach Z geht es wieder bei A los, aber mit {0}, und alle Wörter aus Runde eins sind schon weg. Q, X und Y werden normalerweise übersprungen. Nach drei Runden gewinnt, wer die meisten Leben übrig hat. Wer alle Leben verloren hat, ist raus.': 'After Z it starts again at A, but with {0}, and all the words from lap one are gone. Q, X and Y are usually skipped. After three laps, whoever has the most lives left wins. Lose all your lives and you\'re out.',
+    'weniger Zeit': 'less time',
+    'Überleg dir schon, während die anderen dran sind, ein Wort für {0}. Ein kurzes Wort ist schneller getippt als ein langes. Lieber ein sicheres Wort als ein lustiges, das abgelehnt wird.': 'While the others are up, think of a word for {0}. A short word is typed faster than a long one. Better a safe word than a funny one that gets rejected.',
+    'deinen nächsten Buchstaben': 'your next letter',
+    'Kategorie: {0} · {1} braucht ein Wort mit {2}': 'Category: {0} · {1} needs a word with {2}',
+    'Runde # von #': 'Lap # of #', '# s pro Wort': '# s per word',
+    '{0} sucht ein Wort mit {1} …': '{0} is looking for a word with {1} …', '{0} ist dran': '{0} is up', '{0} wartet': '{0} is waiting',
+    'Kennt das Spiel nicht: Zählt {0} als {1}?': 'The game doesn\'t know it: does {0} count as {1}?',
+    'Die anderen entscheiden': 'The others decide', '{0} sagt': '{0} says', 'Zählt das als {0}?': 'Does that count as {0}?',
+    'Die anderen stimmen ab …': 'The others are voting …', 'Warte auf die anderen …': 'Waiting for the others …',
+    '{0}: {1} zählt': '{0}: {1} counts', 'Zeit um': 'time\'s up', 'zu lange weg': 'away too long', 'schon genannt': 'already said', 'abgelehnt': 'rejected',
+    'keine Leben mehr': 'no lives left', 'ein Leben weniger': 'one life less', 'Wörter': 'Words', 'Vorbei': 'Over', 'Nach # Runden': 'After # laps',
+    'Probier’s: Zeit um': 'Try it: time\'s up', 'Probier’s: Was zählt?': 'Try it: what counts?',
+    'Die Zeit läuft ab, bevor du ein Wort abgeschickt hast. Was passiert?': 'Time runs out before you sent a word. What happens?',
+    'Du verlierst ein Leben, der Nächste macht mit dem nächsten Buchstaben weiter': 'You lose a life, the next one goes on with the next letter',
+    'Der Nächste muss denselben Buchstaben nehmen': 'The next one has to take the same letter', 'Nichts, du bekommst mehr Zeit': 'Nothing, you get more time',
+    'Der Buchstabe gilt als verpasst, es geht mit dem nächsten weiter.': 'The letter counts as missed, play goes on with the next one.', 'Zeit um heißt: ein Leben weniger.': 'Time\'s up means one life less.',
+    'Kategorie Tiere, dein Buchstabe ist {0}. In diesem Spiel wurde schon {1} genannt. Was tippst du?': 'Category animals, your letter is {0}. {1} was already said in this game. What do you type?',
+    'Affe': 'Ape', 'Bär': 'Bear', 'Chamäleon': 'Chameleon', 'Delfin': 'Dolphin', 'Dachs': 'Badger', 'Ente': 'Eagle',
+    'Dachs wurde schon genannt. Wiederholen kostet ein Leben.': 'Badger was already said. Repeating costs a life.', 'Ente fängt mit E an. Du brauchst ein Tier mit D.': 'Eagle starts with E. You need an animal with D.',
+    'Genau: richtiger Buchstabe, ein Tier und noch nicht genannt.': 'Exactly: the right letter, an animal and not said yet.'
+  });
+  V.i18n.pat([[/^fängt nicht mit (\S) an$/, (m, l) => `doesn't start with ${l}`], [/^(.+) ist übrig$/, (m, n) => `${V.t(n)} is the last one left`]]);
 
   // ---------- words that differ by game ----------
   A({ 'Remis': 'Draw', 'Ziehen': 'Moving' });

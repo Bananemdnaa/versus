@@ -192,6 +192,27 @@
       { t: 'Probier’s', q: 'Der Code ist 1 2 3 4, du rätst 1 3 5 6. Was ist die Antwort?',
         choices: [txt('1 Treffer, 1 Fast', 1), txt('2 Treffer', 0, 'Nur die 1 steht an der richtigen Stelle. Die 3 kommt vor, aber woanders.'), txt('0 Treffer, 2 Fast', 0, 'Die 1 steht genau richtig, das ist ein Treffer.')], yes: 'Die 1 ist ein Treffer, die 3 ist Fast, 5 und 6 kommen nicht vor.' }
     ],
+    who: [
+      { after: 2, t: 'Probier’s: Umklappen', q: 'Du fragst: „Hat deine Figur eine Brille?“ Die Antwort ist <b>Nein</b>. Welche Figuren klappen um?',
+        choices: [txt('Alle mit Brille', 1), txt('Alle ohne Brille', 0, 'Nein heißt: Die gesuchte Figur hat keine Brille. Also fallen die mit Brille weg.'), txt('Keine, die muss ich selbst umklappen', 0, 'Das Spiel klappt nach jeder Antwort selbst um.')],
+        yes: 'Genau. Übrig bleiben nur Figuren ohne Brille.', no: 'Überleg: Welche Figuren können es nach dieser Antwort nicht mehr sein?' },
+      { after: 3, t: 'Probier’s: „oder“', q: 'Du fragst: „Hat deine Figur eine Brille oder einen Bart?“ Die Antwort ist <b>Ja</b>. Was weißt du jetzt?',
+        choices: [txt('Sie hat eine Brille, einen Bart oder beides', 1), txt('Sie hat eine Brille und einen Bart', 0, 'Ja heißt bei „oder“: mindestens eins davon, nicht unbedingt beides.'), txt('Sie hat eine Brille', 0, 'Vielleicht hat sie auch nur einen Bart.')],
+        yes: 'Richtig. Weg sind nur die Figuren ohne Brille und ohne Bart.' },
+      { after: 4, t: 'Probier’s: Falsch geraten', q: 'Du rätst falsch und hattest noch zwei Herzen. Was passiert?',
+        choices: [txt('Ein Herz ist weg, und der andere ist dran', 1), txt('Du hast sofort verloren', 0, 'Verloren hast du erst, wenn dein letztes Herz weg ist.'), txt('Du darfst gleich nochmal raten', 0, 'Nach einem Fehlversuch ist der andere dran.')],
+        yes: 'Genau. Und die falsche Figur klappt um.' },
+      { t: 'Probier’s: Gute Frage', q: 'Auf deinem Brett sind noch <b>8 Figuren</b> übrig. Welche Frage hilft dir am meisten?',
+        choices: [txt('Eine, die auf 4 der 8 passt', 1), txt('Eine, die auf 1 der 8 passt', 0, 'Meistens kommt dann Nein, und es bleiben 7 übrig.'), txt('Eine, die auf alle 8 passt', 0, 'Die Antwort ist sicher Ja, du erfährst nichts Neues.')],
+        yes: 'Richtig: Egal ob Ja oder Nein, danach sind nur noch 4 übrig.' }
+    ],
+    abc: [
+      { after: 2, t: 'Probier’s: Zeit um', q: 'Die Zeit läuft ab, bevor du ein Wort abgeschickt hast. Was passiert?',
+        choices: [txt('Du verlierst ein Leben, der Nächste macht mit dem nächsten Buchstaben weiter', 1), txt('Der Nächste muss denselben Buchstaben nehmen', 0, 'Der Buchstabe gilt als verpasst, es geht mit dem nächsten weiter.'), txt('Nichts, du bekommst mehr Zeit', 0, 'Zeit um heißt: ein Leben weniger.')] },
+      { after: 3, t: 'Probier’s: Was zählt?', q: 'Kategorie Tiere, dein Buchstabe ist <b>D</b>. In diesem Spiel wurde schon <b>Dachs</b> genannt. Was tippst du?',
+        choices: [txt('Delfin', 1), txt('Dachs', 0, 'Dachs wurde schon genannt. Wiederholen kostet ein Leben.'), txt('Ente', 0, 'Ente fängt mit E an. Du brauchst ein Tier mit D.')],
+        yes: 'Genau: richtiger Buchstabe, ein Tier und noch nicht genannt.' }
+    ],
     draw: [
       { t: 'Probier’s', q: 'Was darfst du beim Zeichnen nicht?',
         choices: [txt('Buchstaben oder Zahlen malen', 1), txt('Farben wechseln', 0, 'Farben darfst du so oft wechseln, wie du willst.'), txt('Etwas wegradieren', 0, 'Rückgängig und Weiß als Radierer sind erlaubt.')] }
