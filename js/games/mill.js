@@ -108,8 +108,8 @@
   }
 
   V.register({
-    brain,
     id: 'mill', name: 'Mühle', cat: 'Brettspiele', order: 4, accent: 'var(--yellow)',
+    brain,
     short: 'Drei in einer Linie, dann Stein weg.',
     desc: 'Setz und zieh deine neun Steine. Drei in einer Linie sind eine Mühle, dann darfst du einen gegnerischen Stein nehmen.',
     levelInfo: ['Anfänger: setzt oft planlos und übersieht deine Mühlen meistens.', 'Schließt eigene Mühlen, blockt deine aber nicht immer.', 'Rechnet vier Halbzüge tief.', 'Rechnet bis zu acht Halbzüge tief und baut gern Zwickmühlen.'],

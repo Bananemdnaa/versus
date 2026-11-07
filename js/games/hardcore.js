@@ -75,8 +75,8 @@
   function brain(s, L) { const r = V.mcts(G, s, [40, 220, 900, 40000][L], [300, 800, 1400, 2800][L]); return { move: r.move, mood: (r.rate - 0.5) * 2.4 }; }
 
   V.register({
-    brain,
     id: 'hardcore', name: 'Hardcore Tic Tac Toe', cat: 'Klassiker', order: 5, accent: '#ff5d73', G,
+    brain,
     short: 'Ultimate Tic Tac Toe, nochmal verschachtelt.',
     desc: 'Neun Ultimate-Bretter in einem großen, 729 Felder. Wer ein kleines Brett gewinnt, schickt das Spiel in den Bereich an dessen Stelle. Wer zuerst drei Bereiche gewinnt, gewinnt das Spiel.',
     sides: { 1: 'X', 2: 'O' },

@@ -110,8 +110,8 @@
   }
 
   V.register({
-    brain,
     id: 'ttt3', name: '3D Tic Tac Toe', cat: 'Klassiker', order: 5, accent: '#62f0ff',
+    brain,
     short: 'Vier in einer Reihe, durch vier Ebenen.',
     desc: 'Tic Tac Toe im Würfel: vier Ebenen mit je 4 × 4 Feldern. Wer zuerst vier in einer Reihe hat, gewinnt, auch quer durch die Ebenen und diagonal durch den ganzen Würfel.',
     levelInfo: ['Übersieht oft Reihen durch die Ebenen.', 'Blockt Dreier, plant aber kaum.', 'Rechnet ein paar Züge voraus.', 'Rechnet tief und baut doppelte Drohungen.'],

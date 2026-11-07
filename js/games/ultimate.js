@@ -48,8 +48,8 @@
   function brain(s, L) { const r = V.mcts(G, s, [80, 500, 3000, 60000][L], [300, 700, 1200, 2500][L]); return { move: r.move, mood: (r.rate - 0.5) * 2.4 }; }
 
   V.register({
-    brain,
     id: 'uttt', name: 'Ultimate Tic Tac Toe', cat: 'Klassiker', order: 4, accent: 'var(--cyan)',
+    brain,
     short: 'Tic Tac Toe in Tic Tac Toe.',
     desc: 'Neun kleine Bretter in einem großen. Dein Zug bestimmt, wo der Gegner als Nächstes spielen muss.',
     sides: { 1: 'X', 2: 'O' },

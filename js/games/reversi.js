@@ -78,8 +78,8 @@
   }
 
   V.register({
-    brain,
     id: 'reversi', name: 'Reversi', cat: 'Strategie', order: 3, accent: '#5dffcf',
+    brain,
     short: 'Einkesseln und umdrehen.',
     desc: 'Schließ gegnerische Steine zwischen zwei eigenen ein und dreh sie um. Am Ende zählt, wer mehr Steine hat.',
     keys: [['Pfeile', 'Feld wählen'], ['Enter', 'Stein setzen']],

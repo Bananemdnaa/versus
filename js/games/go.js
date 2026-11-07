@@ -129,8 +129,8 @@
   }
 
   V.register({
-    brain,
     id: 'go', name: 'Go', cat: 'Strategie', order: 6, accent: '#e6bf7d',
+    brain,
     short: 'Gebiet umzingeln, Steine fangen.',
     desc: 'Das uralte Strategiespiel: Setzt abwechselnd Steine, umzingelt Gebiet und fangt gegnerische Steine, denen alle Freiheiten fehlen. Wer am Ende mehr Fläche hat, gewinnt.',
     sides: { 1: 'Schwarz', 2: 'Weiß' }, firstLabels: ['Du (Schwarz)', 'KI (Schwarz)', 'Zufall'],

@@ -118,8 +118,8 @@
   }
 
   V.register({
-    brain,
     id: 'gomoku', name: 'Fünf in einer Reihe', cat: 'Klassiker', order: 3, accent: '#8f6bff',
+    brain,
     short: 'Fünf Steine in eine Linie bringen.',
     desc: 'Setzt abwechselnd Steine auf die Kreuzungen. Wer zuerst fünf in einer Reihe hat, waagerecht, senkrecht oder diagonal, gewinnt.',
     levelInfo: ['Anfänger: blockt deine Dreier oft nicht.', 'Blockt Drohungen, baut aber selten eigene Fallen.', 'Rechnet drei Züge voraus und sieht Doppeldrohungen.', 'Rechnet so tief wie möglich. Offene Dreier musst du sofort blocken.'],
