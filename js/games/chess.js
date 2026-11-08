@@ -738,6 +738,7 @@
     keys: [['Pfeile', 'Feld wählen'], ['Enter', 'Figur nehmen, dann Zielfeld'], ['1–4', 'Bei Umwandlung: Dame, Turm, Läufer, Springer']],
     firstTitle: 'Deine Farbe', firstLabels: ['Weiß', 'Schwarz', 'Zufall'],
     options: [{ id: 'flipb', label: 'Brett drehen', group: 'board', desc: 'Am Gerät nebeneinander: Das Brett dreht sich zu dem, der dran ist. Sitzt ihr euch gegenüber, drehen sich stattdessen die Figuren.', short: v => v ? 'Brett dreht mit' : '', def: 0, modes: ['local'], choices: [[0, 'Aus'], [1, 'Mitdrehen']] },
+      { id: 'odds', label: 'Vorgabe', group: 'players', variant: true, modes: ['ai', 'local'], desc: 'Der Stärkere spielt ohne eine Figur, wie unter Vereinsspielern üblich. Gegen die KI gibt die KI vor, am Gerät gibt Weiß vor.', short: v => v === 'n' ? 'Springervorgabe' : v === 'r' ? 'Turmvorgabe' : v === 'q' ? 'Damenvorgabe' : '', def: 0, choices: [[0, 'Keine'], ['n', 'Springer'], ['r', 'Turm'], ['q', 'Dame']] },
       { id: 'clock', label: 'Schachuhr', group: 'time', inline: 'local', desc: 'Jeder hat so viel Zeit für alle Züge.', short: v => v ? `Uhr ${v} Min.` : '', def: 0, modes: ['local', 'online', 'open'], choices: [[0, 'Aus'], [3, '3 Min'], [5, '5 Min'], [10, '10 Min']] }],
     // KI-Elo of the levels (estimates): the own beginner engine, Stockfish on skill 3, 10 and 20
     levelElo: [600, 1400, 2000, 2800],
@@ -754,8 +755,18 @@
       { t: 'Remis', d: 'Unentschieden gibt es bei <b>Patt</b> (wer dran ist, hat keinen Zug, steht aber nicht im Schach), bei dreimal derselben Stellung, nach 50 Zügen ohne Bauernzug oder Schlagen, und wenn keiner mehr mattsetzen kann. Tipp: Bring früh Springer und Läufer raus, sichere den König mit der Rochade und lass keine Figur ungedeckt.' }
     ],
     start(ctx) {
-      const P = initial(), START = clone(P);
+      const P = initial();
       const sideOf = { 1: 'w', 2: 'b' }, numOf = { w: 1, b: 2 };
+      // "Vorgabe": the stronger side starts without its queen's knight, queen's rook (and that castling) or queen.
+      // Against the AI the AI gives it, at one device White; a match watched again from the history knows who it was.
+      const odds = ['n', 'r', 'q'].includes(ctx.opts && ctx.opts.odds) && ['ai', 'local', 'review'].includes(ctx.mode) ? ctx.opts.odds : '';
+      if (odds) {
+        const rv = ctx.review, giver = ctx.mode === 'ai' ? sideOf[ctx.aiSide] : rv && rv.mode === 'ai' && rv.me ? sideOf[3 - rv.me] : 'w';
+        const row = giver === 'w' ? 56 : 0, col = { n: 1, r: 0, q: 3 }[odds];
+        P.b[row + col] = '';
+        if (odds === 'r') P.cs[giver === 'w' ? 'Q' : 'q'] = 0;
+      }
+      const START = clone(P);
       // your own pieces at the bottom: against the AI and online when you play the second side
       const baseFlip = (ctx.mode === 'ai' && ctx.aiSide === 1) || ctx.mySide === 2;
       // whose view the review takes: your side against the AI, online and in a recorded match of yours; at one device

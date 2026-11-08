@@ -41,9 +41,11 @@
   const introLen = (quick, tip) => quick ? 650 : tip ? 2000 : 1150;
   function vsIntro(left, right, quick, g, tip) {
     if (!V.fxOn() || settings.intro === false) return;
+    // each side: an avatar badge over the name and a line with rank and rating under it (when there is one)
+    const side = o => `<div class="vsi-n">${o.av ? `<span class="vsi-av">${o.av}</span>` : ''}<small>${o.sub}</small><b${o.name.length > 10 ? ' class="xl"' : o.name.length > 5 ? ' class="l"' : ''}>${o.name}</b>${o.meta ? `<em class="vsi-m">${o.meta}</em>` : ''}</div>`;
     const el = V.el('div', 'vsi' + (quick ? ' quick' : '') + (tip ? ' tip' : ''), `
-      <div class="vsi-l"><div class="vsi-n"><small>${left.sub}</small><b>${left.name}</b></div></div>
-      <div class="vsi-r"><div class="vsi-n"><small>${right.sub}</small><b>${right.name}</b></div></div>
+      <div class="vsi-l">${side(left)}</div>
+      <div class="vsi-r">${side(right)}</div>
       <div class="vsi-vs">VS</div><div class="vsi-flash"></div>
       ${tip ? `<div class="vsi-tip"><span class="vt-g">${g.icon}<b>${g.name}</b></span><p><em>Tipp</em><span class="vt-t"></span></p><i class="vt-bar"></i><span class="vt-src" hidden>${tip}</span></div>` : ''}`);
     document.body.appendChild(el);
@@ -60,6 +62,41 @@
     setTimeout(() => V.sfx.vs(), quick ? 140 : 280);
     setTimeout(kill, introLen(quick, tip));
   }
+
+  // ---------- end screen: the rating counts from the old to the new number; a new rank gets its own banner ----------
+  function eloRoll(box, from, to, label) {
+    const b = box && box.querySelector('b'); if (!b || !box.isConnected) return;
+    const ms = V.fxOn() ? Math.min(900, 250 + Math.abs(to - from) * 18) : 0, t0 = performance.now();
+    let lastN = from;
+    // (timers, not animation frames: the number must arrive even when the page is in the background)
+    const step = () => {
+      if (!box.isConnected) return;
+      const k = ms ? Math.min(1, (performance.now() - t0) / ms) : 1, n = Math.round(from + (to - from) * (1 - Math.pow(1 - k, 3)));
+      if (n !== lastN) { b.textContent = n; lastN = n; if (V.sfx.tick && (n % 3 === 0)) V.sfx.tick(); }
+      if (k < 1) return setTimeout(step, 30);
+      b.textContent = to; V.fx.pop(b, 'bump');
+      if (!V.rank) return;
+      const a = V.rank(from), z = V.rank(to);
+      if (a.k === z.k) return;
+      const up = to > from;
+      box.insertAdjacentHTML('afterend', `<div class="krank ${up ? 'up' : 'down'}"><i class="rk r-${z.k}"></i><span><small>${V.t(up ? 'Aufstieg' : 'Abstieg')} · ${V.t(label)}</small><b>${V.t(z.name)}</b></span></div>`);
+      if (up) { V.sfx.found(); V.fx.burstAt(box.nextElementSibling, '#ffd84f', 14, 70); }
+    };
+    step();
+  }
+
+  // ---------- the room a game is played in (css: .world) ----------
+  // wood: a board on a wooden table under a lamp; felt: the green card and billiard cloth; arcade: a neon grid floor;
+  // paper: a squared notebook page; sea: deep water for the fleets; club: spotlights for the party and the rest
+  const WORLDS = {
+    wood: ['chess', 'checkers', 'mill', 'go', 'backgammon', 'kalaha', 'hex', 'blockade', 'ludo', 'ladder'],
+    felt: ['poker', 'schnapsen', 'maumau', 'billiard', 'domino', 'yacht', 'memory', 'reversi'],
+    arcade: ['pong', 'hockey', 'tron', 'sumo', 'reaction'],
+    paper: ['ttt', 'uttt', 'hardcore', 'ttt3', 'dots', 'gomoku', 'hangman', 'slf', 'abc', 'code', 'mines'],
+    sea: ['ships']
+  };
+  const worldOf = g => g.world || Object.keys(WORLDS).find(k => WORLDS[k].includes(g.id)) || 'club';
+  V.worldOf = worldOf;
 
   // ---------- play ----------
   let rematchCarry = null;
@@ -111,7 +148,9 @@
     // an online rematch keeps the score between the same two players (sides may have swapped)
     if (online && !series && rematchCarry && rematchCarry.opp === M.opp) { series = { [M.side]: rematchCarry.me, [3 - M.side]: rematchCarry.them, d: rematchCarry.d }; rematch = true; }
     rematchCarry = null;
-    series = series || { 1: 0, 2: 0, d: 0 };
+    // "Vorsprung" (option hc, js/core.js): at one device the weaker player starts the series with wins on the board
+    const headStart = !series && cfg.mode === 'local' && !g.party && cfg.opts ? +cfg.opts.hc || 0 : 0;
+    series = series || { 1: Math.max(0, headStart), 2: Math.max(0, -headStart), d: 0 };
     const ai = cfg.mode === 'ai';
     // Party games (g.party): 2-4 players (option "n"). You are always player 1; every other seat is
     // a computer player against the AI, or a person at the same device.
@@ -121,6 +160,9 @@
     // undo: the match is set up again and every move but your last one (and what followed) is replayed at once
     const replay = cfg.replay && cfg.replay.length ? cfg.replay.slice() : null;
     if (cfg.replay || cfg.firstWas) cfg = Object.assign({}, cfg, { replay: null, first: cfg.firstWas || cfg.first, firstWas: null });
+    // chaos rules (option "chaos") that place things at random: a fresh seed for every new match, kept when a move is
+    // taken back (cfg.replay) and when a finished match is watched again (it comes with the options it was played with)
+    if (g.chaosSeed && cfg.opts && +cfg.opts.chaos && !replay && cfg.mode !== 'review') cfg = Object.assign({}, cfg, { opts: Object.assign({}, cfg.opts, { seed: 1 + V.rand(2147483646) }) });
     // a match in which a move was taken back does not change the KI-Elo (the flag is not passed on to a rematch)
     const undone = !!cfg.undone;
     if (undone) cfg = Object.assign({}, cfg, { undone: null });
@@ -156,6 +198,8 @@
     if (online) { names[mySide] = 'Du'; names[oppSide] = M.opp; }
     if (watch) { names[M.aSide] = M.aName; names[3 - M.aSide] = M.bName; }
     if (review) Object.assign(names, RV.names || {});
+    // a tournament match (js/tourney.js): the two names on the cards
+    if (cfg.mode === 'local' && cfg.names) Object.assign(names, cfg.names);
     const esc = t => String(t).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
     // your own card shows your account name (the logic keeps calling you "Du")
     const acct = V.cloud && V.cloud.user() && !V.cloud.user().anon ? V.cloud.user().username : '';
@@ -176,7 +220,7 @@
       <span class="nm"><b>${esc(shown(s))}${flagOf(s)}</b><small>${sub(s)}</small></span>
       ${clockMin ? `<span class="clk" id="ck${s}"></span>` : ''}${thinker(s) ? '<span class="tdots" aria-hidden="true"><i></i><i></i><i></i></span>' : ''}<span class="wins"><b>${series[s]}</b><small>Siege</small></span><em class="tag">am Zug</em>
       ${ai && s === aiSide ? '<div class="bubble" aria-live="polite"></div>' : ''}</div>`;
-    const sublabel = review && RV.shared ? 'Geteilt von ' + esc(RV.shared) + ' · ' + new Date(RV.at || Date.now()).toLocaleDateString(V.locale(), { day: 'numeric', month: 'short' }) : review ? 'Aufzeichnung · ' + esc(RV.label || '') + ' · ' + new Date(RV.at || Date.now()).toLocaleDateString(V.locale(), { day: 'numeric', month: 'short' }) : spect ? `Zuschauen · Online-Tisch · ${N} Spieler` : table ? `Online-Tisch · ${N} Spieler` : party ? (ai ? `Gegen ${N > 2 ? N - 1 + ' KIs' : 'KI'} · ` + lvName : N + ' Spieler') : ai ? 'Gegen KI · ' + lvName : slow ? 'Über Tage gegen ' + esc(M.opp) : online ? 'Online gegen ' + esc(M.opp) : watch ? 'Zuschauen · ' + esc(M.aName) + ' gegen ' + esc(M.bName) : 'Am Gerät';
+    const sublabel = cfg.tourney ? esc(cfg.tourney.label) : review && RV.shared ? 'Geteilt von ' + esc(RV.shared) + ' · ' + new Date(RV.at || Date.now()).toLocaleDateString(V.locale(), { day: 'numeric', month: 'short' }) : review ? 'Aufzeichnung · ' + esc(RV.label || '') + ' · ' + new Date(RV.at || Date.now()).toLocaleDateString(V.locale(), { day: 'numeric', month: 'short' }) : spect ? `Zuschauen · Online-Tisch · ${N} Spieler` : table ? `Online-Tisch · ${N} Spieler` : party ? (ai ? `Gegen ${N > 2 ? N - 1 + ' KIs' : 'KI'} · ` + lvName : N + ' Spieler') : ai ? 'Gegen KI · ' + lvName : slow ? 'Über Tage gegen ' + esc(M.opp) : online ? 'Online gegen ' + esc(M.opp) : watch ? 'Zuschauen · ' + esc(M.aName) + ' gegen ' + esc(M.bName) : 'Am Gerät';
     // Discord status (Rich Presence, js/discord.js): the game and how it is played, never an opponent's name
     V.discord.status(g.name, spect ? V.t('Zuschauen') : table ? V.t('Online-Tisch') + ' · ' + V.t(N + ' Spieler') : ai ? V.t('Gegen die KI') + ' · ' + V.t(lvName) : online ? V.t('Online-Duell') : watch ? V.t('Zuschauen') : V.t('Am Gerät'), g.id);
     // two people at one phone, sitting opposite: player 2's card (and the status on their turn) is turned around
@@ -198,7 +242,8 @@
         ${card(R, 'r')}`}
         <div class="center"><div class="status" id="st" aria-live="polite"></div><div class="stage" id="stage"${spect ? ' inert' : ''}></div>
           <div class="tpill" id="tpill" hidden><i></i><b></b>${g.keys && g.cat !== 'Action' && !watch && !spect ? `<small>${g.keys.slice(0, 2).map(([k, d]) => `<kbd>${k}</kbd> ${V.t(d)}`).join(' · ')}</small>` : ''}</div></div>
-      </div><i class="sglow t" aria-hidden="true"></i><i class="sglow b" aria-hidden="true"></i></div>`);
+      </div><i class="sglow t" aria-hidden="true"></i><i class="sglow b" aria-hidden="true"></i>
+      <i class="world w-${worldOf(g)}" aria-hidden="true"><i class="wa"></i><i class="wb"></i></i></div>`);
     const stEl = v.querySelector('#st'), pls = {};
     SIDES.forEach(s => { pls[s] = v.querySelector('#pl' + s); });
     // laptop: whose turn it is under the board, with the game's main keys
@@ -228,7 +273,7 @@
         return r;
       }).catch(() => (alive && !ended ? here() : null));
     }
-    let alive = true, ended = false, keyFn = null, lastTurn = 0, lastNote = '', moodBand = 0, bubbleT = null;
+    let alive = true, ended = false, keyFn = null, lastTurn = 0, lastNote = '', moodBand = 0, bubbleT = null, h2h = null;
     const LINES = {
       3: ['Ich sehe den Sieg.', 'Gleich ist es vorbei.', 'Das war’s wohl.'],
       2: ['Läuft für mich.', 'Gefällt mir.', 'Nicht schlecht, oder?'],
@@ -349,7 +394,9 @@
     // dice, shuffled cards and other luck: online every browser draws the same numbers from a shared seed
     // (tables get it from the server, duels derive it from the match id)
     const idSeed = id => { let h = 2166136261; for (const ch of String(id)) h = Math.imul(h ^ ch.charCodeAt(0), 16777619); return h >>> 0; };
-    let seed = table ? (T.seed >>> 0) || 1 : online || watch ? idSeed(M.id) || 1 : 0;
+    // (against the AI and at one device a chaos rule with luck in it brings its own seed in the options, so taking a move
+    // back and the history replay the same board)
+    let seed = table ? (T.seed >>> 0) || 1 : online || watch ? idSeed(M.id) || 1 : (cfg.opts && cfg.opts.seed) >>> 0;
     const rng = seed ? () => { seed = (seed + 0x6D2B79F5) >>> 0; let t = seed; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; } : Math.random;
     const ctx = {
       stage: v.querySelector('#stage'), mode: cfg.mode, get level() { return lvNow; }, fitElo: fitE, aiSide, opts: cfg.opts, sides: g.sides, n: N, players: SIDES,
@@ -463,7 +510,9 @@
           const s = stat(g.id);
           if (ai) { const r = s.ai[cfg.level]; if (winner === 0) r.d++; else if (winner === me) r.w++; else r.l++; }
           // KI-Elo: only you against one AI, not after taking a move back
-          if (ai && N === 2 && me && !undone) eloRes = V.aiElo.add(g.id, fitE || V.aiElo.levels(g)[cfg.level], winner === 0 ? 0.5 : winner === me ? 1 : 0);
+          // (a handicap or a chaos rule changes the game: such a match does not count for the KI-Elo)
+          const variantOn = (g.options || []).some(o => (o.variant || o.id === 'chaos') && cfg.opts && cfg.opts[o.id] != null && String(cfg.opts[o.id]) !== String(o.def));
+          if (ai && N === 2 && me && !undone && !variantOn) eloRes = V.aiElo.add(g.id, fitE || V.aiElo.levels(g)[cfg.level], winner === 0 ? 0.5 : winner === me ? 1 : 0);
           else if (online || table) { s.on = s.on || { w: 0, l: 0, d: 0 }; if (winner === 0) s.on.d++; else if (winner === mySide) s.on.w++; else s.on.l++; }
           else { if (winner === 0) s.local.d++; else if (winner === 1) s.local.a++; else s.local.b++; }
           S.set('stats', P.stats);
@@ -482,14 +531,19 @@
         SIDES.forEach(k => { const b = pls[k].querySelector('.wins b'); if (b.textContent !== String(series[k])) { b.textContent = series[k]; V.fx.pop(b, 'fx-pop'); } });
         const meWon = me && winner === me;
         const good = winner && (!me || meWon);
+        // the finale: the room darkens around the board, a win gives the board a short punch
+        if (winner && !off && V.fxOn()) v.classList.add('finale', good ? 'fwin' : 'flose');
         if (good) { V.sfx.win(); setTimeout(() => V.fx.confetti(), 250); setTimeout(() => V.fx.win(), g.endDelay ?? 1150); }
         else if (winner) { V.sfx.lose(); V.fx.shake(ctx.stage); }
         else if (!off) V.sfx.draw();
         // V.t: the letters are animated one by one, so the translation has to happen before the split
-        const big = V.t(off ? 'Abgebrochen' : winner === 0 ? (/^Patt/.test(note || '') ? 'Patt' : 'Remis') : me ? (meWon ? 'Sieg!' : 'Niederlage') : `${names[winner]} gewinnt`);
+        const big = V.t(off ? 'Abgebrochen' : winner === 0 ? (/^Patt/.test(note || '') ? 'Patt' : 'Remis') : me ? (meWon ? 'Sieg!' : 'Niederlage') : cfg.names ? `${names[winner]} ${V.t('gewinnt')}` : `${names[winner]} gewinnt`);
         setStatus(off ? esc(note || 'Partie abgebrochen') : winner === 0 ? (/^Patt/.test(note || '') ? 'Patt, unentschieden' : 'Unentschieden') :me ? (meWon ? '<span class="c' + winner + '">Du hast gewonnen</span>' : `${ctx.who(winner)} hat gewonnen`) : `${ctx.who(winner)} gewinnt`);
         const tone = winner === 0 ? 'draw' : me ? (meWon ? 'win' : 'lose') : party ? 'w' + winner : (winner === L ? 'left' : 'right');
-        const again = () => online ? net.rematch(series) : table ? (closeModal(), V.online.table(g, cfg.opts, cfg.level)) : play(g, cfg, series);
+        // a tournament match: the winner goes into the bracket right away; a draw is played again
+        const tny = cfg.tourney && !off ? cfg.tourney : null;
+        if (tny && winner) tny.done(winner);
+        const again = () => tny && winner ? (closeModal(true), tny.back()) : online ? net.rematch(series) : table ? (closeModal(), V.online.table(g, cfg.opts, cfg.level)) : play(g, cfg, series);
         const menu = () => watch || spect ? (M.admin ? V.account.admin('matches') : V.ui.home('online')) : setup(g);
         // what comes next (AI and one device only): after a win against the AI the next level is one tap away,
         // otherwise a game of the same kind that was not played yet (so the 35 games get found)
@@ -499,14 +553,15 @@
         const mine = ai ? me : (online || table) ? mySide : 0;
         if (mine && !watch && !spect && !auto && !off && winner !== 0) { const wr = S.get('winRun', {}); wr.cur = winner === mine ? (wr.cur || 0) + 1 : 0; wr.best = Math.max(wr.best || 0, wr.cur); S.set('winRun', wr); }
         const fresh = !watch && !spect && !auto && !off ? P.badgeCheck({ hour: new Date().getHours(), seats: N }) : [];
-        const step = !online && !table && !watch && !auto && !off ? nextStep(winner === me && !!winner) : null;
+        const step = !online && !table && !watch && !auto && !off && !tny ? nextStep(winner === me && !!winner) : null;
         ctx.later(() => {
           const m = openModal(`<div class="ko ${tone}">
             <div class="band"><div class="band-in"><span class="kicker">${esc(note || sublabel)}${online && net && net.last && net.last.ranked === false ? ' · zählt nicht für die Rangliste' : ''}</span>
               <h2 class="${big.length > 11 ? 'long' : ''}" aria-label="${esc(big)}">${[...big].map((ch, k) => `<span aria-hidden="true" style="--k:${k}">${ch === ' ' ? '&nbsp;' : esc(ch)}</span>`).join('')}</h2></div></div>
             ${party ? `<div class="eparty">${SIDES.map(k => `<span class="ep c${k}"><b>${series[k]}</b><small>${esc(names[k])}</small></span>`).join('')}</div>` : `<div class="eseries"><span class="nl">${esc(names[L])}</span><b class="sl${winner === L && !off ? ' up' : ''}" data-n="${series[L]}">${winner === L && !off ? series[L] - 1 : series[L]}</b><i>:</i><b class="sr${winner === R && !off ? ' up' : ''}" data-n="${series[R]}">${winner === R && !off ? series[R] - 1 : series[R]}</b><span class="nr">${esc(names[R])}</span></div>`}
-            ${eloRes ? `<div class="kelo ${eloRes.delta >= 0 ? 'up' : 'down'}"><span>KI-Elo</span><b>${eloRes.to}</b><em>${eloRes.delta >= 0 ? '+' : '−'}${Math.abs(eloRes.delta)}</em></div>` : ''}
+            ${eloRes ? `<div class="kelo ${eloRes.delta >= 0 ? 'up' : 'down'}" id="kelo-ai"><span>KI-Elo</span><b>${eloRes.from}</b><em>${eloRes.delta >= 0 ? '+' : '−'}${Math.abs(eloRes.delta)}</em></div>` : ''}
             ${online && !off && !watch && !(net && net.last && net.last.ranked === false) ? '<div class="kelo" id="kelo" hidden></div>' : ''}
+            ${online && h2h && !off ? (hh => `<div class="kh2h">${hh.n >= 5 ? `<em>${hh.n === 5 ? 'Neue Rivalität' : 'Rivale'}</em>` : ''}<span>Du gegen</span><span class="kn">${esc(M.opp)}</span><b><span class="me">${hh.w}</span><i>:</i><span>${hh.l}</span></b><small>${hh.n} Partien</small></div>`)({ w: h2h.w + (winner === mySide ? 1 : 0), l: h2h.l + (winner && winner !== mySide ? 1 : 0), n: h2h.n + 1 }) : ''}
             ${dWon ? `<div class="kdaily">${IC.bolt}<b>Spiel des Tages erledigt</b><span>Serie: ${dWon} ${dWon === 1 ? 'Tag' : 'Tage'}</span></div>` : ''}
             ${fresh.length ? `<div class="kbadges">${fresh.map(b => `<div class="kbdg bt${b.tier}" title="${esc(b.d)}"><span class="abz-ic">${b.ic}</span><span><small>${b.tier === 3 ? 'Legendäres Abzeichen' : b.tier === 2 ? 'Seltenes Abzeichen' : 'Neues Abzeichen'}</small><b>${b.t}</b></span></div>`).join('')}</div>` : ''}
             ${ai && winner && winner !== me && !off && tipFor() ? `<div class="ktip">${IC.bulb}<div><b>Tipp für die Revanche</b><p>${tipFor()}</p></div></div>` : ''}
@@ -517,7 +572,7 @@
             ${online && V.online.report ? `<button class="link erep" id="erep">${esc(M.opp)} melden</button>` : ''}
             ${step ? step.html : ''}
             ${ctx.endBtn && !off ? `<button class="btn sm ekx" id="ekx"><span>${IC.chart}${esc(ctx.endBtn.l)}</span></button>` : ''}
-            <div class="actions">${watch || spect ? '' : `<button class="btn primary" id="er"><span>${IC.redo}${online ? 'Revanche anfragen' : table ? 'Neuer Tisch' : 'Revanche'}</span><kbd class="only-fine">R</kbd></button>`}<button class="btn" id="eb"><span>Brett ansehen</span></button><button class="btn ghost" id="em"><span>${watch || spect ? 'Zurück' : 'Menü'}</span></button></div></div>`, 'endm', null, false, e => {
+            <div class="actions">${watch || spect ? '' : `<button class="btn primary" id="er"><span>${tny ? (winner ? IC.trophy + 'Zum Turnierbaum' : IC.redo + 'Nochmal spielen') : IC.redo + (online ? 'Revanche anfragen' : table ? 'Neuer Tisch' : 'Revanche')}</span><kbd class="only-fine">R</kbd></button>`}<button class="btn" id="eb"><span>Brett ansehen</span></button><button class="btn ghost" id="em"><span>${watch || spect ? 'Zurück' : 'Menü'}</span></button></div></div>`, 'endm', null, false, e => {
             if ((e.key === 'Enter' || e.key === 'n' || e.key === 'N' || e.key === 'r' || e.key === 'R') && !watch && !spect) { again(); return true; }
             if (e.key === 'Escape') { closeModal(); return true; }
             if (e.key === 'm' || e.key === 'M') { menu(); return true; }
@@ -526,12 +581,13 @@
           // the winner's number counts up and pulses once the band is in
           m.querySelectorAll('.eseries b.up').forEach(b => ctx.later(() => { b.textContent = b.dataset.n; V.fx.pop(b, 'bump'); }, 450));
           // the Elo change of an online match, once the server has rated it (it waits for both results)
+          const ka = m.querySelector('#kelo-ai'); if (ka) ctx.later(() => eloRoll(ka, eloRes.from, eloRes.to, 'KI-Elo'), 550);
           const ke = m.querySelector('#kelo');
           if (ke) {
             let tries = 0;
             const look = () => V.cloud.rpc('match_elo', { mid: M.id }).then(r => {
               if (!ke.isConnected) return;
-              if (r && r.delta != null) { ke.hidden = false; ke.className = 'kelo ' + (r.delta >= 0 ? 'up' : 'down'); ke.innerHTML = `<span>Elo</span><b>${r.elo}</b><em>${r.delta >= 0 ? '+' : '−'}${Math.abs(r.delta)}</em>`; }
+              if (r && r.delta != null) { ke.hidden = false; ke.className = 'kelo ' + (r.delta >= 0 ? 'up' : 'down'); ke.innerHTML = `<span>Elo</span><b>${r.elo - r.delta}</b><em>${r.delta >= 0 ? '+' : '−'}${Math.abs(r.delta)}</em>`; eloRoll(ke, r.elo - r.delta, r.elo, 'Elo'); }
               else if (++tries < 5) ctx.later(look, 1500 * tries);
             }, () => { });
             ctx.later(look, 700);
@@ -1192,9 +1248,26 @@
       tut
     };
     const pu = v.querySelector('#pu'); if (pu) pu.onclick = undo;
+    // online duel: your record against this opponent (player_profile → vs); it joins the intro when it arrives in time
+    // and the end screen adds this match to it. From 5 matches together the two of you are rivals.
+    if (online && M.opp && !watch && V.cloud && V.cloud.rpc) V.cloud.rpc('player_profile', { name: M.opp }).then(p => {
+      if (!alive || !p || !p.vs) return;
+      h2h = { w: p.vs.wins || 0, l: p.vs.losses || 0, d: p.vs.draws || 0, n: p.vs.played || 0 };
+      const vi = document.querySelector('.vsi:not(.out)');
+      if (vi && h2h.n) vi.insertAdjacentHTML('beforeend', `<div class="vsi-h2h">${h2h.n >= 5 ? '<em>Rivale</em>' : ''}<small>Ihr beide</small><b>${h2h.w}<i>:</i>${h2h.l}</b></div>`);
+    }).catch(() => { });
     if (rep) { /* replaying after an undo: no intro */ }
     else if (party && N > 2) vsIntro({ name: names[1], sub: sideLabel(1) }, { name: ai ? N - 1 + ' KIs' : 'Alle', sub: ai ? lvName : N + ' Spieler' }, rematch, g, introTip);
-    else vsIntro({ name: names[L], sub: sideLabel(L) }, { name: names[R], sub: ai ? 'KI · ' + lvName : online ? 'online' : sideLabel(R) }, rematch || watch, g, introTip);
+    else {
+      // against the AI: your rank and KI-Elo in this game (after your first match), the AI's rating for its level
+      let mL = '', mR = '';
+      if (ai && !party && V.rank) {
+        const mine = V.aiElo.get(g.id);
+        if (mine.n) { const rk = V.rank(mine.e); mL = `<i class="rk r-${rk.k}"></i>${V.t(rk.name)} · ${mine.e} Elo`; }
+        mR = `${Math.round(fitE || V.aiElo.levels(g)[cfg.level])} Elo`;
+      }
+      vsIntro({ name: esc(shown(L)), sub: sideLabel(L), av: av(L), meta: mL }, { name: esc(shown(R)), sub: ai ? 'KI · ' + lvName : online ? 'online' : sideLabel(R), av: av(R), meta: mR }, rematch || watch, g, introTip);
+    }
     if (ai && V.aiWorker) V.aiWorker.warm(g);
     inst = g.start(ctx) || {};
     // a recorded match: step through it (chess has its own move list with the review)

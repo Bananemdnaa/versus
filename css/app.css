@@ -433,7 +433,18 @@ kbd{display:inline-grid;place-items:center;min-width:22px;height:21px;padding:0 
 .vsi-n{display:flex;flex-direction:column;color:var(--ink);animation:vsn .5s .15s var(--snap) backwards}
 .vsi-l .vsi-n{transform:translate(-8%,-18vh);align-items:flex-start} .vsi-r .vsi-n{transform:translate(8%,18vh);align-items:flex-end}
 .vsi-n small{font:700 italic clamp(13px,2.4vw,20px)/1 var(--f-d);letter-spacing:.24em;text-transform:uppercase;opacity:.7}
-.vsi-n b{font:800 italic clamp(48px,11vw,120px)/.9 var(--f-d);text-transform:uppercase}
+.vsi-n b{font:800 italic clamp(48px,11vw,120px)/.9 var(--f-d);text-transform:uppercase;max-width:52vw;overflow-wrap:anywhere}
+.vsi-n b.l{font-size:clamp(34px,8vw,96px)} .vsi-n b.xl{font-size:clamp(24px,5.6vw,72px)}
+/* avatar badge over the name and the rank line under it */
+.vsi-av{display:grid;place-items:center;width:clamp(46px,9vw,84px);aspect-ratio:1;margin-bottom:10px;transform:skewX(var(--sk));background:var(--ink);color:#fff;box-shadow:5px 5px 0 rgba(8,9,15,.35);animation:vsav .45s .3s var(--spring) backwards}
+.vsi-av>*{transform:skewX(calc(var(--sk) * -1))}
+.vsi-av svg{width:52%;height:52%}
+.vsi-av span{font:800 italic clamp(18px,3.6vw,34px)/1 var(--f-d);text-transform:uppercase}
+.vsi-av .lav{display:grid;place-items:center;width:100%;height:100%}
+.vsi-m{display:inline-flex;align-items:center;gap:7px;margin-top:10px;padding:5px 10px;transform:skewX(var(--sk));background:var(--ink);color:#fff;font:800 italic clamp(12px,2.2vw,17px)/1 var(--f-d);letter-spacing:.06em;text-transform:uppercase;font-style:italic;animation:vsn .4s .5s var(--snap) backwards}
+.vsi-m .rk{--rk:#c98a52;width:9px;height:9px;background:var(--rk);transform:rotate(45deg);box-shadow:0 0 8px var(--rk)}
+.vsi-m .rk.r-sil{--rk:#c9d1e6} .vsi-m .rk.r-gold{--rk:var(--yellow)} .vsi-m .rk.r-pla{--rk:var(--cyan)} .vsi-m .rk.r-dia{--rk:#b98cff}
+@keyframes vsav{from{transform:skewX(var(--sk)) scale(0) rotate(-20deg)}}
 .vsi-vs{position:absolute;inset:0;display:grid;place-items:center;font:800 italic clamp(90px,22vw,200px)/1 var(--f-d);color:#fff;-webkit-text-stroke:4px var(--ink);text-shadow:8px 8px 0 var(--ink);animation:vsslam .32s .28s var(--spring) backwards}
 .vsi-flash{position:absolute;inset:0;background:#fff;opacity:0;animation:vsflash .45s .3s ease-out}
 .vsi.quick .vsi-l,.vsi.quick .vsi-r{animation-duration:.28s} .vsi.quick .vsi-n{animation-delay:.06s} .vsi.quick .vsi-vs{animation-delay:.14s} .vsi.quick .vsi-flash{animation-delay:.16s}
@@ -2088,12 +2099,14 @@ textarea.inp{height:auto}
   .gp-keys{display:flex!important;flex-wrap:wrap;gap:6px 14px;justify-content:center;margin:-6px 18px 16px;color:var(--dim);font-size:12px}
   .gp-keys span{display:inline-flex;align-items:center;gap:5px}
   .gp-keys kbd{height:19px;min-width:19px;font-size:11px}
-  .gp.gp-sw .gp-body{animation:gpfade .15s var(--ease)}
+  /* the parts of the panel fade in, not .gp-body itself: a transform there would make it the box the star and the close
+     button are placed in, so they jumped from the middle to the top for a moment */
+  .gp.gp-sw .gp-body>:not(.fav):not(.gpx){animation:gpfade .15s var(--ease)}
   @keyframes gpfade{from{opacity:0;transform:translateY(6px)}}
 }
 .lowfx .tiles.cards .tile,.lowfx .tiles.cards .tile .art .ic,.lowfx .mtile,.lowfx .ccard{transition:none}
 .lowfx .tiles.cards .tile:hover,.lowfx .tiles.cards .tile:hover .art .ic,.lowfx .mtile:hover,.lowfx .ccard:hover{transform:none}
-.lowfx .gp.gp-sw .gp-body{animation:none}
+.lowfx .gp.gp-sw .gp-body>*{animation:none}
 
 /* ---------- match: game bar, turn pill (laptop) and the pause menu ---------- */
 .tpill{display:none}
@@ -2993,6 +3006,21 @@ body:has(.view.play) .season.halloween .spider{display:none}
 .ko .kelo b{font:800 italic 20px/1 var(--f-d);font-variant-numeric:tabular-nums}
 .ko .kelo em{font-style:normal;font-weight:800;font-size:14px;font-variant-numeric:tabular-nums}
 .ko .kelo.up em{color:var(--good)} .ko .kelo.down em{color:var(--bad)}
+/* a new rank after the rating rolled over: up glows in the rank colour, down stays quiet */
+.ko .krank{--rk:#c98a52;display:flex;align-items:center;gap:12px;padding:9px 18px 9px 14px;transform:skewX(var(--sk));background:linear-gradient(100deg,color-mix(in srgb,var(--rk) 30%,var(--panel2)),var(--panel2) 75%);border:1.5px solid var(--rk);box-shadow:0 0 22px color-mix(in srgb,var(--rk) 45%,transparent);animation:wpop .55s var(--spring) backwards}
+.ko .krank>*{transform:skewX(calc(var(--sk) * -1))}
+.ko .krank .rk{width:16px;height:16px;background:var(--rk);transform:rotate(45deg);box-shadow:0 0 12px var(--rk)}
+.ko .krank span{display:flex;flex-direction:column;gap:3px}
+.ko .krank small{font:700 italic 11px/1 var(--f-d);letter-spacing:.16em;text-transform:uppercase;color:var(--dim)}
+.ko .krank b{font:800 italic 24px/1 var(--f-d);text-transform:uppercase;color:var(--rk)}
+.ko .krank.down{box-shadow:none;border-color:var(--line2);background:var(--panel2)} .ko .krank.down b{color:var(--fg)}
+.ko .krank:has(.r-sil){--rk:#c9d1e6} .ko .krank:has(.r-gold){--rk:var(--yellow)} .ko .krank:has(.r-pla){--rk:var(--cyan)} .ko .krank:has(.r-dia){--rk:#b98cff}
+/* the finale: the room darkens around the board while the winning line plays out; a win punches the board once */
+.view.play.finale::after{content:'';position:fixed;inset:0;z-index:4;pointer-events:none;background:radial-gradient(ellipse 70% 60% at 50% 50%,transparent 35%,rgba(4,4,10,.62));animation:finvig .7s ease-out both}
+.view.play.fwin .stage{animation:finpunch .55s .05s var(--spring)}
+@keyframes finvig{from{opacity:0}}
+@keyframes finpunch{35%{transform:scale(1.045)}}
+.lowfx .view.play.finale::after,.lowfx .view.play.fwin .stage{animation:none}
 .ko .kdaily b{font:800 italic 15px/1 var(--f-d);text-transform:uppercase}
 .ko .kdaily span{font-size:13px;color:var(--fg)}
 .knext.acct .kn-ic svg{width:26px;height:26px}
@@ -3345,3 +3373,206 @@ body:has(.view.play) .season.halloween .spider{display:none}
 /* guest badge after a player's name (js/flag.js): everybody sees who plays without an account */
 .gtag{display:inline-block;margin-left:.45em;padding:2px 6px;border:1px solid var(--line2);border-radius:4px;transform:skewX(var(--sk));background:var(--panel2);color:var(--muted);font:700 italic 10px/1.2 var(--f-d);letter-spacing:.1em;text-transform:uppercase;vertical-align:.12em;white-space:nowrap;flex:none}
 .acctp .ahead .gtag{display:none}
+
+/* ---------- the room a game is played in (js/play.js: worldOf) ----------
+   One fixed layer behind the match: its own floor and light per kind of game. Quiet enough that cards and pieces
+   stay the brightest thing on screen; the moving parts stop with "Effekte: wenig". */
+.world{position:fixed;inset:0;z-index:-1;pointer-events:none;overflow:hidden;animation:wIn .7s .15s ease-out backwards}
+.world>i{position:absolute;inset:0}
+@keyframes wIn{from{opacity:0}}
+/* wood: dark planks, a warm lamp over the board, dark corners */
+.w-wood{background:
+  radial-gradient(ellipse 55% 45% at 50% 45%,rgba(255,186,110,.22),transparent 72%),
+  repeating-linear-gradient(90deg,rgba(0,0,0,.32) 0 2px,transparent 2px 22%),
+  linear-gradient(90deg,#24160d,#2e1c10 18%,#22150c 36%,#2b1a0f 58%,#21140b 78%,#2a190e)}
+.w-wood .wa{background:repeating-linear-gradient(91deg,rgba(255,220,180,.025) 0 1px,transparent 1px 7px),repeating-linear-gradient(89.4deg,rgba(0,0,0,.06) 0 2px,transparent 2px 17px)}
+.w-wood .wb{background:radial-gradient(ellipse 85% 75% at 50% 45%,transparent 45%,rgba(5,3,2,.78))}
+/* felt: green cloth with a soft light in the middle and a dark rim */
+.w-felt{background:radial-gradient(ellipse 70% 58% at 50% 46%,#156b46,#0c4630 55%,#06281b 85%,#041a12)}
+.w-felt .wa{background:repeating-radial-gradient(circle at 30% 40%,rgba(255,255,255,.022) 0 1px,transparent 1px 3px);opacity:.9}
+.w-felt .wb{background:radial-gradient(ellipse 90% 80% at 50% 46%,transparent 55%,rgba(2,10,6,.72))}
+/* arcade: a neon grid floor running towards a glowing horizon, scanlines over everything */
+.w-arcade{background:linear-gradient(#07041a,#140932 52%,#09051c)}
+.w-arcade .wa{top:56%;bottom:-30%;left:-50%;right:-50%;transform:perspective(320px) rotateX(64deg);transform-origin:50% 0;
+  background:linear-gradient(rgba(255,79,216,.55) 2px,transparent 2px) 0 0/100% 46px,linear-gradient(90deg,rgba(98,240,255,.38) 2px,transparent 2px) 0 0/46px 100%;
+  -webkit-mask:linear-gradient(transparent,#000 30%);mask:linear-gradient(transparent,#000 30%);animation:wGrid 1.6s linear infinite}
+.w-arcade .wb{background:radial-gradient(ellipse 60% 14% at 50% 56%,rgba(255,79,216,.35),transparent 70%),repeating-linear-gradient(0deg,rgba(255,255,255,.035) 0 1px,transparent 1px 3px)}
+@keyframes wGrid{to{background-position:0 46px,0 0}}
+/* paper: a dark squared page with the red margin line */
+.w-paper{background:linear-gradient(rgba(140,165,255,.075) 1px,transparent 1px) 0 0/26px 26px,linear-gradient(90deg,rgba(140,165,255,.075) 1px,transparent 1px) 0 0/26px 26px,#0d1120}
+.w-paper .wa{left:max(18px,7vw);right:auto;width:2px;background:rgba(255,79,120,.32);box-shadow:5px 0 0 rgba(255,79,120,.14)}
+.w-paper .wb{background:radial-gradient(ellipse 85% 75% at 50% 45%,transparent 50%,rgba(3,4,10,.7))}
+/* sea: deep water, slow wave bands and light that drifts through */
+.w-sea{background:radial-gradient(ellipse 80% 60% at 50% 25%,#11406a,#082440 55%,#041325)}
+.w-sea .wa{inset:-20% -20%;background:repeating-linear-gradient(172deg,rgba(120,210,255,.07) 0 2px,transparent 2px 38px);animation:wWave 9s ease-in-out infinite alternate}
+.w-sea .wb{background:radial-gradient(circle at 25% 30%,rgba(120,220,255,.12),transparent 30%),radial-gradient(circle at 75% 65%,rgba(120,220,255,.09),transparent 34%),radial-gradient(ellipse 90% 80% at 50% 45%,transparent 50%,rgba(1,6,14,.7));animation:wDrift 14s ease-in-out infinite alternate}
+@keyframes wWave{to{transform:translate(-3%,4%)}}
+@keyframes wDrift{to{transform:translate(4%,-3%)}}
+/* club: the usual room with two spotlights swinging slowly over the stage */
+.w-club .wa,.w-club .wb{top:-12%;left:50%;width:60vmax;height:130vh;margin-left:-30vmax;transform-origin:50% 0;
+  background:conic-gradient(from 168deg at 50% 0,transparent 0deg,var(--sp) 12deg,transparent 24deg);filter:blur(6px);opacity:.75}
+.w-club .wa{--sp:rgba(255,79,216,.22);animation:wSpot 11s ease-in-out infinite alternate;rotate:-24deg}
+.w-club .wb{--sp:rgba(98,240,255,.16);animation:wSpot 13s ease-in-out infinite alternate-reverse;rotate:24deg}
+@keyframes wSpot{from{transform:rotate(-14deg)}to{transform:rotate(14deg)}}
+.lowfx .world,.lowfx .world>i{animation:none}
+
+/* ---------- game pictures that play a little on their own: the card in front of the hero, and the tile under the mouse ----------
+   (only for pictures whose parts can move: the Pong ball, a falling 4 Gewinnt piece, Tic Tac Toe drawn anew, the knight hopping) */
+.hcard.on[data-id="pong"] .hc-ic circle{animation:icPong 2.6s ease-in-out infinite}
+.hcard.on[data-id="pong"] .hc-ic rect:nth-of-type(2){animation:icPadT 2.6s ease-in-out infinite}
+.hcard.on[data-id="pong"] .hc-ic rect:nth-of-type(3){animation:icPadB 2.6s ease-in-out infinite}
+.hcard.on[data-id="c4"] .hc-ic circle:nth-of-type(11){animation:icDrop 3s cubic-bezier(.55,0,1,.45) infinite}
+.hcard.on[data-id="ttt"] .hc-ic path:not(:first-child),.hcard.on[data-id="ttt"] .hc-ic circle{stroke-dasharray:30;animation:icDraw 3.4s ease-out infinite}
+.hcard.on[data-id="ttt"] .hc-ic circle{animation-delay:.35s} .hcard.on[data-id="ttt"] .hc-ic path:last-child{animation-delay:.7s}
+.hcard.on[data-id="chess"] .hc-ic text{transform-box:fill-box;transform-origin:50% 100%;animation:icHop 2.8s var(--spring) infinite}
+@media (hover:hover) and (pointer:fine){
+  .tile[data-id="pong"]:hover .ic circle{animation:icPong 1.6s ease-in-out infinite}
+  .tile[data-id="c4"]:hover .ic circle:nth-of-type(11){animation:icDrop 1.8s cubic-bezier(.55,0,1,.45) infinite}
+  .tile[data-id="ttt"]:hover .ic path:not(:first-child),.tile[data-id="ttt"]:hover .ic circle{stroke-dasharray:30;animation:icDraw 2s ease-out infinite}
+  .tile[data-id="chess"]:hover .ic text{transform-box:fill-box;transform-origin:50% 100%;animation:icHop 1.6s var(--spring) infinite}
+}
+@keyframes icPong{0%,100%{transform:translate(0,0)}25%{transform:translate(-9px,15px)}50%{transform:translate(2px,-10px)}75%{transform:translate(8px,14px)}}
+@keyframes icPadT{0%,100%{transform:none}25%{transform:translateX(-6px)}50%{transform:translateX(4px)}75%{transform:translateX(9px)}}
+@keyframes icPadB{0%,100%{transform:none}25%{transform:translateX(-12px)}50%{transform:translateX(-4px)}75%{transform:translateX(2px)}}
+@keyframes icDrop{0%{transform:translateY(-26px);opacity:0}8%{opacity:1}30%{transform:translateY(0)}38%{transform:translateY(-2.5px)}46%,100%{transform:none;opacity:1}}
+@keyframes icDraw{0%{stroke-dashoffset:30}35%,100%{stroke-dashoffset:0}}
+@keyframes icHop{0%,55%,100%{transform:none}68%{transform:translateY(-5px) rotate(-8deg)}80%{transform:translateY(0) rotate(4deg)}88%{transform:rotate(0)}}
+.lowfx .hc-ic *,.lowfx .tile .ic *{animation:none!important}
+
+/* ---------- Online ranking: the game row, steps that rise, your own row stays in sight ---------- */
+.orank .rgames{margin-top:6px}
+.rfilt:empty{display:none}
+.podium.rise .pod .step{transform-origin:50% 100%;animation:podUp .5s var(--spring) backwards}
+.podium.rise .pod>:not(.step){--pd:0s;animation:podIn .4s var(--pd) var(--snap) backwards}
+.podium.rise .pod>.pav{animation:podIn .4s var(--pd) var(--snap) backwards,bob 3s calc(var(--pd) + .4s) ease-in-out infinite}
+.podium.rise .pod.p3 .step{animation-delay:.25s} .podium.rise .pod.p3>:not(.step){--pd:.42s}
+.podium.rise .pod.p2 .step{animation-delay:.43s} .podium.rise .pod.p2>:not(.step){--pd:.6s}
+.podium.rise .pod.p1 .step{animation-delay:.62s} .podium.rise .pod.p1>:not(.step){--pd:.8s}
+@keyframes podUp{from{transform:scaleY(0)}}
+@keyframes podIn{from{opacity:0;transform:translateY(14px)}}
+/* "Noch 2 Siege bis Platz 9" under your numbers */
+.rmine .rnext{display:flex;width:fit-content;align-items:center;gap:6px;margin-top:7px;padding:4px 9px;transform:skewX(var(--sk));background:color-mix(in srgb,var(--yellow) 14%,var(--panel2));border:1px solid color-mix(in srgb,var(--yellow) 50%,var(--line));color:var(--yellow);font:800 italic 12px/1 var(--f-d);letter-spacing:.06em;text-transform:uppercase;font-style:italic}
+.rmine .rnext svg{width:13px;height:13px;flex:none}
+.rmine .rnext.lead{background:color-mix(in srgb,var(--pink) 16%,var(--panel2));border-color:var(--pink);color:var(--pink)}
+/* your own row further down the list: a copy waits at the bottom edge of the screen until the list gets there */
+.rmefix{position:fixed;left:12px;right:12px;bottom:calc(98px + env(safe-area-inset-bottom,0px));z-index:30;pointer-events:none;opacity:0;transform:translateY(16px);transition:opacity .2s,transform .25s var(--snap)}
+.rmefix.on{opacity:1;transform:none;pointer-events:auto}
+.rmefix .rrow{margin:0;background:linear-gradient(rgba(255,79,216,.18),rgba(255,79,216,.18)),var(--ink);box-shadow:0 8px 24px rgba(0,0,0,.55)}
+@media (min-width:960px){.rmefix{bottom:18px}}
+.lowfx .podium.rise .pod .step,.lowfx .podium.rise .pod>*{animation:none}
+
+/* ---------- Bilanz: the form, the trophy cabinet, a card per game ---------- */
+/* the form: the last five own matches as chips, newest on the right */
+.sform{display:flex;align-items:center;gap:6px;margin-top:12px;flex-wrap:wrap}
+.sform .sf-l{font:800 italic 13px/1 var(--f-d);letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin-right:4px}
+.sform .sf{width:30px;height:30px;display:grid;place-items:center;transform:skewX(var(--sk));font:800 italic 15px/1 var(--f-d);font-style:italic;color:var(--ink);box-shadow:2px 2px 0 rgba(0,0,0,.4);animation:sfIn .35s calc(.15s + var(--k) * 70ms) var(--spring) backwards}
+.sform .sf.w{background:var(--good)} .sform .sf.l{background:var(--bad)} .sform .sf.d{background:var(--dim);color:var(--fg)}
+.sform .sf:last-of-type{outline:2px solid #fff;outline-offset:2px}
+.sform small{margin-left:6px;font-size:12px;color:var(--muted)}
+@keyframes sfIn{from{opacity:0;transform:skewX(var(--sk)) scale(.4)}}
+/* the cabinet: on the Bilanz page across the whole width, right under the numbers */
+.stats .sbadges{margin-top:16px}
+.abz-grid.cab{grid-template-columns:repeat(auto-fill,minmax(90px,1fr))}
+@media (max-width:420px){.abz-grid.cab .abz small{font-size:10px}.abz-grid.cab .abz b{font-size:12px}}
+.abz.on{animation:abzIn .4s var(--spring) backwards}
+.abz.ghost{position:relative;border-style:dashed;background:repeating-linear-gradient(-45deg,rgba(255,255,255,.02) 0 6px,transparent 6px 12px),var(--ink2)}
+.abz.ghost .abz-ic{position:relative;filter:none;opacity:1;background:var(--panel2);color:transparent}
+.abz.ghost .abz-ic svg{opacity:.22;color:var(--fg)}
+.abz.ghost .abz-ic i{position:absolute;inset:0;display:grid;place-items:center;font:800 italic 20px/1 var(--f-d);font-style:italic;color:var(--muted)}
+.abz.ghost b{color:var(--muted)}
+@keyframes abzIn{from{opacity:0;transform:scale(.85)}}
+/* a card per game */
+.sg-head{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:10px}
+.sg-head h3{margin:0;font:800 italic 18px/1 var(--f-d);text-transform:uppercase}
+.sg-sort{flex:none}
+.sg-sort button{font-size:12px}
+.sgcs{display:grid;gap:8px}
+@media (min-width:960px){.sgcs{grid-template-columns:repeat(auto-fill,minmax(270px,1fr))}}
+.sgc{display:grid;grid-template-columns:48px minmax(0,1fr) auto;align-items:center;gap:12px;width:100%;padding:10px 12px;border-radius:10px;text-align:left;color:var(--fg);
+  background:linear-gradient(100deg,color-mix(in srgb,var(--acc) 12%,var(--panel2)),var(--panel2) 60%);border:1px solid var(--line);transition:transform .15s var(--ease),border-color .15s}
+.sgc .ic{width:48px;height:48px;filter:drop-shadow(0 5px 8px rgba(0,0,0,.45))}
+.sgc .ic svg{width:100%;height:100%;display:block}
+.sgc-t{display:flex;flex-direction:column;gap:5px;min-width:0}
+.sgc-t b{font:800 italic 16px/1.1 var(--f-d);text-transform:uppercase;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sgc-n{display:flex;gap:10px;font:700 13px/1 var(--f-b);font-variant-numeric:tabular-nums}
+.sgc-n .good{color:var(--good)} .sgc-n .bad{color:var(--bad)} .sgc-n .dim{color:var(--dim)}
+.sgc-n em{margin-left:auto;font-style:normal;color:var(--fg)}
+.sgc-bar{display:flex;height:6px;border-radius:3px;overflow:hidden;background:var(--ink2)}
+.sgc-bar i{width:var(--w);height:100%}
+.sgc-bar .w{background:var(--good)} .sgc-bar .d{background:var(--dim)} .sgc-bar .l{background:var(--bad)}
+.sgc-m{display:flex;flex-direction:column;align-items:flex-end;gap:5px}
+.sgc-m .rank{height:22px;font-size:11px}
+.sgc:active{transform:scale(.985)}
+@media (hover:hover) and (pointer:fine){.sgc:hover{border-color:var(--acc);transform:translateY(-1px)}}
+@media (max-width:420px){.sgc{grid-template-columns:40px minmax(0,1fr);gap:10px}.sgc .ic{width:40px;height:40px}.sgc-m{grid-column:2;flex-direction:row;justify-content:flex-start}.sgc-m:empty{display:none}}
+.lowfx .sform .sf,.lowfx .abz.on{animation:none}
+/* the 14-day chart is now a side note further down: lower bars */
+.stats .sbars{height:96px}
+.stats .schart .fine{margin-top:20px}
+
+/* ---------- Konto without login: the player card you would get, empty and locked ---------- */
+.apromo.bcard{align-items:stretch;gap:14px;background:repeating-linear-gradient(-60deg,rgba(8,9,15,.08) 0 10px,transparent 10px 22px),var(--cyan)}
+@media (min-width:960px){.apromo.bcard{justify-content:center;gap:18px;padding:28px}.bc-av{width:80px;height:80px;font-size:42px}.bc-nm b{font-size:38px}}
+.apromo.bcard .hc-k{align-self:flex-start}
+.bc-head{display:flex;align-items:center;gap:14px}
+.bc-av{width:64px;height:64px;flex:none;display:grid;place-items:center;transform:skewX(var(--sk));border:2.5px dashed rgba(8,9,15,.55);background:rgba(8,9,15,.08);font:800 italic 34px/1 var(--f-d);color:rgba(8,9,15,.6);animation:bcPulse 2.6s ease-in-out infinite}
+.bc-nm{display:flex;flex-direction:column;gap:4px;min-width:0}
+.bc-nm b{font:800 italic 30px/.95 var(--f-d);text-transform:uppercase;color:rgba(8,9,15,.45)}
+.bc-nm small{font:700 italic 12px/1 var(--f-d);letter-spacing:.16em;text-transform:uppercase;color:rgba(8,9,15,.65)}
+.bc-slots{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.bc-slot{position:relative;display:flex;flex-direction:column;align-items:flex-start;gap:3px;padding:10px 10px 9px;border-radius:8px;background:rgba(8,9,15,.12);border:1px solid rgba(8,9,15,.18)}
+.bc-slot .bc-ic svg{width:20px;height:20px}
+.bc-slot b{font:800 italic 15px/1.05 var(--f-d);text-transform:uppercase}
+.bc-slot small{font-size:11.5px;line-height:1.2;font-weight:700;opacity:.7}
+.bc-lk{position:absolute;top:7px;right:7px;width:18px;height:18px;display:grid;place-items:center;border-radius:50%;background:var(--ink);color:var(--cyan)}
+.bc-lk svg{width:11px;height:11px}
+.bc-cta{display:flex;align-items:center;gap:8px;margin:0;font-weight:700;font-size:13.5px;line-height:1.3}
+.bc-cta svg{width:18px;height:18px;flex:none}
+@keyframes bcPulse{50%{background:rgba(8,9,15,.16);border-color:rgba(8,9,15,.8)}}
+.lowfx .bc-av{animation:none}
+@media (max-width:380px){.bc-slot{padding:8px 7px}.bc-slot b{font-size:13px}.bc-nm b{font-size:26px}}
+
+/* ---------- rivals: your record against this opponent in the intro and on the end screen ---------- */
+.vsi-h2h{position:absolute;left:50%;bottom:max(7vh,24px);translate:-50% 0;display:flex;flex-direction:column;align-items:center;gap:4px;padding:8px 16px;transform:skewX(var(--sk));background:var(--ink);color:#fff;box-shadow:5px 5px 0 rgba(8,9,15,.35);animation:vsn .35s var(--snap) backwards}
+.vsi-h2h>*{transform:skewX(calc(var(--sk) * -1))}
+@media (min-width:960px){.vsi-h2h{bottom:auto;top:7vh}}
+.vsi-h2h small{font:700 italic 11px/1 var(--f-d);letter-spacing:.2em;text-transform:uppercase;opacity:.7}
+.vsi-h2h b{font:800 italic 30px/1 var(--f-d);font-variant-numeric:tabular-nums}
+.vsi-h2h b i{margin:0 6px;opacity:.5;font-style:normal}
+.vsi-h2h em,.ko .kh2h em{padding:3px 8px;background:var(--yellow);color:var(--ink);font:800 italic 11px/1 var(--f-d);letter-spacing:.12em;text-transform:uppercase;font-style:italic}
+.ko .kh2h{display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:center;padding:7px 14px;border-radius:999px;background:var(--panel2);border:1px solid var(--line2);animation:qsIn .4s .45s var(--spring) backwards}
+.ko .kh2h>span{font-size:13px;color:var(--muted)} .ko .kh2h>.kn{margin-left:-6px;color:var(--fg);font-weight:700}
+.ko .kh2h b{font:800 italic 20px/1 var(--f-d);font-variant-numeric:tabular-nums}
+.ko .kh2h b .me{color:var(--pink);font-size:inherit}
+.ko .kh2h b i{margin:0 4px;color:var(--dim);font-style:normal}
+.ko .kh2h small{font-size:12px;color:var(--dim)}
+
+/* ---------- tournament at one device (js/tourney.js) ---------- */
+.tny .rgames.tny-g{margin:0 -4px;padding:2px 4px 10px}
+.tny .rgames.tny-g button{width:72px}
+.ty-g{display:inline-flex;align-items:center;gap:6px;vertical-align:middle}
+.ty-g .ic{width:22px;height:22px;display:inline-block} .ty-g .ic svg{width:100%;height:100%}
+.ty-g b{color:var(--fg)}
+/* the bracket: one column per round, the matches spread out so a pair meets in the middle of the next column */
+.ty-m.bye .ty-p.won{background:none;color:var(--fg)}
+.ty-tree{display:grid;grid-template-columns:repeat(var(--r),minmax(100px,1fr));gap:10px;overflow-x:auto;padding:4px 2px 10px;scrollbar-width:thin}
+.ty-col{display:flex;flex-direction:column;min-width:0}
+.ty-col h5{margin:0 0 8px;font:800 italic 11px/1 var(--f-d);letter-spacing:.14em;text-transform:uppercase;color:var(--muted);text-align:center}
+.ty-ms{flex:1;display:flex;flex-direction:column;justify-content:space-around;gap:8px}
+.ty-m{display:flex;flex-direction:column;border-radius:8px;overflow:hidden;background:var(--panel2);border:1px solid var(--line)}
+.ty-tree.fresh .ty-m{animation:qsIn .35s calc(var(--k) * 60ms) var(--spring) backwards}
+.ty-m.bye{opacity:.6}
+.ty-m.now{border-color:var(--pink);box-shadow:0 0 0 1px var(--pink),0 0 18px -4px var(--pink);animation:tyNow 1.6s ease-in-out infinite}
+.ty-p{padding:7px 10px;font:700 13px/1.2 var(--f-b);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ty-p+.ty-p{border-top:1px solid var(--line)}
+.ty-p i{color:var(--dim);font-style:italic;font-weight:600}
+.ty-p.won{color:var(--ink);background:var(--yellow);font-weight:800}
+.ty-p.out{color:var(--dim);text-decoration:line-through}
+.ty-col:last-child .ty-m{border-color:color-mix(in srgb,var(--yellow) 55%,var(--line))}
+.ty-next{display:flex;flex-direction:column;align-items:center;gap:4px;padding:10px;border-radius:10px;background:linear-gradient(100deg,color-mix(in srgb,var(--pink) 16%,var(--panel2)),var(--panel2));text-align:center}
+.ty-next small{font:700 italic 11px/1 var(--f-d);letter-spacing:.16em;text-transform:uppercase;color:var(--pink)}
+.ty-next b{font:800 italic 20px/1.1 var(--f-d);text-transform:uppercase}
+.ty-next b i{font-style:normal;color:var(--muted);font-size:14px;margin:0 4px}
+@keyframes tyNow{50%{box-shadow:0 0 0 1px var(--pink),0 0 26px -2px var(--pink)}}
+.lowfx .ty-m.now,.lowfx .ty-tree.fresh .ty-m{animation:none}
+@media (min-width:960px){.faddm .tny .ty-tree{grid-template-columns:repeat(var(--r),minmax(140px,1fr))}}

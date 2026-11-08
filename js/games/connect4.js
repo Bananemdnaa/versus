@@ -30,7 +30,8 @@
       const me = s.turn, op = 3 - me, b = s.b; let v = 0;
       for (const w of WIN) {
         let a = 0, o = 0;
-        for (const i of w) { if (b[i] === me) a++; else if (b[i] === op) o++; }
+        // (3: a neutral stone of the chaos rule "Hindernisse" blocks the four for both)
+        for (const i of w) { if (b[i] === me) a++; else if (b[i] === op) o++; else if (b[i] === 3) { a = o = 9; break; } }
         if (a && o) continue;
         if (a === 3) v += 40; else if (a === 2) v += 6;
         if (o === 3) v -= 45; else if (o === 2) v -= 6;
@@ -57,7 +58,9 @@
   .c4b.done .cell:not(.w) .disc{opacity:.4;transition:opacity .5s}
   .c4b .cell{transition:background .15s}
   .c4b.hov .cell.col{background:#141733}
-  .c4b.lock{cursor:default}`);
+  .c4b.lock{cursor:default}
+  .c4b .rock{background:radial-gradient(circle at 35% 30%,#9aa0c4,#4a4f72 62%);box-shadow:inset 0 -3px 0 rgba(0,0,0,.35),0 0 0 2px rgba(255,255,255,.08)}
+  .c4b .rock::after{content:'';position:absolute;inset:30%;border-radius:50%;border:2px dashed rgba(255,255,255,.28)}`);
 
   // the AI's choice as a pure function of the state, so it can think in a worker (js/aiworker.js, V.register)
   function brain(s, L) {
@@ -73,6 +76,11 @@
     turnBoard: true,
     short: 'Steine fallen lassen, vier verbinden.',
     desc: 'Lass deine Steine in die Spalten fallen. Wer zuerst vier in einer Reihe hat, gewinnt.',
+    // chaos rule: neutral stones at random places (a seed per match, js/play.js), for the AI and at one device
+    chaosSeed: true,
+    options: [
+      { id: 'chaos', label: 'Chaos-Regel', group: 'rules', modes: ['ai', 'local'], desc: 'Hindernisse: Vier graue Steine liegen schon im Brett, an anderen Stellen in jeder Partie. Sie gehören keinem und blockieren Vierer für beide.', short: v => +v ? 'Hindernisse' : '', def: 0, choices: [[0, 'Aus'], [1, 'Hindernisse']] }
+    ],
     levelInfo: ['Anfänger: übersieht deine Dreier oft und lässt auch mal den eigenen Sieg liegen.', 'Blockt offene Dreier, fällt aber auf doppelte Drohungen rein.', 'Rechnet fünf Züge voraus.', 'Rechnet bis zu 14 Züge tief. Fehler werden sofort bestraft.'],
     keys: [['← →', 'Spalte wählen'], ['Enter ↓', 'Stein einwerfen'], ['1–7', 'Direkt in diese Spalte']],
     icon: `<svg viewBox="0 0 48 48"><rect x="3" y="7" width="42" height="36" rx="6" fill="#1a1f5c" stroke="#3b4aa8" stroke-width="2"/>${[0, 1, 2, 3].map(r => [0, 1, 2, 3].map(c => `<circle cx="${10 + c * 9.3}" cy="${14 + r * 8.3}" r="3.3" fill="${(r === 3 && c < 3) || (r === 2 && c === 1) ? '#ff4fd8' : (r === 3 && c === 3) || (r === 2 && c === 0) || (r === 2 && c === 2) ? '#ffd84f' : '#0b0c15'}"/>`).join('')).join('')}</svg>`,
@@ -89,6 +97,16 @@
       for (let c = 0; c < C; c++) ghost.appendChild(V.el('div'));
       for (let i = 0; i < R * C; i++) { const cell = V.el('div', 'cell'); cell.dataset.c = i % C; board.appendChild(cell); }
       wrap.append(ghost, board); ctx.stage.appendChild(wrap);
+      // chaos "Hindernisse": four neutral stones fall into random columns before the first move (never more than two in one)
+      if (+(ctx.opts && ctx.opts.chaos) === 1 && (ctx.mode === 'ai' || ctx.mode === 'local' || ctx.mode === 'review')) {
+        const inCol = Array(C).fill(0);
+        for (let k = 0; k < 4; k++) {
+          let c = Math.floor(ctx.rng() * C), tries = 0;
+          while (inCol[c] >= 2 && tries++ < 20) c = (c + 1) % C;
+          const r = dropRow(s.b, c); s.b[r * C + c] = 3; s.n++; inCol[c]++;
+          board.children[r * C + c].appendChild(V.el('div', 'disc rock'));
+        }
+      }
       const human = () => !over && !busy && !ctx.isAI(s.turn);
       function showGhost(c) {
         [...ghost.children].forEach((g, k) => { g.className = k === c && human() && !s.b[c] ? 'on p' + s.turn : ''; });

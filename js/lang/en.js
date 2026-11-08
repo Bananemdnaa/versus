@@ -61,7 +61,7 @@
     'Nach Updates suchen': 'Check for updates', 'Version #': 'Version #',
     'Tutorials wieder als neu zeigen': 'Show tutorials as new again', 'Einstellungen zurücksetzen': 'Reset settings', 'Bilanz löschen': 'Delete stats',
     'Sicher? Nochmal tippen': 'Sure? Tap again',
-    'Versus # · ohne Werbung. KI und Spiele zu zweit laufen auch offline.': 'Versus # · no ads. AI and two-player games also work offline.',
+    'Versus # · von Flixos Studio · ohne Werbung. KI und Spiele zu zweit laufen auch offline.': 'Versus # · by Flixos Studio · no ads. AI and two-player games also work offline.',
     'Taste {0} zeigt alle Kürzel.': 'Key {0} shows all shortcuts.',
     'Der Browser hat die Vibration blockiert. Tipp einmal irgendwo auf die Seite und versuch es nochmal.': 'The browser blocked vibration. Tap anywhere on the page once and try again.',
     'Nichts gespürt? Auf dem iPhone geht das erst ab iOS 18 und nur, wenn unter Einstellungen → Töne & Haptik die {0} an ist.': 'Nothing felt? On iPhone this needs iOS 18 or later, and {0} must be on under Settings → Sounds & Haptics.',
@@ -1446,7 +1446,7 @@
   A({
     'Spielt pro Zug # Partien durch.': 'Plays through # games per move.', 'in einer Linie zwischen deinem neuen und einem alten Stein': 'in a line between your new disc and an old one',
     'mehr Steine seiner Farbe': 'more discs of their colour', 'sich nicht mehr bewegen kann': 'cannot move any more', 'sofort nochmal': 'again right away', 'kann nicht': "can't move",
-    'Umdrehen': 'Flipping', 'Turm!': 'Rook!', 'Springer!': 'Knight!', 'Läufer!': 'Bishop!', 'Versus # · ohne Werbung. KI und Spiele zu zweit laufen auch offline.{0}': 'Versus # · no ads. AI and two-player games also work offline.{0}',
+    'Umdrehen': 'Flipping', 'Turm!': 'Rook!', 'Springer!': 'Knight!', 'Läufer!': 'Bishop!', 'Versus # · von Flixos Studio · ohne Werbung. KI und Spiele zu zweit laufen auch offline.{0}': 'Versus # · by Flixos Studio · no ads. AI and two-player games also work offline.{0}',
     'Du gewinnst #': 'You win #', 'Schnellboot': 'Patrol boat'
   });
   A({
@@ -1489,7 +1489,7 @@
 
   // ---------- legal ----------
   A({
-    'Impressum und Datenschutz': 'Legal notice and privacy', 'Versus # · ohne Werbung. KI und Spiele zu zweit laufen auch offline.{0}{1}{2}': 'Versus # · no ads. AI and two-player games also work offline.{0}{1}{2}', 'Datenschutz und Impressum': 'Privacy and legal notice', 'Nutzungsbedingungen': 'Terms of service', 'Community auf Discord': 'Community on Discord', 'Mitspieler finden, Ideen teilen und Bugs melden': 'Find players, share ideas and report bugs', 'Fair spielen, Konto und was das Team tun kann': 'Fair play, accounts and what the team can do',
+    'Impressum und Datenschutz': 'Legal notice and privacy', 'Versus # · von Flixos Studio · ohne Werbung. KI und Spiele zu zweit laufen auch offline.{0}{1}{2}': 'Versus # · by Flixos Studio · no ads. AI and two-player games also work offline.{0}{1}{2}', 'Datenschutz und Impressum': 'Privacy and legal notice', 'Nutzungsbedingungen': 'Terms of service', 'Community auf Discord': 'Community on Discord', 'Mitspieler finden, Ideen teilen und Bugs melden': 'Find players, share ideas and report bugs', 'Fair spielen, Konto und was das Team tun kann': 'Fair play, accounts and what the team can do',
     'Welche Daten Versus speichert und wer dahintersteht': 'What data Versus stores and who runs it',
     'Konten ab 14 Jahren, jünger nur mit Erlaubnis der Eltern. Was gespeichert wird: {0}.': 'Accounts from age 14, younger only with your parents\' permission. What is stored: {0}.', 'Datenschutz': 'Privacy'
   });
@@ -1850,7 +1850,30 @@
   ]);
   // ---------- motion.js: ranks from the Elo and the button prompts at the PC ----------
   A({
-    'Beste Elo': 'Best Elo', 'Diamant': 'Diamond', 'Platin': 'Platinum', 'Gold': 'Gold', 'Silber': 'Silver', 'Bronze': 'Bronze',
+    'Beste Elo': 'Best Elo', 'Aufstieg': 'Promoted', 'Abstieg': 'Demoted',
+    'Noch # Siege bis Platz #': '# more wins to place #', 'Noch # Sieg bis Platz #': '# more win to place #', 'Noch # Elo bis Platz #': '# more Elo to place #', 'Du führst': 'You lead',
+    'Dein Name': 'Your name', 'Deine Spielerkarte': 'Your player card', '1 Partie': '1 match', '# Abzeichen': '# badges', '1 Abzeichen': '1 badge', 'auf jedem Gerät': 'on every device', 'im Profil': 'in your profile',
+    'Keine E-Mail nötig. Mit einem Konto gehört die Karte dir.': 'No e-mail needed. With an account the card is yours.',
+    'Rivale': 'Rival', 'Neue Rivalität': 'New rivalry', 'Du gegen': 'You vs',
+    // tournament (js/tourney.js)
+    'Turnier': 'Tournament', 'Finale': 'Final', 'Halbfinale': 'Semi-final', 'Viertelfinale': 'Quarter-final', 'Runde #': 'Round #', 'Freilos': 'Bye', 'Baum': 'Bracket',
+    'Turnier · Finale': 'Tournament · Final', 'Turnier · Halbfinale': 'Tournament · Semi-final', 'Turnier · Viertelfinale': 'Tournament · Quarter-final', 'Turnier · Runde #': 'Tournament · Round #',
+    'Turnier läuft · {0}': 'Tournament on · {0}', '{0} hat gewonnen': '{0} won', '{0} gegen {1} · {2}': '{0} vs. {1} · {2}', '3 bis 8 Leute, ein Spiel, K.-o.-Runden an einem Gerät': '3 to 8 people, one game, knockout rounds on one device',
+    'Alle spielen am selben Gerät. Wer verliert, ist raus, bis einer übrig ist. Bei Remis wird nochmal gespielt.': 'Everybody plays on the same device. Whoever loses is out until one is left. A draw is played again.',
+    'Wer spielt mit?': 'Who is playing?', 'Welches Spiel?': 'Which game?', 'Turnier starten': 'Start tournament', 'Mindestens drei Namen.': 'At least three names.', 'Wähl ein Spiel.': 'Pick a game.',
+    '{0} · # Spieler': '{0} · # players', 'Turnier beenden': 'End tournament', 'Turnier beendet': 'Tournament ended', '{0} gewinnt das Turnier!': '{0} wins the tournament!', 'gegen {0}': 'vs. {0}',
+    'Neues Turnier': 'New tournament', 'Zum Turnierbaum': 'To the bracket', 'Nochmal spielen': 'Play again',
+    // chaos rules and handicaps
+    'Chaos-Regel': 'Chaos rule', 'Hindernisse': 'Obstacles', 'Verschwinden': 'Vanishing', 'Nach 40 Zügen': 'After 40 moves', 'Keine': 'None', 'Vorgabe': 'Handicap',
+    'Hindernisse: Vier graue Steine liegen schon im Brett, an anderen Stellen in jeder Partie. Sie gehören keinem und blockieren Vierer für beide.': 'Obstacles: four grey discs are already on the board, in other places every match. They belong to nobody and block fours for both.',
+    'Verschwinden: Jeder hat höchstens drei Zeichen. Setzt du ein viertes, verschwindet dein ältestes (es ist blass markiert). Remis gibt es erst nach 40 Zügen.': 'Vanishing: everybody has at most three marks. Place a fourth and your oldest one disappears (it is shown pale). A draw only comes after 40 moves.',
+    'Vorsprung': 'Head start', 'Sp. # +#': 'Pl. # +#', 'Spieler # +#': 'Player # +#',
+    'Für ungleiche Gegner: Wer schwächer ist, startet mit Siegen auf dem Konto. Spielt dann bis zu einer Zahl, die ihr ausmacht.': 'For uneven opponents: the weaker player starts with wins on the board. Then play up to a number you agree on.',
+    'Springervorgabe': 'Knight odds', 'Turmvorgabe': 'Rook odds', 'Damenvorgabe': 'Queen odds', '# Vorgabesteine': '# handicap stones',
+    'Der Stärkere spielt ohne eine Figur, wie unter Vereinsspielern üblich. Gegen die KI gibt die KI vor, am Gerät gibt Weiß vor.': 'The stronger side plays without one piece, as is usual among club players. Against the AI the AI gives the odds, on one device White does.',
+    'Schwarz bekommt Vorgabesteine auf den Sternpunkten. Dafür zieht Weiß zuerst und bekommt nur 0,5 Punkte Komi. Wer die Vorgabe will, spielt Schwarz.': 'Black gets handicap stones on the star points. In return White moves first and gets only 0.5 points komi. Whoever wants the handicap plays Black.',
+    'Pro Spiel': 'Per game', 'Form': 'Form', 'letzte # Partien': 'last # matches', 'letzte # Partie': 'last # match', 'A–Z': 'A–Z',
+    'Weitere offene (#)': 'More to earn (#)', 'Noch keins. Die ersten warten schon, eine Partie reicht.': 'None yet. The first ones are waiting, one match is enough.', 'Diamant': 'Diamond', 'Platin': 'Platinum', 'Gold': 'Gold', 'Silber': 'Silver', 'Bronze': 'Bronze',
     'Alle Tasten': 'All keys', 'Modus': 'Mode', 'Zurück / Vor': 'Back / forward',
     // guests: badge, friend wishes, the fixed guest games
     'Spielt noch ohne Konto': 'Still playing without an account', 'Neue Freundschaftsanfrage': 'New friend request',

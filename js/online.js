@@ -218,7 +218,8 @@
       ${C().user() ? '<div id="oactive" class="obanners"></div>' : ''}
       <div class="ogrid${full ? '' : ' solo'}">
         <div class="ocol">${quickCard()}${full ? '<div id="oasync"></div>' : ''}<div class="apanel osec orank"><div class="rtop"><h3>Rangliste <em class="chip c rleft" id="rleft" hidden></em></h3><div class="oseg rper" id="oper">${[['week', 'Diese Woche'], ['all', 'Für immer']].map(([k, l]) => `<button data-p="${k}" class="${boardPeriod === k ? 'on' : ''}">${l}</button>`).join('')}</div></div>
-          <div class="rfilt"><label class="rsel">${IC().trophy}<select class="inp" id="obgs" aria-label="Spiel für die Rangliste">${[['', V.t('Alle Spiele')], ...ONLINE.concat(TABLE).filter(id => V.byId[id]).map(id => [id, gname(id)])].map(([id, l]) => `<option value="${id}"${boardGame === id ? ' selected' : ''}>${esc(l)}</option>`).join('')}</select></label>
+          <div class="rgames" id="obgs" role="group" aria-label="Spiel für die Rangliste">${[['', 'Alle Spiele', IC().trophy], ...ONLINE.concat(TABLE).filter(id => V.byId[id]).map(id => [id, gname(id), V.byId[id].icon])].map(([id, l, ic]) => `<button data-bg="${id}" class="${boardGame === id ? 'on' : ''}" aria-pressed="${boardGame === id}" title="${esc(l)}"><span class="ic${id ? '' : ' all'}">${ic}</span><small>${esc(id ? l : 'Alle')}</small></button>`).join('')}</div>
+          <div class="rfilt">
             ${full ? `<div class="oseg rper rscope" id="oscope" role="group" aria-label="Wer steht in der Rangliste?">${[['all', 'Alle', IC().globe], ['friends', 'Freunde', IC().users]].map(([k, l, ic]) => `<button data-s="${k}" class="${boardScope === k ? 'on' : ''}" aria-pressed="${boardScope === k}">${ic}${l}</button>`).join('')}</div>` : ''}</div>
           <div id="oboard">${V.skel()}</div></div></div>
         <div class="ocol">${full ? `<div class="apanel osec fpanel"><div class="fhead"><h3>Freunde <small id="fcount"></small></h3><button class="btn primary sm" id="fadd"><span>${IC().plus}Hinzufügen</span></button></div>
@@ -230,7 +231,19 @@
   function wire(b) {
     const rt = b.querySelector('#oretry'); if (rt) rt.onclick = () => { V.sfx.ui(); location.reload(); };
     if (!C() || !C().available()) return;
-    const sel = b.querySelector('#obgs'); if (sel) sel.onchange = () => { boardGame = sel.value; V.sfx.ui(); loadBoard(b); };
+    // the ranking's game: a row of game pictures to swipe through, the chosen one opens up with its name
+    const sel = b.querySelector('#obgs');
+    if (sel) {
+      const centre = (x, smooth) => { const r = sel.getBoundingClientRect(), q = x.getBoundingClientRect(); sel.scrollTo({ left: sel.scrollLeft + q.left - r.left - (r.width - q.width) / 2, behavior: smooth && V.fxOn() ? 'smooth' : 'auto' }); };
+      sel.querySelectorAll('[data-bg]').forEach(x => x.onclick = () => {
+        if (x.classList.contains('on')) return;
+        boardGame = x.dataset.bg; V.sfx.ui();
+        sel.querySelectorAll('[data-bg]').forEach(y => { y.classList.toggle('on', y === x); y.setAttribute('aria-pressed', y === x); });
+        setTimeout(() => centre(x, true), 0);
+        loadBoard(b);
+      });
+      const on = sel.querySelector('.on'); if (on) setTimeout(() => centre(on, false), 0);
+    }
     // a table code (from a friend): straight to that table
     const cf = b.querySelector('#ocode');
     if (cf) cf.onsubmit = e => { e.preventDefault(); const c = b.querySelector('#ocodei').value.trim().toUpperCase(); if (!c) return; V.sfx.ui(); joinTable(null, c); };
@@ -554,8 +567,11 @@
     const h = Math.floor(ms / 3600000), d = Math.floor(h / 24);
     return d ? `${d} ${d === 1 ? 'Tag' : 'Tage'} ${h % 24} Std` : h ? `${h} Std` : `${Math.max(1, Math.round(ms / 60000))} Min`;
   }
+  const podSeen = new Set();
+  let meIO = null;
   async function loadBoard(b) {
     const el = b.querySelector('#oboard'); if (!el) return;
+    if (meIO) { meIO.disconnect(); meIO = null; }
     el.classList.add('loading');
     const fr = boardScope === 'friends' && C().user() && !isAnon();
     if (fr) {
@@ -583,15 +599,25 @@
     // no friends yet: say how to get some instead of an empty list
     if (friends && (board.circle || 0) <= 1) { el.innerHTML = head + `<div class="empty small">${IC().users}<b>Noch keine Freunde</b><p>Füg Freunde hinzu, dann seht ihr hier, wer von euch vorne liegt.</p><button class="btn primary sm" id="rfadd"><span>${IC().plus}Freunde hinzufügen</span></button></div>`; const a = el.querySelector('#rfadd'); if (a) a.onclick = () => { V.sfx.ui(); addFriends(); }; return; }
     const pct = r => (r.played ? Math.round(r.wins / r.played * 100) : 0);
+    // what the next place up takes: "Noch 2 Siege bis Platz 9" (or Elo), at the top "Du führst"
+    const above = me ? top.filter(r => r.pos < me.pos && r.username !== myName).pop() : null;
+    const gapN = above ? (elo ? Math.max(1, above.elo - me.elo) : Math.max(1, above.wins - me.wins + 1)) : 0;
+    const next = !me ? '' : me.pos === 1 ? `<em class="rnext lead">${IC().trophy}Du führst</em>`
+      : above ? `<em class="rnext">${IC().boltf}Noch ${gapN} ${elo ? 'Elo' : gapN === 1 ? 'Sieg' : 'Siege'} bis Platz ${above.pos}</em>` : '';
     const mine = !C().user() ? '' : me && elo
-      ? `<div class="rmine"><span class="rp">#${me.pos}</span><div><small>Deine Elo ${friends ? 'unter Freunden ' : ''}in ${esc(scope)}</small><b>${me.elo} Elo</b><span>${me.played} Partien · ${me.wins} gewonnen · ${me.losses || 0} verloren · Bestwert ${me.peak}</span></div></div>`
+      ? `<div class="rmine"><span class="rp">#${me.pos}</span><div><small>Deine Elo ${friends ? 'unter Freunden ' : ''}in ${esc(scope)}</small><b>${me.elo} Elo</b><span>${me.played} Partien · ${me.wins} gewonnen · ${me.losses || 0} verloren · Bestwert ${me.peak}</span>${next}</div></div>`
       : me
-      ? `<div class="rmine"><span class="rp">#${me.pos}</span><div><small>Dein Platz ${friends ? 'unter Freunden ' : ''}in ${esc(scope)}${week ? ' diese Woche' : ''}</small><b>${me.wins} ${me.wins === 1 ? 'Sieg' : 'Siege'}</b><span>${me.played} Partien · ${me.losses || 0} verloren · ${me.draws || 0} remis · ${pct(me)} %</span></div></div>`
+      ? `<div class="rmine"><span class="rp">#${me.pos}</span><div><small>Dein Platz ${friends ? 'unter Freunden ' : ''}in ${esc(scope)}${week ? ' diese Woche' : ''}</small><b>${me.wins} ${me.wins === 1 ? 'Sieg' : 'Siege'}</b><span>${me.played} Partien · ${me.losses || 0} verloren · ${me.draws || 0} remis · ${pct(me)}&nbsp;%</span>${next}</div></div>`
       : `<div class="rmine none"><div><small>Dein Platz in ${esc(scope)}</small><b>${week ? 'Diese Woche noch keine Partie' : 'Noch keine Partie'}</b><span>Spiel online gegen einen Freund oder über „Online“ im Spiel-Panel, dann stehst du hier.</span></div></div>`;
     if (!top.length) { el.innerHTML = head + mine + `<div class="empty small">${IC().trophy}<b>Noch leer</b><p>${friends ? (week ? 'Diese Woche hat noch keiner von euch' : 'Noch keiner von euch hat') : week ? 'Diese Woche hat noch niemand' : 'Hier hat noch niemand'} eine Online-Partie in ${esc(scope)} gewonnen.${week ? ' Deine Chance auf Platz 1!' : ''}</p></div>`; return; }
     const pod = top.slice(0, 3);
     const order = [pod[1], pod[0], pod[2]].filter(Boolean);
-    const podium = `<div class="podium">${order.map(r => `<div class="pod p${Math.min(r.pos, 3)}${r.username === myName ? ' me' : ''}">
+    // the steps rise one after another (3, 2, then 1) the first time this list is shown in a session
+    // (counted as seen once it stood for a moment: the list is often drawn twice right after the start)
+    const podKey = [boardGame, boardPeriod, boardScope].join('|'), podFresh = V.fxOn() && !podSeen.has(podKey);
+    if (podFresh) setTimeout(() => { if (el.isConnected) podSeen.add(podKey); }, 1500);
+    if (podFresh) [[3, 380, 'tick'], [2, 560, 'tick'], [1, 760, 'bounce']].forEach(([p, ms, s]) => setTimeout(() => { if (el.isConnected && order.some(r => Math.min(r.pos, 3) === p)) V.sfx[s](); }, ms));
+    const podium = `<div class="podium${podFresh ? ' rise' : ''}">${order.map(r => `<div class="pod p${Math.min(r.pos, 3)}${r.username === myName ? ' me' : ''}">
         <span class="pav" data-prof="${esc(r.username)}">${initials(r.username).slice(0, 1)}</span><b class="plink" data-prof="${esc(r.username)}">${esc(r.username)}${V.flag.tag(r.username)}</b><small>${elo ? r.elo + ' Elo · ' + r.played + ' Partien' : (r.wins === 1 ? '1 Sieg' : r.wins + ' Siege') + ' · ' + pct(r) + ' %'}</small><i class="step"><span class="medal">${r.pos}</span></i></div>`).join('')}</div>`;
     const row = (r, cls = '') => `<div class="rrow ${cls}"><span class="pos">${r.pos}</span>
         <span class="who"><b class="plink" data-prof="${esc(r.username)}">${esc(r.username)}${V.flag.tag(r.username)}</b>${r.username === myName ? '<em class="rtag">Du</em>' : ''}<small>${r.played} Partien</small></span>
@@ -600,7 +626,21 @@
     el.innerHTML = head + mine + podium +
       (rest.length ? `<div class="rhead"><span>#</span><span>Spieler</span><span>Siegquote</span><span>${elo ? 'Elo' : 'Siege'}</span></div>${rest.map(r => row(r, r.username === myName ? 'me' : '')).join('')}` : '') +
       (me && me.pos > top[top.length - 1].pos ? '<div class="rgap">…</div>' + row(me, 'me') : '') +
+      (me ? `<div class="rmefix" aria-hidden="true">${row(Object.assign({ username: myName }, me), 'me')}</div>` : '') +
       `<p class="fine">${board.players || top.length} ${friends ? 'von ' + board.circle + ' (du und deine Freunde)' : 'Spieler'} in ${esc(scope)}. ${elo ? 'Elo aus gewerteten Online-Partien gegen andere Spieler: Start bei 1000, ein Sieg gegen Stärkere bringt mehr als gegen Schwächere.' : 'Gezählt werden gewonnene Online-Partien gegen andere Spieler, gleiche Siege sortiert nach weniger Partien.'}${!week && !boardGame ? ' Wähl ein Spiel, dann siehst du dort die Elo-Wertung.' : ''}</p>`;
+    // your row in the list: while it is still further down, a copy of it waits at the bottom edge of the screen
+    const fix = el.querySelector('.rmefix'), mineRow = [...el.querySelectorAll('.rrow.me')].find(x => !fix || !fix.contains(x));
+    if (fix && (!mineRow || !window.IntersectionObserver)) fix.remove();
+    else if (fix) {
+      meIO = new IntersectionObserver(([e]) => {
+        if (!fix.isConnected) return;
+        const on = !e.isIntersecting && e.boundingClientRect.top > 0;
+        // as wide as the list and right under it (the PC has the sidebar and two columns)
+        if (on) { const r = el.getBoundingClientRect(); fix.style.left = r.left + 'px'; fix.style.width = r.width + 'px'; fix.style.right = 'auto'; }
+        fix.classList.toggle('on', on);
+      });
+      meIO.observe(mineRow);
+    }
   }
 
   // ---------- game panel: pick a friend to invite ----------
