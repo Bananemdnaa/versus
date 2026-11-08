@@ -598,10 +598,14 @@
     const have = S.get('badges', {}), got = BADGES.filter(b => have[b[0]]), open = BADGES.filter(b => !have[b[0]]);
     const byTier = l => l.slice().sort((x, y) => y[4] - x[4]);
     const tierN = t => `<span class="tcount bt${t}">${got.filter(b => b[4] === t).length}/${BADGES.filter(b => b[4] === t).length}</span>`;
+    // a trophy cabinet: the earned ones shine, the next three to get stand next to them as dark shapes with a question mark
+    const openS = open.slice().sort((x, y) => x[4] - y[4]), soon = openS.slice(0, 3), later = openS.slice(3);
+    const ghost = b => `<div class="abz ghost bt${b[4]}" title="${escA(TIERS[b[4]] + ' · ' + b[3])}"><span class="abz-ic">${IC[b[1]]}<i>?</i></span><b>${b[2]}</b><small>${b[3]}</small></div>`;
     return `<div class="apanel sbadges"><h3>Abzeichen<small>${got.length} von ${BADGES.length}</small></h3>
       <div class="tcounts">${tierN(1)}${tierN(2)}${tierN(3)}<small>Normal · Selten · Legendär</small></div>
-      ${got.length ? `<div class="abz-grid">${byTier(got).map(b => bdgTile(b, have[b[0]])).join('')}</div>` : '<p class="muted">Noch keins. Spiel eine Partie, dann kommt das erste.</p>'}
-      ${open.length ? `<details class="abz-open"><summary>Noch offen (${open.length})</summary><div class="abz-grid">${open.sort((x, y) => x[4] - y[4]).map(b => bdgTile(b)).join('')}</div></details>` : ''}
+      <div class="abz-grid cab">${byTier(got).map(b => bdgTile(b, have[b[0]])).join('')}${soon.map(ghost).join('')}</div>
+      ${!got.length ? '<p class="muted">Noch keins. Die ersten warten schon, eine Partie reicht.</p>' : ''}
+      ${later.length ? `<details class="abz-open"><summary>Weitere offene (${later.length})</summary><div class="abz-grid">${later.map(b => bdgTile(b)).join('')}</div></details>` : ''}
       ${guest() || !(V.cloud && V.cloud.user()) ? '<p class="fine">Mit einem kostenlosen Konto sind Abzeichen und Serie auf jedem Gerät dabei und in deinem Profil zu sehen.</p>' : ''}</div>`;
   }
   // for the profile of any player (js/online.js): the earned ones, legendary first
@@ -1357,31 +1361,43 @@
     const week = lastDays(7).reduce((a, x) => ({ n: a.n + x.w + x.l + x.d + x.n, w: a.w + x.w }), { n: 0, w: 0 });
     const days = lastDays(14), dmax = Math.max(1, ...days.map(x => x.w + x.l + x.d + x.n));
     const kpi = (v, l, sub, s = '') => `<div class="kpi"><b data-v="${v}"${s ? ` data-s="${s}"` : ''}>${v}${s}</b><span>${l}</span>${sub ? `<small class="up">${sub}</small>` : ''}</div>`;
+    // nothing played yet: the empty trophy cabinet shows what the first matches bring
     if (!recs.length && statMode === 'all') return `<section class="stats page"><h1 class="title"><span>Deine</span> Bilanz</h1>
-      <div class="empty sempty">${IC.trophy}<b>Noch keine Partien</b><p>Spiel eine Runde, dann steht hier deine Bilanz pro Spiel: gegen die KI, online und zu zweit.</p><button class="btn primary" data-tab="games"><span>Spiel aussuchen</span></button></div>${historyPanel()}</section>`;
+      <div class="empty sempty">${IC.trophy}<b>Noch keine Partien</b><p>Spiel eine Runde, dann steht hier deine Bilanz pro Spiel: gegen die KI, online und zu zweit.</p><button class="btn primary" data-tab="games"><span>Spiel aussuchen</span></button></div>${badgePanel()}${historyPanel()}</section>`;
     const sorted = recs.slice().sort((a, b) => {
       const k = statSort.k, x = k === 'name' ? a.g.name.localeCompare(b.g.name) : (a[k] - b[k]);
       return x * statSort.d || b.n - a.n;
     });
-    const th = (k, l) => `<button class="st-h${statSort.k === k ? ' on' : ''}" data-sort="${k}" aria-sort="${statSort.k === k ? (statSort.d > 0 ? 'ascending' : 'descending') : 'none'}">${l}${statSort.k === k ? (statSort.d > 0 ? ' ↑' : ' ↓') : ''}</button>`;
+    const sortBtn = (k, l) => `<button data-sort="${k}" class="${statSort.k === k ? 'on' : ''}" aria-pressed="${statSort.k === k}"><span>${l}</span>${statSort.k === k && k !== 'name' ? `<i aria-hidden="true">${statSort.d > 0 ? ' ↑' : ' ↓'}</i>` : ''}</button>`;
+    // one card per game: the record as a bar, the rate, the best level beaten and the rank of the KI-Elo
+    const gcard = r => {
+      const ae = V.aiElo.get(r.g.id), rk = ae.n && V.rank && statMode !== 'local' && statMode !== 'on' ? V.rank(ae.e) : null, n = r.w + r.l + r.d || 1;
+      return `<button class="sgc" data-sg="${r.g.id}" style="--acc:${r.g.accent || 'var(--pink)'}"><span class="ic">${r.g.icon}</span>
+        <span class="sgc-t"><b>${r.g.name}</b>
+          <span class="sgc-n"><span class="good">${r.w} ${SNU[0]}</span><span class="bad">${r.l} ${SNU[1]}</span><span class="dim">${r.d} ${SNU[2]}</span>${r.n ? `<em>${r.rate} %</em>` : ''}</span>
+          <i class="sgc-bar"><i class="w" style="--w:${r.w / n * 100}%"></i><i class="d" style="--w:${r.d / n * 100}%"></i><i class="l" style="--w:${r.l / n * 100}%"></i></i></span>
+        <span class="sgc-m">${rk ? `<em class="rank r-${rk.k}"><i></i>${V.t(rk.name)}<small>${ae.e}</small></em>` : ''}${statMode !== 'local' && r.best >= 0 ? `<em class="lvt ${LVL_CLS[r.best]}">${V.LEVELS[r.best]}</em>` : ''}</span></button>`;
+    };
+    // the form: the last five own matches, newest on the right, like a table in sport
+    const form = historyList().filter(e => e.me && (statMode === 'all' || (statMode === 'ai' && e.mode === 'ai') || (statMode === 'on' && e.mode === 'online'))).slice(0, 5).reverse();
+    const fRes = e => !e.winner ? ['d', SNU[2]] : e.winner === e.me ? ['w', SNU[0]] : ['l', SNU[1]];
     return `<section class="stats page sx">
       <div class="shead"><h1 class="title"><span>Deine</span> Bilanz</h1>
         <div class="chips mini" id="smode">${STAT_MODES.map(([k, l]) => `<button data-sm="${k}" class="${statMode === k ? 'on' : ''}">${l}</button>`).join('')}</div></div>
       <div class="kpis">${kpi(t.total, 'Partien', week.n ? '+' + week.n + ' diese Woche' : '')}${kpi(t.aiWins, 'Siege gegen KI')}${kpi(t.onWins, 'Online-Siege')}${kpi(t.rate, 'Siegquote', '', ' %')}</div>
+      ${form.length ? `<div class="sform"><span class="sf-l">Form</span>${form.map((e, k) => { const [c, l] = fRes(e), g = V.byId[e.g]; return `<i class="sf ${c}" style="--k:${k}" title="${escA(g ? g.name : '')}">${l}</i>`; }).join('')}<small>letzte ${form.length} ${form.length === 1 ? 'Partie' : 'Partien'}</small></div>` : ''}
+      ${statMode === 'all' ? badgePanel() : ''}
       <div class="sgrid">
         <div class="scol">
+          <div class="apanel sgames"><div class="sg-head"><h3>Pro Spiel</h3><div class="oseg sg-sort" role="group" aria-label="Sortieren">${sortBtn('n', 'Partien')}${sortBtn('w', 'Siege')}${sortBtn('rate', 'Quote')}${sortBtn('name', 'A–Z')}</div></div>
+            ${sorted.length ? `<div class="sgcs">${sorted.map(gcard).join('')}</div>` : '<p class="muted st-none">In diesem Modus noch keine Partie.</p>'}
+            ${statMode === 'local' ? `<p class="fine">Am Gerät: ${SNU[0]} = Spieler 1 gewinnt, ${SNU[1]} = Spieler 2 gewinnt.</p>` : ''}</div>
           <div class="apanel schart"><h3>Letzte 14 Tage</h3>
             ${days.some(x => x.w + x.l + x.d + x.n) ? `<div class="sbars">${days.map(x => `<div class="sb" title="${x.date.toLocaleDateString(V.locale())}: ${x.w} Siege, ${x.l} Niederlagen${x.n ? ', ' + x.n + ' zu zweit' : ''}">
               <i class="n" style="--h:${(x.l + x.d + x.n) / dmax * 100}%"></i><i class="w" style="--h:${x.w / dmax * 100}%"></i><small>${x.date.getDate()}</small></div>`).join('')}</div>
               <p class="fine"><i class="lg w"></i> Siege · <i class="lg n"></i> Niederlagen, Remis und zu zweit</p>` : '<p class="muted">Ab jetzt zählt Versus deine Partien pro Tag. Spiel eine Runde, dann wächst hier das Diagramm.</p>'}</div>
-          <div class="apanel stable"><div class="st-row st-head">${th('name', 'Spiel')}${th('w', SNU[0])}${th('l', SNU[1])}${th('d', SNU[2])}${th('rate', 'Quote')}${statMode === 'local' ? '' : th('best', 'Beste KI')}</div>
-            ${sorted.length ? sorted.map(r => `<button class="st-row" data-sg="${r.g.id}" style="--acc:${r.g.accent || 'var(--pink)'}"><span class="st-g"><span class="ic">${r.g.icon}</span><b>${r.g.name}</b></span>
-              <span class="good">${r.w}</span><span class="bad">${r.l}</span><span class="dim">${r.d}</span>
-              <span class="st-q">${r.n ? `<i class="qbar"><i style="--w:${r.rate}%"></i></i>${r.rate} %` : '–'}</span>
-              ${statMode === 'local' ? '' : `<span>${r.best >= 0 ? `<em class="lvt ${LVL_CLS[r.best]}">${V.LEVELS[r.best]}</em>` : '–'}</span>`}</button>`).join('') : '<p class="muted st-none">In diesem Modus noch keine Partie.</p>'}
-            ${statMode === 'local' ? '<p class="fine">Am Gerät: S = Spieler 1 gewinnt, N = Spieler 2 gewinnt.</p>' : ''}</div>
         </div>
-        <div class="scol side-col">${historyPanel()}${badgePanel()}</div>
+        <div class="scol side-col">${historyPanel()}</div>
       </div>
     </section>`;
   }
