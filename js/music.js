@@ -55,16 +55,25 @@
   const ARPS = [[0, 1, 2, 3, 2, 1, 2, 3], [0, 2, 1, 3, 0, 2, 4, 3], [0, 1, 2, 1, 3, 2, 4, 2], [4, 3, 2, 1, 2, 3, 1, 0], [0, 2, 4, 2, 1, 3, 5, 3]];
   // rhythms for the lead melody (16th steps in a bar); a new motif is made for every 8 bars and then repeated
   const RHY = [[0, 3, 6, 10, 12], [0, 4, 6, 8, 14], [2, 6, 8, 11], [0, 2, 4, 7, 10, 12], [0, 6, 8, 12, 14]];
-  const BARS = 32;
+  const BARS = 64;
 
-  // bus: the master volume (fades); out/delay: the lane of the piece that plays now. Every piece gets its own lane,
-  // and a piece that ends is cut off with its lane, so its long pad chords and echo never sound into the next one.
-  let ac = null, bus = null, out = null, delay = null, noise = null;
-  let cur = null, want = null, timer = 0, step = 0, bar = 0, nextT = 0, arp = ARPS[0], switching = false;
+  // bus: fades (on, ducked, off) -> compressor -> vol: the music slider, after the compressor so it really changes
+  // the loudness. out/delay: the lane of the piece that plays now. Every piece gets its own lane; a new piece fades
+  // in while the old lane fades out and is then cut off, so long pad chords and echo never ring on into the next one.
+  let ac = null, bus = null, vol = null, out = null, delay = null, noise = null;
+  let cur = null, want = null, timer = 0, step = 0, bar = 0, nextT = 0, arp = ARPS[0];
   let piece = 0, T = null, motif = null;
   const lastPiece = {};
+  let duckT = 0;
+  const BUSV = 0.5; // the level into the compressor (fades go between 0 and this)
   const playing = () => !!timer;
   const level = () => (settings.sound && settings.music !== false ? Math.max(0, Math.min(100, settings.mvol ?? 45)) / 100 : 0);
+  // the slider as loudness: squared, so 50 % sounds about half as loud and the low end still has room
+  const volGain = () => { const l = level(); return 2 * l * l; };
+  function setVol(sec = 0.08) {
+    if (!vol) return;
+    const t = ac.currentTime; vol.gain.cancelScheduledValues(t); vol.gain.setValueAtTime(vol.gain.value, t); vol.gain.linearRampToValueAtTime(volGain(), t + sec);
+  }
 
   function setup() {
     if (ac) return true;
@@ -72,25 +81,33 @@
     const comp = ac.createDynamicsCompressor();
     comp.threshold.value = -18; comp.ratio.value = 4;
     bus = ac.createGain(); bus.gain.value = 0;
-    bus.connect(comp).connect(ac.destination);
+    vol = ac.createGain(); vol.gain.value = volGain();
+    bus.connect(comp).connect(vol).connect(ac.destination);
     const len = ac.sampleRate * 0.5; noise = ac.createBuffer(1, len, ac.sampleRate);
     const d = noise.getChannelData(0); for (let i = 0; i < len; i++) d[i] = Math.random() * 2 - 1;
     return true;
   }
 
-  // a new lane for a piece: its own gain into the bus, with a soft echo for the arpeggio and the melody
-  function newLane() {
-    cutLane();
+  // a new lane for a piece: its own gain into the bus, with a soft echo for the arpeggio and the melody.
+  // xf: crossfade in seconds (the old lane fades out meanwhile), 0 = old one cut at once
+  function newLane(xf = 0) {
+    cutLane(xf);
     out = ac.createGain(); out.connect(bus);
+    const t = ac.currentTime; out.gain.setValueAtTime(xf ? 0.0001 : 1, t); if (xf) out.gain.linearRampToValueAtTime(1, t + xf);
     delay = ac.createDelay(1); const fb = ac.createGain(), tone = ac.createBiquadFilter(), wet = ac.createGain();
     fb.gain.value = 0.32; tone.type = 'lowpass'; tone.frequency.value = 2200; wet.gain.value = 0.35;
     delay.connect(tone).connect(fb).connect(delay); tone.connect(wet).connect(out);
   }
-  // everything of the old piece goes silent at once (scheduled notes keep running into nothing until they stop)
-  function cutLane() {
+  // the old piece goes silent: faded over xf seconds, then cut off (scheduled notes keep running into nothing)
+  function cutLane(xf = 0) {
     if (!out) return;
-    const o = out; out = null; delay = null;
-    try { o.gain.cancelScheduledValues(ac.currentTime); o.gain.setValueAtTime(0, ac.currentTime); o.disconnect(); } catch (e) { }
+    const o = out, t = ac.currentTime; out = null; delay = null;
+    try {
+      o.gain.cancelScheduledValues(t); o.gain.setValueAtTime(o.gain.value, t);
+      if (!xf) { o.gain.setValueAtTime(0, t); o.disconnect(); return; }
+      o.gain.linearRampToValueAtTime(0.0001, t + xf);
+      setTimeout(() => { try { o.disconnect(); } catch (e) { } }, xf * 1000 + 150);
+    } catch (e) { }
   }
 
   // ---------- instruments ----------
@@ -196,7 +213,7 @@
     }
   }
   function tick() {
-    if (!ac || !cur || !T || switching || !out) return;
+    if (!ac || !cur || !T || !out) return;
     const sd = 60 / T.bpm / 4;
     // after a pause (tab in the background) start fresh instead of catching up with a burst of notes
     if (nextT < ac.currentTime - 0.2) nextT = ac.currentTime + 0.05;
@@ -208,26 +225,25 @@
       if (!step && bar >= BARS) { nextPiece(); return; }
     }
   }
+  // after a full round: the next piece of the same mood, gliding over (the old one fades out while it starts)
   function nextPiece() {
-    switching = true; fadeTo(0, 1.2);
-    // (cur may be gone when the tab was in the background meanwhile: then the wanted mood starts again)
-    setTimeout(() => { switching = false; if (want && level() && !document.hidden && ac.state === 'running') startTrack(want, true); else stopNow(); }, 1300);
+    if (want && level() && !document.hidden && ac.state === 'running') startTrack(want, cur === want, 3.5); else stopNow();
   }
   function fadeTo(v, sec) {
     if (!bus) return;
     const t = ac.currentTime; bus.gain.cancelScheduledValues(t); bus.gain.setValueAtTime(bus.gain.value, t); bus.gain.linearRampToValueAtTime(v, t + sec);
   }
-  function startTrack(name, next) {
+  function startTrack(name, next, xf = 0) {
     // a mood starts with another piece than last time; after a full round the next one follows
     const list = TRACKS[name], prev = lastPiece[name];
     piece = next && cur === name ? (piece + 1) % list.length
       : prev == null ? Math.floor(Math.random() * list.length) : (prev + 1 + Math.floor(Math.random() * (list.length - 1))) % list.length;
     lastPiece[name] = piece; T = list[piece];
     cur = name; step = 0; bar = 0; arp = ARPS[Math.floor(Math.random() * ARPS.length)]; newMotif();
-    newLane();
+    newLane(xf);
     nextT = ac.currentTime + 0.08;
     if (!timer) timer = setInterval(tick, 40);
-    tick(); fadeTo(level() * 0.55, 1.2);
+    tick(); setVol(); fadeTo(BUSV, xf ? 0.3 : 1.2);
   }
   function stopNow() { clearInterval(timer); timer = 0; cur = null; if (ac) cutLane(); }
 
@@ -237,24 +253,24 @@
       want = name;
       if (!level() || document.hidden) return;
       if (!setup() || ac.state !== 'running') return;
-      if (cur === name && playing()) { if (!switching) fadeTo(level() * 0.55, 0.4); return; }
-      if (switching) return;
+      if (cur === name && playing()) { fadeTo(BUSV, 0.4); return; }
       if (!playing()) return startTrack(name);
-      switching = true; fadeTo(0, 0.45);
-      setTimeout(() => { switching = false; if (want && level()) startTrack(want); else stopNow(); }, 480);
+      // another mood (menu -> match): the new piece fades in while the old one fades out
+      startTrack(name, false, 1.6);
     },
     // the next piece of the current mood right away (for tests and a later "next piece" button)
-    skip() { if (playing() && !switching && cur) nextPiece(); },
+    skip() { if (playing() && cur) nextPiece(); },
     // quieter for a moment (end of a match, big moments)
     duck(ms = 2500) {
       if (!playing()) return;
-      fadeTo(level() * 0.15, 0.25);
-      setTimeout(() => { if (playing() && !switching) fadeTo(level() * 0.55, 1); }, ms);
+      fadeTo(BUSV * 0.25, 0.25);
+      clearTimeout(duckT); duckT = setTimeout(() => { if (playing()) fadeTo(BUSV, 1); }, ms);
     },
     // settings changed (music switch, volume, sound on/off)
     apply() {
       if (!level()) { if (playing()) { fadeTo(0, 0.3); setTimeout(() => { if (!level()) stopNow(); }, 350); } return; }
-      if (playing()) { if (!switching) fadeTo(level() * 0.55, 0.15); } else if (want) this.play(want);
+      setVol();
+      if (!playing() && want) this.play(want);
     },
     // browsers only allow audio after the first tap or key press
     unlock() {
