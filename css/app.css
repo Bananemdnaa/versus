@@ -3368,3 +3368,45 @@ body:has(.view.play) .season.halloween .spider{display:none}
 /* guest badge after a player's name (js/flag.js): everybody sees who plays without an account */
 .gtag{display:inline-block;margin-left:.45em;padding:2px 6px;border:1px solid var(--line2);border-radius:4px;transform:skewX(var(--sk));background:var(--panel2);color:var(--muted);font:700 italic 10px/1.2 var(--f-d);letter-spacing:.1em;text-transform:uppercase;vertical-align:.12em;white-space:nowrap;flex:none}
 .acctp .ahead .gtag{display:none}
+
+/* ---------- the room a game is played in (js/play.js: worldOf) ----------
+   One fixed layer behind the match: its own floor and light per kind of game. Quiet enough that cards and pieces
+   stay the brightest thing on screen; the moving parts stop with "Effekte: wenig". */
+.world{position:fixed;inset:0;z-index:-1;pointer-events:none;overflow:hidden;animation:wIn .7s .15s ease-out backwards}
+.world>i{position:absolute;inset:0}
+@keyframes wIn{from{opacity:0}}
+/* wood: dark planks, a warm lamp over the board, dark corners */
+.w-wood{background:
+  radial-gradient(ellipse 55% 45% at 50% 45%,rgba(255,186,110,.22),transparent 72%),
+  repeating-linear-gradient(90deg,rgba(0,0,0,.32) 0 2px,transparent 2px 22%),
+  linear-gradient(90deg,#24160d,#2e1c10 18%,#22150c 36%,#2b1a0f 58%,#21140b 78%,#2a190e)}
+.w-wood .wa{background:repeating-linear-gradient(91deg,rgba(255,220,180,.025) 0 1px,transparent 1px 7px),repeating-linear-gradient(89.4deg,rgba(0,0,0,.06) 0 2px,transparent 2px 17px)}
+.w-wood .wb{background:radial-gradient(ellipse 85% 75% at 50% 45%,transparent 45%,rgba(5,3,2,.78))}
+/* felt: green cloth with a soft light in the middle and a dark rim */
+.w-felt{background:radial-gradient(ellipse 70% 58% at 50% 46%,#156b46,#0c4630 55%,#06281b 85%,#041a12)}
+.w-felt .wa{background:repeating-radial-gradient(circle at 30% 40%,rgba(255,255,255,.022) 0 1px,transparent 1px 3px);opacity:.9}
+.w-felt .wb{background:radial-gradient(ellipse 90% 80% at 50% 46%,transparent 55%,rgba(2,10,6,.72))}
+/* arcade: a neon grid floor running towards a glowing horizon, scanlines over everything */
+.w-arcade{background:linear-gradient(#07041a,#140932 52%,#09051c)}
+.w-arcade .wa{top:56%;bottom:-30%;left:-50%;right:-50%;transform:perspective(320px) rotateX(64deg);transform-origin:50% 0;
+  background:linear-gradient(rgba(255,79,216,.55) 2px,transparent 2px) 0 0/100% 46px,linear-gradient(90deg,rgba(98,240,255,.38) 2px,transparent 2px) 0 0/46px 100%;
+  -webkit-mask:linear-gradient(transparent,#000 30%);mask:linear-gradient(transparent,#000 30%);animation:wGrid 1.6s linear infinite}
+.w-arcade .wb{background:radial-gradient(ellipse 60% 14% at 50% 56%,rgba(255,79,216,.35),transparent 70%),repeating-linear-gradient(0deg,rgba(255,255,255,.035) 0 1px,transparent 1px 3px)}
+@keyframes wGrid{to{background-position:0 46px,0 0}}
+/* paper: a dark squared page with the red margin line */
+.w-paper{background:linear-gradient(rgba(140,165,255,.075) 1px,transparent 1px) 0 0/26px 26px,linear-gradient(90deg,rgba(140,165,255,.075) 1px,transparent 1px) 0 0/26px 26px,#0d1120}
+.w-paper .wa{left:max(18px,7vw);right:auto;width:2px;background:rgba(255,79,120,.32);box-shadow:5px 0 0 rgba(255,79,120,.14)}
+.w-paper .wb{background:radial-gradient(ellipse 85% 75% at 50% 45%,transparent 50%,rgba(3,4,10,.7))}
+/* sea: deep water, slow wave bands and light that drifts through */
+.w-sea{background:radial-gradient(ellipse 80% 60% at 50% 25%,#11406a,#082440 55%,#041325)}
+.w-sea .wa{inset:-20% -20%;background:repeating-linear-gradient(172deg,rgba(120,210,255,.07) 0 2px,transparent 2px 38px);animation:wWave 9s ease-in-out infinite alternate}
+.w-sea .wb{background:radial-gradient(circle at 25% 30%,rgba(120,220,255,.12),transparent 30%),radial-gradient(circle at 75% 65%,rgba(120,220,255,.09),transparent 34%),radial-gradient(ellipse 90% 80% at 50% 45%,transparent 50%,rgba(1,6,14,.7));animation:wDrift 14s ease-in-out infinite alternate}
+@keyframes wWave{to{transform:translate(-3%,4%)}}
+@keyframes wDrift{to{transform:translate(4%,-3%)}}
+/* club: the usual room with two spotlights swinging slowly over the stage */
+.w-club .wa,.w-club .wb{top:-12%;left:50%;width:60vmax;height:130vh;margin-left:-30vmax;transform-origin:50% 0;
+  background:conic-gradient(from 168deg at 50% 0,transparent 0deg,var(--sp) 12deg,transparent 24deg);filter:blur(6px);opacity:.75}
+.w-club .wa{--sp:rgba(255,79,216,.22);animation:wSpot 11s ease-in-out infinite alternate;rotate:-24deg}
+.w-club .wb{--sp:rgba(98,240,255,.16);animation:wSpot 13s ease-in-out infinite alternate-reverse;rotate:24deg}
+@keyframes wSpot{from{transform:rotate(-14deg)}to{transform:rotate(14deg)}}
+.lowfx .world,.lowfx .world>i{animation:none}

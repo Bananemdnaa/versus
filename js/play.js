@@ -85,6 +85,19 @@
     step();
   }
 
+  // ---------- the room a game is played in (css: .world) ----------
+  // wood: a board on a wooden table under a lamp; felt: the green card and billiard cloth; arcade: a neon grid floor;
+  // paper: a squared notebook page; sea: deep water for the fleets; club: spotlights for the party and the rest
+  const WORLDS = {
+    wood: ['chess', 'checkers', 'mill', 'go', 'backgammon', 'kalaha', 'hex', 'blockade', 'ludo', 'ladder'],
+    felt: ['poker', 'schnapsen', 'maumau', 'billiard', 'domino', 'yacht', 'memory', 'reversi'],
+    arcade: ['pong', 'hockey', 'tron', 'sumo', 'reaction'],
+    paper: ['ttt', 'uttt', 'hardcore', 'ttt3', 'dots', 'gomoku', 'hangman', 'slf', 'abc', 'code', 'mines'],
+    sea: ['ships']
+  };
+  const worldOf = g => g.world || Object.keys(WORLDS).find(k => WORLDS[k].includes(g.id)) || 'club';
+  V.worldOf = worldOf;
+
   // ---------- play ----------
   let rematchCarry = null;
   // quick reactions in online matches (ids are checked by the server)
@@ -219,7 +232,8 @@
         ${card(R, 'r')}`}
         <div class="center"><div class="status" id="st" aria-live="polite"></div><div class="stage" id="stage"></div>
           <div class="tpill" id="tpill" hidden><i></i><b></b>${g.keys && g.cat !== 'Action' ? `<small>${g.keys.slice(0, 2).map(([k, d]) => `<kbd>${k}</kbd> ${V.t(d)}`).join(' · ')}</small>` : ''}</div></div>
-      </div><i class="sglow t" aria-hidden="true"></i><i class="sglow b" aria-hidden="true"></i></div>`);
+      </div><i class="sglow t" aria-hidden="true"></i><i class="sglow b" aria-hidden="true"></i>
+      <i class="world w-${worldOf(g)}" aria-hidden="true"><i class="wa"></i><i class="wb"></i></i></div>`);
     const stEl = v.querySelector('#st'), pls = {};
     SIDES.forEach(s => { pls[s] = v.querySelector('#pl' + s); });
     // laptop: whose turn it is under the board, with the game's main keys
