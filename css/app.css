@@ -3410,3 +3410,26 @@ body:has(.view.play) .season.halloween .spider{display:none}
 .w-club .wb{--sp:rgba(98,240,255,.16);animation:wSpot 13s ease-in-out infinite alternate-reverse;rotate:24deg}
 @keyframes wSpot{from{transform:rotate(-14deg)}to{transform:rotate(14deg)}}
 .lowfx .world,.lowfx .world>i{animation:none}
+
+/* ---------- game pictures that play a little on their own: the card in front of the hero, and the tile under the mouse ----------
+   (only for pictures whose parts can move: the Pong ball, a falling 4 Gewinnt piece, Tic Tac Toe drawn anew, the knight hopping) */
+.hcard.on[data-id="pong"] .hc-ic circle{animation:icPong 2.6s ease-in-out infinite}
+.hcard.on[data-id="pong"] .hc-ic rect:nth-of-type(2){animation:icPadT 2.6s ease-in-out infinite}
+.hcard.on[data-id="pong"] .hc-ic rect:nth-of-type(3){animation:icPadB 2.6s ease-in-out infinite}
+.hcard.on[data-id="c4"] .hc-ic circle:nth-of-type(11){animation:icDrop 3s cubic-bezier(.55,0,1,.45) infinite}
+.hcard.on[data-id="ttt"] .hc-ic path:not(:first-child),.hcard.on[data-id="ttt"] .hc-ic circle{stroke-dasharray:30;animation:icDraw 3.4s ease-out infinite}
+.hcard.on[data-id="ttt"] .hc-ic circle{animation-delay:.35s} .hcard.on[data-id="ttt"] .hc-ic path:last-child{animation-delay:.7s}
+.hcard.on[data-id="chess"] .hc-ic text{transform-box:fill-box;transform-origin:50% 100%;animation:icHop 2.8s var(--spring) infinite}
+@media (hover:hover) and (pointer:fine){
+  .tile[data-id="pong"]:hover .ic circle{animation:icPong 1.6s ease-in-out infinite}
+  .tile[data-id="c4"]:hover .ic circle:nth-of-type(11){animation:icDrop 1.8s cubic-bezier(.55,0,1,.45) infinite}
+  .tile[data-id="ttt"]:hover .ic path:not(:first-child),.tile[data-id="ttt"]:hover .ic circle{stroke-dasharray:30;animation:icDraw 2s ease-out infinite}
+  .tile[data-id="chess"]:hover .ic text{transform-box:fill-box;transform-origin:50% 100%;animation:icHop 1.6s var(--spring) infinite}
+}
+@keyframes icPong{0%,100%{transform:translate(0,0)}25%{transform:translate(-9px,15px)}50%{transform:translate(2px,-10px)}75%{transform:translate(8px,14px)}}
+@keyframes icPadT{0%,100%{transform:none}25%{transform:translateX(-6px)}50%{transform:translateX(4px)}75%{transform:translateX(9px)}}
+@keyframes icPadB{0%,100%{transform:none}25%{transform:translateX(-12px)}50%{transform:translateX(-4px)}75%{transform:translateX(2px)}}
+@keyframes icDrop{0%{transform:translateY(-26px);opacity:0}8%{opacity:1}30%{transform:translateY(0)}38%{transform:translateY(-2.5px)}46%,100%{transform:none;opacity:1}}
+@keyframes icDraw{0%{stroke-dashoffset:30}35%,100%{stroke-dashoffset:0}}
+@keyframes icHop{0%,55%,100%{transform:none}68%{transform:translateY(-5px) rotate(-8deg)}80%{transform:translateY(0) rotate(4deg)}88%{transform:rotate(0)}}
+.lowfx .hc-ic *,.lowfx .tile .ic *{animation:none!important}
