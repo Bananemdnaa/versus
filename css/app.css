@@ -2416,6 +2416,8 @@ html.lowfx::view-transition-group(*),html.lowfx::view-transition-old(*),html.low
 .modal.optm{width:min(100%,920px);padding:22px;max-height:min(86dvh,760px)}
 .optpop{position:relative}
 .optpop .opx{position:absolute;top:0;right:0;z-index:6}
+/* phone: the dialog scrolls under its sticky bar, so the close button stays up there with it */
+@media (max-width:959px){.optpop .opx{position:sticky;top:-16px;float:right;margin-bottom:-44px}}
 .optpop .oset{max-width:none;margin:0}
 .optpop .onav{position:static;top:auto}
 .optpop .onav .title{font-size:38px}
@@ -3491,7 +3493,7 @@ body:has(.view.play) .season.halloween .spider{display:none}
 .sg-head{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:10px}
 .sg-head h3{margin:0;font:800 italic 18px/1 var(--f-d);text-transform:uppercase}
 .sg-sort{flex:none}
-.sg-sort button{font-size:12px}
+.sg-sort button{font-size:12px;min-height:36px}
 .sgcs{display:grid;gap:8px}
 @media (min-width:960px){.sgcs{grid-template-columns:repeat(auto-fill,minmax(270px,1fr))}}
 .sgc{display:grid;grid-template-columns:48px minmax(0,1fr) auto;align-items:center;gap:12px;width:100%;padding:10px 12px;border-radius:10px;text-align:left;color:var(--fg);

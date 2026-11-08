@@ -1611,8 +1611,18 @@
   // Phone: the bar jumps to a group, a group title folds it.
   function wireOptNav(v) {
     const sec = v.querySelector('.oset'); if (!sec) return;
-    const show = c => { optCat = c; sec.dataset.cat = c; sec.querySelectorAll('[data-oj]').forEach(b => b.classList.toggle('on', b.dataset.oj === c)); };
-    show(optCat);
+    // the chosen chip slides fully into view in its row (only the row scrolls, not the page)
+    const show = c => {
+      optCat = c; sec.dataset.cat = c;
+      sec.querySelectorAll('[data-oj]').forEach(b => b.classList.toggle('on', b.dataset.oj === c));
+      const on = sec.querySelector('[data-oj].on'), row = on && on.parentElement;
+      if (row && row.scrollWidth > row.clientWidth) {
+        const l = on.offsetLeft - row.offsetLeft, r = l + on.offsetWidth;
+        if (l < row.scrollLeft || r > row.scrollLeft + row.clientWidth) row.scrollTo({ left: Math.max(0, l - 16), behavior: V.fxOn() ? 'smooth' : 'auto' });
+      }
+    };
+    // phone: the options open at the top, so the first group is the marked one (the laptop keeps the chosen group)
+    show(wide() ? optCat : 'sound');
     sec.querySelectorAll('[data-oj]').forEach(b => b.onclick = () => {
       V.sfx.ui(); show(b.dataset.oj);
       const q = sec.querySelector('#oq'); if (q.value) { q.value = ''; q.oninput(); }
