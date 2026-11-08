@@ -147,6 +147,7 @@ Captions:
 | Website | https://bananemdnaa.github.io/versus/ |
 | Datenschutz-URL | https://bananemdnaa.github.io/versus/rechtliches.html |
 | Support-Kontakt | die E-Mail aus `rechtliches.html` |
-| Copyright | © 2026 Felix Breisacher |
+| Copyright | © 2026 Flixos Studios |
+| Herausgeber (Anzeigename) | Flixos Studios |
 | Spieleigenschaften | Einzelspieler; lokaler Mehrspieler 2–4; Online-Mehrspieler 2–4; geteilter Bildschirm |
 | Eingabe | Maus, Tastatur, Touch |

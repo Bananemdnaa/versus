@@ -13,14 +13,14 @@ Icons oder das Manifest ändern.
 2. Mit einem Microsoft-Konto anmelden, Name und Adresse angeben, Ausweis prüfen lassen.
    Der Vertrag braucht eine volljährige Person. Wer jünger ist, macht das mit den Eltern.
 3. Den **Anzeigenamen des Herausgebers** wählen (steht im Store unter dem App-Namen),
-   z. B. „Felix Breisacher“ oder „Versus“. Später schwer zu ändern.
+   Gewählt: **Flixos Studios** (das Studio für Versus und kommende Spiele).
 
 ## 2. App-Namen reservieren
 
 1. Im Partner Center: **Apps und Spiele → Neues Produkt → „MSIX- oder PWA-App“**.
 2. Namen **Versus** reservieren. Ist er vergeben: „Versus – Spiele für 2 bis 4“.
 3. Danach **Produktverwaltung → Produktidentität** öffnen und diese drei Werte notieren:
-   - Package/Identity/Name (z. B. `12345Felix.Versus`)
+   - Package/Identity/Name (z. B. `12345FlixosStudios.Versus`)
    - Package/Identity/Publisher (beginnt mit `CN=`)
    - Package/Properties/PublisherDisplayName
 
