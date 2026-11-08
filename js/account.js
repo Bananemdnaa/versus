@@ -43,8 +43,7 @@
         <button class="btn ghost sm" id="r_back"><span>${IC().back}Zurück zum Login</span></button>
       </div></section>`;
     if (!u) return `<section class="page acctp"><h1 class="title"><span>Dein</span> Konto</h1>
-      <div class="asplit"><div class="apromo"><em class="hc-k">Kostenlos</em><b>Ein Konto für alles</b>
-        <ul>${[[IC().chart, 'Bilanz auf jedem Gerät'], [IC().users, 'Freunde und Herausforderungen'], [IC().bolt, 'Serie und Abzeichen überall dabei'], [IC().shield, 'Keine E-Mail nötig']].map(([ic, t]) => `<li>${ic}<span>${t}</span></li>`).join('')}</ul></div>
+      <div class="asplit">${blankCard()}
       <div class="acard">
         <p class="lead">Mit einem Konto liegt deine Bilanz sicher auf dem Server und ist auf jedem Gerät dabei. Freunde und Online-Duelle bauen darauf auf.</p>
         ${dcBlock(false)}
@@ -188,6 +187,15 @@
     return n ? `<p class="fine">Deine ${n} Partien aus diesem Browser wandern beim Einloggen mit ins Konto.</p>` : '';
   }
   // a guest session (from a quick match): keep it as a real account, or leave it
+  // not logged in: the player card you would get, still empty and locked, with what this browser already holds
+  function blankCard() {
+    const n = V._ && V._.totals ? V._.totals().total : 0, b = Object.keys(V.store.get('badges', {}) || {}).length;
+    const slot = (ic, v, t) => `<div class="bc-slot"><span class="bc-ic">${ic}</span><b>${v}</b><small>${t}</small><i class="bc-lk">${IC().lock}</i></div>`;
+    return `<div class="apromo bcard"><em class="hc-k">Kostenlos</em>
+      <div class="bc-head"><span class="bc-av" aria-hidden="true">?</span><span class="bc-nm"><b>Dein Name</b><small>Deine Spielerkarte</small></span></div>
+      <div class="bc-slots">${slot(IC().chart, n === 1 ? '1 Partie' : n + ' Partien', 'auf jedem Gerät')}${slot(IC().users, 'Freunde', 'herausfordern')}${slot(IC().trophy, b === 1 ? '1 Abzeichen' : b + ' Abzeichen', 'im Profil')}</div>
+      <p class="bc-cta">${IC().shield}<span>Keine E-Mail nötig. Mit einem Konto gehört die Karte dir.</span></p></div>`;
+  }
   function guestTab(u) {
     return `<section class="page acctp">
       <h1 class="title"><span>Dein</span> Konto</h1>

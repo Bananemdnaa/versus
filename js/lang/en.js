@@ -1851,6 +1851,8 @@
   A({
     'Beste Elo': 'Best Elo', 'Aufstieg': 'Promoted', 'Abstieg': 'Demoted',
     'Noch # Siege bis Platz #': '# more wins to place #', 'Noch # Sieg bis Platz #': '# more win to place #', 'Noch # Elo bis Platz #': '# more Elo to place #', 'Du führst': 'You lead',
+    'Dein Name': 'Your name', 'Deine Spielerkarte': 'Your player card', '1 Partie': '1 match', '# Abzeichen': '# badges', '1 Abzeichen': '1 badge', 'auf jedem Gerät': 'on every device', 'im Profil': 'in your profile',
+    'Keine E-Mail nötig. Mit einem Konto gehört die Karte dir.': 'No e-mail needed. With an account the card is yours.',
     'Pro Spiel': 'Per game', 'Form': 'Form', 'letzte # Partien': 'last # matches', 'letzte # Partie': 'last # match', 'A–Z': 'A–Z',
     'Weitere offene (#)': 'More to earn (#)', 'Noch keins. Die ersten warten schon, eine Partie reicht.': 'None yet. The first ones are waiting, one match is enough.', 'Diamant': 'Diamond', 'Platin': 'Platinum', 'Gold': 'Gold', 'Silber': 'Silver', 'Bronze': 'Bronze',
     'Alle Tasten': 'All keys', 'Modus': 'Mode', 'Zurück / Vor': 'Back / forward',

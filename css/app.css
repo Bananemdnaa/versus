@@ -3504,3 +3504,25 @@ body:has(.view.play) .season.halloween .spider{display:none}
 /* the 14-day chart is now a side note further down: lower bars */
 .stats .sbars{height:96px}
 .stats .schart .fine{margin-top:20px}
+
+/* ---------- Konto without login: the player card you would get, empty and locked ---------- */
+.apromo.bcard{align-items:stretch;gap:14px;background:repeating-linear-gradient(-60deg,rgba(8,9,15,.08) 0 10px,transparent 10px 22px),var(--cyan)}
+@media (min-width:960px){.apromo.bcard{justify-content:center;gap:18px;padding:28px}.bc-av{width:80px;height:80px;font-size:42px}.bc-nm b{font-size:38px}}
+.apromo.bcard .hc-k{align-self:flex-start}
+.bc-head{display:flex;align-items:center;gap:14px}
+.bc-av{width:64px;height:64px;flex:none;display:grid;place-items:center;transform:skewX(var(--sk));border:2.5px dashed rgba(8,9,15,.55);background:rgba(8,9,15,.08);font:800 italic 34px/1 var(--f-d);color:rgba(8,9,15,.6);animation:bcPulse 2.6s ease-in-out infinite}
+.bc-nm{display:flex;flex-direction:column;gap:4px;min-width:0}
+.bc-nm b{font:800 italic 30px/.95 var(--f-d);text-transform:uppercase;color:rgba(8,9,15,.45)}
+.bc-nm small{font:700 italic 12px/1 var(--f-d);letter-spacing:.16em;text-transform:uppercase;color:rgba(8,9,15,.65)}
+.bc-slots{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.bc-slot{position:relative;display:flex;flex-direction:column;align-items:flex-start;gap:3px;padding:10px 10px 9px;border-radius:8px;background:rgba(8,9,15,.12);border:1px solid rgba(8,9,15,.18)}
+.bc-slot .bc-ic svg{width:20px;height:20px}
+.bc-slot b{font:800 italic 15px/1.05 var(--f-d);text-transform:uppercase}
+.bc-slot small{font-size:11.5px;line-height:1.2;font-weight:700;opacity:.7}
+.bc-lk{position:absolute;top:7px;right:7px;width:18px;height:18px;display:grid;place-items:center;border-radius:50%;background:var(--ink);color:var(--cyan)}
+.bc-lk svg{width:11px;height:11px}
+.bc-cta{display:flex;align-items:center;gap:8px;margin:0;font-weight:700;font-size:13.5px;line-height:1.3}
+.bc-cta svg{width:18px;height:18px;flex:none}
+@keyframes bcPulse{50%{background:rgba(8,9,15,.16);border-color:rgba(8,9,15,.8)}}
+.lowfx .bc-av{animation:none}
+@media (max-width:380px){.bc-slot{padding:8px 7px}.bc-slot b{font-size:13px}.bc-nm b{font-size:26px}}
