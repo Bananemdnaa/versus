@@ -19,6 +19,14 @@
     { "src": "icons/maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" },
     { "src": "favicon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }
   ],
+  "screenshots": [
+    { "src": "icons/screens/wide-1-home.webp", "sizes": "1280x720", "type": "image/webp", "form_factor": "wide", "label": "Alle Spiele auf einen Blick" },
+    { "src": "icons/screens/wide-2-chess.webp", "sizes": "1280x720", "type": "image/webp", "form_factor": "wide", "label": "Schach gegen die KI, mit Zugliste" },
+    { "src": "icons/screens/wide-3-ludo.webp", "sizes": "1280x720", "type": "image/webp", "form_factor": "wide", "label": "Ludo mit bis zu vier Spielern" },
+    { "src": "icons/screens/narrow-1-home.webp", "sizes": "540x1200", "type": "image/webp", "form_factor": "narrow", "label": "Alle Spiele auf einen Blick" },
+    { "src": "icons/screens/narrow-2-chess.webp", "sizes": "540x1200", "type": "image/webp", "form_factor": "narrow", "label": "Schach gegen die KI" },
+    { "src": "icons/screens/narrow-3-ludo.webp", "sizes": "540x1200", "type": "image/webp", "form_factor": "narrow", "label": "Ludo mit bis zu vier Spielern" }
+  ],
   "shortcuts": [
     { "name": "Online spielen", "short_name": "Online", "url": "./?tab=online", "icons": [{ "src": "icons/shortcut-96.png", "sizes": "96x96", "type": "image/png" }] },
     { "name": "Bilanz", "short_name": "Bilanz", "url": "./?tab=stats", "icons": [{ "src": "icons/shortcut-96.png", "sizes": "96x96", "type": "image/png" }] }

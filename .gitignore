@@ -6,3 +6,6 @@ Thumbs.db
 
 # local planning notes
 notes/
+
+# Microsoft Store pictures (made by tools/store-shots.py, uploaded by hand)
+store/shots/

@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="robots" content="noindex">
+<title>Versus Store-Bilder</title>
+<!-- Store art for the Microsoft Store listing (Poster 2:3 and Box art 1:1), rendered by tools/store-shots.py.
+     store/art.html?f=poster or ?f=box, with &lang=en for the English listing. -->
+<style>
+  @font-face{font-family:'Saira Condensed';font-weight:800;src:url(../fonts/saira-condensed-800.woff2) format('woff2')}
+  @font-face{font-family:'Saira Condensed';font-weight:700;src:url(../fonts/saira-condensed-700.woff2) format('woff2')}
+  :root{--ink:#08090f;--pink:#ff4fd8;--yellow:#ffd84f;--cyan:#62f0ff;--f:'Saira Condensed','Arial Narrow',sans-serif}
+  *{box-sizing:border-box;margin:0}
+  html,body{width:100%;height:100%;overflow:hidden;background:var(--ink)}
+  .art{position:fixed;inset:0;overflow:hidden;background:var(--ink)}
+  .l,.r{position:absolute;top:0;bottom:0;width:60%}
+  .l{left:0;background:var(--pink);clip-path:polygon(0 0,93.4% 0,73.4% 100%,0 100%)}
+  .r{right:0;background:var(--yellow);clip-path:polygon(26.6% 0,100% 0,100% 100%,6.6% 100%)}
+  .line{position:absolute;inset:0;background:#fff;clip-path:polygon(55.5% 0,56.5% 0,44.5% 100%,43.5% 100%)}
+  .logo{position:absolute;left:0;right:0;display:flex;align-items:center;justify-content:center;gap:.08em;
+    font:800 italic var(--lg)/1 var(--f);color:var(--ink);letter-spacing:.02em}
+  .slash{display:block;width:.13em;height:.95em;background:#fff;box-shadow:0 0 0 .03em var(--ink);transform:skewX(-14deg)}
+  .sub{position:absolute;left:0;right:0;text-align:center;font:700 italic var(--sb)/1 var(--f);letter-spacing:.3em;text-transform:uppercase;color:var(--ink)}
+  .tray{position:absolute;left:50%;transform:translateX(-50%) skewX(-8deg);display:grid;background:var(--ink);
+    border:3px solid #fff;box-shadow:12px 12px 0 rgba(8,9,15,.55)}
+  .tray img{display:block;transform:skewX(8deg)}
+
+  /* 2:3 poster (720×1080 css px, rendered at 2× = 1440×2160) */
+  .poster{--lg:150px;--sb:24px}
+  .poster .logo{top:22%}
+  .poster .sub{top:41%}
+  .poster .tray{bottom:9%;grid-template-columns:repeat(3,128px);gap:18px;padding:26px 34px}
+  .poster .tray img{width:128px;height:128px}
+
+  /* 1:1 box art (1080×1080 css px at 2× = 2160×2160; scaled down for the 300 px logo) */
+  .box{--lg:230px;--sb:34px}
+  .box .logo{top:24%}
+  .box .sub{top:48%}
+  .box .tray{bottom:11%;grid-template-columns:repeat(4,150px);gap:22px;padding:26px 40px}
+  .box .tray img{width:150px;height:150px}
+</style>
+</head>
+<body>
+<div class="art" id="art">
+  <i class="l"></i><i class="r"></i><i class="line"></i>
+  <div class="logo"><span>VER</span><i class="slash"></i><span>SUS</span></div>
+  <div class="sub" id="sub">Zwei bis vier · Ein Gerät</div>
+  <div class="tray" id="tray"></div>
+</div>
+<script>
+  const f = location.hash === '#box' || /f=box/.test(location.search) ? 'box' : 'poster', en = /lang=en/.test(location.search);
+  document.getElementById('art').classList.add(f);
+  document.getElementById('sub').textContent = en ? 'Two to four · One device' : 'Zwei bis vier · Ein Gerät';
+  const ids = f === 'box' ? ['chess', 'c4', 'ludo', 'maumau'] : ['chess', 'c4', 'ludo', 'maumau', 'ships', 'tron', 'checkers', 'poker', 'backgammon'];
+  document.getElementById('tray').innerHTML = ids.map(id => `<img src="../icons/games/${id}.png" alt="">`).join('');
+</script>
+</body>
+</html>
