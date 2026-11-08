@@ -1787,7 +1787,7 @@
     app.addEventListener('touchstart', e => {
       sw = null;
       if (e.touches.length !== 1 || wide() || view !== 'home' || modalEl) return;
-      if (e.target.closest('.tiles.row, .hero, .chips, .frs-l, .onav-l, .qtiles, input, textarea, select, .tabs')) return;
+      if (e.target.closest('.tiles.row, .hero, .chips, .frs-l, .onav-l, .qtiles, .rgames, input, textarea, select, .tabs')) return;
       const p = e.touches[0]; sw = { x: p.clientX, y: p.clientY, t: performance.now() };
     }, { passive: true });
     app.addEventListener('touchend', e => {

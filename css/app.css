@@ -3433,3 +3433,25 @@ body:has(.view.play) .season.halloween .spider{display:none}
 @keyframes icDraw{0%{stroke-dashoffset:30}35%,100%{stroke-dashoffset:0}}
 @keyframes icHop{0%,55%,100%{transform:none}68%{transform:translateY(-5px) rotate(-8deg)}80%{transform:translateY(0) rotate(4deg)}88%{transform:rotate(0)}}
 .lowfx .hc-ic *,.lowfx .tile .ic *{animation:none!important}
+
+/* ---------- Online ranking: the game row, steps that rise, your own row stays in sight ---------- */
+.orank .rgames{margin-top:6px}
+.rfilt:empty{display:none}
+.podium.rise .pod .step{transform-origin:50% 100%;animation:podUp .5s var(--spring) backwards}
+.podium.rise .pod>:not(.step){--pd:0s;animation:podIn .4s var(--pd) var(--snap) backwards}
+.podium.rise .pod>.pav{animation:podIn .4s var(--pd) var(--snap) backwards,bob 3s calc(var(--pd) + .4s) ease-in-out infinite}
+.podium.rise .pod.p3 .step{animation-delay:.25s} .podium.rise .pod.p3>:not(.step){--pd:.42s}
+.podium.rise .pod.p2 .step{animation-delay:.43s} .podium.rise .pod.p2>:not(.step){--pd:.6s}
+.podium.rise .pod.p1 .step{animation-delay:.62s} .podium.rise .pod.p1>:not(.step){--pd:.8s}
+@keyframes podUp{from{transform:scaleY(0)}}
+@keyframes podIn{from{opacity:0;transform:translateY(14px)}}
+/* "Noch 2 Siege bis Platz 9" under your numbers */
+.rmine .rnext{display:flex;width:fit-content;align-items:center;gap:6px;margin-top:7px;padding:4px 9px;transform:skewX(var(--sk));background:color-mix(in srgb,var(--yellow) 14%,var(--panel2));border:1px solid color-mix(in srgb,var(--yellow) 50%,var(--line));color:var(--yellow);font:800 italic 12px/1 var(--f-d);letter-spacing:.06em;text-transform:uppercase;font-style:italic}
+.rmine .rnext svg{width:13px;height:13px;flex:none}
+.rmine .rnext.lead{background:color-mix(in srgb,var(--pink) 16%,var(--panel2));border-color:var(--pink);color:var(--pink)}
+/* your own row further down the list: a copy waits at the bottom edge of the screen until the list gets there */
+.rmefix{position:fixed;left:12px;right:12px;bottom:calc(98px + env(safe-area-inset-bottom,0px));z-index:30;pointer-events:none;opacity:0;transform:translateY(16px);transition:opacity .2s,transform .25s var(--snap)}
+.rmefix.on{opacity:1;transform:none;pointer-events:auto}
+.rmefix .rrow{margin:0;background:linear-gradient(rgba(255,79,216,.18),rgba(255,79,216,.18)),var(--ink);box-shadow:0 8px 24px rgba(0,0,0,.55)}
+@media (min-width:960px){.rmefix{bottom:18px}}
+.lowfx .podium.rise .pod .step,.lowfx .podium.rise .pod>*{animation:none}
