@@ -61,9 +61,11 @@
   // rotation that brings face n to the front
   const FACE = { 1: [0, 0], 2: [0, -90], 3: [-90, 0], 4: [90, 0], 5: [0, 90], 6: [0, 180] };
   V.die = function () {
-    const el = V.el('button', 'die3w', `<span class="die3">${[1, 2, 3, 4, 5, 6].map(n => `<i class="df f${n}">${Array.from({ length: 9 }, (_, k) => `<b class="${PIP[n].includes(k) ? 'on' : ''}"></b>`).join('')}</i>`).join('')}</span>`);
+    // the perspective sits on its own wrapper (a button flattens 3D in some browsers); three planes through the
+    // middle fill the cube, so the rounded corners of the faces never show gaps while it tumbles
+    const el = V.el('button', 'die3w', `<span class="die3p"><span class="die3"><i class="dcore c1"></i><i class="dcore c2"></i><i class="dcore c3"></i>${[1, 2, 3, 4, 5, 6].map(n => `<i class="df f${n}">${Array.from({ length: 9 }, (_, k) => `<b class="${PIP[n].includes(k) ? 'on' : ''}"></b>`).join('')}</i>`).join('')}</span></span>`);
     el.setAttribute('aria-label', 'Würfeln');
-    const cube = el.firstElementChild;
+    const cube = el.querySelector('.die3');
     let spinX = 0, spinY = 0, val = 5;
     const put = () => { cube.style.transform = `rotateX(${spinX + FACE[val][0]}deg) rotateY(${spinY + FACE[val][1]}deg)`; };
     put();
