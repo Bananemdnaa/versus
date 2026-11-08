@@ -145,7 +145,9 @@
     // an online rematch keeps the score between the same two players (sides may have swapped)
     if (online && !series && rematchCarry && rematchCarry.opp === M.opp) { series = { [M.side]: rematchCarry.me, [3 - M.side]: rematchCarry.them, d: rematchCarry.d }; rematch = true; }
     rematchCarry = null;
-    series = series || { 1: 0, 2: 0, d: 0 };
+    // "Vorsprung" (option hc, js/core.js): at one device the weaker player starts the series with wins on the board
+    const headStart = !series && cfg.mode === 'local' && !g.party && cfg.opts ? +cfg.opts.hc || 0 : 0;
+    series = series || { 1: Math.max(0, headStart), 2: Math.max(0, -headStart), d: 0 };
     const ai = cfg.mode === 'ai';
     // Party games (g.party): 2-4 players (option "n"). You are always player 1; every other seat is
     // a computer player against the AI, or a person at the same device.
@@ -155,6 +157,9 @@
     // undo: the match is set up again and every move but your last one (and what followed) is replayed at once
     const replay = cfg.replay && cfg.replay.length ? cfg.replay.slice() : null;
     if (cfg.replay || cfg.firstWas) cfg = Object.assign({}, cfg, { replay: null, first: cfg.firstWas || cfg.first, firstWas: null });
+    // chaos rules (option "chaos") that place things at random: a fresh seed for every new match, kept when a move is
+    // taken back (cfg.replay) and when a finished match is watched again (it comes with the options it was played with)
+    if (g.chaosSeed && cfg.opts && +cfg.opts.chaos && !replay && cfg.mode !== 'review') cfg = Object.assign({}, cfg, { opts: Object.assign({}, cfg.opts, { seed: 1 + V.rand(2147483646) }) });
     // a match in which a move was taken back does not change the KI-Elo (the flag is not passed on to a rematch)
     const undone = !!cfg.undone;
     if (undone) cfg = Object.assign({}, cfg, { undone: null });
@@ -190,6 +195,8 @@
     if (online) { names[mySide] = 'Du'; names[oppSide] = M.opp; }
     if (watch) { names[M.aSide] = M.aName; names[3 - M.aSide] = M.bName; }
     if (review) Object.assign(names, RV.names || {});
+    // a tournament match (js/tourney.js): the two names on the cards
+    if (cfg.mode === 'local' && cfg.names) Object.assign(names, cfg.names);
     const esc = t => String(t).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
     // your own card shows your account name (the logic keeps calling you "Du")
     const acct = V.cloud && V.cloud.user() && !V.cloud.user().anon ? V.cloud.user().username : '';
@@ -210,7 +217,7 @@
       <span class="nm"><b>${esc(shown(s))}${flagOf(s)}</b><small>${sub(s)}</small></span>
       ${clockMin ? `<span class="clk" id="ck${s}"></span>` : ''}${thinker(s) ? '<span class="tdots" aria-hidden="true"><i></i><i></i><i></i></span>' : ''}<span class="wins"><b>${series[s]}</b><small>Siege</small></span><em class="tag">am Zug</em>
       ${ai && s === aiSide ? '<div class="bubble" aria-live="polite"></div>' : ''}</div>`;
-    const sublabel = review && RV.shared ? 'Geteilt von ' + esc(RV.shared) + ' · ' + new Date(RV.at || Date.now()).toLocaleDateString(V.locale(), { day: 'numeric', month: 'short' }) : review ? 'Aufzeichnung · ' + esc(RV.label || '') + ' · ' + new Date(RV.at || Date.now()).toLocaleDateString(V.locale(), { day: 'numeric', month: 'short' }) : table ? `Online-Tisch · ${N} Spieler` : party ? (ai ? `Gegen ${N > 2 ? N - 1 + ' KIs' : 'KI'} · ` + lvName : N + ' Spieler') : ai ? 'Gegen KI · ' + lvName : slow ? 'Über Tage gegen ' + esc(M.opp) : online ? 'Online gegen ' + esc(M.opp) : watch ? 'Zuschauen · ' + esc(M.aName) + ' gegen ' + esc(M.bName) : 'Am Gerät';
+    const sublabel = cfg.tourney ? esc(cfg.tourney.label) : review && RV.shared ? 'Geteilt von ' + esc(RV.shared) + ' · ' + new Date(RV.at || Date.now()).toLocaleDateString(V.locale(), { day: 'numeric', month: 'short' }) : review ? 'Aufzeichnung · ' + esc(RV.label || '') + ' · ' + new Date(RV.at || Date.now()).toLocaleDateString(V.locale(), { day: 'numeric', month: 'short' }) : table ? `Online-Tisch · ${N} Spieler` : party ? (ai ? `Gegen ${N > 2 ? N - 1 + ' KIs' : 'KI'} · ` + lvName : N + ' Spieler') : ai ? 'Gegen KI · ' + lvName : slow ? 'Über Tage gegen ' + esc(M.opp) : online ? 'Online gegen ' + esc(M.opp) : watch ? 'Zuschauen · ' + esc(M.aName) + ' gegen ' + esc(M.bName) : 'Am Gerät';
     // Discord status (Rich Presence, js/discord.js): the game and how it is played, never an opponent's name
     V.discord.status(g.name, table ? V.t('Online-Tisch') + ' · ' + V.t(N + ' Spieler') : ai ? V.t('Gegen die KI') + ' · ' + V.t(lvName) : online ? V.t('Online-Duell') : watch ? V.t('Zuschauen') : V.t('Am Gerät'), g.id);
     // two people at one phone, sitting opposite: player 2's card (and the status on their turn) is turned around
@@ -384,7 +391,9 @@
     // dice, shuffled cards and other luck: online every browser draws the same numbers from a shared seed
     // (tables get it from the server, duels derive it from the match id)
     const idSeed = id => { let h = 2166136261; for (const ch of String(id)) h = Math.imul(h ^ ch.charCodeAt(0), 16777619); return h >>> 0; };
-    let seed = table ? (T.seed >>> 0) || 1 : online || watch ? idSeed(M.id) || 1 : 0;
+    // (against the AI and at one device a chaos rule with luck in it brings its own seed in the options, so taking a move
+    // back and the history replay the same board)
+    let seed = table ? (T.seed >>> 0) || 1 : online || watch ? idSeed(M.id) || 1 : (cfg.opts && cfg.opts.seed) >>> 0;
     const rng = seed ? () => { seed = (seed + 0x6D2B79F5) >>> 0; let t = seed; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; } : Math.random;
     const ctx = {
       stage: v.querySelector('#stage'), mode: cfg.mode, get level() { return lvNow; }, fitElo: fitE, aiSide, opts: cfg.opts, sides: g.sides, n: N, players: SIDES,
@@ -497,7 +506,9 @@
           const s = stat(g.id);
           if (ai) { const r = s.ai[cfg.level]; if (winner === 0) r.d++; else if (winner === me) r.w++; else r.l++; }
           // KI-Elo: only you against one AI, not after taking a move back
-          if (ai && N === 2 && me && !undone) eloRes = V.aiElo.add(g.id, fitE || V.aiElo.levels(g)[cfg.level], winner === 0 ? 0.5 : winner === me ? 1 : 0);
+          // (a handicap or a chaos rule changes the game: such a match does not count for the KI-Elo)
+          const variantOn = (g.options || []).some(o => (o.variant || o.id === 'chaos') && cfg.opts && cfg.opts[o.id] != null && String(cfg.opts[o.id]) !== String(o.def));
+          if (ai && N === 2 && me && !undone && !variantOn) eloRes = V.aiElo.add(g.id, fitE || V.aiElo.levels(g)[cfg.level], winner === 0 ? 0.5 : winner === me ? 1 : 0);
           else if (online || table) { s.on = s.on || { w: 0, l: 0, d: 0 }; if (winner === 0) s.on.d++; else if (winner === mySide) s.on.w++; else s.on.l++; }
           else { if (winner === 0) s.local.d++; else if (winner === 1) s.local.a++; else s.local.b++; }
           S.set('stats', P.stats);
@@ -522,10 +533,13 @@
         else if (winner) { V.sfx.lose(); V.fx.shake(ctx.stage); }
         else if (!off) V.sfx.draw();
         // V.t: the letters are animated one by one, so the translation has to happen before the split
-        const big = V.t(off ? 'Abgebrochen' : winner === 0 ? (/^Patt/.test(note || '') ? 'Patt' : 'Remis') : me ? (meWon ? 'Sieg!' : 'Niederlage') : `${names[winner]} gewinnt`);
+        const big = V.t(off ? 'Abgebrochen' : winner === 0 ? (/^Patt/.test(note || '') ? 'Patt' : 'Remis') : me ? (meWon ? 'Sieg!' : 'Niederlage') : cfg.names ? `${names[winner]} ${V.t('gewinnt')}` : `${names[winner]} gewinnt`);
         setStatus(off ? esc(note || 'Partie abgebrochen') : winner === 0 ? (/^Patt/.test(note || '') ? 'Patt, unentschieden' : 'Unentschieden') :me ? (meWon ? '<span class="c' + winner + '">Du hast gewonnen</span>' : `${ctx.who(winner)} hat gewonnen`) : `${ctx.who(winner)} gewinnt`);
         const tone = winner === 0 ? 'draw' : me ? (meWon ? 'win' : 'lose') : party ? 'w' + winner : (winner === L ? 'left' : 'right');
-        const again = () => online ? net.rematch(series) : table ? (closeModal(), V.online.table(g, cfg.opts, cfg.level)) : play(g, cfg, series);
+        // a tournament match: the winner goes into the bracket right away; a draw is played again
+        const tny = cfg.tourney && !off ? cfg.tourney : null;
+        if (tny && winner) tny.done(winner);
+        const again = () => tny && winner ? (closeModal(true), tny.back()) : online ? net.rematch(series) : table ? (closeModal(), V.online.table(g, cfg.opts, cfg.level)) : play(g, cfg, series);
         const menu = () => watch ? (M.admin ? V.account.admin('matches') : V.ui.home('online')) : setup(g);
         // what comes next (AI and one device only): after a win against the AI the next level is one tap away,
         // otherwise a game of the same kind that was not played yet (so the 35 games get found)
@@ -535,7 +549,7 @@
         const mine = ai ? me : (online || table) ? mySide : 0;
         if (mine && !watch && !auto && !off && winner !== 0) { const wr = S.get('winRun', {}); wr.cur = winner === mine ? (wr.cur || 0) + 1 : 0; wr.best = Math.max(wr.best || 0, wr.cur); S.set('winRun', wr); }
         const fresh = !watch && !auto && !off ? P.badgeCheck({ hour: new Date().getHours(), seats: N }) : [];
-        const step = !online && !table && !watch && !auto && !off ? nextStep(winner === me && !!winner) : null;
+        const step = !online && !table && !watch && !auto && !off && !tny ? nextStep(winner === me && !!winner) : null;
         ctx.later(() => {
           const m = openModal(`<div class="ko ${tone}">
             <div class="band"><div class="band-in"><span class="kicker">${esc(note || sublabel)}${online && net && net.last && net.last.ranked === false ? ' · zählt nicht für die Rangliste' : ''}</span>
@@ -554,7 +568,7 @@
             ${online && V.online.report ? `<button class="link erep" id="erep">${esc(M.opp)} melden</button>` : ''}
             ${step ? step.html : ''}
             ${ctx.endBtn && !off ? `<button class="btn sm ekx" id="ekx"><span>${IC.chart}${esc(ctx.endBtn.l)}</span></button>` : ''}
-            <div class="actions">${watch ? '' : `<button class="btn primary" id="er"><span>${IC.redo}${online ? 'Revanche anfragen' : table ? 'Neuer Tisch' : 'Revanche'}</span><kbd class="only-fine">R</kbd></button>`}<button class="btn" id="eb"><span>Brett ansehen</span></button><button class="btn ghost" id="em"><span>${watch ? 'Zurück' : 'Menü'}</span></button></div></div>`, 'endm', null, false, e => {
+            <div class="actions">${watch ? '' : `<button class="btn primary" id="er"><span>${tny ? (winner ? IC.trophy + 'Zum Turnierbaum' : IC.redo + 'Nochmal spielen') : IC.redo + (online ? 'Revanche anfragen' : table ? 'Neuer Tisch' : 'Revanche')}</span><kbd class="only-fine">R</kbd></button>`}<button class="btn" id="eb"><span>Brett ansehen</span></button><button class="btn ghost" id="em"><span>${watch ? 'Zurück' : 'Menü'}</span></button></div></div>`, 'endm', null, false, e => {
             if ((e.key === 'Enter' || e.key === 'n' || e.key === 'N' || e.key === 'r' || e.key === 'R') && !watch) { again(); return true; }
             if (e.key === 'Escape') { closeModal(); return true; }
             if (e.key === 'm' || e.key === 'M') { menu(); return true; }

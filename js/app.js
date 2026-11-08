@@ -206,11 +206,14 @@
       if (view === 'play' && !left) { if (!P.playApi) return; if (id === 'opts') return P.playApi.opts(); P.playApi.leaveTo(() => go(id, true)); return; }
       if (id === 'quick') return quickGo();
       if (id === 'install') return install();
+      // Start: hero, modes, Spiel des Tages, Weiterspielen and the games; Bibliothek: only the games with search and
+      // filters, as a page of its own (it used to scroll the start page down, so both entries showed the same page)
       if (id === 'start' || id === 'lib') {
-        const before = view === 'home' && homeTab === 'games';
-        homeSpot = id; home('games');
-        const spot = () => id === 'lib' ? scrollToEl(app.querySelector('.gfind')) : app.scrollTo({ top: 0, behavior: V.fxOn() ? 'smooth' : 'auto' });
-        before ? spot() : setTimeout(spot, 180);
+        const was = view === 'home' && homeTab === 'games' ? homeSpot : null;
+        homeSpot = id;
+        if (was && was !== id) { const top = app.querySelector('#gtop'); if (top) { top.hidden = !!homeQuery.trim() || id === 'lib'; if (!top.hidden) contRefresh(); } render(); }
+        else home('games');
+        app.scrollTo({ top: 0, behavior: was === id && V.fxOn() ? 'smooth' : 'auto' });
         return;
       }
       home(id);
@@ -287,6 +290,7 @@
     b.querySelectorAll('[data-fb]').forEach(x => x.onclick = () => { V.sfx.ui(); V.feedback.open(); });
     b.querySelectorAll('[data-dcinv]').forEach(x => x.onclick = () => { V.sfx.ui(); V.discord.invite(); });
     if (V.night) V.night.wire(b);
+    if (V.tourney) V.tourney.wire(b);
   }
   // slide the highlight of the active tab to its new place
   function placeInd(root, anim) {
@@ -326,7 +330,7 @@
     // laptop: hero, mode tiles and "Weiterspielen" above the library; a search hides them and shows the hits
     return `<div class="select">
       <section class="sel-main">
-        ${W ? `<div id="gtop"${homeQuery.trim() ? ' hidden' : ''}>${heroCarousel()}${modeTiles()}${dailyCard()}<div id="gcont">${contRow()}</div>${installCard()}</div>
+        ${W ? `<div id="gtop"${homeQuery.trim() || homeSpot === 'lib' ? ' hidden' : ''}>${heroCarousel()}${modeTiles()}${dailyCard()}<div id="gcont">${contRow()}</div>${installCard()}</div>
         <div class="lhead"><h2 class="lh">Bibliothek<small>${V.games.length}</small></h2>
           <div class="lview" role="group" aria-label="Ansicht">${[['grid', 'Kacheln', IC.grid], ['list', 'Liste', IC.book]].map(([k, l, ic]) => `<button data-lv="${k}" class="${libView() === k ? 'on' : ''}" aria-pressed="${libView() === k}" title="${l}" aria-label="${l}">${ic}</button>`).join('')}</div></div>`
         : `<h1 class="ah-big">Bereit fürs Duell?</h1>${heroCarousel()}<div id="gcont">${contPhone()}</div>${dailyCard()}${quickTiles()}<div id="gfr">${friendsRow()}</div>`}
@@ -336,7 +340,7 @@
           <div class="chips" role="tablist">${['Alle', ...V.CATS].map(c => `<button role="tab" data-f="${c}" class="${homeFilter === c && !homeQuery ? 'on' : ''}">${c}<small>${count(c)}</small></button>`).join('')}</div>
         </div>
         <div id="glist">${gameList()}</div>
-        <div class="optlist small dcom">${V.night ? V.night.row() : ''}
+        <div class="optlist small dcom">${V.tourney && !inDiscord() ? V.tourney.row() : ''}${V.night ? V.night.row() : ''}
           ${inDiscord() ? `<button class="opt" data-dcinv="1">${IC.users}<span><b>Freunde in den Call einladen</b><small>Über Discord: Freunde, Server oder ein Link</small></span></button>` : `<a class="opt" href="${V.DISCORD}" target="_blank" rel="noopener">${IC.chat}<span><b>Community auf Discord</b><small>Mitspieler finden, Ideen teilen und Bugs melden</small></span></a>`}
           <button class="opt" data-fb="1">${IC.bulb}<span><b>Feedback senden</b><small>Fehler gefunden oder eine Idee? Direkt ans Team</small></span></button></div>
       </section>
@@ -773,7 +777,7 @@
     tl.innerHTML = gameList();
     wireList(tl);
     // laptop: a search hides the hero and the mode tiles, "Weiterspielen" follows the search
-    const top = app.querySelector('#gtop'); if (top) { top.hidden = !!homeQuery.trim(); if (!top.hidden) contRefresh(); }
+    const top = app.querySelector('#gtop'); if (top) { top.hidden = !!homeQuery.trim() || homeSpot === 'lib'; if (!top.hidden) contRefresh(); }
   }
   function wireList(tl) {
     wireTiles(tl);

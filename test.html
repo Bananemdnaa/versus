@@ -71,6 +71,11 @@
     const opts = {}; (g.options || []).forEach(o => { opts[o.id] = o.def; });
     runs.push({ g, opts, label: g.name });
     if (g.party && opts.n !== 4) runs.push({ g, opts: Object.assign({}, opts, { n: 4 }), label: g.name + ' · 4' });
+    // handicaps and chaos rules against the AI: once with the strongest choice
+    (g.options || []).filter(o => (o.variant || o.id === 'chaos') && (!o.modes || o.modes.includes('ai')) && o.choices).forEach(o => {
+      const c = o.choices[o.choices.length - 1];
+      runs.push({ g, opts: Object.assign({}, opts, { [o.id]: c[0] }), label: g.name + ' · ' + c[1] });
+    });
   });
   const skipped = V.games.filter(g => g.noAI && (!only || only.includes(g.id))).map(g => g.name);
 

@@ -55,7 +55,7 @@
     }
     return { s, own };
   }
-  function playout(n, b0, col, ko) {
+  function playout(n, b0, col, ko, komi = KOMI) {
     const b = b0.slice(), st = { ko }, N2 = n * n; let passes = 0, moves = 0;
     const order = new Int32Array(N2); for (let i = 0; i < N2; i++) order[i] = i;
     while (passes < 2 && moves < N2 * 2) {
@@ -68,7 +68,7 @@
       if (played) passes = 0; else { passes++; st.ko = -1; }
       col = 3 - col; moves++;
     }
-    return area(n, b).s - KOMI;
+    return area(n, b).s - komi;
   }
   function legal(n, b, col, ko) {
     const out = [];
@@ -76,7 +76,7 @@
     return out;
   }
   // flat Monte Carlo with UCB over the candidate moves; returns { move, rate }
-  function think(n, b, col, ko, ms, maxIt) {
+  function think(n, b, col, ko, ms, maxIt, komi = KOMI) {
     const cand = legal(n, b, col, ko).filter(i => !eye(n, b, i, col));
     if (!cand.length) return { move: 'p', rate: 0.5 };
     const w = new Float64Array(cand.length), c = new Float64Array(cand.length);
@@ -86,7 +86,7 @@
       let k = -1, bv = -1;
       const ln = Math.log(it + 1);
       for (let j = 0; j < cand.length; j++) { const v = c[j] ? w[j] / c[j] + 0.9 * Math.sqrt(ln / c[j]) : 1e9 + Math.random(); if (v > bv) { bv = v; k = j; } }
-      const r = playout(n, kids[k].t, 3 - col, kids[k].ko);
+      const r = playout(n, kids[k].t, 3 - col, kids[k].ko, komi);
       const win = col === 1 ? r > 0 : r < 0;
       w[k] += win ? 1 : 0; c[k]++; it++;
     }
@@ -118,11 +118,11 @@
 
   // the AI's choice as a pure function of the state, so it can think in a worker (js/aiworker.js, V.register)
   function brain(st, L) {
-    const { n, b, turn, ko, passes } = st, budget = n === 9 ? [60, 500, 1400, 2800][L] : [60, 600, 1600, 3000][L];
-    const r = think(n, b, turn, ko, V.aiMs(budget), [150, 2500, 1e9, 1e9][L]);
+    const { n, b, turn, ko, passes } = st, komi = st.komi ?? KOMI, budget = n === 9 ? [60, 500, 1400, 2800][L] : [60, 600, 1600, 3000][L];
+    const r = think(n, b, turn, ko, V.aiMs(budget), [150, 2500, 1e9, 1e9][L], komi);
     // pass only when counting the board as it is would win (dead stones are not removed at the end),
     // otherwise keep playing and capture them first
-    const now = area(n, b).s - KOMI, ahead = turn === 1 ? now > 0 : now < 0;
+    const now = area(n, b).s - komi, ahead = turn === 1 ? now > 0 : now < 0;
     const free = legal(n, b, turn, ko).filter(i => !eye(n, b, i, turn)).length;
     if (!free || (ahead && (r.move === 'p' || (passes && r.rate > 0.6 && L >= 1)))) return { move: 'p', mood: (r.rate - 0.5) * 2 };
     return { move: r.move === 'p' && r.alt != null && r.rate > 0.5 ? r.alt : r.move, mood: (r.rate - 0.5) * 2 };
@@ -136,7 +136,8 @@
     sides: { 1: 'Schwarz', 2: 'Weiß' }, firstLabels: ['Du (Schwarz)', 'KI (Schwarz)', 'Zufall'],
     levelInfo: ['Spielt fast zufällig.', 'Denkt kurz nach, macht aber viele Fehler.', 'Simuliert tausende Partien pro Zug.', 'Rechnet so lange wie möglich. Stark auf 9×9.'],
     keys: [['Pfeile + Enter', 'Stein setzen'], ['P', 'Passen']],
-    options: [{ id: 'size', label: 'Brett', group: 'board', inline: 'local', short: v => `${v}×${v}`, def: 9, choices: [[9, '9×9'], [13, '13×13']] }],
+    options: [{ id: 'size', label: 'Brett', group: 'board', inline: 'local', short: v => `${v}×${v}`, def: 9, choices: [[9, '9×9'], [13, '13×13']] },
+      { id: 'hcap', label: 'Vorgabe', group: 'players', variant: true, modes: ['ai', 'local'], desc: 'Schwarz bekommt Vorgabesteine auf den Sternpunkten. Dafür zieht Weiß zuerst und bekommt nur 0,5 Punkte Komi. Wer die Vorgabe will, spielt Schwarz.', short: v => +v ? `${v} Vorgabesteine` : '', def: 0, choices: [[0, 'Keine'], [2, '2'], [3, '3'], [4, '4']] }],
     endDelay: 1600,
     icon: `<svg viewBox="0 0 48 48"><rect x="3" y="3" width="42" height="42" rx="6" fill="#d9ad66" stroke="#5d3a1c" stroke-width="2.5"/>${[0, 1, 2, 3, 4].map(k => `<path d="M${9 + k * 7.5} 9v30M9 ${9 + k * 7.5}h30" stroke="#5d3a1c" stroke-width="1"/>`).join('')}<circle cx="16.5" cy="16.5" r="3.4" fill="#111"/><circle cx="24" cy="16.5" r="3.4" fill="#111"/><circle cx="24" cy="24" r="3.4" fill="#fff" stroke="#999" stroke-width=".6"/><circle cx="31.5" cy="24" r="3.4" fill="#fff" stroke="#999" stroke-width=".6"/><circle cx="16.5" cy="31.5" r="3.4" fill="#111"/></svg>`,
     tutorial: [
@@ -149,6 +150,15 @@
     start(ctx) {
       const n = [9, 13].includes(+ctx.opts.size) ? +ctx.opts.size : 9;
       let b = new Int8Array(n * n), turn = 1, ko = -1, passes = 0, last = -1, over = false, ghost = -1;
+      // "Vorgabe": Black's handicap stones on the star points (2: two opposite corners, 3: one more, 4: all corners),
+      // then White moves first and the komi drops to 0.5
+      const hc = [2, 3, 4].includes(+(ctx.opts && ctx.opts.hcap)) && ['ai', 'local', 'review'].includes(ctx.mode) ? +ctx.opts.hcap : 0;
+      const komi = hc ? 0.5 : KOMI;
+      if (hc) {
+        const sp = n === 9 ? { tl: 20, tr: 24, bl: 56, br: 60 } : { tl: 42, tr: 48, bl: 120, br: 126 };
+        [sp.tr, sp.bl, sp.br, sp.tl].slice(0, hc).forEach(i => { b[i] = 1; });
+        turn = 2;
+      }
       const caps = { 1: 0, 2: 0 };
       const board = V.el('div', 'go'); board.style.setProperty('--n', n);
       const stars = n === 9 ? [20, 24, 40, 56, 60] : [42, 48, 84, 120, 126];
@@ -219,7 +229,7 @@
         render();
         if (!ctx.isAI(turn)) return;
         ctx.aiTurn({
-          state: { n, b, turn, ko, passes },
+          state: { n, b, turn, ko, passes, komi },
           targets: m => [m === 'p' ? passBtn : pts[m]],
           apply: play,
           decode: m => m === 'p' ? 'p' : Number.isInteger(m) && m >= 0 && m < n * n && !b[m] && m !== ko && place(n, b.slice(), m, turn, { ko }) >= 0 ? m : null,
@@ -231,9 +241,9 @@
         const { s, own } = area(n, b);
         pts.forEach((pt, i) => { if (!b[i] && own[i]) pt.appendChild(V.el('i', 'ow o' + own[i])); });
         const black = [...b].filter(x => x === 1).length + [...own].filter((x, i) => x === 1 && !b[i]).length;
-        const white = [...b].filter(x => x === 2).length + [...own].filter((x, i) => x === 2 && !b[i]).length + KOMI;
+        const white = [...b].filter(x => x === 2).length + [...own].filter((x, i) => x === 2 && !b[i]).length + komi;
         render();
-        ctx.end(s - KOMI > 0 ? 1 : 2, `Schwarz ${black} : ${white} Weiß`);
+        ctx.end(s - komi > 0 ? 1 : 2, `Schwarz ${black} : ${white} Weiß`);
       }
       next();
     }
