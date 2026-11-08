@@ -2288,7 +2288,9 @@ textarea.inp{height:auto}
 .ogroup .optlist .fine{padding:8px 14px}
 .bprev{display:none}
 @media (max-width:959px){
-  .oset .onav{position:sticky;top:0;z-index:5;display:flex;flex-direction:column;gap:10px;padding:8px 0;background:linear-gradient(var(--ink) calc(100% - 6px),transparent)}
+  /* no box of its own: on the page the background shows through (the page scrolls in body, so the bar scrolls along
+     anyway); in the options dialog it gets the dialog's colour, see .optpop below */
+  .oset .onav{position:sticky;top:0;z-index:5;display:flex;flex-direction:column;gap:10px;padding:8px 0}
   .oset .onav .title{margin-bottom:4px}
   .oh-b::after{content:'›';float:right;transform:rotate(90deg);transition:transform var(--t-base);color:var(--dim)}
   .ogroup.shut .oh-b::after{transform:none}
@@ -2417,7 +2419,9 @@ html.lowfx::view-transition-group(*),html.lowfx::view-transition-old(*),html.low
 .optpop .oset{max-width:none;margin:0}
 .optpop .onav{position:static;top:auto}
 .optpop .onav .title{font-size:38px}
-@media (max-width:959px){.optpop .onav{position:sticky;top:-22px;padding-top:4px}.optpop .onav .title{font-size:32px;padding-right:50px}}
+@media (max-width:959px){.optpop .onav{position:sticky;top:-22px;padding-top:4px}.optpop .onav .title{font-size:32px;padding-right:50px}
+  /* in the dialog the bar is the dialog's own colour, out to its edges, so it is not a dark box inside it */
+  .optpop .oset .onav{margin-inline:-22px;padding-inline:22px;max-width:none;width:calc(100% + 44px);box-sizing:border-box;background:linear-gradient(var(--panel) calc(100% - 8px),transparent)}}
 /* laptop match: the view spans the whole main area so the game bar reaches both edges; the arena stays at 1180 px */
 @media (min-width:960px){
   .view.play{max-width:none}
