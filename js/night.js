@@ -33,8 +33,20 @@
       : shut() ? `<button class="opt night-lock" data-night="1">${IC().lock}<span><b>Spieleabend</b><small>Mit kostenlosem Konto: Punkte über mehrere Spiele sammeln</small></span><em class="rtag">Konto</em></button>`
       : `<button class="opt" data-night="1">${IC().trophy}<span><b>Spieleabend</b><small>Punkte über mehrere Spiele sammeln. Wer gewinnt den Abend?</small></span></button>`;
   }
+  // the big card on the start page ("Zusammen spielen"): a little scoreboard as its picture, who leads when it runs
+  function card() {
+    const n = get(), on = active(), lock = !on && shut();
+    // (the leader's name is its own element, so js/i18n.js translates the sentence and leaves the name alone)
+    const t = on ? table(n) : null, games = on ? `<span>${n.rounds.length} ${n.rounds.length === 1 ? 'Partie' : 'Partien'}</span>` : '';
+    const lead = !on ? '' : !n.rounds.length ? 'Noch keine Partie eingetragen' : t[0].n === (t[1] && t[1].n) ? `Gleichstand mit ${t[0].n}` : `<b translate="no">${esc(t[0].p)}</b> führt mit ${t[0].n}`;
+    const sub = on ? `${lead} · ${games}` : lock ? 'Mit kostenlosem Konto: Punkte über mehrere Spiele sammeln' : 'Punkte über mehrere Spiele. Wer gewinnt den Abend?';
+    return `<button class="tgc tgc-n${on ? ' live' : ''}${lock ? ' lockd' : ''}" data-night="1">
+      <i class="tgc-pic" aria-hidden="true"><i></i><i></i><i></i></i>
+      <span class="tgc-tx"><em class="tgc-k">${on ? 'Läuft' : lock ? 'Mit Konto' : 'Mit Freunden'}</em><b>Spieleabend</b><small>${sub}</small></span>
+      <span class="tgc-go">${on ? IC().fwd : lock ? IC().lock : IC().plus}</span></button>`;
+  }
   function wire(b) { b.querySelectorAll('[data-night]').forEach(x => x.onclick = () => { V.sfx.ui(); open(); }); }
-  function refreshHome() { document.querySelectorAll('[data-night]').forEach(x => { const t = document.createElement('div'); t.innerHTML = row(); const nx = t.firstElementChild; x.replaceWith(nx); wire(nx.parentNode); }); }
+  function refreshHome() { document.querySelectorAll('[data-night]').forEach(x => { const t = document.createElement('div'); t.innerHTML = x.classList.contains('tgc') ? card() : row(); const nx = t.firstElementChild; x.replaceWith(nx); wire(nx.parentNode); }); }
 
   // ---------- the dialog: set up, standings, end ----------
   function open() { if (shut()) { V.ui.toast('Der Spieleabend braucht ein kostenloses Konto'); return V.ui.home('profile'); } return active() ? standings() : setupNight(); }
@@ -158,5 +170,5 @@
     const at = modal.querySelector('.actions'); at.parentNode.insertBefore(box, at);
   }
 
-  V.night = { active, row, wire, open, endPick };
+  V.night = { active, row, card, wire, open, endPick };
 })();

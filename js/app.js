@@ -83,7 +83,8 @@
     if (!el) return;
     const behavior = V.fxOn() ? 'smooth' : 'auto';
     if (wide()) app.scrollTo({ top: Math.max(0, el.getBoundingClientRect().top - app.getBoundingClientRect().top + app.scrollTop - 84), behavior });
-    else window.scrollTo({ top: Math.max(0, el.offsetTop - 70), behavior });
+    // (from the element's place on screen: offsetTop only counts from the nearest positioned parent)
+    else window.scrollTo({ top: Math.max(0, el.getBoundingClientRect().top + scrollY - 70), behavior });
   }
   // phone: profile head instead of the logo bar (avatar, name, weekly place and win streak, sound and options)
   function appHead() {
@@ -331,22 +332,29 @@
     // laptop: hero, mode tiles and "Weiterspielen" above the library; a search hides them and shows the hits
     return `<div class="select">
       <section class="sel-main">
-        ${W ? `<div id="gtop"${homeQuery.trim() || homeSpot === 'lib' ? ' hidden' : ''}>${heroCarousel()}${modeTiles()}${dailyCard()}<div id="gcont">${contRow()}</div>${installCard()}</div>
+        ${W ? `<div id="gtop"${homeQuery.trim() || homeSpot === 'lib' ? ' hidden' : ''}>${heroCarousel()}${modeTiles()}${dailyCard()}${togetherCards()}<div id="gcont">${contRow()}</div>${installCard()}</div>
         <div class="lhead"><h2 class="lh">Bibliothek<small>${V.games.length}</small></h2>
           <div class="lview" role="group" aria-label="Ansicht">${[['grid', 'Kacheln', IC.grid], ['list', 'Liste', IC.book]].map(([k, l, ic]) => `<button data-lv="${k}" class="${libView() === k ? 'on' : ''}" aria-pressed="${libView() === k}" title="${l}" aria-label="${l}">${ic}</button>`).join('')}</div></div>`
-        : `<h1 class="ah-big">Bereit fürs Duell?</h1>${heroCarousel()}<div id="gcont">${contPhone()}</div>${dailyCard()}${quickTiles()}<div id="gfr">${friendsRow()}</div>`}
+        : `<h1 class="ah-big">Bereit fürs Duell?</h1>${heroCarousel()}<div id="gcont">${contPhone()}</div>${dailyCard()}${quickTiles()}${togetherCards()}<div id="gfr">${friendsRow()}</div>`}
         <div class="gfind">
           <div class="gsrow">
             ${W ? '' : `<label class="gsearch">${IC.search}<input id="gq" type="search" placeholder="Spiel suchen" autocomplete="off" spellcheck="false" enterkeyhint="go" aria-label="Spiel suchen" value="${escA(homeQuery)}"><kbd class="only-fine">/</kbd><button class="gclear" id="gqx" aria-label="Suche löschen"${homeQuery ? '' : ' hidden'}>${IC.x}</button></label>`}<button class="iconbtn gsurp" id="gsurp" aria-label="Überrasch mich" title="Überrasch mich">${IC.dice}</button></div>
           <div class="chips" role="tablist">${['Alle', ...V.CATS].map(c => `<button role="tab" data-f="${c}" class="${homeFilter === c && !homeQuery ? 'on' : ''}">${c}<small>${count(c)}</small></button>`).join('')}</div>
         </div>
         <div id="glist">${gameList()}</div>
-        <div class="optlist small dcom">${V.tourney && !inDiscord() ? V.tourney.row() : ''}${V.night ? V.night.row() : ''}
+        <div class="optlist small dcom">
           ${inDiscord() ? `<button class="opt" data-dcinv="1">${IC.users}<span><b>Freunde in den Call einladen</b><small>Über Discord: Freunde, Server oder ein Link</small></span></button>` : `<a class="opt" href="${V.DISCORD}" target="_blank" rel="noopener">${IC.chat}<span><b>Community auf Discord</b><small>Mitspieler finden, Ideen teilen und Bugs melden</small></span></a>`}
           <button class="opt" data-fb="1">${IC.bulb}<span><b>Feedback senden</b><small>Fehler gefunden oder eine Idee? Direkt ans Team</small></span></button></div>
       </section>
       <aside class="sel-panel" id="panel"></aside>
     </div>`;
+  }
+  // ---------- "Zusammen spielen": tournament and game night as two big cards near the top (js/tourney.js, js/night.js) ----------
+  // (in Discord there is no tournament at one device; the game night stays)
+  function togetherCards() {
+    const t = V.tourney && !inDiscord() ? V.tourney.card() : '', n = V.night ? V.night.card() : '';
+    if (!t && !n) return '';
+    return `<section class="tgcs"><h2 class="tgh">Zusammen spielen</h2><div class="tgrid${t && n ? '' : ' one'}">${t}${n}</div></section>`;
   }
   // ---------- phone home: hero carousel and quick buttons ----------
   // Cards: continue the last game, the most played online game (or 4 Gewinnt), a game for up to four (Ludo).
@@ -1608,7 +1616,14 @@
     sec.querySelectorAll('[data-oj]').forEach(b => b.onclick = () => {
       V.sfx.ui(); show(b.dataset.oj);
       const q = sec.querySelector('#oq'); if (q.value) { q.value = ''; q.oninput(); }
-      if (!wide()) scrollToEl(sec.querySelector(`[data-oc="${b.dataset.oj}"]`));
+      if (wide()) return;
+      const el = sec.querySelector(`[data-oc="${b.dataset.oj}"]`), box = sec.closest('.modal');
+      if (!el) return;
+      // in the options dialog the dialog scrolls, under its sticky bar; on the page the page does
+      if (box) {
+        const bar = sec.querySelector('.onav'), under = bar ? bar.getBoundingClientRect().height : 0;
+        box.scrollTo({ top: Math.max(0, el.getBoundingClientRect().top - box.getBoundingClientRect().top + box.scrollTop - under - 10), behavior: V.fxOn() ? 'smooth' : 'auto' });
+      } else scrollToEl(el);
     });
     sec.querySelectorAll('[data-ot]').forEach(b => b.onclick = () => {
       if (wide()) return;

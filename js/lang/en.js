@@ -1855,6 +1855,11 @@
     'Dein Name': 'Your name', 'Deine Spielerkarte': 'Your player card', '1 Partie': '1 match', '# Abzeichen': '# badges', '1 Abzeichen': '1 badge', 'auf jedem Gerät': 'on every device', 'im Profil': 'in your profile',
     'Keine E-Mail nötig. Mit einem Konto gehört die Karte dir.': 'No e-mail needed. With an account the card is yours.',
     'Rivale': 'Rival', 'Neue Rivalität': 'New rivalry', 'Du gegen': 'You vs',
+    // "Zusammen spielen" cards on the start page
+    'Zusammen spielen': 'Play together', 'Mit Freunden': 'With friends', 'Das Turnier braucht ein kostenloses Konto': 'The tournament needs a free account',
+    'Mit kostenlosem Konto: K.-o.-Runden mit Freunden an einem Gerät': 'With a free account: knockout rounds with friends on one device',
+    'Punkte über mehrere Spiele. Wer gewinnt den Abend?': 'Points across several games. Who wins the night?', '{0}: {1} gegen {2}': '{0}: {1} vs. {2}',
+    '{0} führt mit # · {1}': '{0} leads with # · {1}', 'Gleichstand mit # · {0}': 'Tied at # · {0}', 'Noch keine Partie eingetragen · {0}': 'No game entered yet · {0}',
     // tournament (js/tourney.js)
     'Turnier': 'Tournament', 'Finale': 'Final', 'Halbfinale': 'Semi-final', 'Viertelfinale': 'Quarter-final', 'Runde #': 'Round #', 'Freilos': 'Bye', 'Baum': 'Bracket',
     'Turnier · Finale': 'Tournament · Final', 'Turnier · Halbfinale': 'Tournament · Semi-final', 'Turnier · Viertelfinale': 'Tournament · Quarter-final', 'Turnier · Runde #': 'Tournament · Round #',

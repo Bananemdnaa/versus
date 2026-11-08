@@ -11,8 +11,10 @@
   const N = n => `<b translate="no">${esc(n)}</b>`;
   const get = () => S().get('tourney', null);
   const put = t => S().set('tourney', t);
-  const active = () => { const t = get(); return !!(t && t.rounds && V.byId[t.g]); };
-  // games for two at one device that this player may open (guests: the guest games)
+  // account only, like the game night: guests (also guest sessions from a quick match) see it locked
+  const shut = () => !!(V.guest && V.guest());
+  const active = () => { const t = get(); return !shut() && !!(t && t.rounds && V.byId[t.g]); };
+  // games for two at one device that this player may open
   const pool = () => V.games.filter(g => !g.party && !V._.locked(g)).sort((a, b) => (a.order || 99) - (b.order || 99) || a.name.localeCompare(b.name));
 
   // ---------- the bracket ----------
@@ -41,11 +43,26 @@
       const nm = nextMatch(t), ch = champion(t);
       return `<button class="opt tny-on" data-tny="1">${IC().trophy}<span><b>Turnier läuft · <span translate="no">${esc(V.byId[t.g].name)}</span></b><small>${ch ? N(ch) + ' hat gewonnen' : nm ? `${N(nm.m.a)} gegen ${N(nm.m.b)} · <span>${roundName(nm.r, t.rounds.length)}</span>` : ''}</small></span><em class="rtag live">Baum</em></button>`;
     }
+    if (shut()) return `<button class="opt night-lock" data-tny="1">${IC().lock}<span><b>Turnier</b><small>Mit kostenlosem Konto: K.-o.-Runden mit Freunden an einem Gerät</small></span><em class="rtag">Konto</em></button>`;
     return `<button class="opt" data-tny="1">${IC().trophy}<span><b>Turnier</b><small>3 bis 8 Leute, ein Spiel, K.-o.-Runden an einem Gerät</small></span></button>`;
   }
+  // the big card on the start page ("Zusammen spielen"): a little bracket as its picture, what is on when it runs
+  function card() {
+    const t = get(), on = active(), lock = shut(), nm = on ? nextMatch(t) : null, ch = on ? champion(t) : null;
+    const sub = lock ? 'Mit kostenlosem Konto: K.-o.-Runden mit Freunden an einem Gerät'
+      : !on ? '3 bis 8 Leute, ein Spiel, K.-o.-Runden an einem Gerät'
+      : ch ? `${N(ch)} hat gewonnen` : nm ? `<span>${roundName(nm.r, t.rounds.length)}</span>: ${N(nm.m.a)} gegen ${N(nm.m.b)}` : '';
+    return `<button class="tgc tgc-t${on ? ' live' : ''}${lock ? ' lockd' : ''}" data-tny="1">
+      <i class="tgc-pic" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i></i>
+      <span class="tgc-tx"><em class="tgc-k">${on ? 'Läuft' : lock ? 'Mit Konto' : 'Neu'}</em><b>Turnier</b><small>${sub}</small></span>
+      <span class="tgc-go">${on ? IC().fwd : lock ? IC().lock : IC().plus}</span></button>`;
+  }
   function wire(b) { b.querySelectorAll('[data-tny]').forEach(x => x.onclick = () => { V.sfx.ui(); open(); }); }
-  function refreshHome() { document.querySelectorAll('[data-tny]').forEach(x => { const d = document.createElement('div'); d.innerHTML = row(); const nx = d.firstElementChild; x.replaceWith(nx); wire(nx.parentNode); }); }
-  function open() { return active() ? bracket() : setupT(); }
+  function refreshHome() { document.querySelectorAll('[data-tny]').forEach(x => { const d = document.createElement('div'); d.innerHTML = x.classList.contains('tgc') ? card() : row(); const nx = d.firstElementChild; x.replaceWith(nx); wire(nx.parentNode); }); }
+  function open() {
+    if (shut()) { V.ui.toast('Das Turnier braucht ein kostenloses Konto'); return V.ui.home('profile'); }
+    return active() ? bracket() : setupT();
+  }
 
   // ---------- set up: names and the game ----------
   function setupT() {
@@ -159,5 +176,5 @@
     };
   }
 
-  V.tourney = { row, wire, active, open, refreshHome };
+  V.tourney = { row, card, wire, active, open, refreshHome };
 })();
