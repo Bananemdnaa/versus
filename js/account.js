@@ -577,7 +577,8 @@
         <div class="m-t"><b>${seats}</b>
           <small>${esc(gameName(t.game))} · Tisch ${esc(t.code)} · ${t.moves} Züge · ${when(t.finished_at || t.started_at || t.created_at)}</small>
           <span class="m-r">${t.status === 'live' ? '<em class="rtag live">Live</em> ' : ''}${ST[t.status] || esc(t.status)}${t.result && t.status === 'void' ? ' · ' + esc(t.result) : ''}</span></div>
-        <div class="m-a">${full() && t.status === 'live' ? (t.seats || []).map((s, i) => !s || s === 'KI' ? ''
+        <div class="m-a">${t.status === 'live' && V.online.WATCH_T.includes(t.game) ? `<button class="btn sm primary" data-watcht="${t.id}"><span>Zuschauen</span></button>` : ''}
+          ${full() && t.status === 'live' ? (t.seats || []).map((s, i) => !s || s === 'KI' ? ''
           : sure === 'sai:' + t.id + ':' + (i + 1) ? `<button class="btn ghost sm danger" data-sai="${t.id}:${i + 1}"><span>KI für ${esc(s)}?</span></button>`
           : `<button class="btn ghost sm" data-sure="sai:${t.id}:${i + 1}"><span>${IC().robot}${esc(s)}</span></button>`).join('') : ''}
           ${full() && t.status !== 'void' && t.status !== 'canceled' ? (sure === 'vt:' + t.id ? `<button class="btn ghost sm danger" data-vtab="${t.id}"><span>Wirklich annullieren?</span></button>` : `<button class="btn ghost sm" data-sure="vt:${t.id}"><span>Annullieren</span></button>`) : ''}</div>
@@ -773,6 +774,7 @@
     const mq = h.querySelector('#mq');
     if (mq) { mq.onchange = () => { mQuery = mq.value.trim(); matches = null; load(); }; mq.onkeydown = e => { if (e.key === 'Enter') mq.blur(); }; }
     h.querySelectorAll('[data-watch]').forEach(x => x.onclick = () => { stopLive(); V.online.watch(x.dataset.watch, true); });
+    h.querySelectorAll('[data-watcht]').forEach(x => x.onclick = () => { stopLive(); V.online.watchTable(x.dataset.watcht, true); });
     h.querySelectorAll('[data-void]').forEach(x => x.onclick = () => act('admin_void_match', { mid: x.dataset.void, why: null }, 'Partie annulliert.'));
     h.querySelectorAll('[data-box]').forEach(x => x.onclick = () => { box = box === x.dataset.box ? null : x.dataset.box; sure = null; draw(); });
     h.querySelectorAll('[data-sure]').forEach(x => x.onclick = () => { sure = x.dataset.sure; draw(); });

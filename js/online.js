@@ -51,6 +51,20 @@
     } catch (e) { V.ui.toast(e.message); }
   }
 
+  // watch a running table (read only): friends of someone at the table, admins any. Only table games without
+  // secrets one could see from outside (server: party_watchable)
+  const WATCH_T = ['ludo', 'ladder', 'yacht', 'memory', 'hangman'];
+  async function watchTable(id, admin) {
+    try {
+      const st = await C().rpc('party_state', { tid: id, since: 0 });
+      const g = V.byId[st.game];
+      if (!g || !WATCH_T.includes(st.game)) return V.ui.toast('Bei diesem Spiel kann man nicht zuschauen.');
+      if (st.status !== 'live') { V.ui.toast('Das Spiel an diesem Tisch ist vorbei.'); return admin ? null : refreshTab(); }
+      if (st.seat) return startTable(st);
+      V.ui.play(g, { mode: 'table', level: st.lvl, opts: Object.assign({}, st.opts, { n: st.n }), match: { id: st.id, seat: 0, init: st, spect: true, admin: !!admin } });
+    } catch (e) { V.ui.toast(/nicht an diesem Tisch/.test(e.message) ? 'Zuschauen geht hier nicht (mehr).' : e.message); }
+  }
+
   // invite a friend and wait for the answer
   async function invite(name, g, opts, asy) {
     let mid;
@@ -154,7 +168,7 @@
       fetchFriends().then(() => V.ui.side && V.ui.side(), () => { });
     }
     if (!friendsData || !friendsData.friends) return [];
-    return friendsData.friends.map(f => ({ name: f.username, online: !!(f.online || f.busy), busy: !!f.busy, status: fstatus(f), match: f.watchable && f.match ? f.match : null }));
+    return friendsData.friends.map(f => ({ name: f.username, online: !!(f.online || f.busy), busy: !!f.busy, status: fstatus(f), match: f.watchable && f.match ? f.match : null, table: f.table || null }));
   }
   const dismissed = new Set();
   async function join(id) {
@@ -291,7 +305,7 @@
     el.querySelectorAll('[data-acc]').forEach(x => x.onclick = async () => { x.classList.add('busy'); try { start(await C().rpc('match_respond', { mid: x.dataset.acc, ok: true })); } catch (e) { V.ui.toast(e.message); check(); } });
     el.querySelectorAll('[data-dec]').forEach(x => x.onclick = () => { C().rpc('match_respond', { mid: x.dataset.dec, ok: false }).then(check, check); });
   }
-  const fstatus = f => f.busy && f.match_opp ? `spielt ${esc(gname(f.match_game))} gegen ${esc(f.match_opp)}` : f.busy ? 'spielt gerade online' :f.online ? 'online' + (f.game && V.byId[f.game] ? ' · ' + esc(gname(f.game)) : '') : f.seen ? 'zuletzt ' + ago(f.seen) : 'offline';
+  const fstatus = f => f.table_game && V.byId[f.table_game] ? `spielt ${esc(gname(f.table_game))} am Tisch` : f.busy && f.match_opp ? `spielt ${esc(gname(f.match_game))} gegen ${esc(f.match_opp)}` : f.busy ? 'spielt gerade online' :f.online ? 'online' + (f.game && V.byId[f.game] ? ' · ' + esc(gname(f.game)) : '') : f.seen ? 'zuletzt ' + ago(f.seen) : 'offline';
   function fillFriends(b) {
     const el = b.querySelector('#ofriends'); if (!el || !friendsData) return;
     if (friendsData.error) { el.innerHTML = `<p class="aerr">${esc(friendsData.error)}</p>`; return; }
@@ -303,6 +317,7 @@
     const rows = fr.map(f => `<div class="frow${f.online ? ' on' : ''}" data-prof="${esc(f.username)}"><span class="fav">${initials(f.username)}<i></i></span>
       <div class="ft"><b>${esc(f.username)}${V.flag.tag(f.username)}</b><small>${fstatus(f)}</small></div>
       ${f.watchable && f.match ? `<button class="btn sm primary" data-watchf="${esc(f.match)}"><span>${IC().eye}Zuschauen</span></button>`
+        : f.table ? `<button class="btn sm primary" data-watcht="${esc(f.table)}"><span>${IC().eye}Zuschauen</span></button>`
         : `<button class="btn sm${f.online && !f.busy ? ' primary' : ''}" data-play="${esc(f.username)}"><span>${IC().play}Spielen</span></button>`}</div>`).join('');
     const out = (d.outgoing || []).length ? `<div class="fout"><small>Angefragt</small>${d.outgoing.map(n => `<span class="fchip">${esc(n)}<button data-rm="${esc(n)}" aria-label="Anfrage an ${esc(n)} zurückziehen" title="Zurückziehen">${IC().x}</button></span>`).join('')}</div>` : '';
     const empty = `<div class="fempty">${IC().users}<b>Noch keine Freunde</b><p>Zeig deinen QR-Code, schick deinen Link oder such nach einem Namen. Danach könnt ihr euch mit einem Tipp herausfordern.</p>
@@ -315,6 +330,7 @@
     el.querySelectorAll('[data-no]').forEach(x => x.onclick = e => { e.stopPropagation(); respond(x.dataset.no, false); });
     el.querySelectorAll('[data-play]').forEach(x => x.onclick = e => { e.stopPropagation(); V.sfx.ui(); challenge(x.dataset.play); });
     el.querySelectorAll('[data-watchf]').forEach(x => x.onclick = e => { e.stopPropagation(); V.sfx.ui(); watch(x.dataset.watchf); });
+    el.querySelectorAll('[data-watcht]').forEach(x => x.onclick = e => { e.stopPropagation(); V.sfx.ui(); watchTable(x.dataset.watcht); });
     el.querySelectorAll('[data-rm]').forEach(x => x.onclick = e => { e.stopPropagation(); C().rpc('friend_remove', { name: x.dataset.rm }).then(() => { V.ui.toast('Anfrage zurückgezogen'); changed(); }, er => V.ui.toast(er.message)); });
     el.querySelectorAll('[data-addt]').forEach(x => x.onclick = () => { V.sfx.ui(); addFriends(x.dataset.addt); });
   }
@@ -1223,7 +1239,7 @@
     return meCache;
   }
   const quickGo = () => quick(qGame ? V.byId[qGame] : null);
-  V.online = { badge, sideFriends, resumables, resumeAny, quickSheet, quickName, tab, wire, picker, openPanel, seek, quick, quickGo, meStats, invite, linkInvite, pushState, pushOn, pushOff, consumeJoin, consumeMatch, resume, watch, start, check, profile, addFriends, challenge, friendOf, request, table, tablePanel, resumeTable, report, block, isBlocked, loadBlocks, blocks: () => blocked };
+  V.online = { badge, sideFriends, resumables, resumeAny, quickSheet, quickName, tab, wire, picker, openPanel, seek, quick, quickGo, meStats, invite, linkInvite, pushState, pushOn, pushOff, consumeJoin, consumeMatch, resume, watch, watchTable, WATCH_T, start, check, profile, addFriends, challenge, friendOf, request, table, tablePanel, resumeTable, report, block, isBlocked, loadBlocks, blocks: () => blocked };
   let blocksFor = null;
   if (C()) C().on(() => {
     if (ready()) {

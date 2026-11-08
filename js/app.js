@@ -181,7 +181,7 @@
       const frRows = fr ? fr.slice().sort((x, y) => y.online - x.online).slice(0, 6).map(f => `<div class="sd-fr${f.online ? ' on' : ''}">
           <button class="sd-fav" data-prof="${escA(f.name)}" aria-label="Profil von ${escA(f.name)}"><span>${escA(f.name.slice(0, 2).toUpperCase())}</span><i></i></button>
           <span class="sd-ft"><b>${escA(f.name)}${V.flag ? V.flag.tag(f.name) : ''}</b><small>${f.status}</small></span>
-          ${f.match ? `<button class="sd-mini" data-watchf="${escA(f.match)}">Zuschauen</button>` : f.online && !f.busy ? `<button class="sd-mini" data-play="${escA(f.name)}">Einladen</button>` : ''}</div>`).join('') : '';
+          ${f.match ? `<button class="sd-mini" data-watchf="${escA(f.match)}">Zuschauen</button>` : f.table ? `<button class="sd-mini" data-watcht="${escA(f.table)}">Zuschauen</button>` : f.online && !f.busy ? `<button class="sd-mini" data-play="${escA(f.name)}">Einladen</button>` : ''}</div>`).join('') : '';
       el.innerHTML = `<div class="sd-top">
           <button class="sd-logo" data-go="start" aria-label="Versus Startseite"><span class="l1">VER</span><i class="slash"></i><span class="l2">SUS</span><b class="sd-vs">VS</b></button>
           <button class="iconbtn sd-tog" id="sdtog" aria-label="${rail() ? 'Seitenleiste ausklappen' : 'Seitenleiste einklappen'}" title="Seitenleiste (Strg B)"${forced() ? ' disabled' : ''}>${IC.panel}</button></div>
@@ -227,6 +227,7 @@
       el.querySelectorAll('[data-prof]').forEach(b => b.onclick = () => { V.sfx.ui(); V.online.profile(b.dataset.prof); });
       el.querySelectorAll('[data-play]').forEach(b => b.onclick = () => { V.sfx.ui(); V.online.challenge(b.dataset.play); });
       el.querySelectorAll('[data-watchf]').forEach(b => b.onclick = () => { V.sfx.ui(); V.online.watch(b.dataset.watchf); });
+      el.querySelectorAll('[data-watcht]').forEach(b => b.onclick = () => { V.sfx.ui(); V.online.watchTable(b.dataset.watcht); });
     }
     function toggle() {
       if (!wide() || forced()) return;

@@ -94,6 +94,9 @@
     if (cfg.mode !== 'watch' && !review && !dcTable && (locked(g) || (guest() && (cfg.mode === 'table' || (['online', 'open'].includes(cfg.mode) && !session))))) { toast('Dafür brauchst du ein Konto'); return home('profile'); }
     P.enterPlay(g);
     const online = cfg.mode === 'online', watch = cfg.mode === 'watch', M = cfg.match || {};
+    // watching a table (friends, admins): a table without an own seat (seat 0); every seat comes from the server,
+    // nothing is sent, leaving needs no question (js/online.js watchTable)
+    const spect = cfg.mode === 'table' && !!M.spect;
     // a match over days: no offline countdown, leaving just puts it aside (it waits for your next move)
     const slow = online && !!(M.init && M.init.async);
     // 'table': an online table with 2-4 seats (party games). Seats, names and the dice seed come from the server;
@@ -103,7 +106,7 @@
     let thost = table ? T.host : 0;
     // test.html: the AI plays every seat, nothing is saved
     const auto = !!cfg.auto;
-    if (!watch && !auto && !review) { S.set('recent', g.id); S.set('recents', [g.id, ...S.get('recents', []).filter(id => id !== g.id)].slice(0, 6)); }
+    if (!watch && !spect && !auto && !review) { S.set('recent', g.id); S.set('recents', [g.id, ...S.get('recents', []).filter(id => id !== g.id)].slice(0, 6)); }
     if (V.cloud && !auto && !review) V.cloud.touch(g.id);
     // an online rematch keeps the score between the same two players (sides may have swapped)
     if (online && !series && rematchCarry && rematchCarry.opp === M.opp) { series = { [M.side]: rematchCarry.me, [3 - M.side]: rematchCarry.them, d: rematchCarry.d }; rematch = true; }
@@ -135,11 +138,11 @@
     const mySide = online ? M.side : table ? M.seat : 0;
     // you are always left and pink: against the AI, in online duels and at online tables with two seats (only the look;
     // the game keeps its own sides)
-    const oppSide = ai ? aiSide : online || (table && N === 2) ? 3 - mySide : 0;
+    const oppSide = ai ? aiSide : online || (table && N === 2 && !spect) ? 3 - mySide : 0;
     setSwap(oppSide === 1);
     const L = oppSide ? 3 - oppSide : 1, R = 3 - L;
     // party games: odd seats on the left, at a two-seat table you on the left
-    const leftCol = s => table && N === 2 ? s === mySide : s % 2 === 1;
+    const leftCol = s => table && N === 2 && !spect ? s === mySide : s % 2 === 1;
     // colour names follow the swap; names like Weiß/Schwarz stay
     const sideLabel = s => g.sides && g.sides[s] && !/^(Pink|Gelb|Cyan|Grün)$/.test(g.sides[s]) ? g.sides[s] : V.colorName(s);
     const names = { 1: 'Spieler 1', 2: 'Spieler 2', 3: 'Spieler 3', 4: 'Spieler 4' };
@@ -173,13 +176,13 @@
       <span class="nm"><b>${esc(shown(s))}${flagOf(s)}</b><small>${sub(s)}</small></span>
       ${clockMin ? `<span class="clk" id="ck${s}"></span>` : ''}${thinker(s) ? '<span class="tdots" aria-hidden="true"><i></i><i></i><i></i></span>' : ''}<span class="wins"><b>${series[s]}</b><small>Siege</small></span><em class="tag">am Zug</em>
       ${ai && s === aiSide ? '<div class="bubble" aria-live="polite"></div>' : ''}</div>`;
-    const sublabel = review && RV.shared ? 'Geteilt von ' + esc(RV.shared) + ' · ' + new Date(RV.at || Date.now()).toLocaleDateString(V.locale(), { day: 'numeric', month: 'short' }) : review ? 'Aufzeichnung · ' + esc(RV.label || '') + ' · ' + new Date(RV.at || Date.now()).toLocaleDateString(V.locale(), { day: 'numeric', month: 'short' }) : table ? `Online-Tisch · ${N} Spieler` : party ? (ai ? `Gegen ${N > 2 ? N - 1 + ' KIs' : 'KI'} · ` + lvName : N + ' Spieler') : ai ? 'Gegen KI · ' + lvName : slow ? 'Über Tage gegen ' + esc(M.opp) : online ? 'Online gegen ' + esc(M.opp) : watch ? 'Zuschauen · ' + esc(M.aName) + ' gegen ' + esc(M.bName) : 'Am Gerät';
+    const sublabel = review && RV.shared ? 'Geteilt von ' + esc(RV.shared) + ' · ' + new Date(RV.at || Date.now()).toLocaleDateString(V.locale(), { day: 'numeric', month: 'short' }) : review ? 'Aufzeichnung · ' + esc(RV.label || '') + ' · ' + new Date(RV.at || Date.now()).toLocaleDateString(V.locale(), { day: 'numeric', month: 'short' }) : spect ? `Zuschauen · Online-Tisch · ${N} Spieler` : table ? `Online-Tisch · ${N} Spieler` : party ? (ai ? `Gegen ${N > 2 ? N - 1 + ' KIs' : 'KI'} · ` + lvName : N + ' Spieler') : ai ? 'Gegen KI · ' + lvName : slow ? 'Über Tage gegen ' + esc(M.opp) : online ? 'Online gegen ' + esc(M.opp) : watch ? 'Zuschauen · ' + esc(M.aName) + ' gegen ' + esc(M.bName) : 'Am Gerät';
     // Discord status (Rich Presence, js/discord.js): the game and how it is played, never an opponent's name
-    V.discord.status(g.name, table ? V.t('Online-Tisch') + ' · ' + V.t(N + ' Spieler') : ai ? V.t('Gegen die KI') + ' · ' + V.t(lvName) : online ? V.t('Online-Duell') : watch ? V.t('Zuschauen') : V.t('Am Gerät'), g.id);
+    V.discord.status(g.name, spect ? V.t('Zuschauen') : table ? V.t('Online-Tisch') + ' · ' + V.t(N + ' Spieler') : ai ? V.t('Gegen die KI') + ' · ' + V.t(lvName) : online ? V.t('Online-Duell') : watch ? V.t('Zuschauen') : V.t('Am Gerät'), g.id);
     // two people at one phone, sitting opposite: player 2's card (and the status on their turn) is turned around
     const facing = cfg.mode === 'local' && settings.face && !party && g.cat !== 'Action';
     let plies = 0;
-    const v = mount(`<div class="view play${online || table ? ' net' : ''}${watch ? ' watch' : ''}${review ? ' review' : ''}${facing ? ' facing' + (g.turnBoard ? ' rotboard' : '') : ''}" data-g="${g.id}" style="--acc:${g.accent || 'var(--pink)'}">
+    const v = mount(`<div class="view play${online || table ? ' net' : ''}${watch || spect ? ' watch' : ''}${review ? ' review' : ''}${facing ? ' facing' + (g.turnBoard ? ' rotboard' : '') : ''}" data-g="${g.id}" style="--acc:${g.accent || 'var(--pink)'}">
       <div class="pbar"><button class="iconbtn" id="pb" aria-label="Zurück">${IC.back}</button><div class="ttl"><b>${g.name}</b><small>${sublabel}</small></div>
         <span class="watchn" id="pw" hidden title="Zuschauer">${IC.eye}<b></b></span>
         ${online || (watch && !M.admin) ? `<button class="iconbtn" id="pe" aria-label="Reaktion senden" title="Reaktion">${IC.smile}</button>` : ''}
@@ -188,13 +191,13 @@
         ${online ? `<button class="iconbtn" id="pr" aria-label="Aufgeben" title="Aufgeben">${IC.flag}</button>` : watch || table ? '' : `<button class="iconbtn" id="pr" aria-label="Neu starten" title="Neue Partie (N)">${IC.redo}</button>`}
         <button class="iconbtn snd" aria-label="Ton an oder aus" title="Ton (M)">${settings.sound ? IC.sound : IC.mute}</button>
         ${document.fullscreenEnabled ? `<button class="iconbtn only-fine" id="pfs" aria-label="Vollbild" title="Vollbild (F11)">${IC.full}</button>` : ''}
-        ${watch ? '' : `<button class="iconbtn" id="pz" aria-label="Menü" title="Menü (Esc)">${IC.menu}</button>`}</div>
+        ${watch || spect ? '' : `<button class="iconbtn" id="pz" aria-label="Menü" title="Menü (Esc)">${IC.menu}</button>`}</div>
       <div class="duel${party ? ' party n' + N : ''}">
         ${party ? `<div class="pcol pcol-l">${SIDES.filter(s => leftCol(s)).map(s => card(s, 'l')).join('')}</div><div class="pcol pcol-r">${SIDES.filter(s => !leftCol(s)).map(s => card(s, 'r')).join('')}</div>` : `${card(L, 'l')}
         <div class="score" id="sc"><b class="sl">${series[L]}</b><i>:</i><b class="sr">${series[R]}</b></div>
         ${card(R, 'r')}`}
         <div class="center"><div class="status" id="st" aria-live="polite"></div><div class="stage" id="stage"></div>
-          <div class="tpill" id="tpill" hidden><i></i><b></b>${g.keys && g.cat !== 'Action' ? `<small>${g.keys.slice(0, 2).map(([k, d]) => `<kbd>${k}</kbd> ${V.t(d)}`).join(' · ')}</small>` : ''}</div></div>
+          <div class="tpill" id="tpill" hidden><i></i><b></b>${g.keys && g.cat !== 'Action' && !watch && !spect ? `<small>${g.keys.slice(0, 2).map(([k, d]) => `<kbd>${k}</kbd> ${V.t(d)}`).join(' · ')}</small>` : ''}</div></div>
       </div><i class="sglow t" aria-hidden="true"></i><i class="sglow b" aria-hidden="true"></i></div>`);
     const stEl = v.querySelector('#st'), pls = {};
     SIDES.forEach(s => { pls[s] = v.querySelector('#pl' + s); });
@@ -258,8 +261,8 @@
       stEl.innerHTML = html; if (V.fxOn()) V.fx.pop(stEl, 'st-in');
     };
     // "Du bist dran" / "Gelb ist dran" in the player's colour over the board; the first one waits for the VS intro
-    const introTip = !replay && !review && !rematch && !watch && V.ui.wide() && V.coarse !== true ? introTipFor(g) : '';
-    const t0 = performance.now(), introMs = !replay && !review && V.fxOn() && settings.intro !== false ? introLen(rematch || watch, introTip) : 0;
+    const introTip = !replay && !review && !rematch && !watch && !spect && V.ui.wide() && V.coarse !== true ? introTipFor(g) : '';
+    const t0 = performance.now(), introMs = !replay && !review && V.fxOn() && settings.intro !== false ? introLen(rematch || watch || spect, introTip) : 0;
     function turnBanner(s) {
       const show = () => {
         if (!alive || ended || lastTurn !== s) return;
@@ -358,6 +361,7 @@
       listen(fn) { listener = fn; if (tnet) tnet.pump(); },
       submit(m, s) {
         s = s || mySide || 1;
+        if (spect) return;
         if (tnet) return tnet.submit(s, m);
         ctx.later(() => listener && listener(s, m), 0);
       },
@@ -453,9 +457,9 @@
         nav.hide();
         if (net && online && !fromServer) net.finish(winner);
         if (net) { if (online) net.after = true; else net.stop(); }
-        if (tnet) { if (!fromServer) tnet.finish(winner); tnet.stop(); }
+        if (tnet) { if (!fromServer && !spect) tnet.finish(winner); tnet.stop(); }
         if (cfg.onEnd) cfg.onEnd(winner, note);
-        if (!watch && !auto && !off) {
+        if (!watch && !spect && !auto && !off) {
           const s = stat(g.id);
           if (ai) { const r = s.ai[cfg.level]; if (winner === 0) r.d++; else if (winner === me) r.w++; else r.l++; }
           // KI-Elo: only you against one AI, not after taking a move back
@@ -486,15 +490,15 @@
         setStatus(off ? esc(note || 'Partie abgebrochen') : winner === 0 ? (/^Patt/.test(note || '') ? 'Patt, unentschieden' : 'Unentschieden') :me ? (meWon ? '<span class="c' + winner + '">Du hast gewonnen</span>' : `${ctx.who(winner)} hat gewonnen`) : `${ctx.who(winner)} gewinnt`);
         const tone = winner === 0 ? 'draw' : me ? (meWon ? 'win' : 'lose') : party ? 'w' + winner : (winner === L ? 'left' : 'right');
         const again = () => online ? net.rematch(series) : table ? (closeModal(), V.online.table(g, cfg.opts, cfg.level)) : play(g, cfg, series);
-        const menu = () => watch ? (M.admin ? V.account.admin('matches') : V.ui.home('online')) : setup(g);
+        const menu = () => watch || spect ? (M.admin ? V.account.admin('matches') : V.ui.home('online')) : setup(g);
         // what comes next (AI and one device only): after a win against the AI the next level is one tap away,
         // otherwise a game of the same kind that was not played yet (so the 35 games get found)
         // Spiel des Tages: played to the end counts once a day (no win needed); then new Abzeichen
         const dWon = ai && cfg.daily && !auto && !off ? P.dailyDone(cfg.daily) : 0;
         // wins in a row against the AI or online (a draw keeps the run, a loss ends it), for the badges
         const mine = ai ? me : (online || table) ? mySide : 0;
-        if (mine && !watch && !auto && !off && winner !== 0) { const wr = S.get('winRun', {}); wr.cur = winner === mine ? (wr.cur || 0) + 1 : 0; wr.best = Math.max(wr.best || 0, wr.cur); S.set('winRun', wr); }
-        const fresh = !watch && !auto && !off ? P.badgeCheck({ hour: new Date().getHours(), seats: N }) : [];
+        if (mine && !watch && !spect && !auto && !off && winner !== 0) { const wr = S.get('winRun', {}); wr.cur = winner === mine ? (wr.cur || 0) + 1 : 0; wr.best = Math.max(wr.best || 0, wr.cur); S.set('winRun', wr); }
+        const fresh = !watch && !spect && !auto && !off ? P.badgeCheck({ hour: new Date().getHours(), seats: N }) : [];
         const step = !online && !table && !watch && !auto && !off ? nextStep(winner === me && !!winner) : null;
         ctx.later(() => {
           const m = openModal(`<div class="ko ${tone}">
@@ -509,12 +513,12 @@
             ${series.d ? `<p class="small">${series.d}× unentschieden</p>` : ''}
             ${online ? `<div class="kemo" id="kemo"></div><div class="kquick">${['gg', 'clap', 'haha', 'sweat'].map(e => `<button data-emo="${e}">${EMO[e]}</button>`).join('')}${['p_wp', 'p_rev'].map(e => `<button class="ph" data-emo="${e}">${PHR[e]}</button>`).join('')}</div>` : ''}
             ${online && V.online.friendOf(M.opp) === false && !(V.cloud.user() && V.cloud.user().anon) ? `<button class="btn ghost sm efr" id="efr"><span>${IC.plus}${esc(M.opp)} als Freund hinzufügen</span></button>` : ''}
-            ${watch ? '' : `<button class="btn ${meWon && !off ? '' : 'ghost '}sm eshare" id="es"><span>${IC.share}${meWon && !off ? 'Freund herausfordern' : 'Ergebnis teilen'}</span></button>`}
+            ${watch || spect ? '' : `<button class="btn ${meWon && !off ? '' : 'ghost '}sm eshare" id="es"><span>${IC.share}${meWon && !off ? 'Freund herausfordern' : 'Ergebnis teilen'}</span></button>`}
             ${online && V.online.report ? `<button class="link erep" id="erep">${esc(M.opp)} melden</button>` : ''}
             ${step ? step.html : ''}
             ${ctx.endBtn && !off ? `<button class="btn sm ekx" id="ekx"><span>${IC.chart}${esc(ctx.endBtn.l)}</span></button>` : ''}
-            <div class="actions">${watch ? '' : `<button class="btn primary" id="er"><span>${IC.redo}${online ? 'Revanche anfragen' : table ? 'Neuer Tisch' : 'Revanche'}</span><kbd class="only-fine">R</kbd></button>`}<button class="btn" id="eb"><span>Brett ansehen</span></button><button class="btn ghost" id="em"><span>${watch ? 'Zurück' : 'Menü'}</span></button></div></div>`, 'endm', null, false, e => {
-            if ((e.key === 'Enter' || e.key === 'n' || e.key === 'N' || e.key === 'r' || e.key === 'R') && !watch) { again(); return true; }
+            <div class="actions">${watch || spect ? '' : `<button class="btn primary" id="er"><span>${IC.redo}${online ? 'Revanche anfragen' : table ? 'Neuer Tisch' : 'Revanche'}</span><kbd class="only-fine">R</kbd></button>`}<button class="btn" id="eb"><span>Brett ansehen</span></button><button class="btn ghost" id="em"><span>${watch || spect ? 'Zurück' : 'Menü'}</span></button></div></div>`, 'endm', null, false, e => {
+            if ((e.key === 'Enter' || e.key === 'n' || e.key === 'N' || e.key === 'r' || e.key === 'R') && !watch && !spect) { again(); return true; }
             if (e.key === 'Escape') { closeModal(); return true; }
             if (e.key === 'm' || e.key === 'M') { menu(); return true; }
             return false;
@@ -540,7 +544,7 @@
           if (efr) efr.onclick = () => V.online.request(M.opp).then(r => { efr.disabled = true; efr.querySelector('span').textContent = r === 'accepted' || r === 'friends' ? 'Ihr seid jetzt Freunde' : 'Anfrage gesendet'; }, e => toast(e.message));
           const erep = m.querySelector('#erep'); if (erep) erep.onclick = () => V.online.report(M.opp, M.id);
           if (online && net) net.rematchUI();
-          if (V.night && V.night.active() && winner && !watch && !off) V.night.endPick(m, g.id, shown(winner));
+          if (V.night && V.night.active() && winner && !watch && !spect && !off) V.night.endPick(m, g.id, shown(winner));
           // a new version that came in during the match may offer itself now
           P.updateBar(true);
           const es = m.querySelector('#es'); if (es) es.onclick = () => { V.sfx.ui(); shareCard(winner); };
@@ -654,7 +658,7 @@
     }
 
     // ---------- first match of a game: a hand shows where to tap ----------
-    let navFn = null, guideDue = !auto && !watch && g.cat !== 'Action' && !(S.get('guided', {})[g.id]);
+    let navFn = null, guideDue = !auto && !watch && !spect && g.cat !== 'Action' && !(S.get('guided', {})[g.id]);
     function showGuide() {
       if (!alive || ended) return;
       const vis = e => { const r = e.getBoundingClientRect(); return r.width > 4 && r.bottom > 0 && r.top < innerHeight; };
@@ -895,7 +899,7 @@
             .then(n => { this.known = Math.max(this.known, n); }), e => { if (!alive) return; toast(/desync/.test(e.message) ? 'Tisch wird neu geladen' : 'Zug nicht gesendet: ' + e.message); ctx.later(() => V.online.resumeTable(M.id), 900); }));
         },
         finish(w) { const n = this.applied; this.chain = this.chain.then(() => rpc('party_finish', { tid: M.id, ply: n, w })).catch(() => { }); },
-        broken() { toast('Der Spielstand passt nicht zusammen, lade neu …'); ctx.later(() => V.online.resumeTable(M.id), 600); },
+        broken() { toast('Der Spielstand passt nicht zusammen, lade neu …'); ctx.later(() => spect ? V.online.watchTable(M.id, M.admin) : V.online.resumeTable(M.id), 600); },
         poll() { pollOnce(this, () => V.cloud.rpc('party_state', { tid: M.id, since: this.known }), () => 1000); },
         stop() { this.stopped = true; }
       };
@@ -1067,7 +1071,7 @@
     // as if they had been gone for good (server: match_drop checks it again)
     const oppGone = () => online && !slow && !ended && !!pls[oppSide] && pls[oppSide].classList.contains('off');
     function leave(to) {
-      if (ended || watch) return to();
+      if (ended || watch || spect) return to();
       if (slow && to !== null) return V.ui.home('online');
       if (oppGone()) return dropOut(to);
       if (inst && inst.pause) inst.pause();
@@ -1110,7 +1114,7 @@
       };
     }
     const tut = () => { if (inst && inst.pause) inst.pause(); tutorial(g, () => { if (inst && inst.resume && alive) inst.resume(); }); };
-    const back = () => leave(() => watch ? (M.admin ? V.account.admin('matches') : V.ui.home('online')) : setup(g));
+    const back = () => leave(() => watch || spect ? (M.admin ? V.account.admin('matches') : V.ui.home('online')) : setup(g));
     // all options as a popup: the game holds still while it is open (online it keeps running)
     const optsPop = () => { if (inst && inst.pause) inst.pause(); P.optsPopup(() => { if (inst && inst.resume && alive) inst.resume(); }); };
     // the settings of this match (js/app.js rulesPopup): online only to read, else they count from a new start
@@ -1119,7 +1123,7 @@
     // Local matches and against the AI: the game holds still (action games pause their loop). Online it keeps running,
     // so it is called "Menü" there and offers resigning instead of a new start. Leaving still asks once more.
     function pauseMenu() {
-      if (watch || ended) return back();
+      if (watch || spect || ended) return back();
       const netGame = online || table, title = netGame ? 'Menü' : 'Pause';
       if (inst && inst.pause) inst.pause();
       const row = (id, ic, l, k) => `<button class="pz-row" id="${id}">${ic}<span>${l}</span>${k ? `<kbd class="only-fine">${k}</kbd>` : ''}</button>`;

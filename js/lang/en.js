@@ -1472,7 +1472,8 @@
     [/^(\S+) ist offline. Die Partie endet ohne Wertung, niemand gewinnt oder verliert.$/, '$1 is offline. The match ends without a result, nobody wins or loses.'],
     [/^(\S+) ist wieder da$/, '$1 is back'], [/^(\S+) war offline, ohne Wertung$/, '$1 was offline, no result'],
     [/^(\S+) war zu lange offline$/, '$1 was offline for too long'],
-    [/^spielt (.+) gegen ([a-z0-9_-]{3,16})$/, (m, g, n) => 'playing ' + g + ' vs. ' + n]
+    [/^spielt (.+) gegen ([a-z0-9_-]{3,16})$/, (m, g, n) => 'playing ' + g + ' vs. ' + n],
+    [/^spielt (.+) am Tisch$/, 'playing $1 at a table']
   ]);
 
   // ---------- invites ----------
@@ -1859,7 +1860,10 @@
     'Dieses Spiel braucht ein Konto. Ohne Konto geht am Tisch Galgenmännchen.': 'This game needs an account. Without one, Hangman works at a table.',
     'Du hast heute schon 30 Gäste gefragt.': 'You have already asked 30 guests today.',
     // admin: running tables under "Laufend"
-    'Laufende Tische': 'Running tables', 'Laufende Partien und Tische ansehen': 'See running matches and tables', '# Tische': '# tables'
+    'Laufende Tische': 'Running tables', 'Laufende Partien und Tische ansehen': 'See running matches and tables', '# Tische': '# tables',
+    // watching a table
+    'Zuschauen · Online-Tisch · # Spieler': 'Watching · Online table · # players', 'Bei diesem Spiel kann man nicht zuschauen.': 'You cannot watch this game.',
+    'Zuschauen geht hier nicht (mehr).': 'You cannot watch here (anymore).'
   });
   V.i18n.pat([[/^Hallo (.+)!$/, 'Hi $1!'], [/^Verknüpft mit (.+)$/, 'Linked to $1'], [/^Mit Discord angemeldet: (.+)$/, 'Signed in with Discord: $1']]);
   V.i18n.pat([[/^(.+) ist dran$/,(m, n) => t(n) + ' to move'], [/^spielt (.+)$/, (m, n) => 'playing ' + t(n)]]);
