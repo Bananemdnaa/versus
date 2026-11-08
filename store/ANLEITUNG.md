@@ -18,7 +18,8 @@ Icons oder das Manifest ändern.
 ## 2. App-Namen reservieren
 
 1. Im Partner Center: **Apps und Spiele → Neues Produkt → „MSIX- oder PWA-App“**.
-2. Namen **Versus** reservieren. Ist er vergeben: „Versus – Spiele für 2 bis 4“.
+2. Reserviert: **Versus - Games for 2 to 4 players** („Versus“ allein war vergeben). Optional einen deutschen Namen dazu reservieren,
+   z. B. „Versus - Spiele für 2 bis 4“, sonst zeigt auch der deutsche Eintrag den englischen Namen.
 3. Danach **Produktverwaltung → Produktidentität** öffnen und diese drei Werte notieren:
    - Package/Identity/Name (z. B. `12345FlixosStudios.Versus`)
    - Package/Identity/Publisher (beginnt mit `CN=`)
@@ -30,7 +31,8 @@ Icons oder das Manifest ändern.
    Das Manifest sollte grün sein (Icons, Screenshots, Service Worker sind vorhanden).
 2. **Package for stores → Windows → Generate Package**, dann „Options“:
    - Package ID, Publisher ID, Publisher display name: die drei Werte aus Schritt 2
-   - App name: `Versus`, App version: `1.0.0`
+   - App name: `Versus - Games for 2 to 4 players` (muss genau dem reservierten Namen entsprechen, sonst scheitert die Prüfung),
+     App version: `1.0.0`
    - Sprache: `de` (die englische Oberfläche schaltet die App selbst um)
 3. ZIP herunterladen. Darin sind `.msixbundle` und `.classic.appxbundle`. **Beide** werden hochgeladen.
 

@@ -7,8 +7,8 @@ Bilder liegen in `store/shots/` (neu erzeugen: `py -3 tools/store-shots.py`, lok
 
 ## Deutsch (de-de)
 
-**Produktname:** Versus
-(falls vergeben: „Versus – Spiele für 2 bis 4“)
+**Produktname:** Versus - Games for 2 to 4 players
+(oder ein zusätzlich reservierter deutscher Name, z. B. „Versus - Spiele für 2 bis 4“)
 
 **Kurzbeschreibung** (max. 500 Zeichen, oben im Store bei Spielen):
 
@@ -78,7 +78,7 @@ Bildunterschriften (optional, max. 200 Zeichen):
 
 ## English (en-us)
 
-**Product name:** Versus
+**Product name:** Versus - Games for 2 to 4 players
 
 **Short description:**
 
