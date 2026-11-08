@@ -433,7 +433,18 @@ kbd{display:inline-grid;place-items:center;min-width:22px;height:21px;padding:0 
 .vsi-n{display:flex;flex-direction:column;color:var(--ink);animation:vsn .5s .15s var(--snap) backwards}
 .vsi-l .vsi-n{transform:translate(-8%,-18vh);align-items:flex-start} .vsi-r .vsi-n{transform:translate(8%,18vh);align-items:flex-end}
 .vsi-n small{font:700 italic clamp(13px,2.4vw,20px)/1 var(--f-d);letter-spacing:.24em;text-transform:uppercase;opacity:.7}
-.vsi-n b{font:800 italic clamp(48px,11vw,120px)/.9 var(--f-d);text-transform:uppercase}
+.vsi-n b{font:800 italic clamp(48px,11vw,120px)/.9 var(--f-d);text-transform:uppercase;max-width:52vw;overflow-wrap:anywhere}
+.vsi-n b.l{font-size:clamp(34px,8vw,96px)} .vsi-n b.xl{font-size:clamp(24px,5.6vw,72px)}
+/* avatar badge over the name and the rank line under it */
+.vsi-av{display:grid;place-items:center;width:clamp(46px,9vw,84px);aspect-ratio:1;margin-bottom:10px;transform:skewX(var(--sk));background:var(--ink);color:#fff;box-shadow:5px 5px 0 rgba(8,9,15,.35);animation:vsav .45s .3s var(--spring) backwards}
+.vsi-av>*{transform:skewX(calc(var(--sk) * -1))}
+.vsi-av svg{width:52%;height:52%}
+.vsi-av span{font:800 italic clamp(18px,3.6vw,34px)/1 var(--f-d);text-transform:uppercase}
+.vsi-av .lav{display:grid;place-items:center;width:100%;height:100%}
+.vsi-m{display:inline-flex;align-items:center;gap:7px;margin-top:10px;padding:5px 10px;transform:skewX(var(--sk));background:var(--ink);color:#fff;font:800 italic clamp(12px,2.2vw,17px)/1 var(--f-d);letter-spacing:.06em;text-transform:uppercase;font-style:italic;animation:vsn .4s .5s var(--snap) backwards}
+.vsi-m .rk{--rk:#c98a52;width:9px;height:9px;background:var(--rk);transform:rotate(45deg);box-shadow:0 0 8px var(--rk)}
+.vsi-m .rk.r-sil{--rk:#c9d1e6} .vsi-m .rk.r-gold{--rk:var(--yellow)} .vsi-m .rk.r-pla{--rk:var(--cyan)} .vsi-m .rk.r-dia{--rk:#b98cff}
+@keyframes vsav{from{transform:skewX(var(--sk)) scale(0) rotate(-20deg)}}
 .vsi-vs{position:absolute;inset:0;display:grid;place-items:center;font:800 italic clamp(90px,22vw,200px)/1 var(--f-d);color:#fff;-webkit-text-stroke:4px var(--ink);text-shadow:8px 8px 0 var(--ink);animation:vsslam .32s .28s var(--spring) backwards}
 .vsi-flash{position:absolute;inset:0;background:#fff;opacity:0;animation:vsflash .45s .3s ease-out}
 .vsi.quick .vsi-l,.vsi.quick .vsi-r{animation-duration:.28s} .vsi.quick .vsi-n{animation-delay:.06s} .vsi.quick .vsi-vs{animation-delay:.14s} .vsi.quick .vsi-flash{animation-delay:.16s}
@@ -2990,6 +3001,21 @@ body:has(.view.play) .season.halloween .spider{display:none}
 .ko .kelo b{font:800 italic 20px/1 var(--f-d);font-variant-numeric:tabular-nums}
 .ko .kelo em{font-style:normal;font-weight:800;font-size:14px;font-variant-numeric:tabular-nums}
 .ko .kelo.up em{color:var(--good)} .ko .kelo.down em{color:var(--bad)}
+/* a new rank after the rating rolled over: up glows in the rank colour, down stays quiet */
+.ko .krank{--rk:#c98a52;display:flex;align-items:center;gap:12px;padding:9px 18px 9px 14px;transform:skewX(var(--sk));background:linear-gradient(100deg,color-mix(in srgb,var(--rk) 30%,var(--panel2)),var(--panel2) 75%);border:1.5px solid var(--rk);box-shadow:0 0 22px color-mix(in srgb,var(--rk) 45%,transparent);animation:wpop .55s var(--spring) backwards}
+.ko .krank>*{transform:skewX(calc(var(--sk) * -1))}
+.ko .krank .rk{width:16px;height:16px;background:var(--rk);transform:rotate(45deg);box-shadow:0 0 12px var(--rk)}
+.ko .krank span{display:flex;flex-direction:column;gap:3px}
+.ko .krank small{font:700 italic 11px/1 var(--f-d);letter-spacing:.16em;text-transform:uppercase;color:var(--dim)}
+.ko .krank b{font:800 italic 24px/1 var(--f-d);text-transform:uppercase;color:var(--rk)}
+.ko .krank.down{box-shadow:none;border-color:var(--line2);background:var(--panel2)} .ko .krank.down b{color:var(--fg)}
+.ko .krank:has(.r-sil){--rk:#c9d1e6} .ko .krank:has(.r-gold){--rk:var(--yellow)} .ko .krank:has(.r-pla){--rk:var(--cyan)} .ko .krank:has(.r-dia){--rk:#b98cff}
+/* the finale: the room darkens around the board while the winning line plays out; a win punches the board once */
+.view.play.finale::after{content:'';position:fixed;inset:0;z-index:4;pointer-events:none;background:radial-gradient(ellipse 70% 60% at 50% 50%,transparent 35%,rgba(4,4,10,.62));animation:finvig .7s ease-out both}
+.view.play.fwin .stage{animation:finpunch .55s .05s var(--spring)}
+@keyframes finvig{from{opacity:0}}
+@keyframes finpunch{35%{transform:scale(1.045)}}
+.lowfx .view.play.finale::after,.lowfx .view.play.fwin .stage{animation:none}
 .ko .kdaily b{font:800 italic 15px/1 var(--f-d);text-transform:uppercase}
 .ko .kdaily span{font-size:13px;color:var(--fg)}
 .knext.acct .kn-ic svg{width:26px;height:26px}

@@ -1849,7 +1849,7 @@
   ]);
   // ---------- motion.js: ranks from the Elo and the button prompts at the PC ----------
   A({
-    'Beste Elo': 'Best Elo', 'Diamant': 'Diamond', 'Platin': 'Platinum', 'Gold': 'Gold', 'Silber': 'Silver', 'Bronze': 'Bronze',
+    'Beste Elo': 'Best Elo', 'Aufstieg': 'Promoted', 'Abstieg': 'Demoted', 'Diamant': 'Diamond', 'Platin': 'Platinum', 'Gold': 'Gold', 'Silber': 'Silver', 'Bronze': 'Bronze',
     'Alle Tasten': 'All keys', 'Modus': 'Mode', 'Zurück / Vor': 'Back / forward',
     // guests: badge, friend wishes, the fixed guest games
     'Spielt noch ohne Konto': 'Still playing without an account', 'Neue Freundschaftsanfrage': 'New friend request',

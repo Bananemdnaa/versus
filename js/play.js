@@ -41,9 +41,11 @@
   const introLen = (quick, tip) => quick ? 650 : tip ? 2000 : 1150;
   function vsIntro(left, right, quick, g, tip) {
     if (!V.fxOn() || settings.intro === false) return;
+    // each side: an avatar badge over the name and a line with rank and rating under it (when there is one)
+    const side = o => `<div class="vsi-n">${o.av ? `<span class="vsi-av">${o.av}</span>` : ''}<small>${o.sub}</small><b${o.name.length > 10 ? ' class="xl"' : o.name.length > 5 ? ' class="l"' : ''}>${o.name}</b>${o.meta ? `<em class="vsi-m">${o.meta}</em>` : ''}</div>`;
     const el = V.el('div', 'vsi' + (quick ? ' quick' : '') + (tip ? ' tip' : ''), `
-      <div class="vsi-l"><div class="vsi-n"><small>${left.sub}</small><b>${left.name}</b></div></div>
-      <div class="vsi-r"><div class="vsi-n"><small>${right.sub}</small><b>${right.name}</b></div></div>
+      <div class="vsi-l">${side(left)}</div>
+      <div class="vsi-r">${side(right)}</div>
       <div class="vsi-vs">VS</div><div class="vsi-flash"></div>
       ${tip ? `<div class="vsi-tip"><span class="vt-g">${g.icon}<b>${g.name}</b></span><p><em>Tipp</em><span class="vt-t"></span></p><i class="vt-bar"></i><span class="vt-src" hidden>${tip}</span></div>` : ''}`);
     document.body.appendChild(el);
@@ -59,6 +61,28 @@
     // the slam: a deep tone and the whole picture shakes
     setTimeout(() => V.sfx.vs(), quick ? 140 : 280);
     setTimeout(kill, introLen(quick, tip));
+  }
+
+  // ---------- end screen: the rating counts from the old to the new number; a new rank gets its own banner ----------
+  function eloRoll(box, from, to, label) {
+    const b = box && box.querySelector('b'); if (!b || !box.isConnected) return;
+    const ms = V.fxOn() ? Math.min(900, 250 + Math.abs(to - from) * 18) : 0, t0 = performance.now();
+    let lastN = from;
+    // (timers, not animation frames: the number must arrive even when the page is in the background)
+    const step = () => {
+      if (!box.isConnected) return;
+      const k = ms ? Math.min(1, (performance.now() - t0) / ms) : 1, n = Math.round(from + (to - from) * (1 - Math.pow(1 - k, 3)));
+      if (n !== lastN) { b.textContent = n; lastN = n; if (V.sfx.tick && (n % 3 === 0)) V.sfx.tick(); }
+      if (k < 1) return setTimeout(step, 30);
+      b.textContent = to; V.fx.pop(b, 'bump');
+      if (!V.rank) return;
+      const a = V.rank(from), z = V.rank(to);
+      if (a.k === z.k) return;
+      const up = to > from;
+      box.insertAdjacentHTML('afterend', `<div class="krank ${up ? 'up' : 'down'}"><i class="rk r-${z.k}"></i><span><small>${V.t(up ? 'Aufstieg' : 'Abstieg')} · ${V.t(label)}</small><b>${V.t(z.name)}</b></span></div>`);
+      if (up) { V.sfx.found(); V.fx.burstAt(box.nextElementSibling, '#ffd84f', 14, 70); }
+    };
+    step();
   }
 
   // ---------- play ----------
@@ -478,6 +502,8 @@
         SIDES.forEach(k => { const b = pls[k].querySelector('.wins b'); if (b.textContent !== String(series[k])) { b.textContent = series[k]; V.fx.pop(b, 'fx-pop'); } });
         const meWon = me && winner === me;
         const good = winner && (!me || meWon);
+        // the finale: the room darkens around the board, a win gives the board a short punch
+        if (winner && !off && V.fxOn()) v.classList.add('finale', good ? 'fwin' : 'flose');
         if (good) { V.sfx.win(); setTimeout(() => V.fx.confetti(), 250); setTimeout(() => V.fx.win(), g.endDelay ?? 1150); }
         else if (winner) { V.sfx.lose(); V.fx.shake(ctx.stage); }
         else if (!off) V.sfx.draw();
@@ -501,7 +527,7 @@
             <div class="band"><div class="band-in"><span class="kicker">${esc(note || sublabel)}${online && net && net.last && net.last.ranked === false ? ' · zählt nicht für die Rangliste' : ''}</span>
               <h2 class="${big.length > 11 ? 'long' : ''}" aria-label="${esc(big)}">${[...big].map((ch, k) => `<span aria-hidden="true" style="--k:${k}">${ch === ' ' ? '&nbsp;' : esc(ch)}</span>`).join('')}</h2></div></div>
             ${party ? `<div class="eparty">${SIDES.map(k => `<span class="ep c${k}"><b>${series[k]}</b><small>${esc(names[k])}</small></span>`).join('')}</div>` : `<div class="eseries"><span class="nl">${esc(names[L])}</span><b class="sl${winner === L && !off ? ' up' : ''}" data-n="${series[L]}">${winner === L && !off ? series[L] - 1 : series[L]}</b><i>:</i><b class="sr${winner === R && !off ? ' up' : ''}" data-n="${series[R]}">${winner === R && !off ? series[R] - 1 : series[R]}</b><span class="nr">${esc(names[R])}</span></div>`}
-            ${eloRes ? `<div class="kelo ${eloRes.delta >= 0 ? 'up' : 'down'}"><span>KI-Elo</span><b>${eloRes.to}</b><em>${eloRes.delta >= 0 ? '+' : '−'}${Math.abs(eloRes.delta)}</em></div>` : ''}
+            ${eloRes ? `<div class="kelo ${eloRes.delta >= 0 ? 'up' : 'down'}" id="kelo-ai"><span>KI-Elo</span><b>${eloRes.from}</b><em>${eloRes.delta >= 0 ? '+' : '−'}${Math.abs(eloRes.delta)}</em></div>` : ''}
             ${online && !off && !watch && !(net && net.last && net.last.ranked === false) ? '<div class="kelo" id="kelo" hidden></div>' : ''}
             ${dWon ? `<div class="kdaily">${IC.bolt}<b>Spiel des Tages erledigt</b><span>Serie: ${dWon} ${dWon === 1 ? 'Tag' : 'Tage'}</span></div>` : ''}
             ${fresh.length ? `<div class="kbadges">${fresh.map(b => `<div class="kbdg bt${b.tier}" title="${esc(b.d)}"><span class="abz-ic">${b.ic}</span><span><small>${b.tier === 3 ? 'Legendäres Abzeichen' : b.tier === 2 ? 'Seltenes Abzeichen' : 'Neues Abzeichen'}</small><b>${b.t}</b></span></div>`).join('')}</div>` : ''}
@@ -522,12 +548,13 @@
           // the winner's number counts up and pulses once the band is in
           m.querySelectorAll('.eseries b.up').forEach(b => ctx.later(() => { b.textContent = b.dataset.n; V.fx.pop(b, 'bump'); }, 450));
           // the Elo change of an online match, once the server has rated it (it waits for both results)
+          const ka = m.querySelector('#kelo-ai'); if (ka) ctx.later(() => eloRoll(ka, eloRes.from, eloRes.to, 'KI-Elo'), 550);
           const ke = m.querySelector('#kelo');
           if (ke) {
             let tries = 0;
             const look = () => V.cloud.rpc('match_elo', { mid: M.id }).then(r => {
               if (!ke.isConnected) return;
-              if (r && r.delta != null) { ke.hidden = false; ke.className = 'kelo ' + (r.delta >= 0 ? 'up' : 'down'); ke.innerHTML = `<span>Elo</span><b>${r.elo}</b><em>${r.delta >= 0 ? '+' : '−'}${Math.abs(r.delta)}</em>`; }
+              if (r && r.delta != null) { ke.hidden = false; ke.className = 'kelo ' + (r.delta >= 0 ? 'up' : 'down'); ke.innerHTML = `<span>Elo</span><b>${r.elo - r.delta}</b><em>${r.delta >= 0 ? '+' : '−'}${Math.abs(r.delta)}</em>`; eloRoll(ke, r.elo - r.delta, r.elo, 'Elo'); }
               else if (++tries < 5) ctx.later(look, 1500 * tries);
             }, () => { });
             ctx.later(look, 700);
@@ -1190,7 +1217,16 @@
     const pu = v.querySelector('#pu'); if (pu) pu.onclick = undo;
     if (rep) { /* replaying after an undo: no intro */ }
     else if (party && N > 2) vsIntro({ name: names[1], sub: sideLabel(1) }, { name: ai ? N - 1 + ' KIs' : 'Alle', sub: ai ? lvName : N + ' Spieler' }, rematch, g, introTip);
-    else vsIntro({ name: names[L], sub: sideLabel(L) }, { name: names[R], sub: ai ? 'KI · ' + lvName : online ? 'online' : sideLabel(R) }, rematch || watch, g, introTip);
+    else {
+      // against the AI: your rank and KI-Elo in this game (after your first match), the AI's rating for its level
+      let mL = '', mR = '';
+      if (ai && !party && V.rank) {
+        const mine = V.aiElo.get(g.id);
+        if (mine.n) { const rk = V.rank(mine.e); mL = `<i class="rk r-${rk.k}"></i>${V.t(rk.name)} · ${mine.e} Elo`; }
+        mR = `${Math.round(fitE || V.aiElo.levels(g)[cfg.level])} Elo`;
+      }
+      vsIntro({ name: esc(shown(L)), sub: sideLabel(L), av: av(L), meta: mL }, { name: esc(shown(R)), sub: ai ? 'KI · ' + lvName : online ? 'online' : sideLabel(R), av: av(R), meta: mR }, rematch || watch, g, introTip);
+    }
     if (ai && V.aiWorker) V.aiWorker.warm(g);
     inst = g.start(ctx) || {};
     // a recorded match: step through it (chess has its own move list with the review)
