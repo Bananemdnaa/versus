@@ -3020,11 +3020,13 @@ body:has(.view.play) .season.halloween .spider{display:none}
 .ko .krank.down{box-shadow:none;border-color:var(--line2);background:var(--panel2)} .ko .krank.down b{color:var(--fg)}
 .ko .krank:has(.r-sil){--rk:#c9d1e6} .ko .krank:has(.r-gold){--rk:var(--yellow)} .ko .krank:has(.r-pla){--rk:var(--cyan)} .ko .krank:has(.r-dia){--rk:#b98cff}
 /* the finale: the room darkens around the board while the winning line plays out; a win punches the board once */
-.view.play.finale::after{content:'';position:fixed;inset:0;z-index:4;pointer-events:none;background:radial-gradient(ellipse 70% 60% at 50% 50%,transparent 35%,rgba(4,4,10,.62));animation:finvig .7s ease-out both}
+.view.play.finale::after{content:'';position:fixed;inset:0;z-index:4;pointer-events:none;background:radial-gradient(ellipse 70% 60% at 50% 50%,transparent 35%,rgba(4,4,10,.62));opacity:0;animation:finvig 2.6s ease-out both}
 .view.play.fwin .stage{animation:finpunch .55s .05s var(--spring)}
-@keyframes finvig{from{opacity:0}}
+/* (the room lights up again by itself, so "Brett ansehen" shows the board as it was) */
+@keyframes finvig{0%{opacity:0}18%,70%{opacity:1}100%{opacity:0}}
 @keyframes finpunch{35%{transform:scale(1.045)}}
 .lowfx .view.play.finale::after,.lowfx .view.play.fwin .stage{animation:none}
+.lowfx .view.play.finale::after{display:none}
 .ko .kdaily b{font:800 italic 15px/1 var(--f-d);text-transform:uppercase}
 .ko .kdaily span{font-size:13px;color:var(--fg)}
 .knext.acct .kn-ic svg{width:26px;height:26px}

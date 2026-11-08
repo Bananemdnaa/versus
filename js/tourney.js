@@ -138,18 +138,21 @@
     const nm = nextMatch(t); if (!nm) return bracket();
     const g = V.byId[t.g], opts = {};
     (g.options || []).forEach(o => { opts[o.id] = o.def; });
-    // the game's own saved rules (board size, clock …) stay; a head start does not belong in a tournament
+    // the game's own saved rules (board size, clock …) stay; a head start, a handicap or a chaos rule does not belong
+    // in a tournament (everybody plays the same game)
+    const fixed = new Set((g.options || []).filter(o => o.id === 'hc' || o.id === 'chaos' || o.variant).map(o => o.id).concat('seed'));
     const saved = (S().get('setup', {})[g.id] || {}).opts || {};
-    Object.keys(saved).forEach(k => { if (k in opts && k !== 'hc' && k !== 'seed') opts[k] = saved[k]; });
+    Object.keys(saved).forEach(k => { if (k in opts && !fixed.has(k)) opts[k] = saved[k]; });
+    // who sits on side 1 (and so moves first) is drawn for every match
+    const flip = Math.random() < 0.5, names = flip ? { 1: nm.m.b, 2: nm.m.a } : { 1: nm.m.a, 2: nm.m.b };
     V._.play(g, {
-      mode: 'local', level: 1, first: 'me', opts,
-      names: { 1: nm.m.a, 2: nm.m.b },
+      mode: 'local', level: 1, first: 'me', opts, names,
       tourney: {
         label: 'Turnier · ' + roundName(nm.r, t.rounds.length),
         done(side) {
           const cur = get(); if (!cur) return;
           const x = cur.rounds[nm.r] && cur.rounds[nm.r][nm.i]; if (!x || x.w) return;
-          x.w = side === 1 ? x.a : x.b; send(cur.rounds, nm.r, nm.i); put(cur); refreshHome();
+          x.w = names[side]; send(cur.rounds, nm.r, nm.i); put(cur); refreshHome();
         },
         back() { V.ui.home('games'); bracket(); }
       }
