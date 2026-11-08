@@ -1850,10 +1850,21 @@
   // ---------- motion.js: ranks from the Elo and the button prompts at the PC ----------
   A({
     'Beste Elo': 'Best Elo', 'Diamant': 'Diamond', 'Platin': 'Platinum', 'Gold': 'Gold', 'Silber': 'Silver', 'Bronze': 'Bronze',
-    'Alle Tasten': 'All keys', 'Modus': 'Mode', 'Zurück / Vor': 'Back / forward'
+    'Alle Tasten': 'All keys', 'Modus': 'Mode', 'Zurück / Vor': 'Back / forward',
+    // guests: badge, friend wishes, the fixed guest games
+    'Spielt noch ohne Konto': 'Still playing without an account', 'Neue Freundschaftsanfrage': 'New friend request',
+    'Freunde warten auf dich': 'Friends are waiting for you', 'Von {0} wartet eine Freundschaftsanfrage auf dich.': 'A friend request from {0} is waiting for you.',
+    'Mit einem kostenlosen Konto werdet ihr Freunde und könnt euch herausfordern. Dein Fortschritt bleibt dabei erhalten. Es dauert nur ein paar Sekunden, ohne E-Mail.':
+      'With a free account you become friends and can challenge each other. Your progress stays. It takes just a few seconds, no e-mail.',
+    'Dieses Spiel braucht ein Konto. Ohne Konto geht am Tisch Galgenmännchen.': 'This game needs an account. Without one, Hangman works at a table.',
+    'Du hast heute schon 30 Gäste gefragt.': 'You have already asked 30 guests today.',
+    // admin: running tables under "Laufend"
+    'Laufende Tische': 'Running tables', 'Laufende Partien und Tische ansehen': 'See running matches and tables', '# Tische': '# tables'
   });
   V.i18n.pat([[/^Hallo (.+)!$/, 'Hi $1!'], [/^Verknüpft mit (.+)$/, 'Linked to $1'], [/^Mit Discord angemeldet: (.+)$/, 'Signed in with Discord: $1']]);
   V.i18n.pat([[/^(.+) ist dran$/,(m, n) => t(n) + ' to move'], [/^spielt (.+)$/, (m, n) => 'playing ' + t(n)]]);
+  // friend request to a guest (js/online.js request)
+  V.i18n.pat([[/^(.+) spielt noch als Gast. Sobald (.+) ein Konto hat, ist deine Anfrage da.$/, (m, n) => n + ' still plays as a guest. Your request will be there once ' + n + ' has an account.'], [/^Neue Freundschaftsanfrage: (.+)$/, (m, n) => 'New friend request: ' + n]]);
   // last resort for "A · B · C" lines (colour · level, game · level …): every part on its own
   V.i18n.pat([[/^(?=.* · ).+$/, m => m.split(' · ').map(p => t(p)).join(' · ')]]);
   V.i18n.start();

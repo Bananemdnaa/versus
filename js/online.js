@@ -325,8 +325,13 @@
     }, e => V.ui.toast(e.message));
   }
   async function request(name) {
-    const r = await C().rpc('friend_request', { name });
+    // friend_wish: like friend_request, but a guest gets a note instead of an error (and the request once they have
+    // an account); without the migration 20261209000000_guest_friends.sql the plain request as before
+    let r;
+    try { r = await C().rpc('friend_wish', { name }); }
+    catch (e) { if (!/friend_wish|function/i.test(e.message)) throw e; r = await C().rpc('friend_request', { name }); }
     C().poke('u:' + name);
+    if (r === 'wished') { V.sfx.ui(); V.ui.toast(name + ' spielt noch als Gast. Sobald ' + name + ' ein Konto hat, ist deine Anfrage da.', 3500); return r; }
     V.ui.toast({ sent: 'Anfrage an ' + name + ' gesendet', accepted: 'Du und ' + name + ' seid jetzt Freunde', friends: 'Ihr seid schon Freunde', pending: 'Schon angefragt' }[r] || r);
     if (r === 'accepted') V.sfx.goal(); else V.sfx.ui();
     changed();

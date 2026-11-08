@@ -350,7 +350,7 @@
   }
 
   // ---------- admin panel ----------
-  let aTab = 'overview', mFilter = 'live', mQuery = '', matches = null, stats = null, online = null, players = null, logs = null, query = '', aErr = '', box = null, sure = null, liveT = null, busy = false, reports = null, rFilter = 'open';
+  let aTab = 'overview', mFilter = 'live', mQuery = '', matches = null, liveTabs = null, stats = null, online = null, players = null, logs = null, query = '', aErr = '', box = null, sure = null, liveT = null, busy = false, reports = null, rFilter = 'open';
   let pFilter = '', site = null, purge = null, fb = null, fFilter = 'open', dcs = null, pSel = '', pLim = 40;
   let dbugs = null, dbFilter = 'open', dbOpen = null; // bug reports from the dev panel (js/devtools.js)
   let logF = { who: '', tgt: '', act: '' }, elo = {}; // log filter; Elo per player, loaded when the Elo box opens
@@ -409,7 +409,7 @@
     liveT = setInterval(() => {
       if (V.ui.view() !== 'admin') return stopLive();
       if (aTab === 'overview') C().rpc('admin_online').then(o => { online = o || []; draw(); }, () => { });
-      if (aTab === 'matches' && mFilter === 'live') C().rpc('admin_matches', { st: 'live', q: mQuery, lim: 60 }).then(m => { matches = m || []; draw(); }, () => { });
+      if (aTab === 'matches' && mFilter === 'live') Promise.all([C().rpc('admin_matches', { st: 'live', q: mQuery, lim: 60 }), C().rpc('admin_tables', { st: 'live', q: mQuery, lim: 60 }).catch(() => [])]).then(([m, t]) => { matches = m || []; liveTabs = t || []; draw(); }, () => { });
       if (aTab === 'matches' && mFilter === 'tables') C().rpc('admin_tables', { st: 'live', q: mQuery, lim: 60 }).then(m => { matches = m || []; draw(); }, () => { });
     }, 20000);
   }
@@ -425,6 +425,8 @@
       if (aTab === 'feedback') fb = await C().rpc('admin_feedback', { st: fFilter, lim: 80 });
       if (aTab === 'devbugs') dbugs = await C().rpc('dev_reports', { lim: 200 });
       if (aTab === 'matches') matches = mFilter === 'tables' ? await C().rpc('admin_tables', { st: 'all', q: mQuery, lim: 80 }) : await C().rpc('admin_matches', { st: mFilter, q: mQuery, lim: 80 });
+      // "Laufend" also lists running tables (the overview's Live number counts both)
+      if (aTab === 'matches' && mFilter === 'live') liveTabs = await C().rpc('admin_tables', { st: 'live', q: mQuery, lim: 60 }).catch(() => []);
       if (aTab === 'site') { const [s, p] = await Promise.all([C().rpc('admin_stats'), C().role() === 'owner' ? C().rpc('admin_purge_guests', { days: 30, dry: true }) : null]); stats = s; site = s.site || {}; purge = p; }
       aErr = '';
     } catch (e) { aErr = e.message; }
@@ -458,7 +460,7 @@
     const warn = [st.signups === false ? 'Neue Konten sind pausiert' : '', st.guests === false ? 'Gast-Zugang ist pausiert' : ''].filter(Boolean);
     return `${warn.length ? `<button class="anote bad" data-t2="site">${IC().shield}<span>${warn.join(' · ')}</span></button>` : ''}
       ${S.open_reports ? `<button class="anote" data-t2="reports">${IC().shield}<span>${S.open_reports} offene Meldungen</span></button>` : ''}
-      <div class="kpis">${tile('Spieler', S.players, '+' + S.new7 + ' in 7 Tagen · ' + (S.guests || 0) + ' Gäste')}${tile('Online', S.online)}${tile('Aktiv heute', S.active1, S.active7 + ' in 7 Tagen')}${tile('Partien', S.matches, (S.online_matches || 0) + ' online')}${tile('Live', (S.live_matches || 0) + (S.live_tables || 0), (S.live_tables || 0) + ' Tische · ' + (S.friendships || 0) + ' Freundschaften')}</div>
+      <div class="kpis">${tile('Spieler', S.players, '+' + S.new7 + ' in 7 Tagen · ' + (S.guests || 0) + ' Gäste')}${tile('Online', S.online)}${tile('Aktiv heute', S.active1, S.active7 + ' in 7 Tagen')}${tile('Partien', S.matches, (S.online_matches || 0) + ' online')}<button class="kpi-go" data-golive="1" title="Laufende Partien und Tische ansehen">${tile('Live', (S.live_matches || 0) + (S.live_tables || 0), (S.live_matches || 0) + ' Partien · ' + (S.live_tables || 0) + ' Tische')}</button></div>
       ${days.length ? `<div class="apanel"><h3>Letzte 14 Tage</h3>
         <div class="achart">${days.map(d => `<div class="acol" title="${day(d.d)}: ${d.new} neu, ${d.games} online"><i class="g" style="--h:${Math.round(d.games / dmax * 100)}%"></i><i class="n" style="--h:${Math.round(d.new / dmax * 100)}%"></i><small>${new Date(d.d).getDate()}</small></div>`).join('')}</div>
         <p class="fine"><i class="lg n"></i> neue Konten · <i class="lg g"></i> Online-Partien (Duelle und Tische)</p></div>` : ''}
@@ -563,10 +565,10 @@
     return `<div class="asearch"><div class="chips mini" id="mf">${[['live', 'Laufend'], ['done', 'Beendet'], ['all', 'Alle'], ['tables', 'Tische']].map(([k, l]) => `<button data-mf="${k}" class="${mFilter === k ? 'on' : ''}">${l}</button>`).join('')}</div>
         <input class="inp" id="mq" placeholder="Spieler" value="${esc(mQuery)}" autocapitalize="none" spellcheck="false"><button class="btn ghost sm" id="reload"><span>${IC().redo}</span></button></div>`;
   }
-  // online tables (2-4 players): who sits where, who is still there; a stuck or abused table can be voided
-  function tableList() {
+  // one row per online table (also under "Laufend" in the matches)
+  function tableRows(list) {
     const ST = { lobby: 'wartet auf Spieler', live: 'läuft', done: 'beendet', canceled: 'abgebrochen', void: 'annulliert' };
-    const rows = (matches || []).map(t => {
+    return list.map(t => {
       const live = t.status === 'live' || t.status === 'lobby';
       const seats = (t.seats || []).map((s, i) => !s ? '<i class="muted">frei</i>' : s === 'KI' ? '<i>KI</i>'
         : `<button class="link${t.winner === i + 1 ? ' good' : ''}" data-p="${esc(s)}">${esc(s)}</button>${live && t.status === 'live' && t.online && !t.online[i] ? ' <small class="muted">(weg)</small>' : ''}`).join(' · ');
@@ -581,6 +583,10 @@
           ${full() && t.status !== 'void' && t.status !== 'canceled' ? (sure === 'vt:' + t.id ? `<button class="btn ghost sm danger" data-vtab="${t.id}"><span>Wirklich annullieren?</span></button>` : `<button class="btn ghost sm" data-sure="vt:${t.id}"><span>Annullieren</span></button>`) : ''}</div>
       </div>`;
     }).join('');
+  }
+  // online tables (2-4 players): who sits where, who is still there; a stuck or abused table can be voided
+  function tableList() {
+    const rows = tableRows(matches || []);
     return `${filterBar()}<p class="fine">Online-Tische für 2 bis 4 Spieler (Ludo, Mau-Mau, Poker …). Laufende Tische aktualisieren sich alle 20 Sekunden.${full() ? ` Der Knopf mit ${IC().robot} und einem Namen lässt die KI diesen Platz übernehmen, wenn jemand hängt oder stört. Die anderen spielen weiter.` : ''}</p>
       ${matches ? rows || '<p class="muted">Keine Tische.</p>' : V.skel()}`;
   }
@@ -604,7 +610,8 @@
     }).join('');
     return `${filterBar()}
       ${mFilter === 'live' ? '<p class="fine">Laufende Partien aktualisieren sich alle 20 Sekunden. „Zuschauen“ zeigt das Brett live, „Abspielen“ spielt eine beendete Partie Zug für Zug nach.</p>' : ''}
-      ${matches ? rows || '<p class="muted">Keine Partien.</p>' : V.skel()}`;
+      ${matches ? rows || (mFilter === 'live' && liveTabs && liveTabs.length ? '' : '<p class="muted">Keine Partien.</p>') : V.skel()}
+      ${mFilter === 'live' && liveTabs && liveTabs.length ? `<h3 class="ash">Laufende Tische</h3>${tableRows(liveTabs)}` : ''}`;
   }
   function logList() {
     const L = { hide: 'ausgeblendet', show: 'eingeblendet', ban: 'gesperrt', unban: 'entsperrt', note: 'Notiz', rename: 'umbenannt', reset_stats: 'Bilanz zurückgesetzt', admin_on: 'zum Admin gemacht', admin_off: 'Admin entzogen', dev_on: 'Dev-Konto an', dev_off: 'Dev-Konto aus', void_match: 'Partie annulliert', report_done: 'Meldung erledigt', report_open: 'Meldung wieder offen',
@@ -788,6 +795,8 @@
     });
     const pm = h.querySelector('#pmore'); if (pm) pm.onclick = () => { pLim = Math.min(100, pLim + 40); V.sfx.ui(); pm.classList.add('busy'); load(); };
     h.querySelectorAll('[data-t2]').forEach(x => x.onclick = () => { aTab = x.dataset.t2; V.sfx.ui(); admin(); });
+    // the Live number: straight to the running matches and tables
+    h.querySelectorAll('[data-golive]').forEach(x => x.onclick = () => { aTab = 'matches'; mFilter = 'live'; mQuery = ''; matches = null; V.sfx.ui(); admin(); });
     h.querySelectorAll('[data-vtab]').forEach(x => x.onclick = () => act('admin_void_table', { tid: x.dataset.vtab, why: null }, 'Tisch annulliert.'));
     h.querySelectorAll('[data-sai]').forEach(x => x.onclick = () => { const [tid, s] = x.dataset.sai.split(':'); act('admin_seat_ai', { tid, s: +s }, 'Die KI spielt jetzt auf diesem Platz.'); });
     // the player's public profile (as the player sees it, plus what only the team sees in it)

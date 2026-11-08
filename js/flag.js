@@ -22,6 +22,9 @@
 
   // ---------- who has which flag ----------
   const cache = new Map();    // name -> code ('' = none), for this visit
+  // guests get a small "Gast" badge after the flag (same batch request, server: guests_of); everybody sees it,
+  // so nobody wonders why a friend request to them does not work
+  const guests = new Set();
   const want = new Set();
   let timer = null;
   const me = () => { const u = V.cloud && V.cloud.user(); return u ? u.username : ''; };
@@ -34,6 +37,9 @@
     else { el.removeAttribute('title'); el.removeAttribute('role'); el.removeAttribute('aria-label'); }
     // every flag starts its wave at a different moment, so a list of names does not flap in step
     el.style.animationDelay = (-Math.random() * 3).toFixed(2) + 's';
+    const nx = el.nextElementSibling, has = nx && nx.classList.contains('gtag');
+    if (guests.has(el.dataset.fl) && !has) el.insertAdjacentHTML('afterend', `<em class="gtag" title="${V.t('Spielt noch ohne Konto')}">${V.t('Gast')}</em>`);
+    else if (!guests.has(el.dataset.fl) && has) nx.remove();
     return true;
   }
   function scan(root) {
@@ -47,12 +53,15 @@
     let got = {};
     if (V.cloud && V.cloud.available() && navigator.onLine !== false) {
       try { got = (await V.cloud.rpc('flags_of', { names })) || {}; } catch (e) { names.forEach(x => cache.delete(x)); return; }
+      // (missing until the migration 20261209000000_guest_friends.sql is in: then simply no badges)
+      try { ((await V.cloud.rpc('guests_of', { names })) || []).forEach(n => guests.add(n)); } catch (e) { }
     }
     names.forEach(x => cache.set(x, got[x] || ''));
     document.querySelectorAll('.vflag[data-fl]:not([data-ok])').forEach(paint);
     if (want.size) scan();
   }
   // the placeholder: <i class="vflag" data-fl="name"></i>; empty until the flag is known (and stays empty without one)
+  const isGuest = name => guests.has(String(name || '').trim().toLowerCase());
   const tag = name => name ? `<i class="vflag" data-fl="${esc(String(name).trim().toLowerCase())}"></i>` : '';
   function set(name, c) {
     const k = String(name).trim().toLowerCase();
@@ -140,5 +149,5 @@
     if (V.cloud) { let who = null; V.cloud.on(() => { if (V.cloud.starting()) return; const k = me(); if (k !== who) { who = k; if (k) { cache.delete(k); scan(); auto(); } } }); }
   });
 
-  V.flag = { F, svg, tag, set, mine, name: cname, picker, guess, auto };
+  V.flag = { F, svg, tag, set, mine, name: cname, picker, guess, auto, isGuest };
 })();

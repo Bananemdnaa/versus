@@ -114,13 +114,14 @@
   }
   // Guests (accounts exist, but nobody is logged in) can play these games against the AI and on one device.
   // Everything else, plus online matches and the rankings, needs a free account.
-  const GUEST_GAMES = ['c4', 'ttt', 'ships', 'dots', 'reaction', 'pong'];
+  // Seven fixed games, also in the Discord activity (the server keeps guests away from other tables:
+  // migration 20261209000000_guest_friends.sql); Galgenmännchen is the one table game for a group in the call.
+  const GUEST_GAMES = ['c4', 'ttt', 'ships', 'dots', 'reaction', 'pong', 'hangman'];
   // a guest session (quick match without an account) still counts as guest here
   const guest = () => !!(V.cloud && V.cloud.available() && !V.cloud.starting() && (!V.cloud.user() || V.cloud.user().anon));
   // Versus as a Discord activity (js/discord.js): everybody runs it on their own device, so "two players on one device" is gone there
   const inDiscord = () => !!(V.discord && V.discord.on);
-  // inside the Discord activity the table games are open to guests too (the voice channel plays them together)
-  const locked = g => !!g && guest() && !GUEST_GAMES.includes(g.id) && !(g.table && V.discord && V.discord.on);
+  const locked = g => !!g && guest() && !GUEST_GAMES.includes(g.id);
   V.guest = guest; V.locked = locked;
   // account button in the header: name when logged in, otherwise "Gast · Anmelden"
   function acctChip() {
@@ -1211,8 +1212,8 @@
     }
     // voice channel: a table (2-4 seats, the AI fills free ones) or a game link for one opponent
     const voice = cfg.mode === 'voice';
-    // game links for guests only work in the guest games (server: match_link)
-    const vNeedAcc = voice && !g.table && guest() && !GUEST_GAMES.includes(g.id);
+    // game links and tables for guests only in the guest games (server: match_link, party_guest_guard)
+    const vNeedAcc = voice && guest() && !GUEST_GAMES.includes(g.id);
     // games only for two people at one device (Pong, Air Hockey, Reaktionsduell) have nothing to offer in Discord
     const dcNone = dc && g.noAI && !(g.table || g.online);
     const voiceGo = () => { saveCfg(g, cfg); if (!V.online) return; if (full) closeModal(); return g.table ? V.online.table(g, cfg.opts, cfg.level) : V.online.linkInvite(g, cfg.opts); };
@@ -2287,6 +2288,32 @@
       show();
     }, () => { });
   }
+  // friend wishes to a guest (server: my_wishes): a guest sees who wants to be friends, with the way to an account
+  // (once per new name); with an account they turned into normal requests, that gets a short note
+  function checkWishes() {
+    V.cloud.rpc('my_wishes').then(w => {
+      if (!w) return;
+      if (!w.guest) {
+        const made = w.made || [];
+        if (made.length) { toast(V.t('Neue Freundschaftsanfrage') + ': ' + made.join(', '), 3500); if (V.online && V.online.badge) V.online.badge(); }
+        return;
+      }
+      const names = w.names || [], seen = S.get('wishSeen', []);
+      if (!names.length || names.every(n => seen.includes(n))) return;
+      const show = () => {
+        if (modalEl || view === 'play') return setTimeout(show, 4000);
+        S.set('wishSeen', names.slice(0, 50));
+        const m = openModal(`<div class="confirm"><span class="abig">${IC.users}</span><h2>Freunde warten auf dich</h2>
+          <p>Von <b class="wnames" translate="no"></b> wartet eine Freundschaftsanfrage auf dich.</p>
+          <p>Mit einem kostenlosen Konto werdet ihr Freunde und könnt euch herausfordern. Dein Fortschritt bleibt dabei erhalten. Es dauert nur ein paar Sekunden, ohne E-Mail.</p>
+          <div class="actions"><button class="btn ghost" id="wl"><span>Später</span></button><button class="btn primary" id="wa"><span>Konto erstellen</span></button></div></div>`);
+        m.querySelector('.wnames').textContent = names.slice(0, 5).join(', ') + (names.length > 5 ? ' …' : '');
+        m.querySelector('#wl').onclick = closeModal;
+        m.querySelector('#wa').onclick = () => { V.sfx.go(); closeModal(); home('profile'); };
+      };
+      show();
+    }, () => { });
+  }
   function registerSW() {
     // (not inside the Discord activity: the frame there is Discord's, and offline play makes no sense in a voice channel)
     if (!('serviceWorker' in navigator) || !/^https?:$/.test(location.protocol) || (V.discord && V.discord.on)) return;
@@ -2383,23 +2410,27 @@
   Object.assign(P, {
     mount, locked, guest, toast, home, setup, openModal, closeModal, nav, tutorial, showKeys, optsPopup, toggleSound, rulesPopup,
     enterPlay(g) { destroyCurrent(); view = 'play'; lastGame = g; selected = g; document.querySelectorAll('.upbar:not(.note)').forEach(b => b.remove()); },
-    updateBar, daily, dailyDone, badgeCheck, totals, siteBlock, needUpdate,
+    updateBar, daily, dailyDone, badgeCheck, totals, siteBlock, needUpdate, checkWishes,
     setCurrent(c) { current = c; },
     modalOpen: () => !!modalEl,
     // closes the dialog without running its onClose callback
     closeModalQuiet() { modalClose = null; closeModal(true); }
   });
-  let cloudUser = null, cloudKnown = false;
+  let cloudUser = null, cloudKnown = false, cloudGuest = null;
   function onCloud() {
     refreshAcct();
     // logged in or out (or the first answer about it): locks, modes and the panel change, so the menus are drawn again
     const u = V.cloud.user(), id = u ? u.id : null, known = !V.cloud.starting();
+    // a guest became an account (same id): the friend wishes become requests now, not at the next start
+    const g = u ? !!u.anon : null;
+    if (id && id === cloudUser && cloudGuest === true && g === false) setTimeout(checkWishes, 1500);
+    cloudGuest = g;
     if (id !== cloudUser || known !== cloudKnown) {
       const who = id !== cloudUser;
       cloudUser = id; cloudKnown = known;
       if (id && settings.stealth) V.cloud.rpc('set_stealth', { hide: true }).catch(() => { });
       // the team sees which language a player reads, and warnings from the team show up once
-      if (id) { V.cloud.rpc('set_lang', { l: V.lang }).catch(() => { }); checkWarnings(); setTimeout(pushAwards, 4000); setTimeout(syncArchive, 5000); }
+      if (id) { V.cloud.rpc('set_lang', { l: V.lang }).catch(() => { }); checkWarnings(); setTimeout(checkWishes, 2500); setTimeout(pushAwards, 4000); setTimeout(syncArchive, 5000); }
       histServer = null;
       // an open game sheet shows the new locks and modes too
       if (sheetRoot && sheetRoot.isConnected && selected) renderPanel(sheetRoot, selected, true);

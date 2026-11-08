@@ -3332,3 +3332,10 @@ body:has(.view.play) .season.halloween .spider{display:none}
     linear-gradient(rgba(98,240,255,.08),rgba(98,240,255,.08)) center/1px 100% no-repeat,linear-gradient(rgba(98,240,255,.08),rgba(98,240,255,.08)) center/100% 1px no-repeat,
     radial-gradient(circle,rgba(98,240,255,.06),transparent 70%)}
 .radar .rc{background:conic-gradient(from 0deg,transparent 0 70%,rgba(98,240,255,.12) 85%,rgba(98,240,255,.42) 99.4%,rgba(98,240,255,.95) 99.6% 100%)}
+/* admin overview: the Live number is a button to the running matches and tables */
+.kpi-go{display:contents;cursor:var(--cur-p,pointer);text-align:left;font:inherit;color:inherit}
+@media (hover:hover) and (pointer:fine){.kpi-go:hover .kpi{border-color:var(--cyan)}}
+.kpi-go:focus-visible .kpi{outline:2px solid var(--cyan)}
+/* guest badge after a player's name (js/flag.js): everybody sees who plays without an account */
+.gtag{display:inline-block;margin-left:.45em;padding:2px 6px;border:1px solid var(--line2);border-radius:4px;transform:skewX(var(--sk));background:var(--panel2);color:var(--muted);font:700 italic 10px/1.2 var(--f-d);letter-spacing:.1em;text-transform:uppercase;vertical-align:.12em;white-space:nowrap;flex:none}
+.acctp .ahead .gtag{display:none}
