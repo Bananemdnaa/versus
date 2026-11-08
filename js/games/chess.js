@@ -594,7 +594,7 @@
   .chx-nav button{width:34px;height:32px;border-radius:7px;background:var(--panel2);border:1px solid var(--line);color:var(--fg);display:grid;place-items:center;font:700 14px/1 var(--f-b)}
   .chx-nav button:disabled{opacity:.35}
   .chx-nav .chrv{width:auto;padding:0 10px;font:800 italic 12px/1 var(--f-d);text-transform:uppercase;letter-spacing:.06em;background:var(--good);color:#06210f;border-color:transparent}
-  .chx-ml{display:grid;grid-template-columns:auto 1fr 1fr;gap:1px 6px;align-items:center;max-height:118px;overflow-y:auto;font:600 14px/1.2 var(--f-b);scrollbar-width:thin}
+  .chx-ml{display:grid;grid-template-columns:auto 1fr 1fr;grid-auto-rows:min-content;align-content:start;gap:1px 6px;align-items:center;max-height:118px;overflow-y:auto;font:600 14px/1.2 var(--f-b);scrollbar-width:thin}
   .chx-ml:empty{display:block}
   .chx-ml button{justify-content:flex-start;text-align:left}
   .chx-ml:empty::before{content:attr(data-empty);color:var(--dim);font-weight:500}
