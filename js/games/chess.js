@@ -678,8 +678,8 @@
   .k2-blun{border-color:#ca343188} .k2-mist{border-color:#e5762b88} .k2-brill{border-color:#1baca688} .k2-great{border-color:#5c8bb088}
   /* the graph in the panel */
   .chg.big{height:80px;cursor:default}
-  .chg{position:relative;height:54px;border-radius:7px;overflow:hidden;background:#3a3836;cursor:var(--cur-p,pointer)}
-  .chg svg{position:absolute;inset:0;width:100%;height:100%}
+  .chg{position:relative;height:54px;border-radius:7px;background:#3a3836;cursor:var(--cur-p,pointer)}
+  .chg svg{position:absolute;inset:0;width:100%;height:100%;border-radius:inherit}
   .chg .mid{stroke:#777;stroke-width:.6;vector-effect:non-scaling-stroke}
   .chg .cur{stroke:var(--cyan);stroke-width:2;vector-effect:non-scaling-stroke}
   .chg-dots{position:absolute;inset:0;pointer-events:none} .chg-dots i{position:absolute;width:9px;height:9px;margin:-4.5px 0 0 -4.5px;border-radius:50%;border:1.5px solid #fff;box-shadow:0 1px 2px rgba(0,0,0,.4)}
@@ -927,11 +927,13 @@
         const t = el.querySelector('#chtry'); if (t) t.onclick = () => startRetry([at - 1]);
       }
       // ---------- the eval graph: tap to jump; dots for the weaker moves ----------
+      const gy = e => 7 + (100 - winP(e)) * 0.86;
       function graph() {
         const el = panel.querySelector('#chg');
         el.hidden = !rev; if (!rev) return;
         const n = rev.evals.length - 1 || 1, at = retry ? retry.k : view === null ? hist.length : view;
-        const X = i => (i / n * 100).toFixed(2), Y = e => (100 - winP(e)).toFixed(2);
+        // a little room above and below, so a mate (0 % or 100 %) and its dot still show inside the box
+        const X = i => (i / n * 100).toFixed(2), Y = e => gy(e).toFixed(2);
         const area = `M0 100 ${rev.evals.map((e, i) => `L${X(i)} ${Y(e)}`).join(' ')} L100 100Z`;
         const dots = rev.moves.map((r, k) => ['inacc', 'mist', 'miss', 'blun', 'brill', 'great'].includes(r.kind) ? `<i class="k-${r.kind}${theirs(hist[k].mover) ? ' opp' : ''}" style="left:${X(k + 1)}%;top:${Y(rev.evals[k + 1])}%"></i>` : '').join('');
         el.innerHTML = `<svg viewBox="0 0 100 100" preserveAspectRatio="none"><path d="${area}" fill="#f2f2f2"/><path d="M0 50H100" class="mid"/><path d="M${X(at)} 0V100" class="cur"/></svg>
@@ -1178,7 +1180,7 @@
         const human = s => !ctx.isAI(numOf[s]);
         const practice = rev.sf ? rev.moves.map((x, k) => ({ x, k })).filter(o => ['mist', 'blun', 'miss'].includes(o.x.kind) && human(hist[o.k].mover)).map(o => o.k) : [];
         const n1 = s => esc(nm(s));
-        const pts = rev.evals.map((e, k) => [k / Math.max(1, rev.evals.length - 1) * 100, 100 - winP(e)]);
+        const pts = rev.evals.map((e, k) => [k / Math.max(1, rev.evals.length - 1) * 100, gy(e)]);
         const graphSvg = `<div class="chg big"><svg viewBox="0 0 100 100" preserveAspectRatio="none"><path d="M0 100 ${pts.map(p => 'L' + p[0].toFixed(2) + ' ' + p[1].toFixed(2)).join(' ')} L100 100Z" fill="#f2f2f2"/><path d="M0 50H100" class="mid"/></svg><span class="chg-dots">${rev.moves.map((x, k) => ['mist', 'blun', 'miss', 'brill', 'great'].includes(x.kind) ? `<i class="k-${x.kind}${theirs(hist[k].mover) ? ' opp' : ''}" style="left:${pts[k + 1][0].toFixed(2)}%;top:${pts[k + 1][1].toFixed(2)}%"></i>` : '').join('')}</span></div>`;
         const m = V.openModal(`<div class="chr"><div class="chr-h"><h3>Partie-Analyse</h3><small>${rev.sf ? 'Stockfish 19' : 'Versus-Engine'}</small></div>
           <div class="chr-l"><div class="chr-acc">${sides.map(s => `<div class="${s}${meS === s ? ' me' : ''}"><small><span>${n1(s)}</span> · <span>${s === 'w' ? 'Weiß' : 'Schwarz'}</span></small><b>${acc(s).toFixed(1)}</b><small>Genauigkeit</small>
