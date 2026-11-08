@@ -196,7 +196,7 @@
         ${party ? `<div class="pcol pcol-l">${SIDES.filter(s => leftCol(s)).map(s => card(s, 'l')).join('')}</div><div class="pcol pcol-r">${SIDES.filter(s => !leftCol(s)).map(s => card(s, 'r')).join('')}</div>` : `${card(L, 'l')}
         <div class="score" id="sc"><b class="sl">${series[L]}</b><i>:</i><b class="sr">${series[R]}</b></div>
         ${card(R, 'r')}`}
-        <div class="center"><div class="status" id="st" aria-live="polite"></div><div class="stage" id="stage"></div>
+        <div class="center"><div class="status" id="st" aria-live="polite"></div><div class="stage" id="stage"${spect ? ' inert' : ''}></div>
           <div class="tpill" id="tpill" hidden><i></i><b></b>${g.keys && g.cat !== 'Action' && !watch && !spect ? `<small>${g.keys.slice(0, 2).map(([k, d]) => `<kbd>${k}</kbd> ${V.t(d)}`).join(' · ')}</small>` : ''}</div></div>
       </div><i class="sglow t" aria-hidden="true"></i><i class="sglow b" aria-hidden="true"></i></div>`);
     const stEl = v.querySelector('#st'), pls = {};
@@ -1181,7 +1181,7 @@
     if (pr) pr.onclick = () => online ? leave(null) : leave(() => play(g, cfg, series));
     v.querySelector('#ph').onclick = tut;
     P.playApi = {
-      key(e) { return keyFn ? keyFn(e) : false; },
+      key(e) { return keyFn && !spect ? keyFn(e) : false; },
       back,
       menu: pauseMenu,
       // the laptop sidebar during a match: leave (with the usual question), then go there

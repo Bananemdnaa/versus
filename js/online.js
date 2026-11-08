@@ -58,7 +58,8 @@
     try {
       const st = await C().rpc('party_state', { tid: id, since: 0 });
       const g = V.byId[st.game];
-      if (!g || !WATCH_T.includes(st.game)) return V.ui.toast('Bei diesem Spiel kann man nicht zuschauen.');
+      // admins may watch every table game (also card games: they see what a neutral seat sees)
+      if (!g || (!admin && !WATCH_T.includes(st.game))) return V.ui.toast('Bei diesem Spiel kann man nicht zuschauen.');
       if (st.status !== 'live') { V.ui.toast('Das Spiel an diesem Tisch ist vorbei.'); return admin ? null : refreshTab(); }
       if (st.seat) return startTable(st);
       V.ui.play(g, { mode: 'table', level: st.lvl, opts: Object.assign({}, st.opts, { n: st.n }), match: { id: st.id, seat: 0, init: st, spect: true, admin: !!admin } });

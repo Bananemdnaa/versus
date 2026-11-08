@@ -577,7 +577,7 @@
         <div class="m-t"><b>${seats}</b>
           <small>${esc(gameName(t.game))} · Tisch ${esc(t.code)} · ${t.moves} Züge · ${when(t.finished_at || t.started_at || t.created_at)}</small>
           <span class="m-r">${t.status === 'live' ? '<em class="rtag live">Live</em> ' : ''}${ST[t.status] || esc(t.status)}${t.result && t.status === 'void' ? ' · ' + esc(t.result) : ''}</span></div>
-        <div class="m-a">${t.status === 'live' && V.online.WATCH_T.includes(t.game) ? `<button class="btn sm primary" data-watcht="${t.id}"><span>Zuschauen</span></button>` : ''}
+        <div class="m-a">${t.status === 'live' && V.byId[t.game] ? `<button class="btn sm primary" data-watcht="${t.id}"><span>Zuschauen</span></button>` : ''}
           ${full() && t.status === 'live' ? (t.seats || []).map((s, i) => !s || s === 'KI' ? ''
           : sure === 'sai:' + t.id + ':' + (i + 1) ? `<button class="btn ghost sm danger" data-sai="${t.id}:${i + 1}"><span>KI für ${esc(s)}?</span></button>`
           : `<button class="btn ghost sm" data-sure="sai:${t.id}:${i + 1}"><span>${IC().robot}${esc(s)}</span></button>`).join('') : ''}
