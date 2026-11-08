@@ -3526,3 +3526,18 @@ body:has(.view.play) .season.halloween .spider{display:none}
 @keyframes bcPulse{50%{background:rgba(8,9,15,.16);border-color:rgba(8,9,15,.8)}}
 .lowfx .bc-av{animation:none}
 @media (max-width:380px){.bc-slot{padding:8px 7px}.bc-slot b{font-size:13px}.bc-nm b{font-size:26px}}
+
+/* ---------- rivals: your record against this opponent in the intro and on the end screen ---------- */
+.vsi-h2h{position:absolute;left:50%;bottom:max(7vh,24px);translate:-50% 0;display:flex;flex-direction:column;align-items:center;gap:4px;padding:8px 16px;transform:skewX(var(--sk));background:var(--ink);color:#fff;box-shadow:5px 5px 0 rgba(8,9,15,.35);animation:vsn .35s var(--snap) backwards}
+.vsi-h2h>*{transform:skewX(calc(var(--sk) * -1))}
+@media (min-width:960px){.vsi-h2h{bottom:auto;top:7vh}}
+.vsi-h2h small{font:700 italic 11px/1 var(--f-d);letter-spacing:.2em;text-transform:uppercase;opacity:.7}
+.vsi-h2h b{font:800 italic 30px/1 var(--f-d);font-variant-numeric:tabular-nums}
+.vsi-h2h b i{margin:0 6px;opacity:.5;font-style:normal}
+.vsi-h2h em,.ko .kh2h em{padding:3px 8px;background:var(--yellow);color:var(--ink);font:800 italic 11px/1 var(--f-d);letter-spacing:.12em;text-transform:uppercase;font-style:italic}
+.ko .kh2h{display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:center;padding:7px 14px;border-radius:999px;background:var(--panel2);border:1px solid var(--line2);animation:qsIn .4s .45s var(--spring) backwards}
+.ko .kh2h>span{font-size:13px;color:var(--muted)} .ko .kh2h>.kn{margin-left:-6px;color:var(--fg);font-weight:700}
+.ko .kh2h b{font:800 italic 20px/1 var(--f-d);font-variant-numeric:tabular-nums}
+.ko .kh2h b .me{color:var(--pink);font-size:inherit}
+.ko .kh2h b i{margin:0 4px;color:var(--dim);font-style:normal}
+.ko .kh2h small{font-size:12px;color:var(--dim)}

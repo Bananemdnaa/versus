@@ -263,7 +263,7 @@
         return r;
       }).catch(() => (alive && !ended ? here() : null));
     }
-    let alive = true, ended = false, keyFn = null, lastTurn = 0, lastNote = '', moodBand = 0, bubbleT = null;
+    let alive = true, ended = false, keyFn = null, lastTurn = 0, lastNote = '', moodBand = 0, bubbleT = null, h2h = null;
     const LINES = {
       3: ['Ich sehe den Sieg.', 'Gleich ist es vorbei.', 'Das war’s wohl.'],
       2: ['Läuft für mich.', 'Gefällt mir.', 'Nicht schlecht, oder?'],
@@ -543,6 +543,7 @@
             ${party ? `<div class="eparty">${SIDES.map(k => `<span class="ep c${k}"><b>${series[k]}</b><small>${esc(names[k])}</small></span>`).join('')}</div>` : `<div class="eseries"><span class="nl">${esc(names[L])}</span><b class="sl${winner === L && !off ? ' up' : ''}" data-n="${series[L]}">${winner === L && !off ? series[L] - 1 : series[L]}</b><i>:</i><b class="sr${winner === R && !off ? ' up' : ''}" data-n="${series[R]}">${winner === R && !off ? series[R] - 1 : series[R]}</b><span class="nr">${esc(names[R])}</span></div>`}
             ${eloRes ? `<div class="kelo ${eloRes.delta >= 0 ? 'up' : 'down'}" id="kelo-ai"><span>KI-Elo</span><b>${eloRes.from}</b><em>${eloRes.delta >= 0 ? '+' : '−'}${Math.abs(eloRes.delta)}</em></div>` : ''}
             ${online && !off && !watch && !(net && net.last && net.last.ranked === false) ? '<div class="kelo" id="kelo" hidden></div>' : ''}
+            ${online && h2h && !off ? (hh => `<div class="kh2h">${hh.n >= 5 ? `<em>${hh.n === 5 ? 'Neue Rivalität' : 'Rivale'}</em>` : ''}<span>Du gegen</span><span class="kn">${esc(M.opp)}</span><b><span class="me">${hh.w}</span><i>:</i><span>${hh.l}</span></b><small>${hh.n} Partien</small></div>`)({ w: h2h.w + (winner === mySide ? 1 : 0), l: h2h.l + (winner && winner !== mySide ? 1 : 0), n: h2h.n + 1 }) : ''}
             ${dWon ? `<div class="kdaily">${IC.bolt}<b>Spiel des Tages erledigt</b><span>Serie: ${dWon} ${dWon === 1 ? 'Tag' : 'Tage'}</span></div>` : ''}
             ${fresh.length ? `<div class="kbadges">${fresh.map(b => `<div class="kbdg bt${b.tier}" title="${esc(b.d)}"><span class="abz-ic">${b.ic}</span><span><small>${b.tier === 3 ? 'Legendäres Abzeichen' : b.tier === 2 ? 'Seltenes Abzeichen' : 'Neues Abzeichen'}</small><b>${b.t}</b></span></div>`).join('')}</div>` : ''}
             ${ai && winner && winner !== me && !off && tipFor() ? `<div class="ktip">${IC.bulb}<div><b>Tipp für die Revanche</b><p>${tipFor()}</p></div></div>` : ''}
@@ -1229,6 +1230,14 @@
       tut
     };
     const pu = v.querySelector('#pu'); if (pu) pu.onclick = undo;
+    // online duel: your record against this opponent (player_profile → vs); it joins the intro when it arrives in time
+    // and the end screen adds this match to it. From 5 matches together the two of you are rivals.
+    if (online && M.opp && !watch && V.cloud && V.cloud.rpc) V.cloud.rpc('player_profile', { name: M.opp }).then(p => {
+      if (!alive || !p || !p.vs) return;
+      h2h = { w: p.vs.wins || 0, l: p.vs.losses || 0, d: p.vs.draws || 0, n: p.vs.played || 0 };
+      const vi = document.querySelector('.vsi:not(.out)');
+      if (vi && h2h.n) vi.insertAdjacentHTML('beforeend', `<div class="vsi-h2h">${h2h.n >= 5 ? '<em>Rivale</em>' : ''}<small>Ihr beide</small><b>${h2h.w}<i>:</i>${h2h.l}</b></div>`);
+    }).catch(() => { });
     if (rep) { /* replaying after an undo: no intro */ }
     else if (party && N > 2) vsIntro({ name: names[1], sub: sideLabel(1) }, { name: ai ? N - 1 + ' KIs' : 'Alle', sub: ai ? lvName : N + ' Spieler' }, rematch, g, introTip);
     else {
