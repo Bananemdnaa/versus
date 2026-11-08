@@ -61,7 +61,7 @@
     'Nach Updates suchen': 'Check for updates', 'Version #': 'Version #',
     'Tutorials wieder als neu zeigen': 'Show tutorials as new again', 'Einstellungen zurücksetzen': 'Reset settings', 'Bilanz löschen': 'Delete stats',
     'Sicher? Nochmal tippen': 'Sure? Tap again',
-    'Versus # · ohne Werbung. KI und Spiele zu zweit laufen auch offline.': 'Versus # · no ads. AI and two-player games also work offline.',
+    'Versus # · von Flixos Studio · ohne Werbung. KI und Spiele zu zweit laufen auch offline.': 'Versus # · by Flixos Studio · no ads. AI and two-player games also work offline.',
     'Taste {0} zeigt alle Kürzel.': 'Key {0} shows all shortcuts.',
     'Der Browser hat die Vibration blockiert. Tipp einmal irgendwo auf die Seite und versuch es nochmal.': 'The browser blocked vibration. Tap anywhere on the page once and try again.',
     'Nichts gespürt? Auf dem iPhone geht das erst ab iOS 18 und nur, wenn unter Einstellungen → Töne & Haptik die {0} an ist.': 'Nothing felt? On iPhone this needs iOS 18 or later, and {0} must be on under Settings → Sounds & Haptics.',
@@ -1446,7 +1446,7 @@
   A({
     'Spielt pro Zug # Partien durch.': 'Plays through # games per move.', 'in einer Linie zwischen deinem neuen und einem alten Stein': 'in a line between your new disc and an old one',
     'mehr Steine seiner Farbe': 'more discs of their colour', 'sich nicht mehr bewegen kann': 'cannot move any more', 'sofort nochmal': 'again right away', 'kann nicht': "can't move",
-    'Umdrehen': 'Flipping', 'Turm!': 'Rook!', 'Springer!': 'Knight!', 'Läufer!': 'Bishop!', 'Versus # · ohne Werbung. KI und Spiele zu zweit laufen auch offline.{0}': 'Versus # · no ads. AI and two-player games also work offline.{0}',
+    'Umdrehen': 'Flipping', 'Turm!': 'Rook!', 'Springer!': 'Knight!', 'Läufer!': 'Bishop!', 'Versus # · von Flixos Studio · ohne Werbung. KI und Spiele zu zweit laufen auch offline.{0}': 'Versus # · by Flixos Studio · no ads. AI and two-player games also work offline.{0}',
     'Du gewinnst #': 'You win #', 'Schnellboot': 'Patrol boat'
   });
   A({
@@ -1488,7 +1488,7 @@
 
   // ---------- legal ----------
   A({
-    'Impressum und Datenschutz': 'Legal notice and privacy', 'Versus # · ohne Werbung. KI und Spiele zu zweit laufen auch offline.{0}{1}{2}': 'Versus # · no ads. AI and two-player games also work offline.{0}{1}{2}', 'Datenschutz und Impressum': 'Privacy and legal notice', 'Nutzungsbedingungen': 'Terms of service', 'Community auf Discord': 'Community on Discord', 'Mitspieler finden, Ideen teilen und Bugs melden': 'Find players, share ideas and report bugs', 'Fair spielen, Konto und was das Team tun kann': 'Fair play, accounts and what the team can do',
+    'Impressum und Datenschutz': 'Legal notice and privacy', 'Versus # · von Flixos Studio · ohne Werbung. KI und Spiele zu zweit laufen auch offline.{0}{1}{2}': 'Versus # · by Flixos Studio · no ads. AI and two-player games also work offline.{0}{1}{2}', 'Datenschutz und Impressum': 'Privacy and legal notice', 'Nutzungsbedingungen': 'Terms of service', 'Community auf Discord': 'Community on Discord', 'Mitspieler finden, Ideen teilen und Bugs melden': 'Find players, share ideas and report bugs', 'Fair spielen, Konto und was das Team tun kann': 'Fair play, accounts and what the team can do',
     'Welche Daten Versus speichert und wer dahintersteht': 'What data Versus stores and who runs it',
     'Konten ab 14 Jahren, jünger nur mit Erlaubnis der Eltern. Was gespeichert wird: {0}.': 'Accounts from age 14, younger only with your parents\' permission. What is stored: {0}.', 'Datenschutz': 'Privacy'
   });

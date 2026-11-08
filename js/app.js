@@ -1532,7 +1532,7 @@
       <nav class="onav" aria-label="Kategorien"><h1 class="title"><span>Deine</span> Optionen</h1>
         <label class="osearch">${IC.search}<input id="oq" type="search" placeholder="Option suchen" autocomplete="off" spellcheck="false" aria-label="Option suchen"></label>
         <div class="onav-l">${cats.map(([k, l]) => `<button data-oj="${k}" class="${optCat === k ? 'on' : ''}">${l}</button>`).join('')}</div>
-        <p class="onav-v">Versus ${V.VERSION || ''}<br><a href="rechtliches.html">Impressum und Datenschutz</a><br><a href="terms.html">Nutzungsbedingungen</a></p></nav>
+        <p class="onav-v">Versus ${V.VERSION || ''} · Flixos Studio<br><a href="rechtliches.html">Impressum und Datenschutz</a><br><a href="terms.html">Nutzungsbedingungen</a></p></nav>
       <div class="omain"><p class="onow">Änderungen gelten sofort</p>
       <div class="ogroups">
       <div class="ogroup" data-oc="sound"><h2 class="oh"><button class="oh-b" data-ot="sound" aria-expanded="true">Ton und Vibration</button></h2>
@@ -1583,7 +1583,7 @@
       </div></div>`}
       </div>
       <p class="onone" id="onone" hidden>Keine Option gefunden.</p>
-      <p class="about">Versus ${V.VERSION || ''} · ohne Werbung. KI und Spiele zu zweit laufen auch offline.<span class="only-fine"> Taste <kbd>?</kbd> zeigt alle Kürzel.</span><br><a href="rechtliches.html">Impressum und Datenschutz</a> · <a href="terms.html">Nutzungsbedingungen</a> · <a href="${V.DISCORD}" target="_blank" rel="noopener">Discord</a></p>
+      <p class="about">Versus ${V.VERSION || ''} · von Flixos Studio · ohne Werbung. KI und Spiele zu zweit laufen auch offline.<span class="only-fine"> Taste <kbd>?</kbd> zeigt alle Kürzel.</span><br><a href="rechtliches.html">Impressum und Datenschutz</a> · <a href="terms.html">Nutzungsbedingungen</a> · <a href="${V.DISCORD}" target="_blank" rel="noopener">Discord</a></p>
     </div></section>`;
   }
   // the options as a popup (during a match): same rows and categories, the match stays where it is
