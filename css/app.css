@@ -3356,8 +3356,8 @@ body:has(.view.play) .season.halloween .spider{display:none}
 @media (max-width:959px){.apromo{background:repeating-linear-gradient(-60deg,rgba(8,9,15,.08) 0 10px,transparent 10px 22px),var(--cyan)}}
 /* phone: the close cross on the survey and install bars is a full thumb target (44 px), it looks the same */
 @media (pointer:coarse){.instc .x,.upbar .x{width:44px;height:44px;margin:-5px -6px -5px -4px}}
-/* phone: a tab sliding in (or a card coming in from the right) never makes the page wider for a moment */
-@media (max-width:959px){html{overflow-x:clip}}
+/* phone: a tab sliding in (or a card coming in from the right) never makes the page wider for a moment; the clip sits on #app, not on html: on html it stops the body overflow from reaching the viewport, and the page could no longer be scrolled */
+@media (max-width:959px){#app{overflow-x:clip}}
 /* options with many choices (e.g. the categories of the Alphabet-Spiel): full names, wrapping into lines */
 .rv-row.many .mini-seg{display:flex;flex-wrap:wrap;gap:6px;justify-content:flex-start}
 .rv-row.many .mini-seg button{flex:1 1 auto;min-width:0;padding:0 12px;overflow:visible;text-overflow:clip}
