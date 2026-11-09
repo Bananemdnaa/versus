@@ -3630,3 +3630,5 @@ body:has(.view.play) .season.halloween .spider{display:none}
 
 /* phone: while the page is scrolling, the endless decorations hold still (hero card picture and shine, background clouds, rank gem); they go on as soon as the finger lets go */
 html.scrolling .hcard *,html.scrolling .bgfx *,html.scrolling .rank i{animation-play-state:paused!important}
+/* online tab, login card: on narrow phones the long German button text ('Anmelden oder Konto erstellen') stays inside the button - less side padding, and a second line if it still does not fit */
+.oacc .btn{max-width:100%;padding-inline:14px;white-space:normal;height:auto;min-height:46px;padding-block:8px;line-height:1.1;text-align:center}
