@@ -1413,8 +1413,11 @@ button{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
 .qt-ic{width:36px;height:36px;display:grid;place-items:center;color:var(--c);background:color-mix(in srgb,var(--c) 12%,transparent);border:1px solid color-mix(in srgb,var(--c) 45%,transparent);transform:skewX(var(--sk))}
 .qt-ic svg{width:19px;height:19px;transform:skewX(10deg)}
 .qtile b{font:800 italic 15px/1.05 var(--f-d);text-transform:uppercase;letter-spacing:.02em}
-.qtile .live{position:absolute;top:12px;right:12px;width:8px;height:8px;border-radius:50%;background:var(--good);animation:live 1.4s ease-out infinite}
-.lowfx .qtile .live{animation:none}
+.qtile .live{position:absolute;top:12px;right:12px;width:8px;height:8px;border-radius:50%;background:var(--good)}
+/* the pulse is a ring that grows and fades (transform and opacity only): an animated box-shadow made the phone repaint the whole page every frame while scrolling */
+.qtile .live::after{content:"";position:absolute;inset:0;border-radius:50%;background:rgba(93,255,157,.7);animation:liveRing 1.4s ease-out infinite;will-change:transform,opacity}
+@keyframes liveRing{from{transform:scale(1);opacity:1}to{transform:scale(2.75);opacity:0}}
+.lowfx .qtile .live::after{animation:none;display:none}
 
 /* search with a round clear button instead of the native cross */
 .gclear{width:28px;height:28px;flex:none;display:grid;place-items:center;border-radius:50%;background:var(--panel3);color:var(--muted);transition:transform var(--t-fast)}
@@ -3624,3 +3627,6 @@ body:has(.view.play) .season.halloween .spider{display:none}
 @keyframes tgLive{50%{opacity:.25}}
 .lowfx .tgc.live .tgc-k::before{animation:none}
 @media (min-width:960px){.tgcs{margin-top:22px}.tgc{min-height:140px;flex-direction:row;align-items:center;gap:18px;padding:18px 56px 18px 20px}.tgc-tx{margin-top:0}.tgc-pic{transform:scale(1.15);margin:0 6px}}
+
+/* phone: while the page is scrolling, the endless decorations hold still (hero card picture and shine, background clouds, rank gem); they go on as soon as the finger lets go */
+html.scrolling .hcard *,html.scrolling .bgfx *,html.scrolling .rank i{animation-play-state:paused!important}

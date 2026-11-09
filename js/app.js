@@ -1822,7 +1822,14 @@
   }
   addEventListener('offline', () => netState(true));
   // the soft edge at the top of the phone screen only shows once the page has moved
-  const onScroll = () => document.documentElement.classList.toggle('scrolled', (wide() ? app.scrollTop : scrollY) > 8);
+  // while scrolling, html gets .scrolling so the endless decorations pause (see css); it goes 160 ms after the last scroll
+  let scrollIdle = 0;
+  const onScroll = () => {
+    const r = document.documentElement;
+    r.classList.toggle('scrolled', (wide() ? app.scrollTop : scrollY) > 8);
+    if (!scrollIdle) r.classList.add('scrolling'); else clearTimeout(scrollIdle);
+    scrollIdle = setTimeout(() => { scrollIdle = 0; r.classList.remove('scrolling'); }, 160);
+  };
   addEventListener('scroll', onScroll, { passive: true }); if (app) app.addEventListener('scroll', onScroll, { passive: true });
   // phone: a quick sideways swipe over the page moves to the next or previous tab (not over rows that scroll sideways)
   // (pages without the app, like the page builder in tools/pages.ps1, have no #app)
@@ -2052,8 +2059,9 @@
     function rect(el) { return el.getBoundingClientRect(); }
     function apply(anim = true) {
       const c = frame();
+      if (!active) { c.classList.remove('on'); return; }
       const it = items();
-      if (!active || !it.length || modalEl) { c.classList.remove('on'); return; }
+      if (!it.length || modalEl) { c.classList.remove('on'); return; }
       if (idx < 0 || idx >= it.length) idx = Math.floor(it.length / 2);
       const r = rect(it[idx]), pad = opts.pad ?? 3;
       c.classList.toggle('round', !!opts.round);
