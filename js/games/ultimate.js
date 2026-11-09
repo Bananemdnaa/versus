@@ -31,13 +31,13 @@
 
   V.css(`
   .ut{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));grid-template-rows:repeat(3,minmax(0,1fr));gap:8px;width:min(var(--bw),600px);aspect-ratio:1}
-  .ut .sb{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));grid-template-rows:repeat(3,minmax(0,1fr));min-height:0;gap:3px;padding:5px;border-radius:8px;background:var(--panel);border:1px solid var(--line);position:relative;transition:opacity .2s,border-color .2s,box-shadow .2s}
+  .ut .sb{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));grid-template-rows:repeat(3,minmax(0,1fr));min-height:0;gap:3px;padding:5px;border-radius:8px;background:var(--ink2);border:1px solid var(--line2);box-shadow:0 6px 16px rgba(0,0,0,.45);position:relative;transition:opacity .2s,border-color .2s,box-shadow .2s}
   .ut .sb.act{border-color:var(--cy);box-shadow:0 0 0 1px var(--cy),0 0 22px -6px var(--cy)}
-  .ut .sb.dim{opacity:.5}
-  .ut .cl{min-width:0;min-height:0;border-radius:6px;background:var(--panel2);display:grid;place-items:center;font-family:var(--f-d);font-weight:700;font-size:clamp(14px,4.2vw,26px);line-height:1}
+  .ut .sb.dim{border-color:var(--line)} .ut .sb.dim .cl{background:color-mix(in srgb,var(--panel2) 55%,var(--ink2))} .ut .sb.dim .cl.x,.ut .sb.dim .cl.o{opacity:.8}
+  .ut .cl{min-width:0;min-height:0;border-radius:6px;background:var(--panel3);display:grid;place-items:center;font-family:var(--f-d);font-weight:800;font-size:clamp(17px,5.2vw,30px);line-height:1}
   .ut .sb.act .cl:empty:hover{background:#24355a;cursor:var(--cur-p,pointer)}
-  .ut .cl.x{color:var(--p1)} .ut .cl.o{color:var(--p2)}
-  .ut .cl.last{box-shadow:inset 0 0 0 2px rgba(255,255,255,.4)}
+  .ut .cl.x{color:var(--p1);text-shadow:0 0 10px color-mix(in srgb,var(--p1) 55%,transparent)} .ut .cl.o{color:var(--p2);text-shadow:0 0 10px color-mix(in srgb,var(--p2) 45%,transparent)}
+  .ut .cl.last{box-shadow:inset 0 0 0 2px rgba(255,255,255,.7)}
   .ut .won{position:absolute;inset:0;display:grid;place-items:center;border-radius:8px;background:rgba(11,12,21,.74);font-family:var(--f-d);font-weight:700;font-size:clamp(54px,17vw,120px);line-height:1;animation:pop .3s}
   .ut .won.x{color:var(--p1);text-shadow:0 0 24px color-mix(in srgb,var(--p1) 70%,transparent)} .ut .won.o{color:var(--p2);text-shadow:0 0 24px color-mix(in srgb,var(--p2) 60%,transparent)} .ut .won.d{color:var(--dim);font-size:clamp(30px,8vw,56px)}
   .ut .sb.wl{border-color:var(--cy)}`);
