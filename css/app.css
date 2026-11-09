@@ -2413,7 +2413,7 @@ html.lowfx::view-transition-group(*),html.lowfx::view-transition-old(*),html.low
 @media (prefers-reduced-motion:reduce){::view-transition-group(*),::view-transition-old(*),::view-transition-new(*){animation:none!important}}
 .sd-inst{color:var(--cyan)}
 /* Online on the phone: friends before the ranking (on the laptop the ranking has the wide left column) */
-@media (max-width:959px){.online .ogrid>.ocol{display:contents}.online .orank{order:2}}
+@media (max-width:959px){.online .ogrid{grid-template-columns:minmax(0,1fr)}.online .ogrid>.ocol{display:contents}.online .ogrid>.ocol>*{min-width:0}.online .orank{order:2}}
 
 /* options as a popup during a match */
 .modal.optm{width:min(100%,920px);padding:22px;max-height:min(86dvh,760px)}
@@ -3589,7 +3589,7 @@ body:has(.view.play) .season.halloween .spider{display:none}
 @media (min-width:960px){.faddm .tny .ty-tree{grid-template-columns:repeat(var(--r),minmax(140px,1fr))}}
 
 /* ---------- "Zusammen spielen": tournament and game night as two big cards on the start page ---------- */
-.tgcs{margin-top:18px}
+.tgcs{margin-top:18px;margin-bottom:24px}
 .tgh{margin:0 0 10px;font:800 italic 20px/1 var(--f-d);text-transform:uppercase;letter-spacing:.01em}
 .tgrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
 .tgrid.one{grid-template-columns:minmax(0,1fr)}
