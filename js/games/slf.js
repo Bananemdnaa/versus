@@ -3,8 +3,8 @@
   // the others get 10 more seconds. Then everybody can strike answers that don't count, and points are given:
   // 20 if you're the only one with an answer, 10 for a unique answer, 5 if someone has the same.
   // Before the letter shows there is a short countdown, so everybody starts at the same moment.
-  // The computer looks over the answers first: wrong letter is out, gibberish is suggested for striking, and answers
-  // it knows from its lists (cities, countries, rivers, animals, names, jobs, brands, food) are marked as known.
+  // The computer looks over the answers first: wrong letter is out, gibberish is suggested for striking (works in any
+  // language, no word lists).
   // Uses ctx.listen/ctx.submit: { a: answers, r } written answers, { v: struck keys, r } votes.
   const DEF_CATS = ['Stadt', 'Land', 'Fluss', 'Tier', 'Name', 'Beruf'];
   const LETTERS = 'ABCDEFGHIKLMNOPRSTUWZ';
@@ -52,17 +52,8 @@
     }
   };
 
-  // which built-in list a category is checked against (the lists of the Alphabet-Spiel, js/games/abc.js, plus rivers)
-  const LISTS = { stadt: 'staedte', staedte: 'staedte', städte: 'staedte', land: 'laender', laender: 'laender', länder: 'laender', fluss: 'fluss', flüsse: 'fluss', tier: 'tiere', tiere: 'tiere', name: 'namen', vorname: 'namen', vornamen: 'namen', beruf: 'berufe', berufe: 'berufe', marke: 'marken', marken: 'marken', essen: 'essen', getränk: 'essen', 'essen & trinken': 'essen' };
-  const RIVERS = 'Aare,Ahr,Aller,Alster,Altmühl,Amazonas,Ammer,Amper,Amu Darja,Amur,Angara,Arkansas,Arno,Bode,Brahmaputra,Bug,Chemnitz,Colorado,Columbia,Dahme,Diemel,Dnepr,Dnjestr,Don,Donau,Dordogne,Douro,Drau,Eder,Eger,Eider,Elbe,Ems,Enns,Enz,Erft,Etsch,Euphrat,Fils,Fulda,Ganges,Garonne,Gelber Fluss,Glatt,Hase,Havel,Huang He,Hudson,Ijssel,Iller,Ilm,Indus,Inn,Irrawaddy,Isar,Itz,Jagst,Jangtse,Jenissei,Jordan,Kinzig,Kocher,Kongo,Kyll,Lahn,Lauter,Lech,Leine,Lena,Limpopo,Lippe,Loire,Maas,Main,March,Mekong,Mississippi,Missouri,Möhne,Moldau,Mosel,Mulde,Mur,Murg,Naab,Nagold,Nahe,Neckar,Neiße,Newa,Nidda,Niger,Nil,Nogat,Ob,Oder,Ohio,Oise,Oker,Orinoco,Paraguay,Paraná,Peene,Pegnitz,Po,Pruth,Rednitz,Regen,Regnitz,Rems,Rhein,Rhône,Rio Grande,Ruhr,Rur,Ruwer,Saale,Saar,Salzach,Sambesi,Sauer,Save,Schelde,Seine,Severn,Shannon,Sieg,Spree,Tajo,Tauber,Tejo,Themse,Theiß,Tiber,Tigris,Traun,Trave,Uecker,Ulster,Unstrut,Ural,Warthe,Weichsel,Werra,Wertach,Weser,Wiese,Wolga,Wörnitz,Wümme,Wupper,Würm,Yukon,Zschopau'.split(',');
   // compare answers without case, umlauts, spaces or dashes: "Weißrussland" = "weissrussland"
   const key = s => norm(s).replace(/ä/g, 'ae').replace(/ö/g, 'oe').replace(/ü/g, 'ue').replace(/ß/g, 'ss').replace(/[^a-z0-9]/g, '');
-  const RIV = new Set(RIVERS.map(key));
-  function known(cat, a) {
-    const l = LISTS[norm(cat)]; if (!l) return null;
-    if (l === 'fluss') return RIV.has(key(a));
-    return V.words ? V.words.known(l, a) : null;
-  }
   // the same answer, or one typo apart in a longer word ("Wolfgang" / "Wolfgagn")
   function same(a, b) {
     a = key(a); b = key(b);
@@ -107,14 +98,11 @@
   .slf-tab td.a.nil{color:var(--dim);cursor:default}
   .slf-tab td.a.x{text-decoration:line-through;color:var(--bad)}
   .slf-tab td.a.own{cursor:default}
-  .slf-tab td.a i{font-style:normal;font-size:11px;font-weight:800;margin-left:4px;text-decoration:none;display:inline-block}
-  .slf-tab td.a i.ok{color:var(--good)} .slf-tab td.a i.q{color:var(--yellow)}
   .slf-tab td.a em{font-style:normal;font:800 italic 13px/1 var(--f-d);margin-left:6px;color:var(--good);display:inline-block;text-decoration:none}
   .slf-tab td.a.x em{color:var(--bad)}
   .slf-tab tr.sum td{background:var(--panel2);font:800 italic 15px/1 var(--f-d);color:var(--muted)}
   .slf-tab tr.tot td{background:var(--panel2);font:800 italic 18px/1 var(--f-d)}
   .slf-note{color:var(--muted);font-size:13px;text-align:center;margin:0}
-  .slf-note i{font-style:normal;font-weight:800} .slf-note i.ok{color:var(--good)} .slf-note i.q{color:var(--yellow)}
   @media (max-width:480px){
     .slf-tab{font-size:13px} .slf-tab th,.slf-tab td{padding:6px 4px} .slf-tab th{font-size:11px;letter-spacing:.02em}
     .slf-tab td.c{font-size:10.5px} .slf-tab th:first-child{width:22%}
@@ -138,8 +126,8 @@
     tutorial: [
       { t: 'Das Ziel', d: 'Ein <b>Buchstabe</b> wird ausgelost: erst zählt es <b>3, 2, 1</b> herunter, dann seht ihr ihn alle gleichzeitig. Schreib zu jeder Spalte etwas, das damit anfängt, zum Beispiel <b>Stadt, Land, Fluss, Tier, Name, Beruf</b>. Welche Spalten es gibt, legt ihr vorher im Spiel-Panel fest, auch eigene.' },
       { t: 'Stopp!', d: 'Bist du fertig, tippe <b>Stopp</b>. Die anderen haben dann noch ein paar Sekunden (im Spiel-Panel: 5, 10, 20 oder kein Stopp). Spätestens wenn die Zeit abläuft, ist die Runde vorbei.' },
-      { t: 'Der Computer prüft', d: 'Vor dem Streichen schaut der Computer drüber: Falscher Anfangsbuchstabe ist raus, Buchstabensalat wie „wxyz“ ist schon zum Streichen markiert. Antworten aus seinen Listen (Städte, Länder, Flüsse, Tiere, Namen, Berufe …) bekommen ein grünes <b>✓</b>, unbekannte ein gelbes <b>?</b>. Die schaut ihr euch genauer an.' },
-      { t: 'Streichen', d: 'Danach seht ihr alle Antworten. <b>Tippe auf eine Antwort</b>, die nicht zählt. Gestrichen wird sie, wenn <b>mehr als die Hälfte</b> der anderen sie streicht, eine Antwort mit ✓ nur, wenn <b>alle</b> anderen sie streichen. Dann <b>Weiter</b>.' },
+      { t: 'Der Computer prüft', d: 'Vor dem Streichen schaut der Computer drüber: <b>Falscher Anfangsbuchstabe</b> ist raus, Buchstabensalat wie „wxyz“ ist schon zum Streichen markiert (wieder antippen, wenn es doch zählt).' },
+      { t: 'Streichen', d: 'Danach seht ihr alle Antworten. <b>Tippe auf eine Antwort</b>, die nicht zählt. Gestrichen wird sie, wenn <b>mehr als die Hälfte</b> der anderen sie streicht. Dann <b>Weiter</b>.' },
       { t: 'Punkte', d: '<b>20</b>: nur du hast in der Spalte eine gültige Antwort. <b>10</b>: deine Antwort hat sonst niemand. <b>5</b>: jemand hat dasselbe (auch mit anderer Schreibweise oder einem Tippfehler). Nach allen Runden gewinnt, wer die meisten Punkte hat.' },
       { t: 'Am selben Handy', d: 'Spielt ihr an einem Gerät, schreibt jeder nacheinander für sich, dann wird gemeinsam gestrichen. Die Zeit pro Runde stellt ihr im Spiel-Panel ein.' }
     ],
@@ -253,27 +241,24 @@
       // an answer counts if it starts with the letter, is not empty, and not enough others struck it
       const starts = a => norm(a).startsWith(letter.toLowerCase()) || (letter === 'A' && /^ä/.test(norm(a))) || (letter === 'O' && /^ö/.test(norm(a))) || (letter === 'U' && /^ü/.test(norm(a)));
       const mine = new Set();
-      // what the computer says about each answer: 'x' wrong letter (always out), 'j' gibberish (suggested for striking),
-      // 'ok' in its lists, 'q' a category it has a list for but doesn't know the answer, '' no list for the category
+      // what the computer says about each answer: 'x' wrong letter (always out), 'j' gibberish (suggested for striking)
       let check = {};
       function voteUI() {
         clearInterval(tick); phase = 'vote'; mine.clear(); check = {};
-        P.forEach(p => CATS.forEach((c, ci) => {
+        P.forEach(p => CATS.forEach((_, ci) => {
           const a = ans[p][ci], k = p + ':' + ci; if (!norm(a)) return;
-          const kn = known(c, a);
-          check[k] = !starts(a) ? 'x' : junk(a) ? 'j' : kn ? 'ok' : kn === false ? 'q' : '';
-          if (check[k] === 'x' || check[k] === 'j') mine.add(k);
+          check[k] = !starts(a) ? 'x' : junk(a) ? 'j' : '';
+          if (check[k]) mine.add(k);
         }));
         V.sfx.goal(); drawVote();
       }
-      const mark = k => check[k] === 'ok' ? '<i class="ok" title="Kennt der Computer">✓</i>' : check[k] === 'q' ? '<i class="q" title="Kennt der Computer nicht">?</i>' : '';
       function drawVote() {
         const viewer = local ? 0 : me();
         const waiting = !local && voted;
         wrap.innerHTML = `<div class="slf-head"><div class="slf-letter">${letter}</div><div class="slf-time"><small>Runde ${round}</small><b>Streichen</b></div></div>
           <table class="slf-tab" lang="de"><tr><th></th>${P.map(p => `<th class="c${p}">${p === viewer ? 'Du' : ctx.name(p)}</th>`).join('')}</tr>
-          ${CATS.map((c, ci) => `<tr><td class="c">${esc(c)}</td>${P.map(p => { const a = ans[p][ci], k = p + ':' + ci; return `<td class="a${!norm(a) ? ' nil' : ''}${mine.has(k) ? ' x' : ''}${p === viewer || check[k] === 'x' ? ' own' : ''}" data-k="${k}">${norm(a) ? esc(a) + mark(k) : '–'}</td>`; }).join('')}</tr>`).join('')}</table>
-          <p class="slf-note">${waiting ? 'Warte auf die anderen …' : `Tippe auf Antworten, die nicht zählen. <i class="ok">✓</i> kennt der Computer, <i class="q">?</i> kennt er nicht. Falscher Anfangsbuchstabe ist schon gestrichen.`}</p>
+          ${CATS.map((c, ci) => `<tr><td class="c">${esc(c)}</td>${P.map(p => { const a = ans[p][ci], k = p + ':' + ci; return `<td class="a${!norm(a) ? ' nil' : ''}${mine.has(k) ? ' x' : ''}${p === viewer || check[k] === 'x' ? ' own' : ''}" data-k="${k}">${norm(a) ? esc(a) : '–'}</td>`; }).join('')}</tr>`).join('')}</table>
+          <p class="slf-note">${waiting ? 'Warte auf die anderen …' : 'Tippe auf Antworten, die nicht zählen. Falscher Anfangsbuchstabe ist schon gestrichen.'}</p>
           ${waiting ? '' : '<button class="btn primary big" id="slfv"><span>Weiter</span></button>'}`;
         wrap.querySelectorAll('td.a').forEach(td => td.onclick = () => {
           if (waiting || td.classList.contains('nil') || td.classList.contains('own')) return;
@@ -286,12 +271,12 @@
         phase = 'score';
         const voters = local ? [P[0]] : people();
         // one device: what was struck there counts. Online the others decide: more than half of them have to strike an
-        // answer (2 players: the other one, 3: both others, 4: two of three); one the computer knows only goes if all do
+        // answer (2 players: the other one, 3: both others, 4: two of three)
         const bad = k => {
           if (local) return votes[P[0]].includes(k);
           const p = +k.split(':')[0], others = voters.filter(v => v !== p), n = others.filter(v => votes[v].includes(k)).length;
           if (!others.length) return check[k] === 'j';
-          return check[k] === 'ok' ? n === others.length : n * 2 > others.length;
+          return n * 2 > others.length;
         };
         const pts = {}; P.forEach(p => { pts[p] = CATS.map(() => 0); });
         CATS.forEach((_, c) => {

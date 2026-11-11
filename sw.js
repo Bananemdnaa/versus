@@ -1,6 +1,6 @@
 // Versus service worker: makes the app installable and playable offline (AI and two-player games).
 // Online features (accounts, friends, matches) talk to Supabase directly and are never cached.
-const CACHE = 'versus-v134';
+const CACHE = 'versus-v135';
 
 // On install, everything index.html loads is cached, so the very first visit already works offline later.
 self.addEventListener('install', e => {

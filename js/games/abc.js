@@ -28,8 +28,6 @@
     return false;
   }
   const startsWith = (w, l) => norm(w)[0] === l.toLowerCase();
-  // Stadt Land Fluss checks its answers against the same lists (js/games/slf.js)
-  V.words = { known: (cat, w) => !!CATS[cat] && known(cat, w) };
 
   V.css(`
   .ab{width:min(var(--bw),560px);display:flex;flex-direction:column;gap:12px;align-items:stretch}
